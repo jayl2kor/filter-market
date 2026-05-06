@@ -16,7 +16,6 @@
 		119F59048DD73F241EA0B082 /* FMTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B95877146902AAE4EAF654C /* FMTabBar.swift */; };
 		128647022ADCBDB0B1A4020F /* JSONCoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DFEBC628452580364C887A9 /* JSONCoding.swift */; };
 		15D3299073BA8D1E2DD21434 /* cafe-cream.png in Resources */ = {isa = PBXBuildFile; fileRef = E95403B1DE5BA4E38A934325 /* cafe-cream.png */; };
-		19BF8D4F3C0BCE6AF0D31F9E /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = CF63705BBDEB45ABDB24DABE /* GoogleService-Info.plist */; };
 		1C2482212D5E440B63A42A51 /* Models.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 17B1469C92033DB00AD14607 /* Models.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		1D1398AD8450F4BA33201F7E /* Auth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9A1235D2D5FB004AC0811A48 /* Auth.framework */; };
 		1E9D5B2211F2E21692AF76F7 /* PhotoLibrarySaverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D71D1E904D3ED77082B0D87B /* PhotoLibrarySaverTests.swift */; };
@@ -134,6 +133,7 @@
 		FB3EB5143F7CB74DDBCC04F2 /* SearchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B7EE3D08FC1F1519F5C9369 /* SearchScreen.swift */; };
 		FB758FAE5AF9ACE2A4DD86B9 /* CameraPermissionDenied.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81D58DE45CD8AA6B49F5005B /* CameraPermissionDenied.swift */; };
 		FBF2E3C068FCF781A61958B3 /* MetalPreviewRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4938271995D89CCB0505AA41 /* MetalPreviewRenderer.swift */; };
+		FC9FB5016A02FCBF62257876 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = ABA018FED2669B351E1B92FF /* GoogleService-Info.plist */; };
 		FD521422DEA22BF02F25C5AA /* FMToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 414BEC54E8D6EA94E34E61A1 /* FMToast.swift */; };
 		FDCEFC4AF5F6FD447A54BA78 /* FMSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC3E2D13CC029413A91CB862 /* FMSlider.swift */; };
 /* End PBXBuildFile section */
@@ -390,6 +390,7 @@
 		A5351CED6F1DF3CD977446C4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A989842A9E1BA002F56ADB18 /* FMEmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMEmptyState.swift; sourceTree = "<group>"; };
 		AA80AEE3D4DD5B9103378940 /* PhotosPermissionPriming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotosPermissionPriming.swift; sourceTree = "<group>"; };
+		ABA018FED2669B351E1B92FF /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		AE15FDD0D63491F42DC3EB6B /* CapturePreviewScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePreviewScreen.swift; sourceTree = "<group>"; };
 		B11666E56545174DA99CF8B2 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		B339E6F1CED51CCDE7CE847C /* FMAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMAlert.swift; sourceTree = "<group>"; };
@@ -406,7 +407,6 @@
 		CB6D9F616164FEE0F2EE122C /* Motion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Motion.swift; sourceTree = "<group>"; };
 		CB771299658A02843FB72837 /* NotificationsPermissionPriming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsPermissionPriming.swift; sourceTree = "<group>"; };
 		CC598BE66F5FF68DF9EEE6AF /* LocationPermissionDenied.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionDenied.swift; sourceTree = "<group>"; };
-		CF63705BBDEB45ABDB24DABE /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		D351682BABF67206F22ADF96 /* FMSkeleton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMSkeleton.swift; sourceTree = "<group>"; };
 		D71D1E904D3ED77082B0D87B /* PhotoLibrarySaverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibrarySaverTests.swift; sourceTree = "<group>"; };
 		DB733F6CAB461FE90147DBD6 /* MooditApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditApp.swift; sourceTree = "<group>"; };
@@ -533,6 +533,14 @@
 			);
 			name = App;
 			path = Sources/App;
+			sourceTree = "<group>";
+		};
+		025F81EB6B5443B867B1F50E /* Firebase */ = {
+			isa = PBXGroup;
+			children = (
+				ABA018FED2669B351E1B92FF /* GoogleService-Info.plist */,
+			);
+			path = Firebase;
 			sourceTree = "<group>";
 		};
 		03CD7D9ABB2A6E9B4F312B5E /* FilterEngineTests */ = {
@@ -717,15 +725,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A5A5E6B38A3F69CBE90D45E0 /* Firebase */ = {
-			isa = PBXGroup;
-			children = (
-				CF63705BBDEB45ABDB24DABE /* GoogleService-Info.plist */,
-			);
-			name = Firebase;
-			path = Sources/App/Resources/Firebase;
-			sourceTree = "<group>";
-		};
 		A660DB695F311617AC6E978B /* Marketplace */ = {
 			isa = PBXGroup;
 			children = (
@@ -814,6 +813,7 @@
 			isa = PBXGroup;
 			children = (
 				A5351CED6F1DF3CD977446C4 /* Assets.xcassets */,
+				025F81EB6B5443B867B1F50E /* Firebase */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -851,7 +851,6 @@
 				AA53238A1F66D2B5B8A87C85 /* DesignSystem */,
 				887DE3742A4EE58C234A39CC /* FilterEngine */,
 				03CD7D9ABB2A6E9B4F312B5E /* FilterEngineTests */,
-				A5A5E6B38A3F69CBE90D45E0 /* Firebase */,
 				C14638E06B70DB7384A421A3 /* Marketplace */,
 				454810AC1E27833A6B3321DE /* MarketplaceTests */,
 				C6C6ECEF31C99BEDDCB90675 /* Models */,
@@ -1131,6 +1130,54 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
+					1C7F3BCF0DA80E0146F80D44 = {
+						DevelopmentTeam = 5JLM7UY2MY;
+						ProvisioningStyle = Automatic;
+					};
+					28C71C7AC6696C82D3EEC5F0 = {
+						DevelopmentTeam = 5JLM7UY2MY;
+						ProvisioningStyle = Automatic;
+					};
+					49D8181E3DFCAAEBCB5D1DA7 = {
+						DevelopmentTeam = 5JLM7UY2MY;
+						ProvisioningStyle = Automatic;
+					};
+					5F48D345013357180B4A85BD = {
+						DevelopmentTeam = 5JLM7UY2MY;
+						ProvisioningStyle = Automatic;
+					};
+					689B1C4EB8655E3F2EA50BAC = {
+						DevelopmentTeam = 5JLM7UY2MY;
+						ProvisioningStyle = Automatic;
+					};
+					71FC1246D529B9A3F2979252 = {
+						DevelopmentTeam = 5JLM7UY2MY;
+						ProvisioningStyle = Automatic;
+					};
+					88D6AD039A8EEEE6219CC0DE = {
+						DevelopmentTeam = 5JLM7UY2MY;
+						ProvisioningStyle = Automatic;
+					};
+					893E34F951F1C3C07790E092 = {
+						DevelopmentTeam = 5JLM7UY2MY;
+						ProvisioningStyle = Automatic;
+					};
+					A6CEC3E80C7935946B80F3B8 = {
+						DevelopmentTeam = 5JLM7UY2MY;
+						ProvisioningStyle = Automatic;
+					};
+					C6D187A67EEB20C5676D3054 = {
+						DevelopmentTeam = 5JLM7UY2MY;
+						ProvisioningStyle = Automatic;
+					};
+					D333650AB4271F5E2E0ED856 = {
+						DevelopmentTeam = 5JLM7UY2MY;
+						ProvisioningStyle = Automatic;
+					};
+					E3D4A108F30A949DB222474E = {
+						DevelopmentTeam = 5JLM7UY2MY;
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = 3A78F7E814FE45BC6DE61DC6 /* Build configuration list for PBXProject "moodit" */;
@@ -1172,7 +1219,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9E741D7E42757E5EC2821E84 /* Assets.xcassets in Resources */,
-				19BF8D4F3C0BCE6AF0D31F9E /* GoogleService-Info.plist in Resources */,
+				FC9FB5016A02FCBF62257876 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1668,9 +1715,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 5JLM7UY2MY;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1981,9 +2030,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 5JLM7UY2MY;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;

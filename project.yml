@@ -6,8 +6,8 @@ options:
     iOS: "17.0"
   xcodeVersion: "26.3"
 
-# 코드 서명 — Xcode UI 에서 직접 설정 (Signing & Capabilities → Team)
-# xcodegen 재생성 시 Xcode UI 설정이 사라지면 다시 선택하세요.
+# 코드 서명 — DEVELOPMENT_TEAM 을 프로젝트 전체(모든 framework + 메인 앱)에 적용.
+# 다른 머신에서 작업 시 본인 Team ID 로 변경.
 
 settings:
   base:
@@ -16,6 +16,8 @@ settings:
     SWIFT_VERSION: 6.0
     SWIFT_STRICT_CONCURRENCY: minimal
     ENABLE_USER_SCRIPT_SANDBOXING: NO
+    DEVELOPMENT_TEAM: 5JLM7UY2MY
+    CODE_SIGN_STYLE: Automatic
 
 packages:
   Firebase:
@@ -29,10 +31,6 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: Sources/App
-        excludes:
-          - "Resources/Firebase/GoogleService-Info.plist"
-      - path: Sources/App/Resources/Firebase/GoogleService-Info.plist
-        buildPhase: resources
     dependencies:
       - target: Camera
       - target: FilterEngine
