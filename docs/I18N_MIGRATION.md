@@ -33,7 +33,7 @@
 도메인 prefix:
 - `nav` / `common` — 글로벌
 - `auth`, `marketplace`, `search`, `saved`, `profile`, `settings`,
-  `notifications`, `favorites`, `moderation`, `wallet`, `comments`,
+  `notifications`, `favorites`, `moderation`, `wallet`, `reviews` (Phase 2; replaces `comments`),
   `rating`, `onboarding` — 화면별
 - `empty` — 빈 상태
 - `permissions` — 권한 흐름
@@ -227,9 +227,29 @@ A. 본 카탈로그는 1차 draft. native English speaker 검수 필요 (특히 
 
 ---
 
-## 8. 관련 문서
+## 8. Deprecated 키 (Phase 2 Comments → Reviews)
+
+기존 `comments.*` 도메인은 Phase 2 에서 `reviews.*` 로 교체. 카탈로그에는
+`extractionState: "stale"` + 폐기 사유 코멘트로 마킹되어 있고, 다음 릴리즈 (N+1) 에서 제거.
+
+| Deprecated 키 | 후속 키 |
+|---|---|
+| `comments.title` | `reviews.title` |
+| `comments.compose.placeholder` | `reviews.compose.body.placeholder` |
+| `comments.reply` | `reviews.maker.reply` |
+| `empty.comments.loggedin.title` | `empty.reviews.loggedin.title` |
+| `empty.comments.loggedin.body` | `empty.reviews.loggedin.body` |
+| `empty.comments.loggedout.body` | `empty.reviews.loggedout.body` |
+| `notifications.category.comments` | `notifications.category.reviews` |
+
+마이그레이션 배경: [`REVIEWS_MIGRATION.md`](./REVIEWS_MIGRATION.md).
+
+---
+
+## 9. 관련 문서
 
 - [DESIGN_LOG.md](./DESIGN_LOG.md) — 디자인 보강 로그
 - [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) — 디자인 시스템 v1.1
+- [REVIEWS_MIGRATION.md](./REVIEWS_MIGRATION.md) — Phase 2 Comments → Reviews
 - [Localizable.xcstrings](../Sources/App/Resources/Localizable.xcstrings) — String Catalog
 - Apple [WWDC23 Discover String Catalogs](https://developer.apple.com/wwdc23/10155)

@@ -193,16 +193,113 @@ iOS 18+ Home Screen / App Switcher 에서 시스템 설정 (light/dark/tinted) �
 
 1. **`FMToggle` / `FMSwipeIndicator` 적용처 마이그레이션** — `NotificationSettingsScreen`, `EditProfileScreen`, `OnboardingScreen`, `CameraScreen` 의 stock 컨트롤 교체.
 2. **실제 사진 자산 도입** — `docs/ASSETS_NEEDED.md` 의 P0 자산 (시드 필터 비포/애프터 5종 × 3장).
-3. **i18n migration** — 기존 화면들의 하드코딩 문자열을 `Localizable.xcstrings` 키로 점진 교체.
+3. **i18n migration Wave 1~3** — 화면별 점진 교체. 가이드: [`I18N_MIGRATION.md`](./I18N_MIGRATION.md).
 4. **VoiceOver / Dynamic Type 화면 단위 검증** — 신규 placeholder 화면 (Notifications, Favorites, Filter Rejected) 의 a11y 라벨 점검.
 
 ---
 
-## 6. 관련 문서
+## 6. i18n (Localizable.xcstrings) — 2026-05-07 추가
+
+### 작업 내용
+
+| Phase | 산출 |
+|---|---|
+| L1 Catalog 확장 | 32 → ~130 키. 12 도메인 (`nav` / `common` / `auth` / `marketplace` / `search` / `saved` / `profile` / `settings` / `notifications` / `favorites` / `moderation` / `empty` / `permissions` / `wallet` / `comments` / `rating` / `onboarding` / `toast`) |
+| L2 Project config | `Info.plist` 에 `CFBundleDevelopmentRegion = ko` + `CFBundleLocalizations = [ko, en]` |
+| L3 Reference 마이그레이션 | `NotificationsInboxScreen` 전 영역 — `LocalizedStringKey` 기반 |
+| L4 가이드 | [`I18N_MIGRATION.md`](./I18N_MIGRATION.md) — 패턴 / 우선순위 / 검증 방법 |
+
+빌드 검증: `** TEST BUILD SUCCEEDED **` (2026-05-07).
+
+### Reference 변경 (`NotificationsInboxScreen`)
+
+- `Text("알림")` → `Text("notifications.title")`
+- `.navigationTitle("알림")` → `.navigationTitle(Text("notifications.title"))`
+- `.accessibilityLabel("알림 설정")` → `.accessibilityLabel(Text("notifications.settings.title"))`
+- `NotificationCategory.label: String` → `localizedKey: LocalizedStringKey`
+- `NotificationGroup.label: String` → `localizedKey: LocalizedStringKey`
+- `groupLabel(_ title: String)` → `groupLabel(_ key: LocalizedStringKey)`
+- 빈 상태 텍스트 + 팔로우 버튼 → 모두 catalog 키
+
+### 영어 톤 가이드
+
+- 짧고 직접적 ("Save" not "Save Now")
+- 한국어보다 ~1.3× 길어짐 — Dynamic Type xxxLarge 검증 필수
+- 메이커/마켓 용어는 영어 그대로 (Maker, Market, Filter)
+- "moodit" 브랜드 이름 소문자 유지
+
+### 점진 마이그레이션 우선 (Wave)
+
+- **Wave 1** Login / Onboarding / Marketplace / FilterDetail / Permission (8) / RootShell tab
+- **Wave 2** Profile / Settings / Search / Saved / EditProfile / Favorites
+- **Wave 3** Editor / Upload / Wallet / Maker / Mod
+- **Wave 4** Mock data / `InfoPlist.xcstrings` 별도
+
+### 검증 방법
+
+- Scheme arg `-AppleLanguages (en) -AppleLocale en_US` 으로 영어 강제
+- Preview `.environment(\.locale, .init(identifier: "en"))`
+- 영어 + xxxLarge Dynamic Type 동시 점검
+
+---
+
+## 7. Phase 2 — Comments → Reviews 마이그레이션 (2026-05-07)
+
+### 결정 배경
+
+기존 `mockups/screens/23-comments-list.html` 의 자유 댓글 + @mention + 답글 트리 패턴은
+Instagram 패턴으로 마켓플레이스 정체성 (`BRAND.md` "갤러리 벽 / 편집자의 손맛") 과 충돌.
+App Store 패턴 (별점 리뷰 + 메이커 1회 답글) 으로 재정의.
+
+상세 결정 문서: [`REVIEWS_MIGRATION.md`](./REVIEWS_MIGRATION.md)
+
+### Phase 2.1 산출 (Design — 본 작업)
+
+| 분류 | 산출 |
+|---|---|
+| 결정 문서 | `docs/REVIEWS_MIGRATION.md` |
+| KO mockup | `mockups/screens/23-reviews-list.html` (별점 분포 + 정렬 + 리뷰 카드 + 메이커 답글) |
+| KO mockup | `mockups/screens/23b-review-compose.html` (별점 + 280자 + 사진 + 강도 + 조명 태그) |
+| EN mockup | `mockups/en/23-reviews-list.html` |
+| EN mockup | `mockups/en/23b-review-compose.html` |
+| xcstrings 추가 | `reviews.*` 도메인 ~30 키 (ko/en) |
+| xcstrings deprecate | `comments.*`, `empty.comments.*`, `notifications.category.comments` 키에 `extractionState: stale` + 폐기 사유 코멘트 |
+| 신규 alias | `notifications.category.reviews` (Phase 2.2 코드에서 카테고리 enum rename 시 사용) |
+
+### Reviews 시스템 핵심 정의
+
+- **작성 자격**: 다운로드 후 1인 1리뷰 (수정/삭제 가능). `reviews.cta.gate.download_required` 게이트.
+- **구성**: 별점 (필수) + 본문 280자 (선택) + 사진 1장 (선택) + 강도 (선택) + 조명 태그 (선택, 다중).
+- **메이커 답글**: 1회 200자, 자기 자신 리뷰 금지.
+- **정렬**: 도움됨 (기본) / 최신 / 별점 높음 / 별점 낮음 / 사진 포함.
+- **검증 표시**: `검증된 다운로드` (Verified download) 배지로 진본 강조.
+
+### Phase 2.2 — Code (별도 PR)
+
+다음 항목은 본 작업에서 다루지 않음 (Swift 코드 변경 미허용):
+
+- `AppRoute.comments(filterId:)` → `reviews(filterId:)` rename
+- `AppRoute.commentCompose(filterId:)` → `reviewCompose(filterId:)` rename
+- `CommentsListScreen` / `CommentComposeScreen` placeholder → real `ReviewsListScreen` / `ReviewComposeScreen`
+- `RatingFormScreen` (mockup 24) 흡수 → `ReviewComposeScreen` 의 sub-pattern
+- Notifications 카테고리 enum: `.comments` → `.reviews`
+- 호출처 (FilterDetailScreen "324개 →" 링크 등) 전환
+
+### Phase 2.3 — Cleanup
+
+- mockup 23-comments-list / 23b-comments-compose deprecate 표시 (파일 보존)
+- mockup 24-rating-form README 업데이트 (review compose sub-pattern 으로 흡수됨)
+- 다음 릴리즈 (N+1) 에서 deprecated 키 제거
+
+---
+
+## 8. 관련 문서
 
 - [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) — v1.1 디자인 시스템
 - [`DESIGN_TOKENS.json`](./DESIGN_TOKENS.json) — v1.2.0 토큰
 - [`MOTION_SPEC.md`](./MOTION_SPEC.md) — 모션 스펙
 - [`EMPTY_STATES.md`](./EMPTY_STATES.md) — 빈 상태 명세
 - [`ASSETS_NEEDED.md`](./ASSETS_NEEDED.md) — 사진 자산 brief
+- [`I18N_MIGRATION.md`](./I18N_MIGRATION.md) — i18n 마이그레이션 가이드
+- [`REVIEWS_MIGRATION.md`](./REVIEWS_MIGRATION.md) — Phase 2 Comments → Reviews 결정 문서
 - [`DESIGN_INTEGRATION_PLAN.md`](./DESIGN_INTEGRATION_PLAN.md) — D0~D7 phase 추적

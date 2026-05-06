@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>moodit — Design Mockups (EN)</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<style>
+  body {
+    background:
+      radial-gradient(900px 500px at 80% -10%, var(--accent-bg) 0%, transparent 60%),
+      radial-gradient(700px 400px at 10% 110%, rgba(184,133,58,0.04) 0%, transparent 60%),
+      var(--bg-0);
+    min-height: 100vh; padding: 64px 32px 96px;
+    color: var(--text-primary);
+  }
+
+  .gallery { max-width: 1280px; margin: 0 auto; }
+
+  .gallery-head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding-bottom: var(--sp-2xl); border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: var(--sp-2xl); gap: var(--sp-xl); flex-wrap: wrap;
+  }
+  .brand-mark { display: flex; align-items: center; gap: var(--sp-md); }
+  .brand-mark__logo {
+    width: 56px; height: 56px;
+    border-radius: var(--r-md); background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    display: grid; place-items: center; color: var(--accent);
+    box-shadow: 0 8px 24px rgba(184,133,58,0.10);
+  }
+  .brand-mark__title { font-size: 36px; font-weight: 700; letter-spacing: -0.5px; margin: 0; color: var(--text-primary); }
+  .brand-mark__subtitle { font-size: var(--t-callout-size); color: var(--text-secondary); margin: 4px 0 0; }
+
+  .lang-switch {
+    display: inline-flex; gap: 0;
+    background: var(--bg-2); border: 1px solid var(--border-default);
+    border-radius: var(--r-full); padding: 3px;
+  }
+  .lang-switch a {
+    padding: 6px 16px; font-size: var(--t-subhead-size); font-weight: 600;
+    color: var(--text-secondary); border-radius: var(--r-full);
+    text-decoration: none;
+  }
+  .lang-switch a.active { background: var(--accent); color: var(--text-inverse); }
+
+  .gallery__intro {
+    max-width: 720px; margin: 0 auto var(--sp-2xl);
+    color: var(--text-secondary); font-size: var(--t-body-size); line-height: 1.6;
+  }
+  .gallery__intro strong { color: var(--text-primary); }
+
+  .gallery__section-title {
+    font-size: var(--t-title-size); font-weight: 700;
+    letter-spacing: -0.2px; margin: var(--sp-2xl) 0 var(--sp-md);
+    color: var(--text-primary);
+  }
+  .gallery__section-title:first-of-type { margin-top: 0; }
+  .gallery__section-sub {
+    font-size: var(--t-subhead-size); color: var(--text-tertiary);
+    margin: -8px 0 var(--sp-lg); font-weight: 500;
+  }
+
+  .gallery__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--sp-lg);
+  }
+
+  .card {
+    background: var(--bg-2); border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg); overflow: hidden;
+    box-shadow: var(--elev-1-shadow);
+    text-decoration: none; color: inherit;
+    transition: transform var(--d-fast) var(--ease-spring),
+                box-shadow var(--d-fast) var(--ease-standard);
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--elev-2-shadow); }
+
+  .card__preview {
+    aspect-ratio: 9 / 16; max-height: 380px;
+    background: var(--bg-3);
+    border-bottom: 1px solid var(--border-subtle);
+    overflow: hidden; position: relative;
+  }
+  .card__preview iframe {
+    width: 200%; height: 200%;
+    transform: scale(0.5); transform-origin: top left;
+    border: 0; pointer-events: none;
+  }
+
+  .card__body { padding: var(--sp-md); }
+  .card__num {
+    font-size: var(--t-caption-size); font-weight: 600;
+    color: var(--accent); letter-spacing: 0.4px; text-transform: uppercase;
+  }
+  .card__title {
+    font-size: var(--t-headline-size); font-weight: 700;
+    margin: 4px 0; color: var(--text-primary);
+  }
+  .card__desc {
+    font-size: var(--t-subhead-size); color: var(--text-secondary); line-height: 1.4;
+  }
+
+  .gallery__note {
+    margin-top: var(--sp-2xl); padding: var(--sp-lg);
+    background: var(--accent-bg); border: 1px solid var(--accent);
+    border-radius: var(--r-lg);
+    font-size: var(--t-subhead-size); color: var(--text-primary);
+  }
+  .gallery__note strong { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="gallery">
+  <header class="gallery-head">
+    <div class="brand-mark">
+      <div class="brand-mark__logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9"/>
+          <circle cx="12" cy="12" r="4" fill="currentColor"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="brand-mark__title">moodit</h1>
+        <p class="brand-mark__subtitle">Design Mockups · English</p>
+      </div>
+    </div>
+
+    <div class="lang-switch" role="tablist" aria-label="Language">
+      <a href="../index.html">한국어</a>
+      <a href="index.html" class="active">English</a>
+    </div>
+  </header>
+
+  <p class="gallery__intro">
+    English language mockups for moodit. Covers <strong>Wave 1 priority screens</strong> from
+    <a href="../../docs/I18N_MIGRATION.md" style="color:var(--accent);">I18N_MIGRATION.md</a>
+    + the three new screens we just built. All other screens (Editor, Upload, Wallet, etc.)
+    follow the Korean originals and will be translated incrementally.
+  </p>
+
+  <h2 class="gallery__section-title">Wave 1 — Critical user-facing</h2>
+  <p class="gallery__section-sub">Login, Onboarding, Marketplace, Filter Detail, Search, Profile, Settings</p>
+
+  <div class="gallery__grid">
+    <a class="card" href="01-onboarding.html">
+      <div class="card__preview"><iframe src="01-onboarding.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">01 · Onboarding</div>
+        <div class="card__title">Get Started</div>
+        <p class="card__desc">First impression — card stack hero with maker showcase.</p>
+      </div>
+    </a>
+
+    <a class="card" href="02-login.html">
+      <div class="card__preview"><iframe src="02-login.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">02 · Sign In</div>
+        <div class="card__title">Continue with Apple</div>
+        <p class="card__desc">Sign-in entry — Apple / Google / Email + guest browse fallback.</p>
+      </div>
+    </a>
+
+    <a class="card" href="06-marketplace-home.html">
+      <div class="card__preview"><iframe src="06-marketplace-home.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">06 · Marketplace</div>
+        <div class="card__title">Today's light</div>
+        <p class="card__desc">Trending, categories, new arrivals, curated collections.</p>
+      </div>
+    </a>
+
+    <a class="card" href="07-filter-detail.html">
+      <div class="card__preview"><iframe src="07-filter-detail.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">07 · Filter Detail</div>
+        <div class="card__title">Sunset 1973</div>
+        <p class="card__desc">Before/after, maker, stats, samples, comments + sticky CTA.</p>
+      </div>
+    </a>
+
+    <a class="card" href="08-search.html">
+      <div class="card__preview"><iframe src="08-search.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">08 · Search</div>
+        <div class="card__title">vintage</div>
+        <p class="card__desc">Recent searches, suggested keywords, popular makers, results grid.</p>
+      </div>
+    </a>
+
+    <a class="card" href="09-profile.html">
+      <div class="card__preview"><iframe src="09-profile.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">09 · Profile</div>
+        <div class="card__title">Jisoo Kang</div>
+        <p class="card__desc">Maker profile — bio, stats, segmented filter grid.</p>
+      </div>
+    </a>
+
+    <a class="card" href="10-settings.html">
+      <div class="card__preview"><iframe src="10-settings.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">10 · Settings</div>
+        <div class="card__title">Settings</div>
+        <p class="card__desc">Account, camera, notifications, about, sign-out.</p>
+      </div>
+    </a>
+  </div>
+
+  <h2 class="gallery__section-title">New screens (built 2026-05-07)</h2>
+  <p class="gallery__section-sub">P0 placeholder fills — Notifications, Collections, Filter Rejected</p>
+
+  <div class="gallery__grid">
+    <a class="card" href="27-notifications-inbox.html">
+      <div class="card__preview"><iframe src="27-notifications-inbox.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">27 · Notifications</div>
+        <div class="card__title">Activity feed</div>
+        <p class="card__desc">Categorized inbox — Likes / Comments / Downloads / System.</p>
+      </div>
+    </a>
+
+    <a class="card" href="30-favorites-collection.html">
+      <div class="card__preview"><iframe src="30-favorites-collection.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">30 · Collections</div>
+        <div class="card__title">My Collections</div>
+        <p class="card__desc">Auto-favorites + custom collections with 4-photo mosaic covers.</p>
+      </div>
+    </a>
+
+    <a class="card" href="48-filter-rejected.html">
+      <div class="card__preview"><iframe src="48-filter-rejected.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">48 · Filter Rejected</div>
+        <div class="card__title">Review Result</div>
+        <p class="card__desc">Maker rejection notice — numbered reasons, reviewer note, timeline, appeal.</p>
+      </div>
+    </a>
+  </div>
+
+  <h2 class="gallery__section-title">Permissions (8)</h2>
+  <p class="gallery__section-sub">Camera / Photos / Notifications / Location — priming + denied states</p>
+
+  <div class="gallery__grid">
+    <a class="card" href="permissions/camera-priming.html">
+      <div class="card__preview"><iframe src="permissions/camera-priming.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">P · Camera</div>
+        <div class="card__title">Capture with filters</div>
+        <p class="card__desc">Priming — explains camera access before iOS dialog.</p>
+      </div>
+    </a>
+
+    <a class="card" href="permissions/camera-denied.html">
+      <div class="card__preview"><iframe src="permissions/camera-denied.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">P · Camera</div>
+        <div class="card__title">Camera access is off</div>
+        <p class="card__desc">Denied — Open Settings + Browse the market fallback.</p>
+      </div>
+    </a>
+
+    <a class="card" href="permissions/photos-priming.html">
+      <div class="card__preview"><iframe src="permissions/photos-priming.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">P · Photos</div>
+        <div class="card__title">Save and import</div>
+        <p class="card__desc">Priming — Select Photos or Allow All option.</p>
+      </div>
+    </a>
+
+    <a class="card" href="permissions/photos-denied.html">
+      <div class="card__preview"><iframe src="permissions/photos-denied.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">P · Photos</div>
+        <div class="card__title">Photo access is off</div>
+        <p class="card__desc">Denied — Open Settings + continue without saving.</p>
+      </div>
+    </a>
+
+    <a class="card" href="permissions/notifications-priming.html">
+      <div class="card__preview"><iframe src="permissions/notifications-priming.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">P · Notifications</div>
+        <div class="card__title">Don't miss the moment</div>
+        <p class="card__desc">Priming — opt-in for follows, comments, downloads.</p>
+      </div>
+    </a>
+
+    <a class="card" href="permissions/notifications-denied.html">
+      <div class="card__preview"><iframe src="permissions/notifications-denied.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">P · Notifications</div>
+        <div class="card__title">Notifications are off</div>
+        <p class="card__desc">Denied — Open Settings or continue without.</p>
+      </div>
+    </a>
+
+    <a class="card" href="permissions/location-priming.html">
+      <div class="card__preview"><iframe src="permissions/location-priming.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">P · Location</div>
+        <div class="card__title">Add location (optional)</div>
+        <p class="card__desc">Priming — EXIF location, stripped on market upload.</p>
+      </div>
+    </a>
+
+    <a class="card" href="permissions/location-denied.html">
+      <div class="card__preview"><iframe src="permissions/location-denied.html"></iframe></div>
+      <div class="card__body">
+        <div class="card__num">P · Location</div>
+        <div class="card__title">Without location</div>
+        <p class="card__desc">Denied — soft state since location is optional.</p>
+      </div>
+    </a>
+  </div>
+
+  <div class="gallery__note">
+    <strong>Status —</strong> 16 EN screens covering Wave 1 + new placeholder fills + all permissions.
+    The Swift app reads strings from
+    <code style="background: var(--bg-3); padding: 2px 6px; border-radius: 4px;">Localizable.xcstrings</code>
+    and switches automatically based on system language via
+    <code style="background: var(--bg-3); padding: 2px 6px; border-radius: 4px;">CFBundleLocalizations</code>.
+    Korean is the source language; these mockups serve as the visual reference for English rendering.
+  </div>
+</div>
+</body>
+</html>

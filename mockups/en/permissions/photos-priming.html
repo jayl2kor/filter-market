@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>P · Photos Priming — moodit (EN)</title>
+<link rel="stylesheet" href="../../shared/fonts.css" />
+<link rel="stylesheet" href="../../shared/tokens.css" />
+<link rel="stylesheet" href="../../shared/components.css" />
+<link rel="stylesheet" href="../../shared/phone-frame.css" />
+<link rel="stylesheet" href="../../screens/permissions/_shared.css" />
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="screen" style="background: var(--bg-0);">
+      <div class="screen__top-spacer"></div>
+      <header class="topbar topbar--transparent">
+        <button class="topbar__action" aria-label="Close">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+        </button>
+        <span></span>
+        <span></span>
+      </header>
+
+      <main class="perm">
+        <div class="perm__top">
+          <div class="perm__art" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="5" width="18" height="14" rx="2"/>
+              <circle cx="9" cy="11" r="2"/>
+              <path d="M3 16 L8 12 L13 16 L17 13 L21 17"/>
+            </svg>
+          </div>
+          <h1 class="perm__title">Save and import photos</h1>
+          <p class="perm__body">
+            Photo access lets you save captures to your library and apply filters to existing photos.
+            You can choose to share only selected photos.
+          </p>
+        </div>
+
+        <div class="perm__bottom">
+          <button class="btn btn--primary btn--block btn--lg">Select Photos or Allow All</button>
+          <button class="btn btn--ghost btn--block">Maybe later</button>
+          <p class="perm__hint">On iOS 14+, you can share only selected photos.</p>
+        </div>
+      </main>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

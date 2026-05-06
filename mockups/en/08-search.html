@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>08 · Search — moodit (EN)</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .search-top {
+    display: flex; align-items: center; gap: var(--sp-xs);
+    padding: var(--sp-xs) var(--screen-pad);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-0);
+  }
+  .search-top .field {
+    flex: 1; height: 40px;
+    border: 1px solid var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-ring);
+  }
+  .search-top .field input { font-weight: 500; }
+  .search-top .cancel {
+    color: var(--accent); font-size: var(--t-callout-size);
+    font-weight: 600; padding: 0 4px;
+  }
+
+  .row-block { padding: var(--sp-md) var(--screen-pad); }
+  .row-block + .row-block { border-top: 1px solid var(--border-subtle); }
+
+  .row-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: var(--sp-sm);
+  }
+  .row-head__title {
+    font-size: var(--t-headline-size); font-weight: 600;
+    letter-spacing: -0.1px; color: var(--text-primary);
+  }
+  .row-head__clear { font-size: var(--t-subhead-size); color: var(--text-tertiary); }
+
+  .recent {
+    display: flex; align-items: center; padding: 10px 0;
+    gap: var(--sp-sm); cursor: pointer;
+  }
+  .recent + .recent { border-top: 1px solid var(--border-subtle); }
+  .recent__icon { width: 16px; height: 16px; color: var(--text-tertiary); flex-shrink: 0; }
+  .recent__text { flex: 1; font-size: var(--t-body-size); color: var(--text-primary); }
+  .recent__remove { width: 16px; height: 16px; color: var(--text-tertiary); flex-shrink: 0; }
+
+  .keyword-chips { display: flex; flex-wrap: wrap; gap: var(--sp-xs); }
+
+  .makers {
+    display: flex; overflow-x: auto; gap: var(--sp-md);
+    padding-bottom: var(--sp-xs); scrollbar-width: none;
+  }
+  .makers::-webkit-scrollbar { display: none; }
+  .maker { flex: 0 0 80px; text-align: center; }
+  .maker .avatar { margin: 0 auto var(--sp-xs); border: 2px solid var(--accent-soft); color: #FFFFFF; }
+  .maker__name {
+    font-size: var(--t-subhead-size); font-weight: 600;
+    letter-spacing: -0.1px; color: var(--text-primary);
+  }
+  .maker__sub { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
+
+  .results {
+    padding: var(--sp-md) var(--screen-pad) var(--sp-3xl);
+    display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-sm);
+  }
+  .results-head {
+    grid-column: 1 / -1;
+    font-size: var(--t-caption-size); color: var(--text-tertiary);
+    letter-spacing: 0.4px; text-transform: uppercase;
+    padding-bottom: var(--sp-xs);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="screen" style="background: var(--bg-0);">
+      <div class="screen__top-spacer"></div>
+
+      <div class="search-top">
+        <div class="field">
+          <svg class="field__icon icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21 L16 16"/></svg>
+          <input type="text" value="vintage" placeholder="Filters, makers, moods" />
+          <button aria-label="Clear" style="display: grid; place-items: center; width: 18px; height: 18px; background: var(--text-tertiary); border-radius: var(--r-full); color: var(--bg-2);">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+          </button>
+        </div>
+        <button class="cancel">Cancel</button>
+      </div>
+
+      <div class="screen__body">
+        <section class="row-block fade-in">
+          <div class="row-head">
+            <h2 class="row-head__title">Recent searches</h2>
+            <a class="row-head__clear">Clear all</a>
+          </div>
+          <div class="recent">
+            <svg class="recent__icon icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7 L12 12 L16 14"/></svg>
+            <span class="recent__text">vintage</span>
+            <svg class="recent__remove icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+          </div>
+          <div class="recent">
+            <svg class="recent__icon icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7 L12 12 L16 14"/></svg>
+            <span class="recent__text">summer pastel</span>
+            <svg class="recent__remove icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+          </div>
+          <div class="recent">
+            <svg class="recent__icon icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7 L12 12 L16 14"/></svg>
+            <span class="recent__text">jisoo.films</span>
+            <svg class="recent__remove icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+          </div>
+        </section>
+
+        <section class="row-block fade-in fade-in--delay-1">
+          <div class="row-head">
+            <h2 class="row-head__title">Suggested keywords</h2>
+          </div>
+          <div class="keyword-chips">
+            <span class="chip chip--small">#golden-hour</span>
+            <span class="chip chip--small">#film-look</span>
+            <span class="chip chip--small">#cinematic</span>
+            <span class="chip chip--small">#cafe</span>
+            <span class="chip chip--small">#portrait</span>
+            <span class="chip chip--small">#mono</span>
+            <span class="chip chip--small">#vivid</span>
+            <span class="chip chip--small">#mood</span>
+          </div>
+        </section>
+
+        <section class="row-block fade-in fade-in--delay-2">
+          <div class="row-head">
+            <h2 class="row-head__title">Popular makers</h2>
+            <a class="row-head__clear" style="color: var(--accent);">All →</a>
+          </div>
+          <div class="makers">
+            <div class="maker">
+              <span class="avatar avatar--lg" style="background: linear-gradient(135deg,#B8853A,#5e4434);">JS</span>
+              <div class="maker__name">jisoo.films</div>
+              <div class="maker__sub">24 filters</div>
+            </div>
+            <div class="maker">
+              <span class="avatar avatar--lg" style="background: linear-gradient(135deg,#7E5FB8,#3a3a5a);">AL</span>
+              <div class="maker__name">alex.lab</div>
+              <div class="maker__sub">18 filters</div>
+            </div>
+            <div class="maker">
+              <span class="avatar avatar--lg" style="background: linear-gradient(135deg,#3A7AB8,#1f3a5e);">NS</span>
+              <div class="maker__name">noon.studio</div>
+              <div class="maker__sub">31 filters</div>
+            </div>
+            <div class="maker">
+              <span class="avatar avatar--lg" style="background: linear-gradient(135deg,#C485A6,#6a5a7a);">AF</span>
+              <div class="maker__name">air.films</div>
+              <div class="maker__sub">12 filters</div>
+            </div>
+            <div class="maker">
+              <span class="avatar avatar--lg" style="background: linear-gradient(135deg,#C77859,#4a2a2a);">WH</span>
+              <div class="maker__name">warm.house</div>
+              <div class="maker__sub">9 filters</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="fade-in fade-in--delay-3" style="border-top: 1px solid var(--border-subtle);">
+          <div class="results">
+            <div class="results-head">"vintage" results · 142</div>
+            <article class="filter-tile">
+              <div class="filter-tile__photo photo photo--vintage photo--vignette"></div>
+              <div class="filter-tile__overlay">
+                <div class="filter-tile__name">Sunset 1973</div>
+                <div class="filter-tile__meta">@jisoo.films · ↓ 9.8K</div>
+              </div>
+            </article>
+            <article class="filter-tile">
+              <div class="filter-tile__photo photo photo--warm photo--vignette"></div>
+              <div class="filter-tile__overlay">
+                <div class="filter-tile__name">Old Polaroid</div>
+                <div class="filter-tile__meta">@noon.studio · ↓ 4.2K</div>
+              </div>
+            </article>
+            <article class="filter-tile">
+              <div class="filter-tile__photo photo photo--cinematic photo--vignette"></div>
+              <div class="filter-tile__overlay">
+                <div class="filter-tile__name">Kodak 200</div>
+                <div class="filter-tile__meta">@alex.lab · ↓ 6.7K</div>
+              </div>
+            </article>
+            <article class="filter-tile">
+              <div class="filter-tile__photo photo photo--bw photo--vignette"></div>
+              <div class="filter-tile__overlay">
+                <div class="filter-tile__name">Ilford HP5</div>
+                <div class="filter-tile__meta">@warm.house · ↓ 1.5K</div>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <nav class="tabbar">
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>Market</span>
+        <span class="tab tab--active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21 L16 16"/></svg>Search</span>
+        <span class="tab tab--shutter" aria-label="Camera"><span class="tab__shutter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M9 6 L11 3 L13 3 L15 6"/></svg></span></span>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 21 s-7-4.5-7-10 a4 4 0 0 1 7 -2.6 a4 4 0 0 1 7 2.6 c0 5.5 -7 10 -7 10 z"/></svg>Saved</span>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21 c0-4.4 3.6-8 8-8 s8 3.6 8 8"/></svg>Profile</span>
+      </nav>
+      <div class="screen__bottom-spacer"></div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

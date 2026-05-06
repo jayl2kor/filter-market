@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>09 · Profile — moodit (EN)</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .profile-head {
+    padding: var(--sp-md) var(--screen-pad) 0;
+    display: flex; flex-direction: column;
+    align-items: center; text-align: center; gap: var(--sp-sm);
+  }
+  .profile-head .name { font-weight: 700; letter-spacing: -0.3px; color: var(--text-primary); }
+  .profile-head .handle { color: var(--text-secondary); font-size: var(--t-subhead-size); }
+  .profile-head .bio {
+    color: var(--text-secondary); font-size: var(--t-body-size);
+    max-width: 300px; line-height: 1.45; margin-top: var(--sp-xxs);
+  }
+  .profile-head .avatar { color: #FFFFFF; }
+  .stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-md);
+    width: 100%; margin-top: var(--sp-md); padding: var(--sp-md) 0;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .stat { text-align: center; }
+  .stat__num { font-size: var(--t-title-size); font-weight: 700; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+  .stat__label { font-size: var(--t-caption-size); color: var(--text-tertiary); margin-top: 2px; letter-spacing: 0.3px; text-transform: uppercase; }
+  .actions {
+    display: flex; gap: var(--sp-xs);
+    width: 100%; margin-top: var(--sp-md);
+  }
+  .actions .btn { flex: 1; }
+  .seg-wrap { padding: var(--sp-lg) var(--screen-pad) var(--sp-md); }
+  .grid {
+    padding: 0 var(--screen-pad) var(--sp-2xl);
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;
+  }
+  .grid .filter-tile { aspect-ratio: 1; }
+  .grid .filter-tile__photo { aspect-ratio: 1; border-radius: var(--r-sm); }
+  .grid .filter-tile__name { font-size: 11px; }
+  .grid .filter-tile__meta { font-size: 10px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="screen" style="background: var(--bg-0);">
+      <div class="screen__top-spacer"></div>
+      <header class="topbar" style="background: var(--bg-0);">
+        <span style="width:44px"></span>
+        <span class="topbar__title">@jisoo.films</span>
+        <button class="topbar__action" aria-label="More">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/></svg>
+        </button>
+      </header>
+
+      <div class="screen__body">
+        <section class="profile-head fade-in">
+          <span class="avatar avatar--xl" style="background: linear-gradient(135deg,#B8853A,#5e4434); font-size: 32px;">JS</span>
+          <h1 class="t-title-lg name">Jisoo Kang</h1>
+          <span class="handle">Seoul · Photographer · Vintage devotee</span>
+          <p class="bio">In a world where film is memory,<br/>I paint light onto digital frames.</p>
+
+          <div class="stats">
+            <div class="stat"><div class="stat__num">24</div><div class="stat__label">Filters</div></div>
+            <div class="stat"><div class="stat__num">1.2K</div><div class="stat__label">Followers</div></div>
+            <div class="stat"><div class="stat__num">86</div><div class="stat__label">Following</div></div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn--primary btn--block">Edit Profile</button>
+            <button class="btn btn--secondary btn--icon" aria-label="Share">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 4 L12 16 M7 9 L12 4 L17 9 M5 14 L5 20 L19 20 L19 14"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <section class="seg-wrap fade-in fade-in--delay-2">
+          <div class="segmented" style="width:100%;">
+            <span class="segmented__item segmented__item--active">My Filters</span>
+            <span class="segmented__item">Saved</span>
+            <span class="segmented__item">Captures</span>
+          </div>
+        </section>
+
+        <section class="grid fade-in fade-in--delay-3">
+          <article class="filter-tile">
+            <div class="filter-tile__photo photo photo--vintage photo--vignette"></div>
+            <div class="filter-tile__overlay"><div class="filter-tile__name">Sunset 1973</div><div class="filter-tile__meta">2.4K</div></div>
+          </article>
+          <article class="filter-tile">
+            <div class="filter-tile__photo photo photo--bw photo--vignette"></div>
+            <div class="filter-tile__overlay"><div class="filter-tile__name">Mono Soft</div><div class="filter-tile__meta">1.8K</div></div>
+          </article>
+          <article class="filter-tile">
+            <div class="filter-tile__photo photo photo--cinematic photo--vignette"></div>
+            <div class="filter-tile__overlay"><div class="filter-tile__name">Teal Story</div><div class="filter-tile__meta">3.1K</div></div>
+          </article>
+          <article class="filter-tile">
+            <div class="filter-tile__photo photo photo--warm photo--vignette"></div>
+            <div class="filter-tile__overlay"><div class="filter-tile__name">Honey Glow</div><div class="filter-tile__meta">980</div></div>
+          </article>
+          <article class="filter-tile">
+            <div class="filter-tile__photo photo photo--cool photo--vignette"></div>
+            <div class="filter-tile__overlay"><div class="filter-tile__name">Cold Blue</div><div class="filter-tile__meta">1.2K</div></div>
+          </article>
+          <article class="filter-tile">
+            <div class="filter-tile__photo photo photo--moody photo--vignette"></div>
+            <div class="filter-tile__overlay"><div class="filter-tile__name">Midnight</div><div class="filter-tile__meta">540</div></div>
+          </article>
+          <article class="filter-tile">
+            <div class="filter-tile__photo photo photo--pastel photo--vignette"></div>
+            <div class="filter-tile__overlay"><div class="filter-tile__name">Pastel Air</div><div class="filter-tile__meta">2.0K</div></div>
+          </article>
+          <article class="filter-tile">
+            <div class="filter-tile__photo photo photo--portrait photo--vignette"></div>
+            <div class="filter-tile__overlay"><div class="filter-tile__name">Skin Glow</div><div class="filter-tile__meta">3.6K</div></div>
+          </article>
+          <article class="filter-tile">
+            <div class="filter-tile__photo photo photo--mountain photo--vignette"></div>
+            <div class="filter-tile__overlay"><div class="filter-tile__name">Mountain</div><div class="filter-tile__meta">720</div></div>
+          </article>
+        </section>
+      </div>
+
+      <nav class="tabbar">
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>Market</span>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21 L16 16"/></svg>Search</span>
+        <span class="tab tab--shutter" aria-label="Camera"><span class="tab__shutter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M9 6 L11 3 L13 3 L15 6"/></svg></span></span>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 21 s-7-4.5-7-10 a4 4 0 0 1 7 -2.6 a4 4 0 0 1 7 2.6 c0 5.5 -7 10 -7 10 z"/></svg>Saved</span>
+        <span class="tab tab--active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21 c0-4.4 3.6-8 8-8 s8 3.6 8 8"/></svg>Profile</span>
+      </nav>
+      <div class="screen__bottom-spacer"></div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

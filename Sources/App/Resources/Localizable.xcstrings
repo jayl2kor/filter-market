@@ -432,9 +432,18 @@
       }
     },
     "notifications.category.comments" : {
+      "comment" : "DEPRECATED — replaced by notifications.category.reviews in Phase 2.",
+      "extractionState" : "stale",
       "localizations" : {
         "ko" : { "stringUnit" : { "state" : "translated", "value" : "댓글" } },
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Comments" } }
+      }
+    },
+    "notifications.category.reviews" : {
+      "comment" : "Phase 2 — replaces notifications.category.comments",
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "리뷰" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reviews" } }
       }
     },
     "notifications.category.downloads" : {
@@ -680,21 +689,53 @@
       }
     },
     "empty.comments.loggedin.title" : {
+      "comment" : "DEPRECATED — replaced by empty.reviews.loggedin.title in Phase 2.",
+      "extractionState" : "stale",
       "localizations" : {
         "ko" : { "stringUnit" : { "state" : "translated", "value" : "첫 번째 댓글을 남겨보세요" } },
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Leave the first comment" } }
       }
     },
     "empty.comments.loggedin.body" : {
+      "comment" : "DEPRECATED — replaced by empty.reviews.loggedin.body in Phase 2.",
+      "extractionState" : "stale",
       "localizations" : {
         "ko" : { "stringUnit" : { "state" : "translated", "value" : "메이커에게 감상을 전해주세요.\n사진과 함께 남기면 더욱 생생하게 전달돼요." } },
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Share your thoughts with the maker.\nAttach a photo to make it more vivid." } }
       }
     },
     "empty.comments.loggedout.body" : {
+      "comment" : "DEPRECATED — replaced by empty.reviews.loggedout.body in Phase 2.",
+      "extractionState" : "stale",
       "localizations" : {
         "ko" : { "stringUnit" : { "state" : "translated", "value" : "댓글을 남기려면 로그인이 필요해요." } },
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign in to leave a comment." } }
+      }
+    },
+    "empty.reviews.loggedin.title" : {
+      "comment" : "Phase 2 — empty state when filter has no reviews yet (logged-in viewer)",
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "첫 리뷰를 남겨보세요" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Leave the first review" } }
+      }
+    },
+    "empty.reviews.loggedin.body" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "강도와 조명을 함께 적으면\n다른 사용자에게 큰 도움이 돼요." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Mention the intensity and lighting you used —\nit really helps other users." } }
+      }
+    },
+    "empty.reviews.loggedin.gate" : {
+      "comment" : "Empty state body when not yet downloaded — gate notice",
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "다운로드 후 리뷰를 작성할 수 있어요." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reviews are available after download." } }
+      }
+    },
+    "empty.reviews.loggedout.body" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "리뷰를 남기려면 로그인이 필요해요." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign in to leave a review." } }
       }
     },
     "permissions.camera.title" : {
@@ -783,22 +824,282 @@
       }
     },
     "comments.title" : {
-      "comment" : "%@ = 댓글 수 (142 등)",
+      "comment" : "DEPRECATED — replaced by reviews.title in Phase 2 (REVIEWS_MIGRATION.md). Remove in release N+1.",
+      "extractionState" : "stale",
       "localizations" : {
         "ko" : { "stringUnit" : { "state" : "translated", "value" : "댓글 %@" } },
         "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ Comments" } }
       }
     },
     "comments.compose.placeholder" : {
+      "comment" : "DEPRECATED — replaced by reviews.compose.body.placeholder. Remove in release N+1.",
+      "extractionState" : "stale",
       "localizations" : {
         "ko" : { "stringUnit" : { "state" : "translated", "value" : "댓글 추가..." } },
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Add a comment..." } }
       }
     },
     "comments.reply" : {
+      "comment" : "DEPRECATED — replaced by reviews.maker.reply. Remove in release N+1.",
+      "extractionState" : "stale",
       "localizations" : {
         "ko" : { "stringUnit" : { "state" : "translated", "value" : "답글" } },
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Reply" } }
+      }
+    },
+    "reviews.title" : {
+      "comment" : "Phase 2 — %@ = review count (e.g. 324)",
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "리뷰 %@" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ Reviews" } }
+      }
+    },
+    "reviews.summary.count" : {
+      "comment" : "%@ = review count",
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "%@개 리뷰" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ reviews" } }
+      }
+    },
+    "reviews.sort.helpful" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "도움됨" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Helpful" } }
+      }
+    },
+    "reviews.sort.latest" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "최신" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Latest" } }
+      }
+    },
+    "reviews.sort.highest" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "별점 높음" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Highest rated" } }
+      }
+    },
+    "reviews.sort.lowest" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "별점 낮음" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Lowest rated" } }
+      }
+    },
+    "reviews.sort.with_photos" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "사진 포함" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "With photos" } }
+      }
+    },
+    "reviews.verified" : {
+      "comment" : "Verified-download badge on review card",
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "검증된 다운로드" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Verified download" } }
+      }
+    },
+    "reviews.helpful" : {
+      "comment" : "%@ = helpful count (e.g. 24)",
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "도움됨 %@" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Helpful · %@" } }
+      }
+    },
+    "reviews.maker.badge" : {
+      "comment" : "Badge marking the maker's reply",
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "메이커" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Maker" } }
+      }
+    },
+    "reviews.maker.reply" : {
+      "comment" : "Action — maker replies to a review",
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "답글" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reply" } }
+      }
+    },
+    "reviews.maker.reply.placeholder" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "리뷰에 답글을 남겨주세요 (200자 이내)" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reply to this review (max 200 chars)" } }
+      }
+    },
+    "reviews.cta.write" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "리뷰 쓰기" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Write Review" } }
+      }
+    },
+    "reviews.cta.gate.download_required" : {
+      "comment" : "Disabled CTA hint — only verified downloads can write",
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "다운로드 후 1회 작성할 수 있어요" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reviews are limited to one per user, after download." } }
+      }
+    },
+    "reviews.compose.title" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "리뷰 작성" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Write a Review" } }
+      }
+    },
+    "reviews.compose.subtitle" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "이 필터를 어떻게 썼는지 들려주세요" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tell others how you used this filter" } }
+      }
+    },
+    "reviews.compose.target.downloaded" : {
+      "comment" : "Badge on the filter mini-card showing it has been downloaded",
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "다운로드 완료" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Downloaded" } }
+      }
+    },
+    "reviews.compose.stars.prompt" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "별점" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your rating" } }
+      }
+    },
+    "reviews.compose.stars.label.1" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "별로예요" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Not for me" } }
+      }
+    },
+    "reviews.compose.stars.label.2" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "괜찮아요" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Okay" } }
+      }
+    },
+    "reviews.compose.stars.label.3" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "좋아요" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Good" } }
+      }
+    },
+    "reviews.compose.stars.label.4" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "정말 좋아요" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Great" } }
+      }
+    },
+    "reviews.compose.stars.label.5" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "최고예요!" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Amazing!" } }
+      }
+    },
+    "reviews.compose.body.label" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "본문" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Body" } }
+      }
+    },
+    "reviews.compose.body.optional_hint" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "선택 · 280자 이내" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Optional · max 280 chars" } }
+      }
+    },
+    "reviews.compose.body.placeholder" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "이 필터를 어떤 상황에서 써봤나요? (강도, 조명, 장면 등을 적으면 다른 사용자에게 도움이 돼요)" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "In what scene or lighting did you use this filter? (Mentioning intensity, lighting, or scene helps other users.)" } }
+      }
+    },
+    "reviews.compose.photo.label" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "사용 사진" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Photo" } }
+      }
+    },
+    "reviews.compose.intensity.label" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "사용 강도" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Intensity used" } }
+      }
+    },
+    "reviews.compose.lighting.label" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "조명 / 장면" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Lighting / scene" } }
+      }
+    },
+    "reviews.compose.lighting.hint" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "선택 · 여러 개 가능" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Optional · pick one or more" } }
+      }
+    },
+    "reviews.compose.submit" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "리뷰 등록" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Submit Review" } }
+      }
+    },
+    "reviews.lighting.cafe" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "카페" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Café" } }
+      }
+    },
+    "reviews.lighting.indoor" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "실내" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Indoor" } }
+      }
+    },
+    "reviews.lighting.outdoor" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "야외" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Outdoor" } }
+      }
+    },
+    "reviews.lighting.sunlight" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "햇살" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sunlight" } }
+      }
+    },
+    "reviews.lighting.night" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "야경" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Night" } }
+      }
+    },
+    "reviews.lighting.selfie" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "셀카" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Selfie" } }
+      }
+    },
+    "reviews.lighting.portrait" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "인물" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Portrait" } }
+      }
+    },
+    "reviews.lighting.travel" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "여행" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Travel" } }
+      }
+    },
+    "reviews.lighting.food" : {
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "음식" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Food" } }
+      }
+    },
+    "reviews.intensity.formatted" : {
+      "comment" : "%@ = percent (e.g. 80) — usage intensity tag",
+      "localizations" : {
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "강도 %@%%" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Used at %@%%" } }
       }
     },
     "rating.title" : {
