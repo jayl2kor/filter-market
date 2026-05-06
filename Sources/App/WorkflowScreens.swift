@@ -953,7 +953,8 @@ struct BuiltinFilterLibraryScreen: View {
             makerName: filter.author.displayName,
             downloadCount: 0,
             priceLabel: store.isDownloaded(filter) ? "저장됨" : "기본",
-            categoryHint: filter.category.swatch.first
+            categoryHint: filter.category.swatch.first,
+            categoryKey: filter.category.rawValue
         )
     }
 }

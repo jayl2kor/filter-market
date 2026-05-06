@@ -22,14 +22,14 @@ struct NotificationsInboxScreen: View {
             content
         }
         .background(FMColors.Background.bg1)
-        .navigationTitle("알림")
+        .navigationTitle(Text("notifications.title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink(value: AppRoute.notificationSettings) {
                     Image(systemName: "gearshape")
                 }
-                .accessibilityLabel("알림 설정")
+                .accessibilityLabel(Text("notifications.settings.title"))
                 .accessibilityIdentifier("notif.settings")
             }
         }
@@ -46,7 +46,7 @@ struct NotificationsInboxScreen: View {
                         FMHaptic.selection.play()
                         category = value
                     } label: {
-                        Text(value.label)
+                        Text(value.localizedKey)
                             .fmTypography(.subhead)
                             .foregroundStyle(isActive ? FMColors.Accent.primary : FMColors.Text.secondary)
                             .padding(.horizontal, Sp.sm)
@@ -83,7 +83,7 @@ struct NotificationsInboxScreen: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
                     ForEach(groups) { group in
-                        groupLabel(group.label)
+                        groupLabel(group.localizedKey)
                             .padding(.horizontal, Sp.md)
                             .padding(.top, Sp.md)
                             .padding(.bottom, Sp.xs)
@@ -116,10 +116,10 @@ struct NotificationsInboxScreen: View {
             Image(systemName: "bell.slash")
                 .font(.system(size: 44, weight: .light))
                 .foregroundStyle(FMColors.Text.tertiary)
-            Text("표시할 알림이 없어요")
+            Text("notifications.empty.title")
                 .fmTypography(.headline)
                 .foregroundStyle(FMColors.Text.primary)
-            Text("다른 카테고리를 확인하거나 새 활동을 기다려주세요.")
+            Text("notifications.empty.body")
                 .fmTypography(.subhead)
                 .foregroundStyle(FMColors.Text.secondary)
                 .multilineTextAlignment(.center)
@@ -216,7 +216,7 @@ struct NotificationsInboxScreen: View {
                 FMHaptic.success.play()
                 acceptFollow(item)
             } label: {
-                Text("팔로우")
+                Text("profile.follow")
                     .fmTypography(.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(FMColors.Text.inverse)
@@ -254,8 +254,8 @@ struct NotificationsInboxScreen: View {
             }
     }
 
-    private func groupLabel(_ title: String) -> some View {
-        Text(title)
+    private func groupLabel(_ key: LocalizedStringKey) -> some View {
+        Text(key)
             .fmTypography(.caption)
             .fontWeight(.bold)
             .tracking(0.4)
@@ -286,13 +286,14 @@ enum NotificationCategory: String, CaseIterable, Identifiable, Hashable {
 
     var id: String { rawValue }
 
-    var label: String {
+    /// `Localizable.xcstrings` 의 카테고리 키.
+    var localizedKey: LocalizedStringKey {
         switch self {
-        case .all: "전체"
-        case .likes: "좋아요"
-        case .comments: "댓글"
-        case .downloads: "다운로드"
-        case .system: "시스템"
+        case .all: "notifications.category.all"
+        case .likes: "notifications.category.likes"
+        case .comments: "notifications.category.comments"
+        case .downloads: "notifications.category.downloads"
+        case .system: "notifications.category.system"
         }
     }
 
@@ -392,12 +393,13 @@ enum NotificationGroup: String, CaseIterable, Hashable {
     case week
     case earlier
 
-    var label: String {
+    /// `Localizable.xcstrings` 의 그룹 헤더 키.
+    var localizedKey: LocalizedStringKey {
         switch self {
-        case .fresh: "새 알림"
-        case .today: "오늘"
-        case .week: "이번 주"
-        case .earlier: "이전"
+        case .fresh: "notifications.group.fresh"
+        case .today: "notifications.group.today"
+        case .week: "notifications.group.week"
+        case .earlier: "notifications.group.earlier"
         }
     }
 }
@@ -406,7 +408,7 @@ struct NotificationGroupBucket: Identifiable {
     let group: NotificationGroup
     let items: [NotificationItem]
     var id: NotificationGroup { group }
-    var label: String { group.label }
+    var localizedKey: LocalizedStringKey { group.localizedKey }
 }
 
 extension NotificationItem {

@@ -11,16 +11,23 @@ import SwiftUI
 /// - swipe to delete
 struct SavedScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @State private var hasAppeared = false
 
     private let columns = [
         GridItem(.flexible(), spacing: Sp.sm),
         GridItem(.flexible(), spacing: Sp.sm)
     ]
 
+    private var isLoading: Bool {
+        !hasAppeared
+    }
+
     var body: some View {
         NavigationStack {
             Group {
-                if store.libraryFilters.isEmpty {
+                if isLoading {
+                    skeletonGrid
+                } else if store.libraryFilters.isEmpty {
                     FMEmptyState(.emptyDownloads)
                         .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
                 } else {
@@ -51,7 +58,28 @@ struct SavedScreen: View {
                     .accessibilityLabel("기본 필터")
                 }
             }
+            .task {
+                try? await Task.sleep(nanoseconds: 220_000_000)
+                withAnimation(.fmFast) { hasAppeared = true }
+            }
             .appRouteDestinations()
+        }
+    }
+
+    private var skeletonGrid: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: Sp.sm) {
+                ForEach(0..<6, id: \.self) { _ in
+                    VStack(alignment: .leading, spacing: Sp.xs) {
+                        FMSkeleton.rect(height: 200, cornerRadius: R.lg)
+                        FMSkeleton.line(width: 80, height: 14)
+                        FMSkeleton.line(width: 120, height: 12)
+                    }
+                }
+            }
+            .padding(.horizontal, Sp.md)
+            .padding(.top, Sp.sm)
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxl)
         }
     }
 
@@ -61,7 +89,8 @@ struct SavedScreen: View {
             makerName: filter.author.displayName,
             downloadCount: 0,
             priceLabel: nil,
-            categoryHint: filter.category.swatch.first
+            categoryHint: filter.category.swatch.first,
+            categoryKey: filter.category.rawValue
         )
     }
 }

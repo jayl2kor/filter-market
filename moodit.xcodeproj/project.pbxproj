@@ -18,6 +18,7 @@
 		128647022ADCBDB0B1A4020F /* JSONCoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DFEBC628452580364C887A9 /* JSONCoding.swift */; };
 		15D3299073BA8D1E2DD21434 /* cafe-cream.png in Resources */ = {isa = PBXBuildFile; fileRef = E95403B1DE5BA4E38A934325 /* cafe-cream.png */; };
 		1C2482212D5E440B63A42A51 /* Models.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 17B1469C92033DB00AD14607 /* Models.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		1D0B5B8906557E718C570557 /* FMFilterCoverArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C02D9ED1D6B811A8A0E35B9 /* FMFilterCoverArt.swift */; };
 		1D1398AD8450F4BA33201F7E /* Auth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9A1235D2D5FB004AC0811A48 /* Auth.framework */; };
 		1E9D5B2211F2E21692AF76F7 /* PhotoLibrarySaverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D71D1E904D3ED77082B0D87B /* PhotoLibrarySaverTests.swift */; };
 		216C8E55DB2CB147A3CFF954 /* LUTTextureFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9149F580BC82A6AC5DAA75C0 /* LUTTextureFactory.swift */; };
@@ -82,6 +83,7 @@
 		880460F99F69203334E7DD12 /* DesignSystem.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 886115293C35066B5217D494 /* DesignSystem.framework */; };
 		881246C66569BE6F76602067 /* HapticEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 221BE8DE0153886347A445D3 /* HapticEngine.swift */; };
 		8AEECA30F9F1FA0330DBCA31 /* CameraSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0907DD1BC10838B77A85A20C /* CameraSession.swift */; };
+		8D3788730E5D91162F0804DD /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = D538DB7A267537F3AFE4FF8E /* Localizable.xcstrings */; };
 		8F576053FC441C83439FAC64 /* Models.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 17B1469C92033DB00AD14607 /* Models.framework */; };
 		8FF68234D1F6BB4588DFF82E /* FMTypographyShorthand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 436F2DEC58C7DE370EAB07F6 /* FMTypographyShorthand.swift */; };
 		9071BF6F7FE7934E2C8B37B0 /* FMEmptyStateIllustration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F86D1D5E6735BD3AB3A6DCB /* FMEmptyStateIllustration.swift */; };
@@ -344,6 +346,7 @@
 		0907DD1BC10838B77A85A20C /* CameraSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraSession.swift; sourceTree = "<group>"; };
 		09A76E91096F9C284D84F963 /* PhotoFilterRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoFilterRenderer.swift; sourceTree = "<group>"; };
 		09CE5E216D06FBC248800288 /* PermissionScaffold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionScaffold.swift; sourceTree = "<group>"; };
+		0C02D9ED1D6B811A8A0E35B9 /* FMFilterCoverArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMFilterCoverArt.swift; sourceTree = "<group>"; };
 		0E2773DDF94E1A12850CA219 /* sunset-vibes.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "sunset-vibes.png"; sourceTree = "<group>"; };
 		1152BAA438B340357C6C329F /* WorkflowScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowScreens.swift; sourceTree = "<group>"; };
 		1550BD6AB2042D987AD08B34 /* Iconography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Iconography.swift; sourceTree = "<group>"; };
@@ -435,6 +438,7 @@
 		CB771299658A02843FB72837 /* NotificationsPermissionPriming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsPermissionPriming.swift; sourceTree = "<group>"; };
 		CC598BE66F5FF68DF9EEE6AF /* LocationPermissionDenied.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionDenied.swift; sourceTree = "<group>"; };
 		D351682BABF67206F22ADF96 /* FMSkeleton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMSkeleton.swift; sourceTree = "<group>"; };
+		D538DB7A267537F3AFE4FF8E /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		D71D1E904D3ED77082B0D87B /* PhotoLibrarySaverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibrarySaverTests.swift; sourceTree = "<group>"; };
 		DB733F6CAB461FE90147DBD6 /* MooditApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditApp.swift; sourceTree = "<group>"; };
 		DCF82BA88FE8A0FCB5612ACD /* ReduceMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReduceMotion.swift; sourceTree = "<group>"; };
@@ -694,6 +698,7 @@
 				0683619003419C1081720D6A /* FMCard.swift */,
 				A989842A9E1BA002F56ADB18 /* FMEmptyState.swift */,
 				8F86D1D5E6735BD3AB3A6DCB /* FMEmptyStateIllustration.swift */,
+				0C02D9ED1D6B811A8A0E35B9 /* FMFilterCoverArt.swift */,
 				2AE714DB5A01C5928F5C1BFE /* FMFilterTile.swift */,
 				FE0E964CBD9F708F068F5A6D /* FMSegmentedControl.swift */,
 				D351682BABF67206F22ADF96 /* FMSkeleton.swift */,
@@ -892,6 +897,7 @@
 			isa = PBXGroup;
 			children = (
 				A5351CED6F1DF3CD977446C4 /* Assets.xcassets */,
+				D538DB7A267537F3AFE4FF8E /* Localizable.xcstrings */,
 				025F81EB6B5443B867B1F50E /* Firebase */,
 			);
 			path = Resources;
@@ -1290,6 +1296,7 @@
 			knownRegions = (
 				Base,
 				en,
+				ko,
 			);
 			mainGroup = E1470761D85541071F34756C;
 			minimizedProjectReferenceProxies = 1;
@@ -1325,6 +1332,7 @@
 			files = (
 				9E741D7E42757E5EC2821E84 /* Assets.xcassets in Resources */,
 				FC9FB5016A02FCBF62257876 /* GoogleService-Info.plist in Resources */,
+				8D3788730E5D91162F0804DD /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1473,6 +1481,7 @@
 				81B0C6A90A32FB47A037F494 /* FMConfirmationDialog.swift in Sources */,
 				11031309C11FFE492969BFA0 /* FMEmptyState.swift in Sources */,
 				9071BF6F7FE7934E2C8B37B0 /* FMEmptyStateIllustration.swift in Sources */,
+				1D0B5B8906557E718C570557 /* FMFilterCoverArt.swift in Sources */,
 				75F33C73DA3BC861435F6AC7 /* FMFilterTile.swift in Sources */,
 				2534AD7C4F016174A9875268 /* FMPushTransition.swift in Sources */,
 				74D91101BA09C2626EBA493F /* FMSegmentedControl.swift in Sources */,

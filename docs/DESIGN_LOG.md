@@ -1,6 +1,6 @@
 # moodit — Design Reinforcement Log
 
-> 작성: 2026-05-07 · 상태: Active
+> 작성: 2026-05-07 · 최종 갱신: 2026-05-07 · 상태: All 8 items completed
 >
 > `DESIGN_INTEGRATION_PLAN.md` D0~D6 (MVP 디자인 시스템) 완료 이후 식별된 디자인 갭의 작업 로그.
 > 본 문서는 placeholder 화면 채우기와 별개로 **디자인 시스템 / 비주얼 자산 / 모션 / 접근성** 측면 보강을 추적한다.
@@ -9,80 +9,200 @@
 
 ## 1. 작업 범위
 
-2026-05-07 디자인 갭 감사 결과 식별된 8개 항목:
+2026-05-07 디자인 갭 감사 결과 식별된 8개 항목 — 모두 완료:
 
-| # | 항목 | 우선 | 상태 |
-|---|---|---|---|
-| 1 | App Icon iOS 18 Light/Dark/Tinted variant | P0 | ✅ 기존 완료 (Contents.json + 3 PNG) |
-| 2 | 시드 필터 커버 이미지 (5종) | P0 | ⏳ |
-| 3 | Empty state 5종 일러스트 | P0 | ⏳ |
-| 4 | Launch Screen 설정 | P0 | ⏳ |
-| 5 | Localizable.xcstrings 도입 | P1 | ⏳ |
-| 6 | FMSwipeIndicator + FMToggle 컴포넌트 | P1 | 🟡 In Progress |
-| 7 | Skeleton/Loading 적용 점검 | P1 | ⏳ |
-| 8 | Push 화면 전환 모션 | P2 | ⏳ |
+| # | 항목 | 우선 | 상태 | 산출 |
+|---|---|---|---|---|
+| 1 | App Icon iOS 18 Light/Dark/Tinted | P0 | ✅ | 기존 자산 + Contents.json 검증 |
+| 2 | 시드 필터 커버 이미지 | P0 | ✅ | `FMFilterCoverArt` + 자산 명세 |
+| 3 | Empty state 5종 일러스트 | P0 | ✅ | `FMEmptyStateIllustration` |
+| 4 | Launch Screen 설정 | P0 | ✅ | `Info.plist` UILaunchScreen + 컬러 자산 |
+| 5 | Localizable.xcstrings 도입 | P1 | ✅ | xcstrings 카탈로그 (ko/en) |
+| 6 | FMSwipeIndicator + FMToggle | P1 | ✅ | 2 컴포넌트 신설 |
+| 7 | Skeleton/Loading 적용 점검 | P1 | ✅ | SavedScreen 신규 wiring |
+| 8 | Push 화면 전환 모션 | P2 | ✅ | `FMPushTransition` modifier |
 
----
-
-## 2. 진행 로그
-
-### #1 App Icon iOS 18 variant — ✅ 2026-05-07 검증 완료
-
-**상태**: 기존 작업으로 완료.
-
-**확인 내용**:
-- `Sources/App/Resources/Assets.xcassets/AppIcon.appiconset/Contents.json` 가 `appearances` 키로 `dark` / `tinted` 변형 매핑.
-- 자산 파일: `app-icon-light.png` (1024×1024), `app-icon-dark.png`, `app-icon-tinted.png` 모두 존재.
-- iOS 18+ Home/App Switcher 에서 시스템 설정 (light/dark/tinted) 따라 자동 변환.
-
-**후속**:
-- 실기기에서 다크 / tinted 변형 시각 검증 필요 (M0 device validation 시 포함).
+빌드 검증: `** TEST BUILD SUCCEEDED **` (2026-05-07 02:35 KST).
 
 ---
 
-### #6 FMSwipeIndicator + FMToggle 컴포넌트 — 🟡 In Progress
+## 2. 진행 상세
 
-**파일 추가**:
-- `Sources/DesignSystem/Components/FMSwipeIndicator.swift`
-  - `DESIGN_SYSTEM.md` §8.14 정합 — 7-dot, 활성 16×4 막대, 비활성 4×4 점.
-  - `Mode.light` / `Mode.dark` enum (카메라 흐름 vs 일반 화면).
-  - `count` / `activeIndex` 인자, dynamic 범위.
-- `Sources/DesignSystem/Components/FMToggle.swift`
-  - `DESIGN_SYSTEM.md` §8.12 정합 — 51×31, 27×27 노브, soft shadow.
-  - Off: `bg/3` + 1px subtle border. On: `accent` fill.
-  - `FMToggle("title", isOn:)` 단축 init + `FMToggle(isOn:label:)` trailing closure.
-  - 탭 시 `FMHaptic.selection` 햅틱.
+### #1 App Icon iOS 18 Light/Dark/Tinted — ✅
 
-**향후 적용처**:
-- `NotificationSettingsScreen` (현재 stock `Toggle` 사용) 에 `FMToggle` 으로 교체.
-- `EditProfileScreen` 의 비공개 / 공개 옵션.
-- `CameraScreen` 의 필터 페이지 인디케이터 (현재 인라인) → `FMSwipeIndicator`.
-- `OnboardingScreen` 의 페이지 인디케이터 (현재 inline capsule).
+**상태**: 기존 자산 검증 완료.
+
+`Sources/App/Resources/Assets.xcassets/AppIcon.appiconset/Contents.json` 가 `appearances` 키로 `dark` / `tinted` variant 매핑. 자산 파일: `app-icon-light.png` (1024×1024), `app-icon-dark.png`, `app-icon-tinted.png`.
+
+iOS 18+ Home Screen / App Switcher 에서 시스템 설정 (light/dark/tinted) 따라 자동 변환.
+
+**후속**: 실기기에서 다크 / tinted 시각 검증 (M0 device validation).
 
 ---
 
-### #2~#8 — 진행 중
+### #2 시드 필터 커버 이미지 — ✅
 
-(작성 중인 항목은 완료 시점에 본 로그 추가)
+**파일**:
+- `Sources/DesignSystem/Components/FMFilterCoverArt.swift` — 8 motif (cinematic/vintage/pastel/monochrome/portrait/food/travel/mood) procedural Canvas illustration. 그라디언트 + 모티프 (도시 실루엣, 햇살, 인물, 산 라인 등) + radial vignette.
+- `FilterCoverMotifResolver.motif(for:category:)` — 시드 필터 title 또는 category → motif.
+- `docs/ASSETS_NEEDED.md` — 실제 사진 자산 brief (5 시드 필터 비포/애프터/커버 + 8 카테고리 + 4 onboarding + 4 권한 priming + App Store).
+
+**적용**:
+- `FMFilterTile` 의 기존 단색 그라디언트 fallback 을 `FMFilterCoverArt` 로 교체.
+- `FMFilterTileData.categoryKey` / `coverMotif` 선택값 추가. 기존 호출부는 유지하면서 title/category 기반 모티프를 자동 해석.
+- 실제 사진 자산 도입 시 `previewImageURL` 이 우선 렌더되고, 로딩 실패 또는 URL 없음 상태에서 본 illustration 으로 fallback.
 
 ---
 
-## 3. 산출물 요약 (계속 갱신)
+### #3 Empty state 5종 일러스트 — ✅
 
-| 영역 | 신규 파일 / 변경 |
+**파일**:
+- `Sources/DesignSystem/Components/FMEmptyStateIllustration.swift` — 5종 procedural illustration (market/search/profile/downloads/comments). SwiftUI Canvas + Path 기반.
+  - **market**: 카메라 본체 + 렌즈 + 별표 (첫 메이커 강조)
+  - **search**: 돋보기 + ? 기호
+  - **profile**: 사람 실루엣 + 빈 카드 placeholder 3개
+  - **downloads**: 빈 트레이 + 다운로드 화살표
+  - **comments**: 말풍선 2개 + typing dots
+
+**FMEmptyState 갱신**:
+- `FMEmptyStateKind.symbol` (SF Symbol) → `.illustration` (FMEmptyStateIllustration.Kind) 로 교체.
+- `FMEmptyState` 의 illustration 컨테이너가 96pt SF Symbol 대신 `FMEmptyStateIllustration` 호출.
+
+---
+
+### #4 Launch Screen 설정 — ✅
+
+**파일**:
+- `Sources/App/Info.plist` — `UILaunchScreen` 키를 빈 dict 에서 다음으로 교체:
+  ```xml
+  <dict>
+      <key>UIColorName</key>
+      <string>LaunchBackground</string>
+      <key>UIImageName</key>
+      <string>MooditSymbol</string>
+      <key>UIImageRespectsSafeAreaInsets</key>
+      <true/>
+  </dict>
+  ```
+- `Sources/App/Resources/Assets.xcassets/LaunchBackground.colorset/Contents.json` — 신규 컬러 자산. Light: `#FAFAF7` (bg/0), Dark: `#000000` (bg/0 dark).
+
+**결과**: 앱 첫 0.5초 동안 brand 톤 (light: 베이지 화이트, dark: black) + 중앙 `MooditSymbol` SVG 표시. 시스템 다크 모드 자동 대응.
+
+---
+
+### #5 Localizable.xcstrings 도입 — ✅
+
+**파일**:
+- `Sources/App/Resources/Localizable.xcstrings` — Xcode 15+ String Catalog 신설. 32 키 × ko / en 2언어.
+- 키 그룹: `nav.*` (탭바), `common.*` (공통 액션), `auth.*` (인증), `filter.detail.*` (필터 상세), `empty.*` (빈 상태), `permissions.*` (권한).
+
+**migration 방침**: 기존 하드코딩 한국어 문자열은 점진 교체. 신규 화면은 `String(localized: "key")` 또는 `LocalizedStringKey("key")` 사용 권장.
+
+**향후**:
+- 통화 / 숫자 (`Coin`, `1.2K`, `4.8★`) 는 `NumberFormatter` 사용으로 i18n.
+- 상대 시간 (`"5분 전"`) 은 `RelativeDateTimeFormatter` 사용.
+
+---
+
+### #6 FMSwipeIndicator + FMToggle 컴포넌트 — ✅
+
+**파일**:
+- `Sources/DesignSystem/Components/FMSwipeIndicator.swift` — `DESIGN_SYSTEM.md` §8.14 정합. 7-dot 가로 인디케이터, 활성 16×4 막대 / 비활성 4×4 점. `Mode.light` / `Mode.dark` enum.
+- `Sources/DesignSystem/Components/FMToggle.swift` — `DESIGN_SYSTEM.md` §8.12 정합. 51×31 캡슐 + 27×27 흰 노브 + soft shadow. Off: `bg/3` + 1px border / On: `accent`. 탭 시 `FMHaptic.selection`.
+
+**적용 후보 (다음 단계)**:
+- `NotificationSettingsScreen` 의 stock `Toggle` → `FMToggle`
+- `EditProfileScreen` 비공개 / 공개 옵션
+- `OnboardingScreen` 의 inline 페이지 인디케이터 → `FMSwipeIndicator`
+- `CameraScreen` 의 필터 페이지 인디케이터 → `FMSwipeIndicator(mode: .dark)`
+
+---
+
+### #7 Skeleton/Loading 적용 점검 — ✅
+
+**현황 점검 결과**:
+- ✅ `MarketplaceScreen` — `isLoading` 분기 + `FMSkeleton.line/rect` 적용
+- ✅ `ProfileScreen` — `isLoading` 분기 + `FMSkeleton.rect` 적용
+- ❌ `SavedScreen` — 로딩 상태 없이 빈 → 채워짐 점프
+- ❌ `SearchScreen` — 즉시 mock 렌더 (개선 불필요)
+
+**적용**:
+- `Sources/App/SavedScreen.swift` — `hasAppeared` State + `.task` 220ms delay + `skeletonGrid` 6-tile placeholder 추가. 첫 진입 시 자연스러운 로딩 → 콘텐츠 전환.
+
+---
+
+### #8 Push 화면 전환 모션 — ✅
+
+**파일**:
+- `Sources/DesignSystem/Modifiers/FMPushTransition.swift` — `MOTION_SPEC.md` §2.1 정합 push 전환 모디파이어.
+  - `AnyTransition.fmPush` — 우측 슬라이드 + opacity 결합
+  - `AnyTransition.fmPushReducible(reduceMotion:)` — Reduce Motion 시 fade 자동 대체
+  - `AnyTransition.fmFadeBack` — 부모 화면 살짝 뒤로 (scale 0.94 + opacity 0.7 + offset -32)
+  - `View.fmPushTransition()` — 자식 화면 적용
+  - `View.fmFadeBack(when:)` — 부모 화면 적용
+
+**적용 후보**: 현재 `NavigationStack` 기본 push 전환은 시스템 제어. 본 modifier 는 시트 / 풀스크린 컨테이너 또는 커스텀 router 도입 시 사용.
+
+---
+
+## 3. 신규 / 변경 파일 요약
+
+### 신규 파일
+
+| 분류 | 파일 |
 |---|---|
-| DesignSystem 컴포넌트 | `FMSwipeIndicator.swift`, `FMToggle.swift` (#6) |
-| Resources / Asset | (예정: 시드 필터 커버, empty state 일러스트, launch screen) |
-| Localization | (예정: `Localizable.xcstrings`) |
-| Motion | (예정: `Sources/DesignSystem/Modifiers/PushTransition.swift`) |
-| Documentation | 본 `DESIGN_LOG.md` |
+| DesignSystem 컴포넌트 | `Sources/DesignSystem/Components/FMSwipeIndicator.swift` |
+| | `Sources/DesignSystem/Components/FMToggle.swift` |
+| | `Sources/DesignSystem/Components/FMEmptyStateIllustration.swift` |
+| | `Sources/DesignSystem/Components/FMFilterCoverArt.swift` |
+| DesignSystem modifier | `Sources/DesignSystem/Modifiers/FMPushTransition.swift` |
+| Resources | `Sources/App/Resources/Assets.xcassets/LaunchBackground.colorset/Contents.json` |
+| | `Sources/App/Resources/Localizable.xcstrings` |
+| Documentation | `docs/DESIGN_LOG.md` |
+| | `docs/ASSETS_NEEDED.md` |
+
+### 변경 파일
+
+| 파일 | 변경 |
+|---|---|
+| `Sources/App/Info.plist` | `UILaunchScreen` dict 채움 |
+| `Sources/DesignSystem/Components/FMEmptyState.swift` | symbol → illustration 으로 교체 |
+| `Sources/DesignSystem/Components/FMFilterTile.swift` | cover fallback 을 `FMFilterCoverArt` 로 교체 |
+| `Sources/DesignSystem/Components/FMFilterCoverArt.swift` | title/category 기반 motif resolver 보강 |
+| `Sources/App/SavedScreen.swift` | skeleton 로딩 상태 추가 |
+| `Sources/App/WorkflowScreens.swift` | domain filter tile mapping 에 category key 전달 |
 
 ---
 
-## 4. 관련 문서
+## 4. 빌드 검증
+
+```bash
+./scripts/build-for-testing.sh
+# ** TEST BUILD SUCCEEDED ** (2026-05-07 02:43 KST)
+```
+
+경고 2건 (기존):
+- `WorkflowScreens.swift:584` — main actor isolation (사전 존재)
+- `AppNavigation.swift:386` — unused `id` (사전 존재)
+
+---
+
+## 5. 다음 단계 (별도 진행)
+
+본 8개 항목 외에 후속 작업 후보:
+
+1. **`FMToggle` / `FMSwipeIndicator` 적용처 마이그레이션** — `NotificationSettingsScreen`, `EditProfileScreen`, `OnboardingScreen`, `CameraScreen` 의 stock 컨트롤 교체.
+2. **실제 사진 자산 도입** — `docs/ASSETS_NEEDED.md` 의 P0 자산 (시드 필터 비포/애프터 5종 × 3장).
+3. **i18n migration** — 기존 화면들의 하드코딩 문자열을 `Localizable.xcstrings` 키로 점진 교체.
+4. **VoiceOver / Dynamic Type 화면 단위 검증** — 신규 placeholder 화면 (Notifications, Favorites, Filter Rejected) 의 a11y 라벨 점검.
+
+---
+
+## 6. 관련 문서
 
 - [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) — v1.1 디자인 시스템
 - [`DESIGN_TOKENS.json`](./DESIGN_TOKENS.json) — v1.2.0 토큰
 - [`MOTION_SPEC.md`](./MOTION_SPEC.md) — 모션 스펙
 - [`EMPTY_STATES.md`](./EMPTY_STATES.md) — 빈 상태 명세
+- [`ASSETS_NEEDED.md`](./ASSETS_NEEDED.md) — 사진 자산 brief
 - [`DESIGN_INTEGRATION_PLAN.md`](./DESIGN_INTEGRATION_PLAN.md) — D0~D7 phase 추적

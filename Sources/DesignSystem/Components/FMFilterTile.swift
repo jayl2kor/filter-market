@@ -11,6 +11,8 @@ public struct FMFilterTileData: Equatable, Sendable {
     public let downloadCount: Int
     public let priceLabel: String?       // nil 이면 무료
     public let categoryHint: Color?      // 카테고리 점/언더라인 색
+    public let categoryKey: String?      // cover motif fallback 용 카테고리 키
+    public let coverMotif: FMFilterCoverArt.Motif?
     public let previewImageURL: URL?     // 단일 이미지(애프터)
     public let beforeImageURL: URL?      // 옵션 — 비포/애프터 분할 표시
 
@@ -20,6 +22,8 @@ public struct FMFilterTileData: Equatable, Sendable {
         downloadCount: Int,
         priceLabel: String? = nil,
         categoryHint: Color? = nil,
+        categoryKey: String? = nil,
+        coverMotif: FMFilterCoverArt.Motif? = nil,
         previewImageURL: URL? = nil,
         beforeImageURL: URL? = nil
     ) {
@@ -28,6 +32,8 @@ public struct FMFilterTileData: Equatable, Sendable {
         self.downloadCount = downloadCount
         self.priceLabel = priceLabel
         self.categoryHint = categoryHint
+        self.categoryKey = categoryKey
+        self.coverMotif = coverMotif
         self.previewImageURL = previewImageURL
         self.beforeImageURL = beforeImageURL
     }
@@ -88,19 +94,14 @@ public struct FMFilterTile: View {
     }
 
     private var placeholderImage: some View {
-        LinearGradient(
-            colors: [
-                FMColors.Background.bg3,
-                FMColors.Background.bg1
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
+        FMFilterCoverArt(motif: resolvedCoverMotif)
+    }
+
+    private var resolvedCoverMotif: FMFilterCoverArt.Motif {
+        data.coverMotif ?? FilterCoverMotifResolver.motif(
+            for: data.title,
+            category: data.categoryKey
         )
-        .overlay {
-            Image(systemName: "photo")
-                .font(.system(size: 32, weight: .light))
-                .foregroundStyle(FMColors.Text.tertiary)
-        }
     }
 
     private var gradientOverlay: some View {
