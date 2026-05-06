@@ -1,4 +1,5 @@
 @preconcurrency import AVFoundation
+import CoreGraphics
 import Foundation
 
 public enum CameraSessionError: Error, Sendable {
@@ -8,6 +9,30 @@ public enum CameraSessionError: Error, Sendable {
     case cannotAddOutput
     case photoDataUnavailable
     case sessionUnavailable
+}
+
+public struct CameraFocusPoint: Equatable, Sendable {
+    public let x: Double
+    public let y: Double
+
+    public init(x: Double, y: Double) {
+        self.x = min(max(x, 0), 1)
+        self.y = min(max(y, 0), 1)
+    }
+
+    public init(viewLocation: CGPoint, viewSize: CGSize, isMirrored: Bool = false) {
+        let width = max(Double(viewSize.width), 1)
+        let height = max(Double(viewSize.height), 1)
+        let normalizedX = min(max(Double(viewLocation.x) / width, 0), 1)
+        let normalizedY = min(max(Double(viewLocation.y) / height, 0), 1)
+
+        x = isMirrored ? 1 - normalizedX : normalizedX
+        y = normalizedY
+    }
+
+    var cgPoint: CGPoint {
+        CGPoint(x: x, y: y)
+    }
 }
 
 public enum CameraPosition: Equatable, Sendable {
@@ -121,6 +146,29 @@ public final class CameraSession: NSObject, @unchecked Sendable {
                     let nextPosition = currentPosition.toggled
                     try replaceCameraInput(position: nextPosition)
                     continuation.resume(returning: currentPosition)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    public func focusAndExpose(at point: CameraFocusPoint) async throws {
+        guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else {
+            throw CameraSessionError.permissionDenied
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            sessionQueue.async { [weak self] in
+                guard let self else {
+                    continuation.resume(throwing: CameraSessionError.sessionUnavailable)
+                    return
+                }
+
+                do {
+                    try configureIfNeeded()
+                    try applyFocusAndExposure(at: point)
+                    continuation.resume()
                 } catch {
                     continuation.resume(throwing: error)
                 }
@@ -259,6 +307,32 @@ public final class CameraSession: NSObject, @unchecked Sendable {
         if connection.isVideoMirroringSupported {
             connection.automaticallyAdjustsVideoMirroring = false
             connection.isVideoMirrored = currentPosition == .front
+        }
+    }
+
+    private func applyFocusAndExposure(at point: CameraFocusPoint) throws {
+        guard let device = videoInput?.device else {
+            throw CameraSessionError.noVideoDevice
+        }
+
+        try device.lockForConfiguration()
+        defer {
+            device.unlockForConfiguration()
+        }
+
+        let devicePoint = point.cgPoint
+        if device.isFocusPointOfInterestSupported, device.isFocusModeSupported(.autoFocus) {
+            device.focusPointOfInterest = devicePoint
+            device.focusMode = .autoFocus
+        }
+
+        if device.isExposurePointOfInterestSupported, device.isExposureModeSupported(.continuousAutoExposure) {
+            device.exposurePointOfInterest = devicePoint
+            device.exposureMode = .continuousAutoExposure
+        }
+
+        if device.isSubjectAreaChangeMonitoringEnabled == false {
+            device.isSubjectAreaChangeMonitoringEnabled = true
         }
     }
 }

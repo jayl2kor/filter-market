@@ -11,11 +11,14 @@ struct CameraScreen: View {
     @EnvironmentObject private var store: FilterMarketStore
     @StateObject private var controller = CameraPreviewController()
     @State private var captureResult: CameraCaptureResult?
+    @State private var focusIndicator: CameraFocusIndicator?
 
     var body: some View {
         ZStack(alignment: .bottom) {
             MetalPreviewView(renderer: controller.renderer)
                 .ignoresSafeArea()
+
+            focusTapLayer
 
             VStack(spacing: FMSpacing.large) {
                 topBar
@@ -94,6 +97,48 @@ struct CameraScreen: View {
             }
             .foregroundStyle(.white)
             .accessibilityIdentifier("camera.settings")
+        }
+    }
+
+    private var focusTapLayer: some View {
+        GeometryReader { proxy in
+            Color.clear
+                .contentShape(Rectangle())
+                .gesture(
+                    SpatialTapGesture()
+                        .onEnded { value in
+                            handleFocusTap(at: value.location, viewSize: proxy.size)
+                        }
+                )
+                .overlay {
+                    if let focusIndicator {
+                        FocusReticle()
+                            .position(focusIndicator.location)
+                            .transition(.scale(scale: 0.82).combined(with: .opacity))
+                    }
+                }
+        }
+        .ignoresSafeArea()
+    }
+
+    private func handleFocusTap(at location: CGPoint, viewSize: CGSize) {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        let indicator = CameraFocusIndicator(location: location)
+        withAnimation(.easeOut(duration: 0.16)) {
+            focusIndicator = indicator
+        }
+
+        Task {
+            await controller.focusAndExpose(at: location, in: viewSize)
+            try? await Task.sleep(for: .milliseconds(850))
+
+            await MainActor.run {
+                guard focusIndicator?.id == indicator.id else { return }
+                withAnimation(.easeIn(duration: 0.18)) {
+                    focusIndicator = nil
+                }
+            }
         }
     }
 
@@ -221,6 +266,26 @@ private struct CameraCaptureResult: Identifiable {
     let filteredPhoto: FilteredPhoto
 }
 
+private struct CameraFocusIndicator: Identifiable, Equatable {
+    let id = UUID()
+    let location: CGPoint
+}
+
+private struct FocusReticle: View {
+    var body: some View {
+        Circle()
+            .stroke(.white.opacity(0.92), lineWidth: 1.5)
+            .frame(width: 82, height: 82)
+            .overlay {
+                Circle()
+                    .stroke(FMColor.accent.opacity(0.82), lineWidth: 1)
+                    .frame(width: 58, height: 58)
+            }
+            .shadow(color: .black.opacity(0.35), radius: 4, y: 2)
+            .allowsHitTesting(false)
+    }
+}
+
 @MainActor
 private final class CameraPreviewController: ObservableObject {
     @Published private(set) var statusMessage = "Preparing camera"
@@ -322,6 +387,22 @@ private final class CameraPreviewController: ObservableObject {
             statusMessage = position == .front ? "Front camera" : "Back camera"
         } catch {
             statusMessage = "Camera switch failed"
+        }
+    }
+
+    func focusAndExpose(at location: CGPoint, in viewSize: CGSize) async {
+        guard !isCapturing else { return }
+
+        do {
+            let point = CameraFocusPoint(
+                viewLocation: location,
+                viewSize: viewSize,
+                isMirrored: cameraPosition == .front
+            )
+            try await cameraSession.focusAndExpose(at: point)
+            statusMessage = "Focus adjusted"
+        } catch {
+            statusMessage = "Focus failed"
         }
     }
 

@@ -11,6 +11,7 @@
 		0C37C366A8625FA134E0609A /* MarketplaceScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97175DF1093561AFCE3A6E34 /* MarketplaceScreen.swift */; };
 		0E76063C5711FA3719C82DBD /* Models.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E272232019EEA2DCE1237CF2 /* Models.framework */; };
 		1001F2EB2F3551F7EEF56D97 /* RenderMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = B46D0F7DB0A87639B757F8F0 /* RenderMetrics.swift */; };
+		186D440C2B00891BFE8CF59D /* CameraFocusPointTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81059E1B0C792A6D96CD32D3 /* CameraFocusPointTests.swift */; };
 		18DB852E98FB0D6364D9EB3A /* Marketplace.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 986F7EBC00641A36A64C5BF2 /* Marketplace.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		24259CE3ACA97CAEED2E7F98 /* LUTTextureFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EE2F44167E0498D3234C94D /* LUTTextureFactory.swift */; };
 		2555394338C19C7FD3CABA72 /* Marketplace.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 986F7EBC00641A36A64C5BF2 /* Marketplace.framework */; };
@@ -296,6 +297,7 @@
 		72836443C5ED8A63E5900E45 /* sunset-vibes.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "sunset-vibes.png"; sourceTree = "<group>"; };
 		7998F71011FE7F147DD3E89C /* ShaderSources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShaderSources.swift; sourceTree = "<group>"; };
 		7B8CF4248CC40864BF9DB976 /* RootShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootShell.swift; sourceTree = "<group>"; };
+		81059E1B0C792A6D96CD32D3 /* CameraFocusPointTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraFocusPointTests.swift; sourceTree = "<group>"; };
 		8E9B7CF11247DDDDD5615CE3 /* LUTResourceResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LUTResourceResolver.swift; sourceTree = "<group>"; };
 		90EEACAB86FB9B53441AB592 /* CameraPositionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPositionTests.swift; sourceTree = "<group>"; };
 		97175DF1093561AFCE3A6E34 /* MarketplaceScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketplaceScreen.swift; sourceTree = "<group>"; };
@@ -539,6 +541,7 @@
 		A31A69788C7C1D81941F81ED /* CameraTests */ = {
 			isa = PBXGroup;
 			children = (
+				81059E1B0C792A6D96CD32D3 /* CameraFocusPointTests.swift */,
 				90EEACAB86FB9B53441AB592 /* CameraPositionTests.swift */,
 				3AA8FB3A35F08EEE647B9616 /* PhotoLibrarySaverTests.swift */,
 			);
@@ -985,6 +988,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				186D440C2B00891BFE8CF59D /* CameraFocusPointTests.swift in Sources */,
 				E84BF100D047EBDA749781F8 /* CameraPositionTests.swift in Sources */,
 				9FCD274EF0A10B155E961CBE /* PhotoLibrarySaverTests.swift in Sources */,
 			);
