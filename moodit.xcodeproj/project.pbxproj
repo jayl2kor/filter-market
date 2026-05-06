@@ -1098,6 +1098,7 @@
 				57AC39E96330A2AF012B00B7 /* Resources */,
 				19729F7CF13417E93225BBD7 /* Frameworks */,
 				DA6D175213BC28CF1F275BC8 /* Embed Frameworks */,
+				04FAF7DF7E732417ED6667BB /* Generate Firebase dSYMs (archive only) */,
 			);
 			buildRules = (
 			);
@@ -1245,6 +1246,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		04FAF7DF7E732417ED6667BB /* Generate Firebase dSYMs (archive only) */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Generate Firebase dSYMs (archive only)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+			shellPath = /bin/sh;
+			shellScript = "scripts/generate-firebase-dsyms.sh";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		221F6867EB3D9FB3AB200971 /* Sources */ = {
