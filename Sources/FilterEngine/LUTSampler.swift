@@ -45,6 +45,27 @@ public struct LUT3D: Sendable {
         return LUT3D(size: size, values: values)
     }
 
+    public static func preset(_ preset: LUTPreset, size: Int = 33) -> LUT3D {
+        var values: [RGBColor] = []
+        values.reserveCapacity(size * size * size)
+
+        for b in 0..<size {
+            for g in 0..<size {
+                for r in 0..<size {
+                    values.append(
+                        preset.transform(
+                            red: Float(r) / Float(size - 1),
+                            green: Float(g) / Float(size - 1),
+                            blue: Float(b) / Float(size - 1)
+                        )
+                    )
+                }
+            }
+        }
+
+        return LUT3D(size: size, values: values)
+    }
+
     public func colorAt(red: Int, green: Int, blue: Int) -> RGBColor {
         let index = blue * size * size + green * size + red
         return values[index]

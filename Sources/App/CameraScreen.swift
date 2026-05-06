@@ -214,6 +214,7 @@ private struct CameraCaptureResult: Identifiable {
     let id = UUID()
     let filter: Filter
     let photo: CapturedPhoto
+    let filteredPhoto: FilteredPhoto
 }
 
 @MainActor
@@ -226,6 +227,7 @@ private final class CameraPreviewController: ObservableObject {
     let renderer = MetalPreviewRenderer(lutResourceBundle: MarketplaceResources.bundle)
 
     private let cameraSession = CameraSession()
+    private let photoFilterRenderer = PhotoFilterRenderer(lutResourceBundle: MarketplaceResources.bundle)
     private var activeFilter: RenderFilter?
     private var isRunning = false
     private var metricsTask: Task<Void, Never>?
@@ -276,13 +278,7 @@ private final class CameraPreviewController: ObservableObject {
 
     func apply(filter: Filter?) {
         guard let filter else { return }
-        let renderFilter = RenderFilter(
-            id: filter.id,
-            title: filter.title,
-            lutFile: filter.engine.lutFile,
-            lutSize: filter.engine.lutSize ?? 33,
-            fallbackPreset: LUTPreset.preset(for: filter.category)
-        )
+        let renderFilter = makeRenderFilter(from: filter)
         activeFilter = renderFilter
         renderer.apply(configuration: FilterRenderConfiguration(filter: renderFilter, intensityValue: intensity))
     }
@@ -294,13 +290,28 @@ private final class CameraPreviewController: ObservableObject {
         defer { isCapturing = false }
 
         do {
+            let configuration = FilterRenderConfiguration(
+                filter: makeRenderFilter(from: filter),
+                intensityValue: intensity
+            )
             let photo = try await cameraSession.capturePhoto()
-            statusMessage = "Captured photo"
-            return CameraCaptureResult(filter: filter, photo: photo)
+            let filteredPhoto = try photoFilterRenderer.apply(to: photo.data, configuration: configuration)
+            statusMessage = "Filtered photo captured"
+            return CameraCaptureResult(filter: filter, photo: photo, filteredPhoto: filteredPhoto)
         } catch {
             statusMessage = "Capture failed"
             return nil
         }
+    }
+
+    private func makeRenderFilter(from filter: Filter) -> RenderFilter {
+        RenderFilter(
+            id: filter.id,
+            title: filter.title,
+            lutFile: filter.engine.lutFile,
+            lutSize: filter.engine.lutSize ?? 33,
+            fallbackPreset: LUTPreset.preset(for: filter.category)
+        )
     }
 
     private func startMetricsPolling() {
@@ -340,7 +351,7 @@ private struct CaptureResultScreen: View {
                 Text("Captured with \(result.filter.title)")
                     .font(.title3.weight(.bold))
                     .foregroundStyle(.white)
-                Text("\(formattedByteCount(result.photo.byteCount)) captured. PhotoKit saving is next.")
+                Text(captureSummary)
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.64))
             }
@@ -361,5 +372,11 @@ private struct CaptureResultScreen: View {
 
     private func formattedByteCount(_ byteCount: Int) -> String {
         ByteCountFormatter.string(fromByteCount: Int64(byteCount), countStyle: .file)
+    }
+
+    private var captureSummary: String {
+        let original = formattedByteCount(result.photo.byteCount)
+        let filtered = formattedByteCount(result.filteredPhoto.filteredByteCount)
+        return "Original \(original) · Filtered \(filtered). PhotoKit saving is next."
     }
 }

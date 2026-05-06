@@ -65,6 +65,7 @@
 		B907B0E0C4E46E65A5CA718E /* MetalPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A303EF76492E26F2B492982D /* MetalPreviewView.swift */; };
 		BB973D2085505D2BED8AD917 /* DesignSystem.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 17A93071FE62F98EC3C15760 /* DesignSystem.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C261C313DA2573FE32186DA4 /* BundleSeedFilterRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5D0FDCBC03D727B9C0E9B40 /* BundleSeedFilterRepository.swift */; };
+		C6959BFDB185478535AACF23 /* PhotoFilterRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4897FEBAFD8A51E99EEB844C /* PhotoFilterRenderer.swift */; };
 		C6C63436B49136D4688D4C4E /* JSONCoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = C301C0A9A39E52C722DA22C3 /* JSONCoding.swift */; };
 		CF5D2516C9616B0B7D5A3AF4 /* LUTSamplerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97C3FE4052CC350040CD54FB /* LUTSamplerTests.swift */; };
 		D43ECD9FF5B8F29B8CBCB6A0 /* FilterEngine.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4427FD027D65D35C917B9F2B /* FilterEngine.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -74,6 +75,7 @@
 		D989BBC72B15453CAC3A54BF /* Models.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E272232019EEA2DCE1237CF2 /* Models.framework */; };
 		E0D2312D23D796CC4221B77E /* seoul-night.png in Resources */ = {isa = PBXBuildFile; fileRef = 63BB2E2B2F1533C2633D744D /* seoul-night.png */; };
 		E9A4A5980D89487747D73461 /* Models.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E272232019EEA2DCE1237CF2 /* Models.framework */; };
+		ED7204F18FDFF55EF35836A1 /* PhotoFilterRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA62E0637EA14BF73046B45 /* PhotoFilterRendererTests.swift */; };
 		F84BB4C9347A98B43C79110E /* LUTImageDecoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36F2E73D81AA17B77BC03416 /* LUTImageDecoderTests.swift */; };
 		F8685D6B314CBA30B90446D4 /* LUTPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD76B7BA8875F97BCAD11C3 /* LUTPresetTests.swift */; };
 /* End PBXBuildFile section */
@@ -258,6 +260,7 @@
 		4427FD027D65D35C917B9F2B /* FilterEngine.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FilterEngine.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4483ADDB5F161308436DF0DA /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
 		4556B8A5D3DCF1D9649576AE /* AuthPlaceholder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthPlaceholder.swift; sourceTree = "<group>"; };
+		4897FEBAFD8A51E99EEB844C /* PhotoFilterRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoFilterRenderer.swift; sourceTree = "<group>"; };
 		4E78DFBB7B1BE0173463206F /* FilterMarketStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterMarketStore.swift; sourceTree = "<group>"; };
 		5BDE7A663A8C1D2A0C02E1A6 /* RenderFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderFilterTests.swift; sourceTree = "<group>"; };
 		62A023B0EACB9440DD4070B2 /* BasicYUVShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = BasicYUVShaders.metal; sourceTree = "<group>"; };
@@ -291,6 +294,7 @@
 		E35FA23DD85E90C3AE32E85A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E3E248D4EE06814C4D1F4085 /* LUTSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LUTSampler.swift; sourceTree = "<group>"; };
 		EDFCE3DB4F379E70DA9CEFF3 /* FilterEngineTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FilterEngineTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EEA62E0637EA14BF73046B45 /* PhotoFilterRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoFilterRendererTests.swift; sourceTree = "<group>"; };
 		F06E69D4F6F277CAE975F5AA /* FilterMarketApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterMarketApp.swift; sourceTree = "<group>"; };
 		F5D0FDCBC03D727B9C0E9B40 /* BundleSeedFilterRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleSeedFilterRepository.swift; sourceTree = "<group>"; };
 		F668B24669A6F476F5B8F607 /* FilterCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterCache.swift; sourceTree = "<group>"; };
@@ -445,6 +449,7 @@
 				FBD76B7BA8875F97BCAD11C3 /* LUTPresetTests.swift */,
 				42436E6ADF8B31FFB65424B0 /* LUTResourceResolverTests.swift */,
 				97C3FE4052CC350040CD54FB /* LUTSamplerTests.swift */,
+				EEA62E0637EA14BF73046B45 /* PhotoFilterRendererTests.swift */,
 				5BDE7A663A8C1D2A0C02E1A6 /* RenderFilterTests.swift */,
 			);
 			name = FilterEngineTests;
@@ -547,6 +552,7 @@
 				0EE2F44167E0498D3234C94D /* LUTTextureFactory.swift */,
 				B83062A56C0F7733398AF36B /* MetalPreviewRenderer.swift */,
 				A303EF76492E26F2B492982D /* MetalPreviewView.swift */,
+				4897FEBAFD8A51E99EEB844C /* PhotoFilterRenderer.swift */,
 				A1B2DB8BE38EAB90A018D8C4 /* PreviewFilter.swift */,
 				B473C5F5962E7011CE788FE6 /* PreviewUniforms.swift */,
 				B65E3020886C9BD8D92E3A38 /* RenderFilter.swift */,
@@ -880,6 +886,7 @@
 				F8685D6B314CBA30B90446D4 /* LUTPresetTests.swift in Sources */,
 				2F8F5016C671B8EC2697C781 /* LUTResourceResolverTests.swift in Sources */,
 				CF5D2516C9616B0B7D5A3AF4 /* LUTSamplerTests.swift in Sources */,
+				ED7204F18FDFF55EF35836A1 /* PhotoFilterRendererTests.swift in Sources */,
 				8A0239EE1556C403B78825EA /* RenderFilterTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -912,6 +919,7 @@
 				24259CE3ACA97CAEED2E7F98 /* LUTTextureFactory.swift in Sources */,
 				8B8BBE6024B60D14A27157B2 /* MetalPreviewRenderer.swift in Sources */,
 				B907B0E0C4E46E65A5CA718E /* MetalPreviewView.swift in Sources */,
+				C6959BFDB185478535AACF23 /* PhotoFilterRenderer.swift in Sources */,
 				A29C6D4CEC96284748B2045E /* PreviewFilter.swift in Sources */,
 				3519AF3D40969C65B6D08A07 /* PreviewUniforms.swift in Sources */,
 				B74421F9AE1E2C458141BA74 /* RenderFilter.swift in Sources */,
