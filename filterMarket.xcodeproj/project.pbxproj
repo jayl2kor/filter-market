@@ -10,6 +10,7 @@
 		00376A93C13B1F3AC5B92DF4 /* FilterManifestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B0919AF0D5257B63A2F2B1 /* FilterManifestTests.swift */; };
 		066639F7213CF614A6A29EAF /* ProfileMockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DEB19B7B38D8F2D7D90C4AC /* ProfileMockData.swift */; };
 		0BC9F5C39AED38B4F2C64423 /* FMSkeleton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F1B53ED0B31B8D87F43AEB6 /* FMSkeleton.swift */; };
+		0DBE04995696A17DC6DFC422 /* OnboardingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5CD5BFD26127F32BF8D83FF /* OnboardingScreen.swift */; };
 		0E76063C5711FA3719C82DBD /* Models.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E272232019EEA2DCE1237CF2 /* Models.framework */; };
 		0FA0245FA5FB366D06DADC25 /* State.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43E32F6BD1223D0564D35274 /* State.swift */; };
 		1001F2EB2F3551F7EEF56D97 /* RenderMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = B46D0F7DB0A87639B757F8F0 /* RenderMetrics.swift */; };
@@ -112,6 +113,7 @@
 		F693B80F3FF325110EED4E3E /* FMCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78E527949CE5F31D82815B61 /* FMCard.swift */; };
 		F84BB4C9347A98B43C79110E /* LUTImageDecoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36F2E73D81AA17B77BC03416 /* LUTImageDecoderTests.swift */; };
 		F8685D6B314CBA30B90446D4 /* LUTPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD76B7BA8875F97BCAD11C3 /* LUTPresetTests.swift */; };
+		FEC0A60869879140D12865C1 /* CapturePreviewScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3580A7FB0A7473B25872A7A /* CapturePreviewScreen.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -371,6 +373,7 @@
 		C301C0A9A39E52C722DA22C3 /* JSONCoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONCoding.swift; sourceTree = "<group>"; };
 		D1F4F29D6C5101CD27F4D382 /* CameraScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraScreen.swift; sourceTree = "<group>"; };
 		D58C62B2CADB7A2B4B7744C5 /* cafe-cream.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "cafe-cream.png"; sourceTree = "<group>"; };
+		D5CD5BFD26127F32BF8D83FF /* OnboardingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingScreen.swift; sourceTree = "<group>"; };
 		E00C60A1E215EDCBE752812A /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 		E036733175A00B7214199774 /* CameraTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CameraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E272232019EEA2DCE1237CF2 /* Models.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Models.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -380,6 +383,7 @@
 		EEA62E0637EA14BF73046B45 /* PhotoFilterRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoFilterRendererTests.swift; sourceTree = "<group>"; };
 		F06E69D4F6F277CAE975F5AA /* FilterMarketApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterMarketApp.swift; sourceTree = "<group>"; };
 		F1357054A8E63A8D57D22EA6 /* Motion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Motion.swift; sourceTree = "<group>"; };
+		F3580A7FB0A7473B25872A7A /* CapturePreviewScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePreviewScreen.swift; sourceTree = "<group>"; };
 		F5D0FDCBC03D727B9C0E9B40 /* BundleSeedFilterRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleSeedFilterRepository.swift; sourceTree = "<group>"; };
 		F668B24669A6F476F5B8F607 /* FilterCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterCache.swift; sourceTree = "<group>"; };
 		F8479F88B017AE1F4E467375 /* FMTag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMTag.swift; sourceTree = "<group>"; };
@@ -482,8 +486,10 @@
 				E35FA23DD85E90C3AE32E85A /* Info.plist */,
 				7B8CF4248CC40864BF9DB976 /* RootShell.swift */,
 				5A524F83F45C25C0D4B5E99F /* SavedScreen.swift */,
+				A708B542EE579D9750614869 /* Camera */,
 				B73F660204604A492D8C015F /* Login */,
 				E8242625B08EEA1BBD1F1700 /* Marketplace */,
+				843596F6CB95E5994F611FE9 /* Onboarding */,
 				61C61521A85B6856AF855283 /* Profile */,
 				66D6AECCB6E7940CB96375E9 /* Search */,
 				48240E095BEEEEBA07799D37 /* Settings */,
@@ -617,6 +623,14 @@
 			path = Sources/Marketplace;
 			sourceTree = "<group>";
 		};
+		843596F6CB95E5994F611FE9 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				D5CD5BFD26127F32BF8D83FF /* OnboardingScreen.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
 		9C1A0234369BE44ABD2A019C /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -649,6 +663,14 @@
 			);
 			name = CameraTests;
 			path = Tests/CameraTests;
+			sourceTree = "<group>";
+		};
+		A708B542EE579D9750614869 /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				F3580A7FB0A7473B25872A7A /* CapturePreviewScreen.swift */,
+			);
+			path = Camera;
 			sourceTree = "<group>";
 		};
 		B3845069F74B10928BBCDB00 /* ModelsTests */ = {
@@ -1216,12 +1238,14 @@
 			files = (
 				4A72BCE251D50EAA9DFAB30A /* AppComponents.swift in Sources */,
 				7E46C08447936668431E9167 /* CameraScreen.swift in Sources */,
+				FEC0A60869879140D12865C1 /* CapturePreviewScreen.swift in Sources */,
 				E3D2C286A1B980A24D9DD9B1 /* FilterDetailScreen.swift in Sources */,
 				8BF59D17FD45564E439B2582 /* FilterMarketApp.swift in Sources */,
 				36C2C0D96BAAAAE74F4070B4 /* FilterMarketStore.swift in Sources */,
 				B8E56CC9BEBE16713832F7D1 /* LoginScreen.swift in Sources */,
 				E971B4CD009D3899C66CF232 /* MarketplaceMockData.swift in Sources */,
 				A9A214F21AF186C2E71EA9FB /* MarketplaceScreen.swift in Sources */,
+				0DBE04995696A17DC6DFC422 /* OnboardingScreen.swift in Sources */,
 				066639F7213CF614A6A29EAF /* ProfileMockData.swift in Sources */,
 				F59260E17FBFFCE589433D27 /* ProfileScreen.swift in Sources */,
 				D8B21E0D846A99FF521FD2C4 /* RootShell.swift in Sources */,
