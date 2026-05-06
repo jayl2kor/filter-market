@@ -1,6 +1,6 @@
 # filterMarket - Implementation Status
 
-> 마지막 업데이트: 2026-05-06 16:25 KST · 기준 커밋/브랜치: 로컬 작업 상태 · 상태: Phase 0 실기기 검증 대기 / UI shell 진행 중
+> 마지막 업데이트: 2026-05-06 16:37 KST · 기준 커밋/브랜치: 로컬 작업 상태 · 상태: Phase 0 실기기 검증 대기 / UI shell 진행 중
 >
 > 이 문서는 실제 구현 진행 상황, 검증 결과, 남은 작업, 다음 Phase 진입 조건을 기록한다. 전체 이슈 분해는 [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)를 기준으로 한다.
 
@@ -26,6 +26,8 @@
 - 탭 기반 앱 shell 추가 (`Camera`, `Filters`, `Market`, `Profile`)
 - 카메라 화면 컨트롤 UI 재구성: filter carousel, intensity slider, shutter/action buttons
 - mock filter catalog와 library/market/detail/profile placeholder 화면 추가
+- 필터 선택 상태를 `MetalPreviewRenderer`에 연결
+- category 기반 procedural LUT preset 적용 경로 추가
 - `.metal` 빌드 타임 컴파일을 위한 Metal Toolchain 설치 및 스크립트화
 - 필터/manifest 도메인 모델 추가
 - LUT sampler와 기본 단위 테스트 추가
@@ -72,7 +74,7 @@
 |---|---|---|
 | `App` | [FilterMarketApp.swift](../Sources/App/FilterMarketApp.swift), [RootShell.swift](../Sources/App/RootShell.swift), [CameraScreen.swift](../Sources/App/CameraScreen.swift), [FilterLibraryScreen.swift](../Sources/App/FilterLibraryScreen.swift), [MarketplaceScreen.swift](../Sources/App/MarketplaceScreen.swift), [ProfileScreen.swift](../Sources/App/ProfileScreen.swift), [FilterMarketStore.swift](../Sources/App/FilterMarketStore.swift), [AppComponents.swift](../Sources/App/AppComponents.swift), [Info.plist](../Sources/App/Info.plist) | 앱 엔트리, 탭 shell, 카메라/필터/마켓/프로필 mock 화면 |
 | `Camera` | [CameraSession.swift](../Sources/Camera/CameraSession.swift) | 권한 요청, back camera session, video frame callback |
-| `FilterEngine` | [MetalPreviewRenderer.swift](../Sources/FilterEngine/MetalPreviewRenderer.swift), [MetalPreviewView.swift](../Sources/FilterEngine/MetalPreviewView.swift), [ShaderSources.swift](../Sources/FilterEngine/ShaderSources.swift), [LUTSampler.swift](../Sources/FilterEngine/LUTSampler.swift), [LUTTextureFactory.swift](../Sources/FilterEngine/LUTTextureFactory.swift), [RenderMetrics.swift](../Sources/FilterEngine/RenderMetrics.swift), [PreviewUniforms.swift](../Sources/FilterEngine/PreviewUniforms.swift) | Metal preview renderer, Y/CbCr texture conversion, 3D LUT texture, intensity uniform, render metrics, LUT sampler |
+| `FilterEngine` | [MetalPreviewRenderer.swift](../Sources/FilterEngine/MetalPreviewRenderer.swift), [MetalPreviewView.swift](../Sources/FilterEngine/MetalPreviewView.swift), [PreviewFilter.swift](../Sources/FilterEngine/PreviewFilter.swift), [ShaderSources.swift](../Sources/FilterEngine/ShaderSources.swift), [LUTSampler.swift](../Sources/FilterEngine/LUTSampler.swift), [LUTTextureFactory.swift](../Sources/FilterEngine/LUTTextureFactory.swift), [RenderMetrics.swift](../Sources/FilterEngine/RenderMetrics.swift), [PreviewUniforms.swift](../Sources/FilterEngine/PreviewUniforms.swift) | Metal preview renderer, Y/CbCr texture conversion, procedural LUT preset, 3D LUT texture, intensity uniform, render metrics, LUT sampler |
 | `Models` | [FilterModels.swift](../Sources/Models/FilterModels.swift), [FilterManifest.swift](../Sources/Models/FilterManifest.swift), [JSONCoding.swift](../Sources/Models/JSONCoding.swift) | 필터/manifest Codable 모델 |
 | `Storage` | [FilterCache.swift](../Sources/Storage/FilterCache.swift) | actor 기반 in-memory cache 초안 |
 | `Marketplace` | [FilterRepository.swift](../Sources/Marketplace/FilterRepository.swift) | Repository protocol과 mock 구현 |
@@ -128,7 +130,7 @@ Toolchain Identifier: com.apple.dt.toolchain.Metal.32023.864
 ```
 
 최근 검증:
-- 2026-05-06 16:24 KST
+- 2026-05-06 16:36 KST
 
 중요 확인:
 - [Shaders/BasicYUVShaders.metal](../Shaders/BasicYUVShaders.metal)이 Xcode `CompileMetalFile` 단계에서 컴파일됨
@@ -150,12 +152,13 @@ Toolchain Identifier: com.apple.dt.toolchain.Metal.32023.864
 ```
 
 최근 검증:
-- 2026-05-06 16:25 KST
+- 2026-05-06 16:37 KST
 
 테스트 결과:
 - `ModelsTests.FilterManifestTests`: 1개 통과
 - `FilterEngineTests.LUTSamplerTests`: 3개 통과
-- 총 4개 테스트, 0 failures
+- `FilterEngineTests.LUTPresetTests`: 3개 통과
+- 총 7개 테스트, 0 failures
 
 ### Simulator UI Smoke
 
@@ -192,7 +195,7 @@ Toolchain Identifier: com.apple.dt.toolchain.Metal.32023.864
 | M0-C03 | preview orientation/crop 보정 | Partial | aspect-fill sampling 추가, 실기기 확인 필요 |
 | UI-01 | App navigation shell 구성 | Done | `Camera`, `Filters`, `Market`, `Profile` 탭 추가 |
 | UI-02 | Camera controls UI 정리 | Partial | simulator 렌더링 확인, 실기기 preview 위 배치 확인 필요 |
-| UI-03 | Filter carousel 구현 | Partial | mock catalog 선택 UI 추가, 실제 LUT switching은 후속 |
+| UI-03 | Filter carousel 구현 | Partial | mock catalog 선택 UI와 procedural LUT switching 연결, 실제 LUT asset loader는 후속 |
 
 ---
 

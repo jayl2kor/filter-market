@@ -1,19 +1,19 @@
 import Metal
 
 enum LUTTextureFactory {
-    static func makeWarmLUT(device: MTLDevice, size: Int = 33) -> MTLTexture? {
+    static func makeLUT(device: MTLDevice, preset: LUTPreset, size: Int = 33) -> MTLTexture? {
         makeLUT(device: device, size: size) { red, green, blue in
-            let warmedRed = min(red * 1.08 + 0.025, 1)
-            let warmedGreen = min(green * 1.02 + 0.008, 1)
-            let cooledBlue = max(blue * 0.92 - 0.012, 0)
-            return (warmedRed, warmedGreen, cooledBlue)
+            let color = preset.transform(red: red, green: green, blue: blue)
+            return (color.red, color.green, color.blue)
         }
     }
 
+    static func makeWarmLUT(device: MTLDevice, size: Int = 33) -> MTLTexture? {
+        makeLUT(device: device, preset: .warm, size: size)
+    }
+
     static func makeIdentityLUT(device: MTLDevice, size: Int = 33) -> MTLTexture? {
-        makeLUT(device: device, size: size) { red, green, blue in
-            (red, green, blue)
-        }
+        makeLUT(device: device, preset: .identity, size: size)
     }
 
     private static func makeLUT(

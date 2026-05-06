@@ -23,6 +23,7 @@ public final class MetalPreviewRenderer: NSObject, @unchecked Sendable {
     private var textureCache: CVMetalTextureCache?
     private var pipelineState: MTLRenderPipelineState?
     private var lutTexture: MTLTexture?
+    private var activeFilter: PreviewFilter?
     private var uniforms = PreviewUniforms(intensity: 0.65, frameAspectRatio: 1, drawableAspectRatio: 1)
 
     private let lock = NSLock()
@@ -54,6 +55,16 @@ public final class MetalPreviewRenderer: NSObject, @unchecked Sendable {
     public func setIntensity(_ intensity: Float) {
         lock.lock()
         uniforms.intensity = min(max(intensity, 0), 1)
+        lock.unlock()
+    }
+
+    public func applyFilter(_ filter: PreviewFilter) {
+        guard activeFilter?.id != filter.id else { return }
+        guard let device, let texture = LUTTextureFactory.makeLUT(device: device, preset: filter.preset) else { return }
+
+        lock.lock()
+        activeFilter = filter
+        lutTexture = texture
         lock.unlock()
     }
 

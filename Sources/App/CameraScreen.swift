@@ -29,9 +29,13 @@ struct CameraScreen: View {
         }
         .background(FMColor.background)
         .task {
+            controller.apply(filter: store.selectedFilter)
             if scenePhase == .active {
                 await controller.start()
             }
+        }
+        .onChange(of: store.selectedFilterID) { _, _ in
+            controller.apply(filter: store.selectedFilter)
         }
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
@@ -245,6 +249,18 @@ private final class CameraPreviewController: ObservableObject {
     func setIntensity(_ intensity: Float) {
         self.intensity = intensity
         renderer.setIntensity(intensity)
+    }
+
+    func apply(filter: Filter?) {
+        guard let filter else { return }
+        renderer.applyFilter(
+            PreviewFilter(
+                id: filter.id,
+                title: filter.title,
+                category: filter.category,
+                preset: LUTPreset.preset(for: filter.category)
+            )
+        )
     }
 
     private func startMetricsPolling() {
