@@ -10,7 +10,7 @@ final class FilterMarketStore: ObservableObject {
 
     private let repository: any FilterRepository
 
-    init(repository: any FilterRepository = MockFilterRepository()) {
+    init(repository: any FilterRepository = BundleSeedFilterRepository()) {
         self.repository = repository
     }
 

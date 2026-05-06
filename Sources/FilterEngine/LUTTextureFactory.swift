@@ -1,6 +1,17 @@
+import Foundation
 import Metal
 
 enum LUTTextureFactory {
+    static func makeLUT(device: MTLDevice, bundle: Bundle, resourcePath: String, size: Int) throws -> MTLTexture {
+        let url = try resourceURL(bundle: bundle, resourcePath: resourcePath)
+        let data = try Data(contentsOf: url)
+        let image = try LUTImageDecoder.decodePNG(data: data, size: size)
+        guard let texture = makeLUT(device: device, size: image.size, colors: image.colors) else {
+            throw LUTImageLoaderError.cannotCreateTexture
+        }
+        return texture
+    }
+
     static func makeLUT(device: MTLDevice, preset: LUTPreset, size: Int = 33) -> MTLTexture? {
         makeLUT(device: device, size: size) { red, green, blue in
             let color = preset.transform(red: red, green: green, blue: blue)
@@ -14,6 +25,41 @@ enum LUTTextureFactory {
 
     static func makeIdentityLUT(device: MTLDevice, size: Int = 33) -> MTLTexture? {
         makeLUT(device: device, preset: .identity, size: size)
+    }
+
+    private static func resourceURL(bundle: Bundle, resourcePath: String) throws -> URL {
+        let path = resourcePath as NSString
+        let subdirectory = path.deletingLastPathComponent
+        let fileName = path.deletingPathExtension
+        let fileExtension = path.pathExtension
+
+        let bundledURL = bundle.url(
+            forResource: fileName,
+            withExtension: fileExtension.isEmpty ? nil : fileExtension,
+            subdirectory: subdirectory.isEmpty ? nil : subdirectory
+        )
+        let flattenedURL = bundle.url(
+            forResource: fileName,
+            withExtension: fileExtension.isEmpty ? nil : fileExtension
+        )
+        let resourceURL = bundle.resourceURL?.appendingPathComponent(resourcePath)
+        let flattenedResourceURL = bundle.resourceURL?.appendingPathComponent(path.lastPathComponent)
+        let candidateURLs = [bundledURL, resourceURL, flattenedURL, flattenedResourceURL]
+
+        guard let url = candidateURLs.compactMap({ $0 }).first(where: { FileManager.default.fileExists(atPath: $0.path) }) else {
+            throw LUTImageLoaderError.missingResource(resourcePath)
+        }
+        return url
+    }
+
+    private static func makeLUT(device: MTLDevice, size: Int, colors: [RGBColor]) -> MTLTexture? {
+        makeLUT(device: device, size: size) { red, green, blue in
+            let redIndex = Int((red * Float(size - 1)).rounded())
+            let greenIndex = Int((green * Float(size - 1)).rounded())
+            let blueIndex = Int((blue * Float(size - 1)).rounded())
+            let color = colors[blueIndex * size * size + greenIndex * size + redIndex]
+            return (color.red, color.green, color.blue)
+        }
     }
 
     private static func makeLUT(

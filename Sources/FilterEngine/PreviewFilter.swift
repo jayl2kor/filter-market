@@ -6,12 +6,23 @@ public struct PreviewFilter: Equatable, Sendable {
     public let title: String
     public let category: FilterCategory
     public let preset: LUTPreset
+    public let lutFile: String?
+    public let lutSize: Int
 
-    public init(id: UUID, title: String, category: FilterCategory, preset: LUTPreset) {
+    public init(
+        id: UUID,
+        title: String,
+        category: FilterCategory,
+        preset: LUTPreset,
+        lutFile: String? = nil,
+        lutSize: Int = 33
+    ) {
         self.id = id
         self.title = title
         self.category = category
         self.preset = preset
+        self.lutFile = lutFile
+        self.lutSize = lutSize
     }
 }
 

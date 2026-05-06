@@ -61,6 +61,17 @@
                ReferencedContainer = "container:filterMarket.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "E3630B81DE847B634F2478EE"
+               BuildableName = "MarketplaceTests.xctest"
+               BlueprintName = "MarketplaceTests"
+               ReferencedContainer = "container:filterMarket.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

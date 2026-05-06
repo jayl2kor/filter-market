@@ -1,6 +1,7 @@
 import Camera
 import DesignSystem
 import FilterEngine
+import Marketplace
 import Models
 import SwiftUI
 import UIKit
@@ -205,7 +206,7 @@ private final class CameraPreviewController: ObservableObject {
     @Published private(set) var metricsText = "0 FPS · GPU 0.00ms · CPU 0.00ms"
     @Published private(set) var intensity: Float = 0.65
 
-    let renderer = MetalPreviewRenderer()
+    let renderer = MetalPreviewRenderer(lutResourceBundle: MarketplaceResources.bundle)
 
     private let cameraSession = CameraSession()
     private var isRunning = false
@@ -258,7 +259,9 @@ private final class CameraPreviewController: ObservableObject {
                 id: filter.id,
                 title: filter.title,
                 category: filter.category,
-                preset: LUTPreset.preset(for: filter.category)
+                preset: LUTPreset.preset(for: filter.category),
+                lutFile: filter.engine.lutFile,
+                lutSize: filter.engine.lutSize ?? 33
             )
         )
     }

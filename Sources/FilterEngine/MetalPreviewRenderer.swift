@@ -20,6 +20,7 @@ public final class MetalPreviewRenderer: NSObject, @unchecked Sendable {
 
     private let device: MTLDevice?
     private let commandQueue: MTLCommandQueue?
+    private let lutResourceBundle: Bundle?
     private var textureCache: CVMetalTextureCache?
     private var pipelineState: MTLRenderPipelineState?
     private var lutTexture: MTLTexture?
@@ -32,10 +33,15 @@ public final class MetalPreviewRenderer: NSObject, @unchecked Sendable {
     private var frameCount = 0
     private var fpsWindowStart = CACurrentMediaTime()
 
-    public override init() {
+    public convenience override init() {
+        self.init(lutResourceBundle: nil)
+    }
+
+    public init(lutResourceBundle: Bundle?) {
         let device = MTLCreateSystemDefaultDevice()
         self.device = device
         self.commandQueue = device?.makeCommandQueue()
+        self.lutResourceBundle = lutResourceBundle
 
         super.init()
 
@@ -59,8 +65,22 @@ public final class MetalPreviewRenderer: NSObject, @unchecked Sendable {
     }
 
     public func applyFilter(_ filter: PreviewFilter) {
-        guard activeFilter?.id != filter.id else { return }
-        guard let device, let texture = LUTTextureFactory.makeLUT(device: device, preset: filter.preset) else { return }
+        guard activeFilter != filter else { return }
+        guard let device else { return }
+
+        let texture: MTLTexture?
+        if let lutResourceBundle, let lutFile = filter.lutFile {
+            texture = (try? LUTTextureFactory.makeLUT(
+                device: device,
+                bundle: lutResourceBundle,
+                resourcePath: lutFile,
+                size: filter.lutSize
+            )) ?? LUTTextureFactory.makeLUT(device: device, preset: filter.preset, size: filter.lutSize)
+        } else {
+            texture = LUTTextureFactory.makeLUT(device: device, preset: filter.preset, size: filter.lutSize)
+        }
+
+        guard let texture else { return }
 
         lock.lock()
         activeFilter = filter

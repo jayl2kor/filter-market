@@ -144,6 +144,19 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
 
+  MarketplaceTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - Tests/MarketplaceTests
+    dependencies:
+      - target: Marketplace
+      - target: Models
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+
 schemes:
   filterMarket:
     build:
@@ -153,3 +166,4 @@ schemes:
       targets:
         - ModelsTests
         - FilterEngineTests
+        - MarketplaceTests

@@ -1,0 +1,87 @@
+[
+  {
+    "id": "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4A",
+    "title": "Sunset Vibes",
+    "version": "1.0.0",
+    "author": {
+      "uid": "preview-maker",
+      "displayName": "Alex"
+    },
+    "category": "cinematic",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/sunset-vibes.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4B",
+    "title": "Soft Portra",
+    "version": "1.0.0",
+    "author": {
+      "uid": "maker-portra",
+      "displayName": "Mina"
+    },
+    "category": "portrait",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/soft-portra.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4C",
+    "title": "Seoul Night",
+    "version": "1.0.0",
+    "author": {
+      "uid": "maker-night",
+      "displayName": "Joon"
+    },
+    "category": "moody",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/seoul-night.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4D",
+    "title": "Cafe Cream",
+    "version": "1.0.0",
+    "author": {
+      "uid": "maker-cafe",
+      "displayName": "Nora"
+    },
+    "category": "food",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/cafe-cream.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4E",
+    "title": "Airy Trip",
+    "version": "1.0.0",
+    "author": {
+      "uid": "maker-trip",
+      "displayName": "Leo"
+    },
+    "category": "travel",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/airy-trip.png"
+    }
+  }
+]
