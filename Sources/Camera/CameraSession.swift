@@ -30,6 +30,16 @@ public struct CameraFocusPoint: Equatable, Sendable {
         y = normalizedY
     }
 
+    public init(viewLocation: CGPoint, activeFrame: CGRect, isMirrored: Bool = false) {
+        let width = max(Double(activeFrame.width), 1)
+        let height = max(Double(activeFrame.height), 1)
+        let normalizedX = min(max(Double(viewLocation.x - activeFrame.minX) / width, 0), 1)
+        let normalizedY = min(max(Double(viewLocation.y - activeFrame.minY) / height, 0), 1)
+
+        x = isMirrored ? 1 - normalizedX : normalizedX
+        y = normalizedY
+    }
+
     var cgPoint: CGPoint {
         CGPoint(x: x, y: y)
     }
@@ -103,21 +113,27 @@ public final class CameraSession: NSObject, @unchecked Sendable {
         }
     }
 
-    public func start() throws {
+    public func start() async throws {
         guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else {
             throw CameraSessionError.permissionDenied
         }
 
-        sessionQueue.async { [weak self] in
-            guard let self else { return }
-
-            do {
-                try configureIfNeeded()
-                if !captureSession.isRunning {
-                    captureSession.startRunning()
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            sessionQueue.async { [weak self] in
+                guard let self else {
+                    continuation.resume(throwing: CameraSessionError.sessionUnavailable)
+                    return
                 }
-            } catch {
-                // Start errors are surfaced during explicit configuration calls in later milestones.
+
+                do {
+                    try configureIfNeeded()
+                    if !captureSession.isRunning {
+                        captureSession.startRunning()
+                    }
+                    continuation.resume(returning: ())
+                } catch {
+                    continuation.resume(throwing: error)
+                }
             }
         }
     }

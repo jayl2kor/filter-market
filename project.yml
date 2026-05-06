@@ -6,10 +6,8 @@ options:
     iOS: "17.0"
   xcodeVersion: "26.3"
 
-# 코드 서명 — Signing.local.xcconfig (gitignored) 에서 DEVELOPMENT_TEAM 주입
-configFiles:
-  Debug: Configs/Signing.xcconfig
-  Release: Configs/Signing.xcconfig
+# 코드 서명 — Xcode UI 에서 직접 설정 (Signing & Capabilities → Team)
+# xcodegen 재생성 시 Xcode UI 설정이 사라지면 다시 선택하세요.
 
 settings:
   base:
