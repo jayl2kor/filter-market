@@ -151,9 +151,8 @@ public struct FMButton: View {
 
     private func handleTap() {
         guard !isLoading, isEnabled else { return }
-        // Light impact 햅틱 — Phase D6 에서 wrapper 로 분리 예정.
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.impactOccurred()
+        // Light impact 햅틱 — Phase D6 에서 `FMHaptic` wrapper 로 통일.
+        FMHaptic.light.play()
         action()
     }
 }

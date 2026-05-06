@@ -134,7 +134,7 @@ public struct FMSlider: View {
         default: nil
         }
         if let anchor, anchor != lastHapticAnchor {
-            UISelectionFeedbackGenerator().selectionChanged()
+            FMHaptic.selection.play()
             lastHapticAnchor = anchor
         }
     }

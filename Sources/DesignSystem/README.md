@@ -69,8 +69,61 @@ withAnimation(reduceMotion ? .fmFast : .fmSpring) {
 
 - 모든 컴포넌트는 `public init` + `Sendable` 가능한 곳은 `Sendable`.
 - 인터랙티브 컴포넌트엔 `.accessibilityLabel(...)` + 적절한 trait.
-- 햅틱은 컴포넌트 내부에서 직접 호출 (Phase D6 에서 `HapticEngine` wrapper 로 분리 예정).
+- 햅틱은 `FMHaptic` wrapper 사용 — 컴포넌트 내부에서 `FMHaptic.light.play()` 형태로 호출 (Phase D6).
 - 외부 의존성 X — SwiftUI / Foundation / UIKit 만 사용.
+
+## 모달 (Phase D6)
+
+`Sources/DesignSystem/Modals/` 아래의 4종 표준 wrapper.
+`docs/MODAL_PATTERNS.md` 의 결정 기준에 1:1 대응.
+
+| 파일 | API | 용도 |
+|---|---|---|
+| `FMBottomSheet.swift` | `.fmBottomSheet(isPresented:detents:) { ... }` | 부가 정보, 빠른 액션, 부가 설정 |
+| `FMConfirmationDialog.swift` | `.fmConfirmationDialog(_:isPresented:) { actions } message: { ... }` | 옵션 선택 (3~6개) |
+| `FMAlert.swift` | `.fmAlert(...)` 일반 / `.fmDestructiveAlert(...:onConfirm:)` 파괴적 단축 | 중요 확인 (삭제·로그아웃 등) |
+| `FMShareSheet.swift` | `.fmShareSheet(isPresented:items:)` + `FMShareLinkButton(item:)` | 시스템 공유 |
+
+`fmDestructiveAlert` 는 destructive 탭 시 자동으로 `FMHaptic.warning.play()` 를 호출한다.
+
+## 햅틱 (Phase D6)
+
+`Sources/DesignSystem/HapticEngine.swift` — `FMHaptic` enum + `fmHaptic(_:)` 함수형 단축.
+`docs/MOTION_SPEC.md` §7 의 매핑을 그대로 코드화.
+
+```swift
+FMHaptic.light.play()       // 일반 버튼 탭
+FMHaptic.medium.play()      // 중요 버튼 탭, 셔터, 스와이프 snap
+FMHaptic.heavy.play()       // 파괴적 액션
+FMHaptic.success.play()     // 저장/다운로드 완료
+FMHaptic.warning.play()     // 사진 삭제 직전
+FMHaptic.error.play()       // 저장 실패
+FMHaptic.selection.play()   // 토글, 칩, picker 변경
+
+fmHaptic(.light)            // 함수형 단축 — 동일 효과
+```
+
+모든 호출은 `@MainActor` 에서 즉시 재생되며 — 화면 단의 inline `UIImpactFeedbackGenerator(style:)` 직접 호출은
+본 wrapper 로 통일됨 (Phase D6 검증).
+
+## Reduce Motion (Phase D6)
+
+`Sources/DesignSystem/ReduceMotion.swift` — 시스템 모션 줄이기 설정 자동 분기.
+
+```swift
+@Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+// 변환 spring → reduce motion 시 fade 만 남김
+withAnimation(reduceMotion ? .fmFast : .fmSpringSwipe) {
+    selectedID = nextID
+}
+
+// 또는 modifier 형태
+myView.fmAnimation(.fmSpringSwipe, value: selectedID)
+
+// transition 분기
+.transition(.fmReducible(.move(edge: .trailing), reduceMotion: reduceMotion))
+```
 
 ### Preview 한눈에 보기
 

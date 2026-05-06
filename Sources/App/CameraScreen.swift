@@ -16,6 +16,7 @@ import UIKit
 struct CameraScreen: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var store: FilterMarketStore
     @StateObject private var controller = CameraPreviewController()
     @StateObject private var permissionCoordinator = PermissionCoordinator()
@@ -125,7 +126,7 @@ struct CameraScreen: View {
 
     private func handleCloseFromPriming() {
         if isPresentedAsCover {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            FMHaptic.light.play()
             dismiss()
         }
     }
@@ -136,7 +137,7 @@ struct CameraScreen: View {
         HStack(alignment: .center, spacing: Sp.xs) {
             if isPresentedAsCover {
                 frostedIconButton(systemName: "xmark", label: "카메라 닫기") {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    FMHaptic.light.play()
                     dismiss()
                 }
                 .accessibilityIdentifier("camera.dismiss")
@@ -150,7 +151,7 @@ struct CameraScreen: View {
             HStack(spacing: Sp.xs) {
                 aspectRatioMenu
                 frostedIconButton(systemName: "camera.rotate", label: "전후면 전환") {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    FMHaptic.light.play()
                     Task { await controller.switchCamera() }
                 }
                 .accessibilityIdentifier("camera.flip")
@@ -182,7 +183,7 @@ struct CameraScreen: View {
         Menu {
             ForEach(PhotoCropAspectRatio.allCases) { aspectRatio in
                 Button {
-                    UISelectionFeedbackGenerator().selectionChanged()
+                    FMHaptic.selection.play()
                     controller.setCropAspectRatio(aspectRatio)
                 } label: {
                     if aspectRatio == controller.cropAspectRatio {
@@ -272,8 +273,8 @@ struct CameraScreen: View {
         let nextIndex = (currentIndex + direction + store.filters.count) % store.filters.count
         let nextFilter = store.filters[nextIndex]
 
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        withAnimation(.fmSpringSwipe) {
+        FMHaptic.medium.play()
+        withAnimation(reduceMotion ? .fmFast : .fmSpringSwipe) {
             store.select(nextFilter)
         }
     }
@@ -427,10 +428,10 @@ struct CameraScreen: View {
     }
 
     private func handleFocusTap(at location: CGPoint, viewSize: CGSize) {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        FMHaptic.light.play()
 
         let indicator = CameraFocusIndicator(location: location)
-        withAnimation(.easeOut(duration: 0.16)) {
+        withAnimation(.fmFast) {
             focusIndicator = indicator
         }
 
@@ -440,7 +441,7 @@ struct CameraScreen: View {
 
             await MainActor.run {
                 guard focusIndicator?.id == indicator.id else { return }
-                withAnimation(.easeIn(duration: 0.18)) {
+                withAnimation(.fmEaseIn) {
                     focusIndicator = nil
                 }
             }
@@ -557,7 +558,7 @@ struct CameraScreen: View {
             }
             .onChange(of: store.selectedFilterID) { _, newID in
                 guard let newID else { return }
-                withAnimation(.fmSpringSwipe) {
+                withAnimation(reduceMotion ? .fmFast : .fmSpringSwipe) {
                     proxy.scrollTo(newID, anchor: .center)
                 }
             }
@@ -568,8 +569,8 @@ struct CameraScreen: View {
         let isActive = store.selectedFilterID == filter.id
         return Button {
             guard !isActive else { return }
-            UISelectionFeedbackGenerator().selectionChanged()
-            withAnimation(.fmSpringSwipe) {
+            FMHaptic.selection.play()
+            withAnimation(reduceMotion ? .fmFast : .fmSpringSwipe) {
                 store.select(filter)
             }
         } label: {
@@ -611,7 +612,7 @@ struct CameraScreen: View {
         HStack(spacing: 0) {
             // 좌하: 갤러리 썸네일 placeholder.
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                FMHaptic.light.play()
                 // 갤러리 진입 — 후속 phase.
             } label: {
                 RoundedRectangle(cornerRadius: R.md)
@@ -633,7 +634,7 @@ struct CameraScreen: View {
 
             // 셔터.
             Button {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                FMHaptic.medium.play()
                 Task {
                     captureResult = await controller.capture(filter: store.selectedFilter)
                 }
@@ -659,7 +660,7 @@ struct CameraScreen: View {
 
             // 우하: 전후면 전환 (보조 진입점 — top bar 와 중복하나 모킹과 일치).
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                FMHaptic.light.play()
                 Task { await controller.switchCamera() }
             } label: {
                 Image(systemName: "arrow.triangle.2.circlepath.camera")
@@ -715,9 +716,10 @@ private struct CapturePreviewHost: View {
             }
         }
         .animation(.fmEaseOut, value: saveState)
-        .sheet(isPresented: $showShareSheet) {
-            CaptureShareSheet(data: result.filteredPhoto.filteredData)
-        }
+        .fmShareSheet(
+            isPresented: $showShareSheet,
+            items: [UIImage(data: result.filteredPhoto.filteredData) ?? result.filteredPhoto.filteredData]
+        )
     }
 
     private func save() async {
@@ -728,9 +730,9 @@ private struct CapturePreviewHost: View {
         saveState = next
         switch next {
         case .saved:
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            FMHaptic.success.play()
         case .permissionDenied, .permissionRestricted, .permissionNotDetermined, .invalidData, .failed:
-            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            FMHaptic.error.play()
         case .idle, .saving:
             break
         }
@@ -759,17 +761,6 @@ private struct CaptureSaveBanner: View {
         .colorScheme(.dark)
         .accessibilityLabel(state.message)
     }
-}
-
-private struct CaptureShareSheet: UIViewControllerRepresentable {
-    let data: Data
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        let items: [Any] = [UIImage(data: data) ?? data]
-        return UIActivityViewController(activityItems: items, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - CameraCaptureResult / Focus model

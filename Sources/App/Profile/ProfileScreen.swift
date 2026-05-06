@@ -189,7 +189,7 @@ struct ProfileScreen: View {
 
             Button {
                 // 공유 — 후속 Phase.
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                FMHaptic.light.play()
             } label: {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 16, weight: .semibold))

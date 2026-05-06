@@ -78,13 +78,12 @@ public struct CapturePreviewScreen: View {
         .preferredColorScheme(.dark)
         .statusBarHidden(false)
         .accessibilityElement(children: .contain)
-        .confirmationDialog(
+        .fmConfirmationDialog(
             "이 사진을 삭제할까요?",
-            isPresented: $showDiscardConfirm,
-            titleVisibility: .visible
+            isPresented: $showDiscardConfirm
         ) {
             Button("삭제", role: .destructive) {
-                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                FMHaptic.warning.play()
                 onDiscard?()
                 dismiss()
             }
@@ -144,7 +143,7 @@ public struct CapturePreviewScreen: View {
     private var topBar: some View {
         HStack {
             iconButton(systemName: "chevron.down", label: "닫기") {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                FMHaptic.light.play()
                 onRetake?()
                 dismiss()
             }
@@ -168,7 +167,7 @@ public struct CapturePreviewScreen: View {
             Spacer()
 
             iconButton(systemName: "ellipsis", label: "더보기") {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                FMHaptic.light.play()
                 // 더보기 메뉴 — 후속 phase.
             }
             .accessibilityIdentifier("preview.more")
@@ -238,23 +237,23 @@ public struct CapturePreviewScreen: View {
         HStack {
             Spacer()
             quickButton(symbol: "arrow.uturn.backward", label: "재촬영", identifier: "preview.retake") {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                FMHaptic.light.play()
                 onRetake?()
                 dismiss()
             }
             Spacer()
             quickButton(symbol: "camera.filters", label: "필터 변경", identifier: "preview.changeFilter") {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                FMHaptic.light.play()
                 onChangeFilter?()
             }
             Spacer()
             quickButton(symbol: "slider.horizontal.3", label: "편집", identifier: "preview.edit") {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                FMHaptic.light.play()
                 onEdit?()
             }
             Spacer()
             quickButton(symbol: "trash", label: "삭제", identifier: "preview.discard", destructive: true) {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                FMHaptic.light.play()
                 showDiscardConfirm = true
             }
             Spacer()
@@ -264,7 +263,7 @@ public struct CapturePreviewScreen: View {
     private var saveRow: some View {
         HStack(spacing: Sp.xs) {
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                FMHaptic.light.play()
                 onSave?()
             } label: {
                 HStack(spacing: Sp.xs) {

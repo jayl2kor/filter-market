@@ -290,8 +290,20 @@ HTML 목업 → SwiftUI 화면. 각 화면당 0.5~1일.
 | D3 | ✅ Done (8/8) | 2026-05-06 | 2026-05-06 | Batch 1: `LoginScreen` (02), `MarketplaceScreen` (06), `FilterDetailScreen` (07). Batch 2: `ProfileScreen` (09), `SettingsScreen` (10), `SearchScreen` (08). Batch 3: `OnboardingScreen` (01) — `Sources/App/Onboarding/` 신설, 4 페이지 swipe 캐러셀 (`TabView .page`) + 카드-스택 일러스트 + 페이지 인디케이터 (활성 골드 capsule) + 건너뛰기/다음·시작하기 CTA + `@AppStorage("hasOnboarded")` 통합 (FilterMarketApp `.fullScreenCover`); `CapturePreviewScreen` (05) — `Sources/App/Camera/` 신설, 다크 강제 풀스크린 + 사진 placeholder (cinematic 그라디언트 + vignette) + frosted 헤더 (닫기·비율·더보기) + 메타 핀 (필터명·강도) + frosted 하단 컨트롤 (재촬영·필터변경·편집·삭제) + 저장/공유 CTA + 삭제 confirmationDialog. 기존 `CameraScreen` 의 `CaptureResultScreen` (sheet) 은 통합 부담을 피해 그대로 유지하며, 후속 phase 에서 점진 전환할 수 있는 별도 파일로 추가. |
 | D4 | ✅ Done | 2026-05-06 | 2026-05-06 | `CameraScreen` 시각 폴리시: frosted blur top bar (xmark/AUTO pill/aspect menu/flip), 좌우 스와이프 제스처 (30% 또는 500pt/s threshold + medium impact + `.fmSpringSwipe`) 로 인접 필터 전환, 좌/우 인접 필터 라벨 힌트, 필터 캐러셀 (64×64 chip + 골드 외곽선 + scrollTo center), `FMSlider` 기반 강도 frosted card, 셔터 76pt 골드 + 흰 링, 1/3 컴포지션 그리드. 결과 화면은 `CapturePreviewHost` 어댑터로 `CapturePreviewScreen` (D3) 를 `.fullScreenCover` 로 띄우고 `PhotoLibrarySaver` + `UIActivityViewController` 공유 + 저장 banner (success/error 햅틱) 통합. 카메라 로직 (Metal/AVFoundation/PhotoKit) 무변경. |
 | D5 | ✅ Done | 2026-05-06 | 2026-05-06 | `Sources/App/Permissions/` 신설: `PermissionCoordinator` (4 권한 + 비동기 request/openSettings) + 8 SwiftUI 화면 (Camera/Photos/Notifications/Location × Priming/Denied) + 공통 `PermissionScaffold` (라이트 강제, 96pt 일러스트, `PermissionStepsCard` 1·2·3 단계, `FMButton` 기반 CTA). `Info.plist` 갱신 (`NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`, `NSPhotoLibraryAddUsageDescription`, `NSLocationWhenInUseUsageDescription` — 한국어 카피). 통합: `CameraScreen` 진입 시 `notDetermined` → priming, `denied/restricted` → denied 화면, `authorized` → 기존 카메라 surface. 기존 `CameraSession`/`PhotoLibrarySaver` 권한 로직은 무변경. |
-| D6 | ⏳ Pending | — | — | — |
+| D6 | ✅ Done | 2026-05-06 | 2026-05-06 | `Sources/DesignSystem/Modals/` 신설 — `FMBottomSheet`/`FMConfirmationDialog`/`FMAlert`/`FMShareSheet` 4종 wrapper (View extension 형태, presentationDetents·cornerRadius·destructive alert 단축 API). `Sources/DesignSystem/HapticEngine.swift` — `FMHaptic` enum (light/medium/heavy/rigid/soft, success/warning/error, selection) + `fmHaptic(_:)` 함수형 단축. `Sources/DesignSystem/ReduceMotion.swift` — `Animation.reducedIfNeeded(_:)` + `View.fmAnimation(_:value:)` modifier + `AnyTransition.fmReducible`. 적용: `CameraScreen`/`CapturePreviewScreen`/`SettingsScreen`/`FilterDetailScreen`/`ProfileScreen`/`OnboardingScreen`/`RootShell`/`PermissionScaffold` 의 inline `UIImpactFeedbackGenerator`/`UISelectionFeedbackGenerator`/`UINotificationFeedbackGenerator` 직접 호출을 `FMHaptic.x.play()` 로 통일 (`FMButton`/`FMSlider` 컴포넌트 포함). `CameraScreen` 의 inline `CaptureShareSheet` 삭제 → `FMShareSheet` 로 교체. `SettingsScreen` 의 `.alert` 2종 → `fmDestructiveAlert` 로 교체. `CapturePreviewScreen` 의 `.confirmationDialog` → `fmConfirmationDialog` 로 교체. CameraScreen/OnboardingScreen 의 swipe/scrollTo 애니메이션에 `@Environment(\\.accessibilityReduceMotion)` 분기 적용 (`reduceMotion ? .fmFast : .fmSpringSwipe`). focus reticle 의 inline `.easeOut(duration: 0.16)` → `.fmFast`. |
 | D7 | ⏳ Pending | — | — | MVP 외 |
+
+### MVP (D0~D6) 완료 요약 — 2026-05-06
+
+| Phase | 핵심 산출 |
+|---|---|
+| D0 토큰 | `Sources/DesignSystem/Tokens/` 8 파일 + 라이트/다크 듀얼 + 레거시 alias |
+| D1 컴포넌트 | `Sources/DesignSystem/Components/` 12 컴포넌트 + Preview 풀 변형 |
+| D2 셸 | 5탭 + 중앙 셔터, `RootShell` `.fullScreenCover` 진입, `Search`/`Saved` placeholder |
+| D3 화면 | 8 화면 (Login/Marketplace/FilterDetail/Profile/Settings/Search/Onboarding/CapturePreview) |
+| D4 카메라 | frosted blur + 좌우 스와이프 + 필터 캐러셀 + `FMSlider` 강도 + `CapturePreviewHost` 통합 |
+| D5 권한 | `PermissionCoordinator` + 8 priming/denied 화면 + `Info.plist` 한국어 카피 |
+| D6 모달·모션·햅틱 | 4 모달 wrapper + `FMHaptic` + `Reduce Motion` modifier + 전 화면 일관 적용 |
 
 ---
 

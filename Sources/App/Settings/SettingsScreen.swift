@@ -168,21 +168,21 @@ struct SettingsScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(FMColors.Background.bg1, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .alert("로그아웃 하시겠어요?", isPresented: $showLogoutAlert) {
-            Button("취소", role: .cancel) {}
-            Button("로그아웃", role: .destructive) {
-                // 후속 Phase 에서 실제 세션 종료 처리.
-            }
-        } message: {
-            Text("다시 로그인하면 다운로드 받은 필터를 그대로 이용할 수 있어요.")
+        .fmDestructiveAlert(
+            "로그아웃 하시겠어요?",
+            message: "다시 로그인하면 다운로드 받은 필터를 그대로 이용할 수 있어요.",
+            destructiveTitle: "로그아웃",
+            isPresented: $showLogoutAlert
+        ) {
+            // 후속 Phase 에서 실제 세션 종료 처리.
         }
-        .alert("계정을 삭제하시겠어요?", isPresented: $showDeleteAccountAlert) {
-            Button("취소", role: .cancel) {}
-            Button("계정 삭제", role: .destructive) {
-                // 후속 Phase 에서 실제 삭제 흐름 연결.
-            }
-        } message: {
-            Text("이 작업은 되돌릴 수 없어요. 보유한 필터·구매 이력·팔로우가 모두 사라집니다.")
+        .fmDestructiveAlert(
+            "계정을 삭제하시겠어요?",
+            message: "이 작업은 되돌릴 수 없어요. 보유한 필터·구매 이력·팔로우가 모두 사라집니다.",
+            destructiveTitle: "계정 삭제",
+            isPresented: $showDeleteAccountAlert
+        ) {
+            // 후속 Phase 에서 실제 삭제 흐름 연결.
         }
     }
 

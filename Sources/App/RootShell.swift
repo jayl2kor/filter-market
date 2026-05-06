@@ -28,7 +28,7 @@ struct RootShell: View {
                     }
                 ),
                 onShutter: {
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    FMHaptic.medium.play()
                     isCameraPresented = true
                 }
             )

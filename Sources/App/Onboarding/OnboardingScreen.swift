@@ -14,6 +14,7 @@ import UIKit
 /// 본 화면은 시각·내비게이션만 제공한다.
 struct OnboardingScreen: View {
     @State private var currentPage: Int = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// 모든 페이지 완료 또는 건너뛰기 시 호출.
     var onComplete: (() -> Void)?
@@ -139,11 +140,11 @@ struct OnboardingScreen: View {
 
     @MainActor
     private func advance() {
-        UISelectionFeedbackGenerator().selectionChanged()
+        FMHaptic.selection.play()
         if isLastPage {
             finish()
         } else {
-            withAnimation(.fmSpringSwipe) {
+            withAnimation(reduceMotion ? .fmFast : .fmSpringSwipe) {
                 currentPage += 1
             }
         }
@@ -151,7 +152,7 @@ struct OnboardingScreen: View {
 
     @MainActor
     private func finish() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        FMHaptic.light.play()
         onComplete?()
     }
 }

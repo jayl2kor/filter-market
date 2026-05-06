@@ -103,7 +103,7 @@ struct PermissionScaffold<TopExtras: View, Bottom: View>: View {
         HStack {
             if let onClose {
                 Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    FMHaptic.light.play()
                     onClose()
                 } label: {
                     Image(systemName: "xmark")

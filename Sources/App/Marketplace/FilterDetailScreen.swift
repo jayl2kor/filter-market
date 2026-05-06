@@ -227,7 +227,7 @@ struct FilterDetailScreen: View {
     private var followButton: some View {
         Button {
             isFollowing.toggle()
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            FMHaptic.light.play()
         } label: {
             Text(isFollowing ? "팔로잉" : "팔로우")
                 .fmTypography(.caption)
@@ -441,7 +441,7 @@ struct FilterDetailScreen: View {
         HStack(spacing: Sp.xs) {
             Button {
                 // 좋아요 — 후속 Phase.
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                FMHaptic.light.play()
             } label: {
                 Image(systemName: "heart")
                     .font(.system(size: 18, weight: .medium))
