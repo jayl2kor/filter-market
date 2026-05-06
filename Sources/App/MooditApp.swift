@@ -38,15 +38,89 @@ struct MooditApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootShell()
-                .fullScreenCover(isPresented: Binding(
-                    get: { !hasOnboarded },
-                    set: { newValue in hasOnboarded = !newValue }
-                )) {
-                    OnboardingScreen {
-                        hasOnboarded = true
-                    }
+            #if DEBUG
+            if let route = UITestLaunchRoute.current {
+                UITestLaunchHost(route: route)
+            } else {
+                rootContent
+            }
+            #else
+            rootContent
+            #endif
+        }
+    }
+
+    private var rootContent: some View {
+        RootShell()
+            .fullScreenCover(isPresented: Binding(
+                get: { !hasOnboarded && !ProcessInfo.processInfo.arguments.contains("-ui-testing") },
+                set: { newValue in hasOnboarded = !newValue }
+            )) {
+                OnboardingScreen {
+                    hasOnboarded = true
                 }
+            }
+    }
+}
+
+#if DEBUG
+private enum UITestLaunchRoute: String {
+    case camera
+    case cameraAspect
+    case cameraTimer
+    case photoImport
+    case photoEdit
+    case builtinFilters
+    case filterDownload
+    case filterAfterDownload
+
+    static var current: UITestLaunchRoute? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard arguments.contains("-ui-testing"),
+              let routeFlagIndex = arguments.firstIndex(of: "-ui-route"),
+              arguments.indices.contains(routeFlagIndex + 1)
+        else {
+            return nil
+        }
+        return UITestLaunchRoute(rawValue: arguments[routeFlagIndex + 1])
+    }
+}
+
+private struct UITestLaunchHost: View {
+    @StateObject private var store = MooditStore()
+    let route: UITestLaunchRoute
+
+    var body: some View {
+        NavigationStack {
+            content
+                .appRouteDestinations()
+        }
+        .environmentObject(store)
+        .task {
+            await store.load()
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch route {
+        case .camera:
+            CameraScreen(isPresentedAsCover: false)
+        case .cameraAspect:
+            CameraAspectPickerScreen()
+        case .cameraTimer:
+            CameraTimerCountdownScreen()
+        case .photoImport:
+            PhotoImportScreen()
+        case .photoEdit:
+            PhotoEditScreen()
+        case .builtinFilters:
+            BuiltinFilterLibraryScreen()
+        case .filterDownload:
+            FilterDownloadProgressScreen(filterID: "Sunset 1973")
+        case .filterAfterDownload:
+            FilterAfterDownloadScreen(filterID: "Sunset 1973")
         }
     }
 }
+#endif

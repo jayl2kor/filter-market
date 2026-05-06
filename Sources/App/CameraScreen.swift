@@ -23,6 +23,8 @@ struct CameraScreen: View {
     @State private var captureResult: CameraCaptureResult?
     @State private var focusIndicator: CameraFocusIndicator?
     @State private var cameraPermissionState: PermissionCoordinator.Status = .notDetermined
+    @State private var isPhotoImportPresented = false
+    @State private var countdownValue: Int?
     /// 셔터 → `controller.capture` 가 nil 을 반환했을 때의 사용자용 에러 메시지.
     /// `.fmAlert` 의 `isPresented` 와 binding 되며, 닫힐 때 nil 로 리셋된다.
     @State private var captureError: String?
@@ -30,6 +32,9 @@ struct CameraScreen: View {
     /// fullScreenCover 로 띄울 때 닫기 버튼을 노출할지 여부.
     /// RootShell 의 셔터 탭에서 띄울 때만 true.
     private let isPresentedAsCover: Bool
+    private var isUITesting: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ui-testing")
+    }
 
     init(isPresentedAsCover: Bool = false) {
         self.isPresentedAsCover = isPresentedAsCover
@@ -54,11 +59,11 @@ struct CameraScreen: View {
             }
         }
         .task {
-            cameraPermissionState = permissionCoordinator.currentStatus(.camera)
+            cameraPermissionState = isUITesting ? .authorized : permissionCoordinator.currentStatus(.camera)
         }
         .onChange(of: scenePhase) { _, newPhase in
             // 사용자가 백그라운드 → 설정 → 권한 변경 → 복귀 시 상태를 새로고침.
-            if newPhase == .active {
+            if !isUITesting && newPhase == .active {
                 cameraPermissionState = permissionCoordinator.currentStatus(.camera)
             }
         }
@@ -86,24 +91,34 @@ struct CameraScreen: View {
 
                 // 좌우 인접 필터 힌트 (스와이프 가능 표시).
                 swipeHints
+
+                if let countdownValue {
+                    countdownOverlay(value: countdownValue)
+                }
             }
         }
         .background(Color.black)
         .preferredColorScheme(.dark)
         .task {
             controller.apply(filter: store.selectedFilter)
-            if scenePhase == .active {
+            controller.setCropAspectRatio(store.cameraAspectRatio)
+            if !isUITesting && scenePhase == .active {
                 await controller.start()
             }
         }
         .onChange(of: store.selectedFilterID) { _, _ in
             controller.apply(filter: store.selectedFilter)
         }
+        .onChange(of: store.cameraAspectRatio) { _, newValue in
+            controller.setCropAspectRatio(newValue)
+        }
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
             case .active:
-                Task {
-                    await controller.start()
+                if !isUITesting {
+                    Task {
+                        await controller.start()
+                    }
                 }
             case .background, .inactive:
                 controller.stop()
@@ -117,6 +132,20 @@ struct CameraScreen: View {
         .fullScreenCover(item: $captureResult) { result in
             CapturePreviewHost(result: result) {
                 captureResult = nil
+            }
+        }
+        .fullScreenCover(isPresented: $isPhotoImportPresented) {
+            NavigationStack {
+                PhotoImportScreen()
+                    .environmentObject(store)
+                    .appRouteDestinations()
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("닫기") {
+                                isPhotoImportPresented = false
+                            }
+                        }
+                    }
             }
         }
         .fmAlert(
@@ -162,6 +191,9 @@ struct CameraScreen: View {
             Spacer(minLength: Sp.xs)
 
             HStack(spacing: Sp.xs) {
+                timerButton
+                gridButton
+                flashMenu
                 aspectRatioMenu
                 frostedIconButton(systemName: "camera.rotate", label: "전후면 전환") {
                     FMHaptic.light.play()
@@ -197,9 +229,10 @@ struct CameraScreen: View {
             ForEach(PhotoCropAspectRatio.allCases) { aspectRatio in
                 Button {
                     FMHaptic.selection.play()
+                    store.cameraAspectRatio = aspectRatio
                     controller.setCropAspectRatio(aspectRatio)
                 } label: {
-                    if aspectRatio == controller.cropAspectRatio {
+                    if aspectRatio == store.cameraAspectRatio {
                         Label(aspectRatio.label, systemImage: "checkmark")
                     } else {
                         Text(aspectRatio.label)
@@ -207,7 +240,7 @@ struct CameraScreen: View {
                 }
             }
         } label: {
-            Text(controller.cropAspectRatio.label)
+            Text(store.cameraAspectRatio.label)
                 .font(.system(size: 12, weight: .semibold))
                 .tracking(0.3)
                 .foregroundStyle(FMColors.Text.inverse)
@@ -221,7 +254,79 @@ struct CameraScreen: View {
                 .colorScheme(.dark)
         }
         .accessibilityIdentifier("camera.aspectRatio")
-        .accessibilityLabel("비율 \(controller.cropAspectRatio.label)")
+        .accessibilityLabel("비율 \(store.cameraAspectRatio.label)")
+    }
+
+    private var timerButton: some View {
+        Menu {
+            ForEach(CameraTimerOption.allCases) { option in
+                Button {
+                    FMHaptic.selection.play()
+                    store.cameraTimerOption = option
+                } label: {
+                    if option == store.cameraTimerOption {
+                        Label(option.label, systemImage: "checkmark")
+                    } else {
+                        Text(option.label)
+                    }
+                }
+            }
+        } label: {
+            Text(store.cameraTimerOption.label)
+                .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                .foregroundStyle(FMColors.Text.inverse)
+                .frame(minWidth: 38, minHeight: 40)
+                .padding(.horizontal, Sp.xs)
+                .background(.ultraThinMaterial.opacity(0.7), in: Capsule())
+                .overlay {
+                    Capsule()
+                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                }
+                .colorScheme(.dark)
+        }
+        .accessibilityIdentifier("camera.timer")
+        .accessibilityLabel("타이머 \(store.cameraTimerOption.label)")
+    }
+
+    private var gridButton: some View {
+        frostedIconButton(
+            systemName: store.cameraGridEnabled ? "squareshape.split.3x3" : "square",
+            label: store.cameraGridEnabled ? "그리드 끄기" : "그리드 켜기"
+        ) {
+            FMHaptic.selection.play()
+            store.cameraGridEnabled.toggle()
+        }
+        .accessibilityIdentifier("camera.grid.toggle")
+    }
+
+    private var flashMenu: some View {
+        Menu {
+            ForEach(CameraFlashMode.allCases) { mode in
+                Button {
+                    FMHaptic.selection.play()
+                    store.cameraFlashMode = mode
+                } label: {
+                    if mode == store.cameraFlashMode {
+                        Label(mode.label, systemImage: "checkmark")
+                    } else {
+                        Label(mode.label, systemImage: mode.systemImage)
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: store.cameraFlashMode.systemImage)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(FMColors.Text.inverse)
+                .frame(width: 40, height: 40)
+                .background(.ultraThinMaterial.opacity(0.7), in: Circle())
+                .overlay {
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                }
+                .colorScheme(.dark)
+        }
+        .accessibilityIdentifier("camera.flash")
+        .accessibilityLabel("플래시 \(store.cameraFlashMode.label)")
     }
 
     private func frostedIconButton(
@@ -381,24 +486,25 @@ struct CameraScreen: View {
                     .frame(width: max(proxy.size.width - frame.maxX, 0), height: frame.height)
                     .position(x: frame.maxX + max(proxy.size.width - frame.maxX, 0) / 2, y: frame.midY)
 
-                // 1/3 컴포지션 라인 (3x3 그리드).
-                ZStack {
-                    Rectangle()
-                        .fill(Color.white.opacity(0.16))
-                        .frame(width: 1, height: frame.height)
-                        .position(x: frame.minX + frame.width / 3, y: frame.midY)
-                    Rectangle()
-                        .fill(Color.white.opacity(0.16))
-                        .frame(width: 1, height: frame.height)
-                        .position(x: frame.minX + 2 * frame.width / 3, y: frame.midY)
-                    Rectangle()
-                        .fill(Color.white.opacity(0.16))
-                        .frame(width: frame.width, height: 1)
-                        .position(x: frame.midX, y: frame.minY + frame.height / 3)
-                    Rectangle()
-                        .fill(Color.white.opacity(0.16))
-                        .frame(width: frame.width, height: 1)
-                        .position(x: frame.midX, y: frame.minY + 2 * frame.height / 3)
+                if store.cameraGridEnabled {
+                    ZStack {
+                        Rectangle()
+                            .fill(Color.white.opacity(0.16))
+                            .frame(width: 1, height: frame.height)
+                            .position(x: frame.minX + frame.width / 3, y: frame.midY)
+                        Rectangle()
+                            .fill(Color.white.opacity(0.16))
+                            .frame(width: 1, height: frame.height)
+                            .position(x: frame.minX + 2 * frame.width / 3, y: frame.midY)
+                        Rectangle()
+                            .fill(Color.white.opacity(0.16))
+                            .frame(width: frame.width, height: 1)
+                            .position(x: frame.midX, y: frame.minY + frame.height / 3)
+                        Rectangle()
+                            .fill(Color.white.opacity(0.16))
+                            .frame(width: frame.width, height: 1)
+                            .position(x: frame.midX, y: frame.minY + 2 * frame.height / 3)
+                    }
                 }
 
                 RoundedRectangle(cornerRadius: 2)
@@ -463,6 +569,7 @@ struct CameraScreen: View {
             currentFilterLabel
             intensitySlider
             filterCarousel
+            zoomPresetRow
             shutterBar
         }
         .padding(.top, Sp.md)
@@ -621,7 +728,7 @@ struct CameraScreen: View {
             // 좌하: 갤러리 썸네일 placeholder.
             Button {
                 FMHaptic.light.play()
-                // 갤러리 진입 — 후속 phase.
+                isPhotoImportPresented = true
             } label: {
                 RoundedRectangle(cornerRadius: R.md)
                     .fill(FMColors.Background.bg2.opacity(0.7))
@@ -643,18 +750,7 @@ struct CameraScreen: View {
             // 셔터.
             Button {
                 FMHaptic.medium.play()
-                Task {
-                    let result = await controller.capture(filter: store.selectedFilter)
-                    if let result {
-                        captureResult = result
-                    } else {
-                        // capture 실패 — 사용자에게 알림 + error 햅틱.
-                        FMHaptic.error.play()
-                        captureError = controller.statusMessage.isEmpty
-                            ? "촬영에 실패했어요"
-                            : controller.statusMessage
-                    }
-                }
+                Task { await captureWithOptionalTimer() }
             } label: {
                 ZStack {
                     Circle()
@@ -697,6 +793,71 @@ struct CameraScreen: View {
         }
         .padding(.horizontal, Sp.xl)
         .padding(.top, Sp.xs)
+    }
+
+    private var zoomPresetRow: some View {
+        HStack(spacing: Sp.xs) {
+            ForEach([0.5, 1.0, 3.0], id: \.self) { preset in
+                Button {
+                    FMHaptic.selection.play()
+                    store.cameraZoomPreset = preset
+                } label: {
+                    Text(preset == 1.0 ? "1x" : String(format: "%.1fx", preset))
+                        .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(store.cameraZoomPreset == preset ? .black : FMColors.Text.inverse)
+                        .frame(width: 44, height: 30)
+                        .background(
+                            store.cameraZoomPreset == preset
+                                ? FMColors.Accent.primary
+                                : Color.white.opacity(0.12),
+                            in: Capsule()
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("camera.zoom.\(preset)")
+            }
+        }
+        .padding(.horizontal, Sp.md)
+    }
+
+    private func countdownOverlay(value: Int) -> some View {
+        ZStack {
+            Color.black.opacity(0.28)
+                .ignoresSafeArea()
+            Text("\(value)")
+                .font(.system(size: 96, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
+                .accessibilityLabel("타이머 \(value)")
+        }
+        .transition(.opacity)
+        .allowsHitTesting(true)
+        .onTapGesture {
+            countdownValue = nil
+        }
+    }
+
+    @MainActor
+    private func captureWithOptionalTimer() async {
+        guard !controller.isCapturing else { return }
+        let seconds = store.cameraTimerOption.rawValue
+        if seconds > 0 {
+            for value in stride(from: seconds, through: 1, by: -1) {
+                countdownValue = value
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard countdownValue != nil else { return }
+            }
+            countdownValue = nil
+        }
+        let result = await controller.capture(filter: store.selectedFilter)
+        if let result {
+            captureResult = result
+        } else {
+            FMHaptic.error.play()
+            captureError = controller.statusMessage.isEmpty
+                ? "촬영에 실패했어요"
+                : controller.statusMessage
+        }
     }
 }
 

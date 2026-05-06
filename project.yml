@@ -195,6 +195,18 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
 
+  AppUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - Tests/AppUITests
+    dependencies:
+      - target: moodit
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+
 schemes:
   moodit:
     build:
@@ -206,3 +218,4 @@ schemes:
         - CameraTests
         - FilterEngineTests
         - MarketplaceTests
+        - AppUITests

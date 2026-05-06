@@ -106,6 +106,7 @@ public struct FMTabBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(tab.accessibilityLabel)
+        .accessibilityIdentifier("tab.\(tab.identifier)")
         .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
     }
 
@@ -133,6 +134,19 @@ public struct FMTabBar: View {
         .buttonStyle(ShutterPressStyle())
         .frame(maxWidth: .infinity)
         .accessibilityLabel(FMTab.shutter.accessibilityLabel)
+        .accessibilityIdentifier("tab.\(FMTab.shutter.identifier)")
+    }
+}
+
+private extension FMTab {
+    var identifier: String {
+        switch self {
+        case .market: "market"
+        case .search: "search"
+        case .shutter: "shutter"
+        case .saved: "saved"
+        case .profile: "profile"
+        }
     }
 }
 

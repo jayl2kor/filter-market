@@ -81,6 +81,7 @@
 		8AEECA30F9F1FA0330DBCA31 /* CameraSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0907DD1BC10838B77A85A20C /* CameraSession.swift */; };
 		8F576053FC441C83439FAC64 /* Models.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 17B1469C92033DB00AD14607 /* Models.framework */; };
 		8FF68234D1F6BB4588DFF82E /* FMTypographyShorthand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 436F2DEC58C7DE370EAB07F6 /* FMTypographyShorthand.swift */; };
+		90AF110E28F18A7A8128FE77 /* PhaseAE2ETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031240A7C4FF22A39D812901 /* PhaseAE2ETests.swift */; };
 		918EF4A0550496D69FF4612D /* Camera.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91122D81CC0FF8B65CB86CEE /* Camera.framework */; };
 		9368070AD5E10625C34ECF89 /* RootShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A85F65669CA14E88C1B508F /* RootShell.swift */; };
 		943C0ED6CB9EB61921F1ADDF /* LocationPermissionDenied.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC598BE66F5FF68DF9EEE6AF /* LocationPermissionDenied.swift */; };
@@ -168,6 +169,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 893E34F951F1C3C07790E092;
 			remoteInfo = Camera;
+		};
+		43A63A667DEEA92471086CC2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7C92609489C7D930EF16AA16 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E3D4A108F30A949DB222474E;
+			remoteInfo = moodit;
 		};
 		636E5CBB37D72F266A78EB36 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -322,6 +330,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		031240A7C4FF22A39D812901 /* PhaseAE2ETests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhaseAE2ETests.swift; sourceTree = "<group>"; };
 		0479E2FA8FE11C5AC4A4DA4F /* AuthPlaceholder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthPlaceholder.swift; sourceTree = "<group>"; };
 		0683619003419C1081720D6A /* FMCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMCard.swift; sourceTree = "<group>"; };
 		0907DD1BC10838B77A85A20C /* CameraSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraSession.swift; sourceTree = "<group>"; };
@@ -366,6 +375,7 @@
 		51BABF7665EEE2454036ED73 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
 		55E4166718CCDBCEA85DADDC /* Storage.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Storage.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		570D327A92B40713FAFE85FC /* Radius.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Radius.swift; sourceTree = "<group>"; };
+		59AB06DE2603F58013A0F1E1 /* AppUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A6BDD2E150830E8B307445A /* CameraScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraScreen.swift; sourceTree = "<group>"; };
 		5B95877146902AAE4EAF654C /* FMTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMTabBar.swift; sourceTree = "<group>"; };
 		5D87FD05B6A4C0641B8D4EB3 /* seoul-night.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "seoul-night.png"; sourceTree = "<group>"; };
@@ -663,6 +673,15 @@
 			path = Components;
 			sourceTree = "<group>";
 		};
+		68D5426F6F337972001F0DEF /* AppUITests */ = {
+			isa = PBXGroup;
+			children = (
+				031240A7C4FF22A39D812901 /* PhaseAE2ETests.swift */,
+			);
+			name = AppUITests;
+			path = Tests/AppUITests;
+			sourceTree = "<group>";
+		};
 		77677AD02ED6EA0970F0C15E /* Auth */ = {
 			isa = PBXGroup;
 			children = (
@@ -715,6 +734,7 @@
 		A50933A6E720A6F5A2AC6138 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				59AB06DE2603F58013A0F1E1 /* AppUITests.xctest */,
 				9A1235D2D5FB004AC0811A48 /* Auth.framework */,
 				91122D81CC0FF8B65CB86CEE /* Camera.framework */,
 				849B4BC053112F9C49B86775 /* CameraTests.xctest */,
@@ -851,6 +871,7 @@
 			isa = PBXGroup;
 			children = (
 				01457FE4D75DBBDF914B7128 /* App */,
+				68D5426F6F337972001F0DEF /* AppUITests */,
 				77677AD02ED6EA0970F0C15E /* Auth */,
 				B68BF5D35F9785EE2AD23604 /* Camera */,
 				C61859358380E16BD4D61A99 /* CameraTests */,
@@ -964,6 +985,24 @@
 			productName = FilterEngineTests;
 			productReference = 3B1D05918AE520D701C90302 /* FilterEngineTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		660B66992E1163D4039B248F /* AppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 25D8C1DDE2C6F802772C9E98 /* Build configuration list for PBXNativeTarget "AppUITests" */;
+			buildPhases = (
+				C505C110316CDE7C6145C3B5 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E8DCD56892AB2C32527A7C3D /* PBXTargetDependency */,
+			);
+			name = AppUITests;
+			packageProductDependencies = (
+			);
+			productName = AppUITests;
+			productReference = 59AB06DE2603F58013A0F1E1 /* AppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		689B1C4EB8655E3F2EA50BAC /* ModelsTests */ = {
 			isa = PBXNativeTarget;
@@ -1153,6 +1192,11 @@
 						DevelopmentTeam = 5JLM7UY2MY;
 						ProvisioningStyle = Automatic;
 					};
+					660B66992E1163D4039B248F = {
+						DevelopmentTeam = 5JLM7UY2MY;
+						ProvisioningStyle = Automatic;
+						TestTargetID = E3D4A108F30A949DB222474E;
+					};
 					689B1C4EB8655E3F2EA50BAC = {
 						DevelopmentTeam = 5JLM7UY2MY;
 						ProvisioningStyle = Automatic;
@@ -1204,6 +1248,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				660B66992E1163D4039B248F /* AppUITests */,
 				D333650AB4271F5E2E0ED856 /* Auth */,
 				893E34F951F1C3C07790E092 /* Camera */,
 				88D6AD039A8EEEE6219CC0DE /* CameraTests */,
@@ -1419,6 +1464,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C505C110316CDE7C6145C3B5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				90AF110E28F18A7A8128FE77 /* PhaseAE2ETests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DD20519F978027190747E004 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1517,6 +1570,11 @@
 			target = 1C7F3BCF0DA80E0146F80D44 /* Models */;
 			targetProxy = A02807676346800DD0A783E3 /* PBXContainerItemProxy */;
 		};
+		E8DCD56892AB2C32527A7C3D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E3D4A108F30A949DB222474E /* moodit */;
+			targetProxy = 43A63A667DEEA92471086CC2 /* PBXContainerItemProxy */;
+		};
 		F2DD96E91ECB31A6E8F4C56A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 1C7F3BCF0DA80E0146F80D44 /* Models */;
@@ -1556,6 +1614,24 @@
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		0AC3681E597A8CEFA0361301 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.moodit.AppUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = moodit;
 			};
 			name = Debug;
 		};
@@ -1628,6 +1704,24 @@
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		2700A30355B6E564140C3E29 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.moodit.AppUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = moodit;
 			};
 			name = Release;
 		};
@@ -2180,6 +2274,15 @@
 			buildConfigurations = (
 				0FAA295CE681EE9B51C61910 /* Debug */,
 				1556A7873D058573B7339E08 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		25D8C1DDE2C6F802772C9E98 /* Build configuration list for PBXNativeTarget "AppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0AC3681E597A8CEFA0361301 /* Debug */,
+				2700A30355B6E564140C3E29 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

@@ -469,6 +469,7 @@ struct FilterDetailScreen: View {
                     .background(FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier(mock.isPaid ? "filter.detail.purchase" : "filter.detail.download")
             } else {
                 FMButton(
                     ctaTitle,
@@ -483,7 +484,7 @@ struct FilterDetailScreen: View {
         }
         .padding(.horizontal, Sp.md)
         .padding(.top, Sp.sm)
-        .padding(.bottom, Sp.xs)
+        .padding(.bottom, FMLayout.tabBarHeight + Sp.xs)
         .background(.regularMaterial)
         .overlay(alignment: .top) {
             Rectangle()

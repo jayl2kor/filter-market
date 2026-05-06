@@ -1,6 +1,47 @@
 import Foundation
+import FilterEngine
 import Marketplace
 import Models
+
+enum CameraTimerOption: Int, CaseIterable, Identifiable, Hashable {
+    case off = 0
+    case three = 3
+    case ten = 10
+
+    var id: Int { rawValue }
+
+    var label: String {
+        switch self {
+        case .off: "OFF"
+        case .three: "3s"
+        case .ten: "10s"
+        }
+    }
+}
+
+enum CameraFlashMode: String, CaseIterable, Identifiable, Hashable {
+    case off
+    case auto
+    case on
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .off: "OFF"
+        case .auto: "AUTO"
+        case .on: "ON"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .off: "bolt.slash"
+        case .auto: "bolt.badge.a"
+        case .on: "bolt.fill"
+        }
+    }
+}
 
 @MainActor
 final class MooditStore: ObservableObject {
@@ -8,6 +49,12 @@ final class MooditStore: ObservableObject {
     @Published private(set) var downloadedFilterIDs: Set<Filter.ID> = []
     @Published private(set) var favoriteFilterIDs: Set<Filter.ID> = []
     @Published var selectedFilterID: Filter.ID?
+    @Published var cameraAspectRatio: PhotoCropAspectRatio = .fourThree
+    @Published var cameraTimerOption: CameraTimerOption = .off
+    @Published var cameraGridEnabled = true
+    @Published var cameraFlashMode: CameraFlashMode = .off
+    @Published var cameraZoomPreset: Double = 1.0
+    @Published var importedPhotoData: Data?
     /// manifest 로드 실패 시 마지막 에러. UI 는 이 값을 보고 ErrorBanner / FMEmptyState 를 노출.
     @Published private(set) var loadError: Error?
     /// 로드 진행 상태. skeleton vs 에러 vs 빈 상태 분기에 사용.
@@ -86,6 +133,10 @@ final class MooditStore: ObservableObject {
 
     func isDownloaded(_ filter: Filter) -> Bool {
         downloadedFilterIDs.contains(filter.id)
+    }
+
+    func setImportedPhotoData(_ data: Data?) {
+        importedPhotoData = data
     }
 
     func filter(matching routeID: String) -> Filter? {

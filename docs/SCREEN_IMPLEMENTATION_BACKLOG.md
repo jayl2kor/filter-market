@@ -26,7 +26,7 @@
 |---|---|---|---|
 | `01-onboarding.html`, `01b-onboarding-carousel.html` | `OnboardingScreen` | `Bespoke` | first-run 분기/analytics |
 | `02-login.html`, `02b-login-guest.html` | `LoginScreen`, `ProfileScreen` guest gate | `Bespoke` | Firebase Auth, Apple/Google/Email 실제 연동 |
-| `03-camera-live.html`, `04-filter-swipe.html` | `CameraScreen` | `Bespoke` | 보조 HUD 정리, 실기기 QA |
+| `03-camera-live.html`, `04-filter-swipe.html`, `14-camera-zoom-grid-flash.html` | `CameraScreen` | `Bespoke` | 실기기 QA, 실제 zoom/flash device control 연결 |
 | `05-capture-preview.html` | `CapturePreviewScreen` | `Bespoke` | 실제 camera result flow 와 완전 통합 |
 | `06-marketplace-home.html` | `MarketplaceScreen` | `Bespoke` | API pagination/recommendations |
 | `07-filter-detail.html` | `FilterDetailScreen` | `Bespoke` | 구매/댓글/신고 API 연결 |
@@ -36,8 +36,13 @@
 | `18-saved-filters.html` | `SavedScreen` | `Bespoke` | 다운로드/즐겨찾기/오프라인 세그먼트 |
 | `07b-filter-download.html` | `FilterDownloadProgressScreen` | `Bespoke` | 실제 package/API progress 연결 |
 | `07c-filter-after-download.html` | `FilterAfterDownloadScreen` | `Bespoke` | favorite persistence, collection picker |
+| `13-camera-aspect-picker.html` | `CameraAspectPickerScreen` | `Bespoke` | `MooditStore.cameraAspectRatio` persistence |
+| `15-camera-timer-countdown.html` | `CameraTimerCountdownScreen` | `Bespoke` | countdown cancel UX refinement |
+| `16-photo-import.html` | `PhotoImportScreen` | `Bespoke` | Photos permission limited-library branch |
+| `17-photo-edit.html` | `PhotoEditScreen` | `Bespoke` | compare slider, edit history, larger image QA |
+| `19-builtin-filter-library.html` | `BuiltinFilterLibraryScreen` | `Bespoke` | filter package/detail API 연결 |
 | `permissions/*` | `Sources/App/Permissions/*` | `Bespoke` | 실제 권한 resolver 와 모든 진입점 연결 |
-| `11*`, `12*`, `13`, `15`~`17`, `19`, `20`~`54` | `WorkflowScreens.swift` route views | `Workflow/Bespoke` | 화면별 서비스/API/스토어 통합 |
+| `11*`, `12*`, `20`~`54` | `WorkflowScreens.swift` route views | `Workflow/Bespoke` | 화면별 서비스/API/스토어 통합 |
 
 ---
 
@@ -47,12 +52,12 @@
 
 | 목업 | 현재 라우트/코드 | 상태 | 구현 목표 |
 |---|---|---|---|
-| `13-camera-aspect-picker.html` | `AppRoute.cameraAspect` → `CameraAspectPickerScreen` | `Workflow/Bespoke` | 카메라 비율 선택 sheet/route, active guide 동기화 |
-| `14-camera-zoom-grid-flash.html` | `CameraScreen` 일부 | `Inline/Partial` | Zoom/Grid/Flash HUD를 디자인 기준으로 완성 |
-| `15-camera-timer-countdown.html` | `AppRoute.cameraTimer` → `CameraTimerCountdownScreen` | `Workflow/Bespoke` | OFF/3s/10s 선택, countdown overlay, cancel |
-| `16-photo-import.html` | `AppRoute.photoImport` → `PhotoImportScreen` | `Workflow/Bespoke` | Photos picker, selection grid, permission branch |
-| `17-photo-edit.html` | `AppRoute.photoEdit` → `PhotoEditScreen` | `Workflow/Bespoke` | 후보정 editor, compare slider, intensity, save/share |
-| `19-builtin-filter-library.html` | `AppRoute.builtinFilters` → `BuiltinFilterLibraryScreen` | `Workflow/Bespoke` | 기본 필터 library, apply/manage |
+| `13-camera-aspect-picker.html` | `AppRoute.cameraAspect` → `CameraAspectPickerScreen` | `Bespoke` | 비율 선택 UI와 `CameraScreen` active guide 동기화 완료. persistence 남음 |
+| `14-camera-zoom-grid-flash.html` | `CameraScreen` HUD | `Bespoke` | Timer/Grid/Flash/Aspect/Zoom HUD 상태 연결 완료. 실제 device zoom/flash control 남음 |
+| `15-camera-timer-countdown.html` | `AppRoute.cameraTimer` → `CameraTimerCountdownScreen` | `Bespoke` | OFF/3s/10s 선택과 capture countdown overlay 완료. cancel refinement 남음 |
+| `16-photo-import.html` | `AppRoute.photoImport` → `PhotoImportScreen` | `Bespoke` | `PhotosPicker` 선택, preview, edit route 연결 완료. permission branch 남음 |
+| `17-photo-edit.html` | `AppRoute.photoEdit` → `PhotoEditScreen` | `Bespoke` | `PhotoFilterRenderer` 기반 필터/강도/저장/공유 완료. compare slider 남음 |
+| `19-builtin-filter-library.html` | `AppRoute.builtinFilters` → `BuiltinFilterLibraryScreen` | `Bespoke` | 번들 필터 목록, 선택, 카메라 적용 흐름 완료. API/detail 연결 남음 |
 | `07b-filter-download.html` | `AppRoute.filterDownload` → `FilterDownloadProgressScreen` | `Bespoke` | `MooditStore.download(_:)` 연동 완료. 실제 package/API progress 연결 남음 |
 | `07c-filter-after-download.html` | `AppRoute.filterAfterDownload` → `FilterAfterDownloadScreen` | `Bespoke` | apply/favorite/remove 연동 완료. collection picker/persistence 남음 |
 
@@ -133,6 +138,8 @@
 
 목표: 사용자가 필터를 찾고, 다운로드하고, 카메라/사진 편집에 적용하는 루프를 완성한다.
 
+상태: 완료됨. 2026-05-07 기준 `AppUITests/PhaseAE2ETests` 5개 시나리오와 `./scripts/test.sh` 전체 통과.
+
 대상:
 - `13-camera-aspect-picker.html`
 - `14-camera-zoom-grid-flash.html`
@@ -146,6 +153,7 @@
 완료 기준:
 - 모든 화면이 전용 SwiftUI View 로 렌더링된다.
 - `CameraScreen`, `SavedScreen`, `FilterDetailScreen` 간 필터 선택/다운로드 상태가 이어진다.
+- Phase A XCUITest 가 Marketplace → Download → Apply, Camera HUD, Aspect/Timer, Built-in library, Photo edit 흐름을 검증한다.
 - `./scripts/test.sh` 통과.
 
 ### Phase B — Account/Profile policy screens
