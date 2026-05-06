@@ -6,6 +6,11 @@ options:
     iOS: "17.0"
   xcodeVersion: "26.3"
 
+# 코드 서명 — Signing.local.xcconfig (gitignored) 에서 DEVELOPMENT_TEAM 주입
+configFiles:
+  Debug: Configs/Signing.xcconfig
+  Release: Configs/Signing.xcconfig
+
 settings:
   base:
     CURRENT_PROJECT_VERSION: 1
@@ -13,7 +18,6 @@ settings:
     SWIFT_VERSION: 6.0
     SWIFT_STRICT_CONCURRENCY: minimal
     ENABLE_USER_SCRIPT_SANDBOXING: NO
-    DEVELOPMENT_TEAM: ""
 
 packages:
   Firebase:

@@ -352,6 +352,7 @@
 		2E5D829DD1B8D916258D7572 /* FilterRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterRepository.swift; sourceTree = "<group>"; };
 		309D364AADCB11180774B6FA /* MooditStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditStore.swift; sourceTree = "<group>"; };
 		3B1D05918AE520D701C90302 /* FilterEngineTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FilterEngineTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3B1D2B5CD2E4015AB5EF092C /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		414BEC54E8D6EA94E34E61A1 /* FMToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMToast.swift; sourceTree = "<group>"; };
 		41BF391006A73A81CB318773 /* AppComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppComponents.swift; sourceTree = "<group>"; };
 		436F2DEC58C7DE370EAB07F6 /* FMTypographyShorthand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMTypographyShorthand.swift; sourceTree = "<group>"; };
@@ -848,6 +849,7 @@
 				77677AD02ED6EA0970F0C15E /* Auth */,
 				B68BF5D35F9785EE2AD23604 /* Camera */,
 				C61859358380E16BD4D61A99 /* CameraTests */,
+				EEDF9DFB0E36E7DFE50998A6 /* Configs */,
 				AA53238A1F66D2B5B8A87C85 /* DesignSystem */,
 				887DE3742A4EE58C234A39CC /* FilterEngine */,
 				03CD7D9ABB2A6E9B4F312B5E /* FilterEngineTests */,
@@ -860,6 +862,14 @@
 				3E38822E8811F726B59CBFDE /* Storage */,
 				A50933A6E720A6F5A2AC6138 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		EEDF9DFB0E36E7DFE50998A6 /* Configs */ = {
+			isa = PBXGroup;
+			children = (
+				3B1D2B5CD2E4015AB5EF092C /* Signing.xcconfig */,
+			);
+			path = Configs;
 			sourceTree = "<group>";
 		};
 		F69E60BB03404AFC3AD1794F /* Profile */ = {
@@ -1132,40 +1142,52 @@
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					1C7F3BCF0DA80E0146F80D44 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(inherited)";
+						ProvisioningStyle = Automatic;
 					};
 					28C71C7AC6696C82D3EEC5F0 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(inherited)";
+						ProvisioningStyle = Automatic;
 					};
 					49D8181E3DFCAAEBCB5D1DA7 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(inherited)";
+						ProvisioningStyle = Automatic;
 					};
 					5F48D345013357180B4A85BD = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(inherited)";
+						ProvisioningStyle = Automatic;
 					};
 					689B1C4EB8655E3F2EA50BAC = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(inherited)";
+						ProvisioningStyle = Automatic;
 					};
 					71FC1246D529B9A3F2979252 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(inherited)";
+						ProvisioningStyle = Automatic;
 					};
 					88D6AD039A8EEEE6219CC0DE = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(inherited)";
+						ProvisioningStyle = Automatic;
 					};
 					893E34F951F1C3C07790E092 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(inherited)";
+						ProvisioningStyle = Automatic;
 					};
 					A6CEC3E80C7935946B80F3B8 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(inherited)";
+						ProvisioningStyle = Automatic;
 					};
 					C6D187A67EEB20C5676D3054 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(inherited)";
+						ProvisioningStyle = Automatic;
 					};
 					D333650AB4271F5E2E0ED856 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(inherited)";
+						ProvisioningStyle = Automatic;
 					};
 					E3D4A108F30A949DB222474E = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = "$(inherited)";
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -1673,6 +1695,7 @@
 		};
 		3DF0C3436C02F44F581A096B /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3B1D2B5CD2E4015AB5EF092C /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -1707,7 +1730,6 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1987,6 +2009,7 @@
 		};
 		ACB1771D01D82C59D864B807 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3B1D2B5CD2E4015AB5EF092C /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -2021,7 +2044,6 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
