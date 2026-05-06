@@ -140,48 +140,4 @@ struct ScreenHeader: View {
     }
 }
 
-struct FilterDetailScreen: View {
-    @EnvironmentObject private var store: FilterMarketStore
-    let filter: Filter
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FMSpacing.large) {
-                FilterThumbnail(filter: filter)
-                    .frame(maxWidth: 260)
-                    .frame(maxWidth: .infinity)
-
-                VStack(alignment: .leading, spacing: FMSpacing.small) {
-                    Text(filter.title)
-                        .font(.title.weight(.bold))
-                        .foregroundStyle(.white)
-                    Text("by \(filter.author.displayName)")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.64))
-                }
-
-                HStack {
-                    PillText(filter.category.displayTitle)
-                    PillText(filter.engine.type.rawValue)
-                    if let lutSize = filter.engine.lutSize {
-                        PillText("\(lutSize)^3 LUT")
-                    }
-                }
-
-                Button {
-                    store.select(filter)
-                } label: {
-                    Label(store.isDownloaded(filter) ? "Apply Filter" : "Download and Apply", systemImage: "camera.filters")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(FMColor.accent)
-                .accessibilityIdentifier("filterDetail.apply")
-            }
-            .padding(FMSpacing.large)
-        }
-        .background(FMColor.background)
-        .navigationTitle(filter.title)
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
+// `FilterDetailScreen` 은 Phase D3 에서 `Sources/App/Marketplace/FilterDetailScreen.swift` 로 이전됨.
