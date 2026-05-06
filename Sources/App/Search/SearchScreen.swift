@@ -31,6 +31,8 @@ struct SearchScreen: View {
     @State private var phase: SearchPhase = .browsing
     @FocusState private var isFieldFocused: Bool
 
+    private let initialCategory: String?
+
     private let suggestedKeywords = [
         "#골든아워", "#필름룩", "#씨네마틱", "#카페",
         "#포트레이트", "#모노톤", "#비비드", "#무드"
@@ -43,6 +45,13 @@ struct SearchScreen: View {
         .init(initials: "AF", handle: "air.films", filterCount: 12),
         .init(initials: "WH", handle: "warm.house", filterCount: 9)
     ]
+
+    init(initialQuery: String? = nil, initialCategory: String? = nil) {
+        let query = initialQuery ?? initialCategory ?? ""
+        self._query = State(initialValue: query)
+        self._phase = State(initialValue: query.isEmpty ? .browsing : .results)
+        self.initialCategory = initialCategory
+    }
 
     var body: some View {
         NavigationStack {
@@ -65,9 +74,7 @@ struct SearchScreen: View {
                 .scrollDismissesKeyboard(.interactively)
             }
             .background(FMColors.Background.bg0)
-            .navigationDestination(for: FMFilterTileRoute.self) { route in
-                FilterDetailScreen(mock: route.mock)
-            }
+            .appRouteDestinations()
             .toolbar(.hidden, for: .navigationBar)
         }
         .task {
@@ -344,7 +351,7 @@ struct SearchScreen: View {
                         spacing: Sp.sm
                     ) {
                         ForEach(Array(filteredFilters.enumerated()), id: \.offset) { index, data in
-                            NavigationLink(value: FMFilterTileRoute(mock: detailMock(from: data))) {
+                            NavigationLink(value: AppRoute.filterDetail(id: data.title)) {
                                 FMFilterTile(data: data)
                             }
                             .buttonStyle(.plain)
@@ -359,11 +366,7 @@ struct SearchScreen: View {
     }
 
     private func makerRow(_ maker: PopularMaker) -> some View {
-        Button {
-            query = maker.handle
-            phase = .results
-            rememberSearch(maker.handle)
-        } label: {
+        NavigationLink(value: AppRoute.otherProfile(uid: maker.handle)) {
             HStack(spacing: Sp.sm) {
                 FMAvatar(initials: maker.initials, size: .sm)
                 VStack(alignment: .leading, spacing: 2) {
@@ -413,7 +416,7 @@ struct SearchScreen: View {
                         spacing: Sp.sm
                     ) {
                         ForEach(Array(filteredFilters.enumerated()), id: \.offset) { index, data in
-                            NavigationLink(value: FMFilterTileRoute(mock: detailMock(from: data))) {
+                            NavigationLink(value: AppRoute.filterDetail(id: data.title)) {
                                 FMFilterTile(data: data)
                             }
                             .buttonStyle(.plain)
@@ -438,6 +441,9 @@ struct SearchScreen: View {
         guard !query.isEmpty else { return [] }
         let lower = query.lowercased()
         // 무결과는 그대로 빈 배열 반환 — `resultsContent` 의 `FMEmptyState(.noSearchResults)` 분기로 이어진다.
+        if let initialCategory, initialCategory == "컬렉션" {
+            return MarketplaceMockData.newFilters
+        }
         return MarketplaceMockData.newFilters.filter {
             $0.title.lowercased().contains(lower)
                 || $0.makerName.lowercased().contains(lower)

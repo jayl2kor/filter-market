@@ -11,7 +11,6 @@ import SwiftUI
 struct MarketplaceScreen: View {
     @EnvironmentObject private var store: MooditStore
 
-    @State private var searchQuery: String = ""
     @State private var selectedCategory: String = "전체"
     @State private var hasAppeared = false
 
@@ -40,9 +39,7 @@ struct MarketplaceScreen: View {
                 .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
             }
             .background(FMColors.Background.bg0)
-            .navigationDestination(for: FMFilterTileRoute.self) { route in
-                FilterDetailScreen(mock: route.mock)
-            }
+            .appRouteDestinations()
             .toolbar(.hidden, for: .navigationBar)
         }
         .task {
@@ -56,15 +53,28 @@ struct MarketplaceScreen: View {
 
     private var headerBar: some View {
         HStack(spacing: Sp.sm) {
-            FMTextField.search(
-                text: $searchQuery,
-                placeholder: "필터, 메이커, 분위기 검색"
-            )
+            NavigationLink(value: AppRoute.search(initialQuery: nil, category: nil)) {
+                HStack(spacing: Sp.xs) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: IconSize.sm, weight: .medium))
+                        .foregroundStyle(FMColors.Text.tertiary)
+                    Text("필터, 메이커, 분위기 검색")
+                        .fmTypography(.body)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                    Spacer()
+                }
+                .padding(.horizontal, Sp.sm)
+                .frame(height: 44)
+                .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+                .overlay {
+                    RoundedRectangle(cornerRadius: R.md)
+                        .strokeBorder(FMColors.Border.default, lineWidth: 1)
+                }
+            }
+            .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
 
-            Button {
-                // 알림 화면 — placeholder.
-            } label: {
+            NavigationLink(value: AppRoute.notifications) {
                 Image(systemName: "bell")
                     .font(.system(size: IconSize.lg, weight: .regular))
                     .foregroundStyle(FMColors.Text.primary)
@@ -75,6 +85,7 @@ struct MarketplaceScreen: View {
                             .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
                     }
             }
+            .buttonStyle(.plain)
             .accessibilityLabel("알림")
         }
         .padding(.horizontal, Sp.md)
@@ -117,7 +128,7 @@ struct MarketplaceScreen: View {
                 HStack(spacing: Sp.sm) {
                     ForEach(MarketplaceMockData.trending.indices, id: \.self) { index in
                         let data = MarketplaceMockData.trending[index]
-                        NavigationLink(value: FMFilterTileRoute(mock: detailMock(from: data))) {
+                        NavigationLink(value: AppRoute.filterDetail(id: data.title)) {
                             FeaturedCard(data: data, isHighlighted: index == 0)
                                 .frame(width: 268)
                         }
@@ -169,7 +180,7 @@ struct MarketplaceScreen: View {
             ) {
                 ForEach(filteredNewFilters.indices, id: \.self) { index in
                     let data = filteredNewFilters[index]
-                    NavigationLink(value: FMFilterTileRoute(mock: detailMock(from: data))) {
+                    NavigationLink(value: AppRoute.filterDetail(id: data.title)) {
                         FMFilterTile(data: data)
                     }
                     .buttonStyle(.plain)
@@ -188,7 +199,10 @@ struct MarketplaceScreen: View {
 
             VStack(spacing: Sp.sm) {
                 ForEach(MarketplaceMockData.collections) { collection in
-                    CollectionCard(entry: collection)
+                    NavigationLink(value: AppRoute.favoritesCollection) {
+                        CollectionCard(entry: collection)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, Sp.md)
@@ -292,13 +306,12 @@ struct MarketplaceScreen: View {
                 .foregroundStyle(FMColors.Text.primary)
             Spacer()
             if let more {
-                Button {
-                    // section 모두 보기 — 후속 화면.
-                } label: {
+                NavigationLink(value: title == "트렌딩" ? AppRoute.forYou : AppRoute.favoritesCollection) {
                     Text(more)
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Accent.primary)
                 }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -433,35 +446,30 @@ private struct CollectionCard: View {
     let entry: MarketplaceMockData.CollectionEntry
 
     var body: some View {
-        Button {
-            // 컬렉션 상세 — 후속 Phase.
-        } label: {
-            HStack(spacing: Sp.md) {
-                cluster
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(entry.title)
-                        .fmTypography(.headline)
-                        .foregroundStyle(FMColors.Text.primary)
-                    Text(entry.subtitle)
-                        .fmTypography(.subhead)
-                        .foregroundStyle(FMColors.Text.secondary)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(FMColors.Text.tertiary)
+        HStack(spacing: Sp.md) {
+            cluster
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.title)
+                    .fmTypography(.headline)
+                    .foregroundStyle(FMColors.Text.primary)
+                Text(entry.subtitle)
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Text.secondary)
             }
-            .padding(Sp.md)
-            .frame(maxWidth: .infinity)
-            .background(FMColors.Background.bg2)
-            .clipShape(RoundedRectangle(cornerRadius: R.lg))
-            .overlay {
-                RoundedRectangle(cornerRadius: R.lg)
-                    .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
-            }
-            .shadow(color: Color.black.opacity(0.04), radius: 1, x: 0, y: 1)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(FMColors.Text.tertiary)
         }
-        .buttonStyle(.plain)
+        .padding(Sp.md)
+        .frame(maxWidth: .infinity)
+        .background(FMColors.Background.bg2)
+        .clipShape(RoundedRectangle(cornerRadius: R.lg))
+        .overlay {
+            RoundedRectangle(cornerRadius: R.lg)
+                .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(0.04), radius: 1, x: 0, y: 1)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(entry.title), \(entry.subtitle)")
         .accessibilityAddTraits(.isButton)

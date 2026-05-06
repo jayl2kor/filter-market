@@ -455,14 +455,30 @@ struct FilterDetailScreen: View {
             }
             .accessibilityLabel("좋아요")
 
-            FMButton(
-                ctaTitle,
-                icon: ctaIcon,
-                variant: .primary,
-                size: .lg,
-                isLoading: downloadState == .downloading
-            ) {
-                triggerDownload()
+            if downloadState == .ready {
+                NavigationLink(value: mock.isPaid ? AppRoute.paywallSingle(filterId: mock.displayTitle) : AppRoute.filterDownload(id: mock.displayTitle)) {
+                    HStack(spacing: Sp.xs) {
+                        Image(systemName: ctaIcon ?? "arrow.right")
+                            .font(.system(size: IconSize.sm, weight: .semibold))
+                        Text(ctaTitle)
+                            .fmTypography(.headline)
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
+                }
+                .buttonStyle(.plain)
+            } else {
+                FMButton(
+                    ctaTitle,
+                    icon: ctaIcon,
+                    variant: .primary,
+                    size: .lg,
+                    isLoading: downloadState == .downloading
+                ) {
+                    triggerDownload()
+                }
             }
         }
         .padding(.horizontal, Sp.md)
@@ -485,13 +501,12 @@ struct FilterDetailScreen: View {
                 .foregroundStyle(FMColors.Text.primary)
             Spacer()
             if let more {
-                Button {
-                    // 후속 Phase.
-                } label: {
+                NavigationLink(value: title == "댓글" ? AppRoute.comments(filterId: mock.displayTitle) : AppRoute.forYou) {
                     Text(more)
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Accent.primary)
                 }
+                .buttonStyle(.plain)
             }
         }
     }

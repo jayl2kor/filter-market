@@ -31,6 +31,7 @@
 		32FAE823FB30F502131C5210 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 8B024DE05C9153EEDB6F3A55 /* README.md */; };
 		33571E51218864F62A48A85D /* FilterCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DFE8A6E8C2D13E6964D5EA /* FilterCache.swift */; };
 		3566BD0F9E3A870801908B9F /* CameraScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A6BDD2E150830E8B307445A /* CameraScreen.swift */; };
+		3580C869A15468CDF062AC07 /* AppNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0D7E07B3382A6B5187797E /* AppNavigation.swift */; };
 		36E9108E37964537631EEB3C /* FMBottomSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D8FA6EBEC7C481568D1DDF0 /* FMBottomSheet.swift */; };
 		373053E3A4E91FDE8CD6BEC5 /* PreviewUniforms.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4035158CACB9BDE70743847 /* PreviewUniforms.swift */; };
 		380BD8DE86A8E5C46E74BAF7 /* LUTPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 263FD67F0D11FE5383E01C00 /* LUTPresetTests.swift */; };
@@ -426,6 +427,7 @@
 		F49CE763E3DE75A81BBBA35B /* LUTSamplerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LUTSamplerTests.swift; sourceTree = "<group>"; };
 		F91137607C4F914B1D8133E9 /* FilterManifestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterManifestTests.swift; sourceTree = "<group>"; };
 		F91234340A5B35E64DF8BB37 /* RenderFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderFilterTests.swift; sourceTree = "<group>"; };
+		FB0D7E07B3382A6B5187797E /* AppNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigation.swift; sourceTree = "<group>"; };
 		FBD7AACC90B2D8EF3C126FF5 /* LUTSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LUTSampler.swift; sourceTree = "<group>"; };
 		FD4348B09332644F0B2A1C43 /* PreviewFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewFilter.swift; sourceTree = "<group>"; };
 		FE0E964CBD9F708F068F5A6D /* FMSegmentedControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMSegmentedControl.swift; sourceTree = "<group>"; };
@@ -515,6 +517,7 @@
 			isa = PBXGroup;
 			children = (
 				41BF391006A73A81CB318773 /* AppComponents.swift */,
+				FB0D7E07B3382A6B5187797E /* AppNavigation.swift */,
 				5A6BDD2E150830E8B307445A /* CameraScreen.swift */,
 				C6766587713A1D4A74464579 /* Info.plist */,
 				DB733F6CAB461FE90147DBD6 /* MooditApp.swift */,
@@ -1314,6 +1317,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				472412A0CCE91A4B2F849823 /* AppComponents.swift in Sources */,
+				3580C869A15468CDF062AC07 /* AppNavigation.swift in Sources */,
 				FB758FAE5AF9ACE2A4DD86B9 /* CameraPermissionDenied.swift in Sources */,
 				3A7CDC2CA534F1A22A47C954 /* CameraPermissionPriming.swift in Sources */,
 				3566BD0F9E3A870801908B9F /* CameraScreen.swift in Sources */,

@@ -108,6 +108,7 @@ struct ProfileScreen: View {
                     navigateToLogin = false
                 })
             }
+            .appRouteDestinations()
         }
     }
 
@@ -128,6 +129,12 @@ struct ProfileScreen: View {
                     actionsRow
                         .padding(.horizontal, Sp.md)
                         .padding(.top, Sp.md)
+
+                    if user.isOwnProfile {
+                        profileShortcuts
+                            .padding(.horizontal, Sp.md)
+                            .padding(.top, Sp.sm)
+                    }
 
                     segmentedRow
                         .padding(.horizontal, Sp.md)
@@ -166,6 +173,7 @@ struct ProfileScreen: View {
             .navigationDestination(isPresented: $navigateToSettings) {
                 SettingsScreen()
             }
+            .appRouteDestinations()
         }
         .task {
             try? await Task.sleep(nanoseconds: 250_000_000)
@@ -251,12 +259,24 @@ struct ProfileScreen: View {
 
     private var actionsRow: some View {
         HStack(spacing: Sp.xs) {
-            FMButton(
-                user.isOwnProfile ? "프로필 편집" : "팔로우",
-                variant: user.isOwnProfile ? .secondary : .primary,
-                size: .md
-            ) {
-                // 후속 Phase 에서 편집/팔로우 흐름 연결.
+            if user.isOwnProfile {
+                NavigationLink(value: AppRoute.editProfile) {
+                    Text("프로필 편집")
+                        .fmTypography(.headline)
+                        .foregroundStyle(FMColors.Text.primary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: R.md)
+                                .strokeBorder(FMColors.Border.default, lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+            } else {
+                FMButton("팔로우", variant: .primary, size: .md) {
+                    FMHaptic.light.play()
+                }
             }
 
             Button {
@@ -275,6 +295,37 @@ struct ProfileScreen: View {
             }
             .accessibilityLabel("프로필 공유")
         }
+    }
+
+    private var profileShortcuts: some View {
+        HStack(spacing: Sp.xs) {
+            shortcutLink("지갑", icon: "creditcard", route: .wallet)
+            shortcutLink("내 필터", icon: "rectangle.stack", route: .myFilters)
+            shortcutLink("대시보드", icon: "chart.bar", route: .makerDashboard)
+        }
+    }
+
+    private func shortcutLink(_ title: String, icon: String, route: AppRoute) -> some View {
+        NavigationLink(value: route) {
+            HStack(spacing: Sp.xxs) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(title)
+                    .fmTypography(.caption)
+                    .fontWeight(.semibold)
+                    .lineLimit(1)
+            }
+            .foregroundStyle(FMColors.Text.primary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 38)
+            .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+            .overlay {
+                RoundedRectangle(cornerRadius: R.md)
+                    .strokeBorder(FMColors.Border.default, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 
     // MARK: - Segmented
@@ -299,7 +350,10 @@ struct ProfileScreen: View {
             spacing: 4
         ) {
             ForEach(Array(currentItems.enumerated()), id: \.element.id) { index, item in
-                gridTile(item: item)
+                NavigationLink(value: AppRoute.filterDetail(id: item.title)) {
+                    gridTile(item: item)
+                }
+                .buttonStyle(.plain)
                     .accessibilityIdentifier("profile.tile.\(selectedSection).\(index)")
             }
         }

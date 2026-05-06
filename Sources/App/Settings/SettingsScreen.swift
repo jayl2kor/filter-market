@@ -55,23 +55,26 @@ struct SettingsScreen: View {
                 profileCard
 
                 section(title: "계정") {
-                    listRow(
+                    navigationRow(
                         icon: "person.crop.circle",
                         title: "프로필 정보",
-                        accessory: .chevron
-                    ) {}
+                        accessory: .chevron,
+                        route: .editProfile
+                    )
                     divider
-                    listRow(
+                    navigationRow(
                         icon: "creditcard",
                         title: "결제 및 구독",
-                        accessory: .badge(text: "PRO", chevron: true)
-                    ) {}
+                        accessory: .badge(text: "PRO", chevron: true),
+                        route: .wallet
+                    )
                     divider
-                    listRow(
+                    navigationRow(
                         icon: "lock.shield",
                         title: "개인정보 및 보안",
-                        accessory: .chevron
-                    ) {}
+                        accessory: .chevron,
+                        route: .dataExport
+                    )
                 }
 
                 section(title: "카메라") {
@@ -97,27 +100,37 @@ struct SettingsScreen: View {
                 }
 
                 section(title: "알림 및 콘텐츠") {
-                    listRow(
+                    navigationRow(
                         icon: "bell",
                         title: "푸시 알림",
-                        accessory: .toggle(binding: $pushNotifications)
-                    ) {}
+                        accessory: .value(text: pushNotifications ? "켬" : "끔", chevron: true),
+                        route: .notificationSettings
+                    )
                     divider
-                    listRow(
+                    navigationRow(
                         icon: "arrow.down.circle",
                         title: "다운로드 관리",
-                        accessory: .value(text: "42 / 200MB", chevron: true)
-                    ) {}
+                        accessory: .value(text: "42 / 200MB", chevron: true),
+                        route: .savedFilters
+                    )
                     divider
                     sensitiveFilterRow
+                    divider
+                    navigationRow(
+                        icon: "person.crop.circle.badge.xmark",
+                        title: "차단 사용자",
+                        accessory: .chevron,
+                        route: .blockList
+                    )
                 }
 
                 section(title: "정보") {
-                    listRow(
+                    navigationRow(
                         icon: "questionmark.circle",
                         title: "도움말",
-                        accessory: .chevron
-                    ) {}
+                        accessory: .chevron,
+                        route: .refundRequest
+                    )
                     divider
                     listRow(
                         icon: "doc.text",
@@ -138,6 +151,22 @@ struct SettingsScreen: View {
                     ) {}
                 }
 
+                section(title: "운영") {
+                    navigationRow(
+                        icon: "shield.lefthalf.filled",
+                        title: "모더레이션 큐",
+                        accessory: .chevron,
+                        route: .modQueue
+                    )
+                    divider
+                    navigationRow(
+                        icon: "link",
+                        title: "공유 링크 테스트",
+                        accessory: .chevron,
+                        route: .universalLinkLanding
+                    )
+                }
+
                 section(title: nil) {
                     listRow(
                         icon: "rectangle.portrait.and.arrow.right",
@@ -150,14 +179,13 @@ struct SettingsScreen: View {
                 }
 
                 section(title: nil) {
-                    listRow(
+                    navigationRow(
                         icon: "trash",
                         title: "계정 삭제",
                         isDestructive: true,
-                        accessory: .none
-                    ) {
-                        showDeleteAccountAlert = true
-                    }
+                        accessory: .chevron,
+                        route: .accountDeletion
+                    )
                 }
 
                 footerNote
@@ -190,6 +218,7 @@ struct SettingsScreen: View {
         ) {
             // 후속 Phase 에서 실제 삭제 흐름 연결.
         }
+        .appRouteDestinations()
     }
 
     // MARK: - Header (me) card
@@ -210,9 +239,7 @@ struct SettingsScreen: View {
 
             Spacer(minLength: 0)
 
-            Button {
-                // 후속 Phase 에서 프로필 편집 화면으로 이동.
-            } label: {
+            NavigationLink(value: AppRoute.editProfile) {
                 Text("편집")
                     .fmTypography(.subhead)
                     .fontWeight(.medium)
@@ -225,6 +252,7 @@ struct SettingsScreen: View {
                             .strokeBorder(FMColors.Border.default, lineWidth: 1)
                     }
             }
+            .buttonStyle(.plain)
             .accessibilityLabel("프로필 편집")
         }
         .padding(Sp.md)
@@ -287,6 +315,37 @@ struct SettingsScreen: View {
         action: @escaping () -> Void = {}
     ) -> some View {
         Button(action: action) {
+            HStack(spacing: Sp.sm) {
+                Image(systemName: icon)
+                    .font(.system(size: IconSize.md, weight: .regular))
+                    .foregroundStyle(isDestructive ? FMColors.Semantic.error : FMColors.Text.primary)
+                    .frame(width: 28, height: 28)
+
+                Text(title)
+                    .fmTypography(.body)
+                    .foregroundStyle(isDestructive ? FMColors.Semantic.error : FMColors.Text.primary)
+
+                Spacer(minLength: Sp.xs)
+
+                accessoryView(accessory)
+            }
+            .padding(.horizontal, Sp.md)
+            .frame(minHeight: 52)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+    }
+
+    @ViewBuilder
+    private func navigationRow(
+        icon: String,
+        title: String,
+        isDestructive: Bool = false,
+        accessory: RowAccessory,
+        route: AppRoute
+    ) -> some View {
+        NavigationLink(value: route) {
             HStack(spacing: Sp.sm) {
                 Image(systemName: icon)
                     .font(.system(size: IconSize.md, weight: .regular))

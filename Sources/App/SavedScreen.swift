@@ -27,9 +27,7 @@ struct SavedScreen: View {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: Sp.sm) {
                             ForEach(store.libraryFilters) { filter in
-                                NavigationLink {
-                                    FilterDetailScreen(filter: filter)
-                                } label: {
+                                NavigationLink(value: AppRoute.filterDetail(id: filter.title)) {
                                     FMFilterTile(data: tileData(for: filter))
                                 }
                                 .buttonStyle(.plain)
@@ -45,6 +43,15 @@ struct SavedScreen: View {
             .background(FMColors.Background.bg1)
             .navigationTitle("저장됨")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(value: AppRoute.builtinFilters) {
+                        Image(systemName: "camera.filters")
+                    }
+                    .accessibilityLabel("기본 필터")
+                }
+            }
+            .appRouteDestinations()
         }
     }
 
