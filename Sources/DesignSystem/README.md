@@ -1,0 +1,63 @@
+# DesignSystem
+
+filterMarket 의 디자인 토큰과 (앞으로 추가될) 컴포넌트 라이브러리.
+단일 진실원: [`docs/DESIGN_TOKENS.json`](../../docs/DESIGN_TOKENS.json) v1.2.0 (라이트/다크 듀얼).
+
+## 토큰 구조
+
+`Sources/DesignSystem/Tokens/` 아래에 도메인별로 분리.
+
+| 파일 | 토큰 | 사용 예 |
+|---|---|---|
+| `Colors.swift` | `FMColors.Background`, `Surface`, `Border`, `Text`, `Accent`, `Semantic`, `Category`, `Skeleton`, `Overlay`, `Empty` | `FMColors.Background.bg0`, `FMColors.Accent.primary` |
+| `Typography.swift` | `FMTypography.{display, titleLarge, title, headline, body, callout, subhead, footnote, caption}`, `Font.fmBody` | `Text("Hi").fmTypography(.body)` 또는 `.font(.fmBody)` |
+| `Spacing.swift` | `Sp.{xxs, xs, sm, md, lg, xl, xxl, xxxl, xxxxl}`, `FMLayout` | `VStack(spacing: Sp.md)` |
+| `Radius.swift` | `R.{none, sm, md, lg, xl, full}` | `RoundedRectangle(cornerRadius: R.md)` |
+| `Motion.swift` | `Animation.fmEaseOut/fmFast/fmSpring/...`, `FMMotion.Spring`, `FMMotion.Shimmer`, `FMMotion.shouldReduce` | `withAnimation(.fmSpring) { … }` |
+| `Iconography.swift` | `IconSize.{xs..xxl}`, `IconStroke.default/bold` | `Image(systemName:"x").frame(width: IconSize.md, height: IconSize.md)` |
+| `State.swift` | `Opacity.{hover, pressed, selected, textDisabled, fillDisabled, borderDisabled}`, `FocusRing` | `.opacity(isPressed ? 1 - Opacity.pressed : 1)` |
+| `ZIndex.swift` | `Z.{base, dropdown, sticky, modal, popover, tooltip, toast}` | `.zIndex(Z.modal)` |
+
+## 라이트/다크 듀얼 모드
+
+컬러는 `Color(light:dark:)` 헬퍼로 정의되며, 시스템 또는 `.preferredColorScheme(.dark)` 에 따라 자동 전환된다.
+Asset Catalog 는 사용하지 않는다 — 토큰 정의가 Swift 코드에 그대로 있어 JSON 과 1:1 비교가 쉽다.
+
+```swift
+// 카메라 화면처럼 강제 다크가 필요한 경우
+struct CameraView: View {
+    var body: some View {
+        ZStack { /* ... */ }
+            .background(FMColors.Background.bg0)
+            .preferredColorScheme(.dark)
+    }
+}
+```
+
+## 모션 + Reduce Motion
+
+```swift
+@Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+withAnimation(reduceMotion ? .fmFast : .fmSpring) {
+    isExpanded.toggle()
+}
+```
+
+## Legacy 토큰 (deprecated)
+
+기존 `DesignTokens.swift` 의 `FMColor` / `FMSpacing` 은 새 토큰을 가리키는 alias 로 유지되며 deprecation 경고를 발생시킨다.
+Phase D1 (컴포넌트 라이브러리) 이후 삭제 예정.
+
+## 마이그레이션 매핑
+
+| 기존 (v1.0) | 신규 (v1.2.0) |
+|---|---|
+| `FMColor.background` | `FMColors.Background.bg0` |
+| `FMColor.surface` | `FMColors.Background.bg2` |
+| `FMColor.accent` | `FMColors.Accent.primary` |
+| `FMSpacing.xSmall` | `Sp.xxs` |
+| `FMSpacing.small` | `Sp.xs` |
+| `FMSpacing.medium` | `Sp.sm` |
+| `FMSpacing.large` | `Sp.lg` |
+| `FMSpacing.xLarge` | `Sp.xxl` |

@@ -284,7 +284,7 @@ HTML 목업 → SwiftUI 화면. 각 화면당 0.5~1일.
 
 | Phase | 상태 | 시작일 | 완료일 | 비고 |
 |---|---|---|---|---|
-| D0 | ⏳ Pending | — | — | — |
+| D0 | ✅ Done | 2026-05-06 | 2026-05-06 | `Sources/DesignSystem/Tokens/` 8개 파일 + 레거시 `DesignTokens.swift` deprecated alias 유지. Asset Catalog 미채택 — `Color(light:dark:)` 코드 정의로 JSON 과 1:1 정합. |
 | D1 | ⏳ Pending | — | — | — |
 | D2 | ⏳ Pending | — | — | — |
 | D3 | ⏳ Pending | — | — | — |
