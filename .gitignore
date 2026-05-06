@@ -24,6 +24,15 @@ fastlane/report.xml
 .omc/
 .claude/
 
+# Firebase / Cloud Functions
+functions/node_modules/
+functions/lib/
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.runtimeconfig.json
+
 # macOS
 .DS_Store
 **/.DS_Store

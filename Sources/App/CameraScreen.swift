@@ -18,8 +18,10 @@ struct CameraScreen: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: FilterMarketStore
     @StateObject private var controller = CameraPreviewController()
+    @StateObject private var permissionCoordinator = PermissionCoordinator()
     @State private var captureResult: CameraCaptureResult?
     @State private var focusIndicator: CameraFocusIndicator?
+    @State private var cameraPermissionState: PermissionCoordinator.Status = .notDetermined
 
     /// fullScreenCover 로 띄울 때 닫기 버튼을 노출할지 여부.
     /// RootShell 의 셔터 탭에서 띄울 때만 true.
@@ -30,6 +32,35 @@ struct CameraScreen: View {
     }
 
     var body: some View {
+        Group {
+            switch cameraPermissionState {
+            case .authorized:
+                cameraSurface
+            case .notDetermined:
+                CameraPermissionPriming(
+                    onAllow: { Task { await requestCameraPermission() } },
+                    onSkip: { handleCloseFromPriming() },
+                    onClose: isPresentedAsCover ? { handleCloseFromPriming() } : nil
+                )
+            case .denied, .restricted:
+                CameraPermissionDenied(
+                    onOpenSettings: { permissionCoordinator.openSettings() },
+                    onDismiss: { handleCloseFromPriming() }
+                )
+            }
+        }
+        .task {
+            cameraPermissionState = permissionCoordinator.currentStatus(.camera)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            // 사용자가 백그라운드 → 설정 → 권한 변경 → 복귀 시 상태를 새로고침.
+            if newPhase == .active {
+                cameraPermissionState = permissionCoordinator.currentStatus(.camera)
+            }
+        }
+    }
+
+    private var cameraSurface: some View {
         GeometryReader { proxy in
             ZStack {
                 // 라이브 프리뷰 (Metal). 카메라 로직은 변경하지 않음.
@@ -84,6 +115,18 @@ struct CameraScreen: View {
             CapturePreviewHost(result: result) {
                 captureResult = nil
             }
+        }
+    }
+
+    private func requestCameraPermission() async {
+        let next = await permissionCoordinator.request(.camera)
+        cameraPermissionState = next
+    }
+
+    private func handleCloseFromPriming() {
+        if isPresentedAsCover {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            dismiss()
         }
     }
 
