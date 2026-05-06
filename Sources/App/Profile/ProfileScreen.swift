@@ -27,10 +27,14 @@ enum ProfileSection: Hashable, CaseIterable {
 struct ProfileScreen: View {
     @EnvironmentObject private var store: MooditStore
 
+    /// 로그인 여부 — placeholder 인증 상태. 실제 Firebase Auth 통합 전까지 단순 플래그.
+    @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
+
     private let user: ProfileUser
     @State private var selectedSection: ProfileSection = .myFilters
     @State private var hasAppeared = false
     @State private var navigateToSettings = false
+    @State private var navigateToLogin = false
 
     init(user: ProfileUser? = nil) {
         self.user = user ?? .preview
@@ -42,6 +46,74 @@ struct ProfileScreen: View {
     }
 
     var body: some View {
+        if isAuthenticated {
+            authenticatedBody
+        } else {
+            guestBody
+        }
+    }
+
+    // MARK: - Guest (비로그인)
+
+    private var guestBody: some View {
+        NavigationStack {
+            VStack(spacing: Sp.lg) {
+                Spacer()
+
+                // 아바타 placeholder
+                ZStack {
+                    Circle()
+                        .fill(FMColors.Background.bg2)
+                        .frame(width: 96, height: 96)
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 44, weight: .regular))
+                        .foregroundStyle(FMColors.Text.tertiary)
+                }
+
+                VStack(spacing: Sp.xs) {
+                    Text("로그인이 필요해요")
+                        .fmTypography(.title)
+                        .foregroundStyle(FMColors.Text.primary)
+                    Text("필터를 저장하고 나만의 프로필을 만들어보세요")
+                        .fmTypography(.body)
+                        .foregroundStyle(FMColors.Text.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Sp.xl)
+                }
+
+                FMButton("로그인하기", variant: .primary, size: .lg) {
+                    navigateToLogin = true
+                }
+                .padding(.horizontal, Sp.xl)
+                .padding(.top, Sp.md)
+
+                Spacer()
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(FMColors.Background.bg0)
+            .padding(.bottom, FMLayout.tabBarHeight)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("프로필")
+                        .fmTypography(.headline)
+                        .foregroundStyle(FMColors.Text.primary)
+                }
+            }
+            .toolbarBackground(FMColors.Background.bg0, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .navigationDestination(isPresented: $navigateToLogin) {
+                LoginScreen(onAuthenticated: {
+                    isAuthenticated = true
+                    navigateToLogin = false
+                })
+            }
+        }
+    }
+
+    // MARK: - Authenticated (로그인 후)
+
+    private var authenticatedBody: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
