@@ -1,6 +1,6 @@
 # filterMarket - Implementation Status
 
-> 마지막 업데이트: 2026-05-06 17:02 KST · 기준 커밋/브랜치: 로컬 작업 상태 · 상태: Phase 0 실기기 검증 대기 / 공용 필터 렌더 설정 구현 완료
+> 마지막 업데이트: 2026-05-06 17:08 KST · 기준 커밋/브랜치: 로컬 작업 상태 · 상태: Phase 0 실기기 검증 대기 / 촬영 데이터 획득 경로 구현 완료
 >
 > 이 문서는 실제 구현 진행 상황, 검증 결과, 남은 작업, 다음 Phase 진입 조건을 기록한다. 전체 이슈 분해는 [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)를 기준으로 한다.
 
@@ -33,6 +33,7 @@
 - `engine.lutFile` 기반 preview LUT texture 적용 경로 추가
 - preview/capture 재사용을 위한 공용 `RenderFilter`/`FilterRenderConfiguration` 추가
 - LUT resource resolver 분리 및 XcodeGen resource flatten fallback 테스트 추가
+- `AVCapturePhotoOutput` 기반 셔터 촬영과 captured photo data result sheet 연결
 - `.metal` 빌드 타임 컴파일을 위한 Metal Toolchain 설치 및 스크립트화
 - 필터/manifest 도메인 모델 추가
 - LUT sampler와 기본 단위 테스트 추가
@@ -44,7 +45,7 @@
 아직 완료되지 않은 범위:
 - 실기기 카메라 preview 검증
 - 실기기 FPS/GPU time 측정
-- 촬영/PhotoKit 저장
+- 촬영 결과 고해상 필터 적용 및 PhotoKit 저장
 - 카메라 전/후면 전환, 포커스/노출, 비율 전환
 
 ---
@@ -81,7 +82,7 @@
 | 모듈 | 주요 파일 | 현재 상태 |
 |---|---|---|
 | `App` | [FilterMarketApp.swift](../Sources/App/FilterMarketApp.swift), [RootShell.swift](../Sources/App/RootShell.swift), [CameraScreen.swift](../Sources/App/CameraScreen.swift), [FilterLibraryScreen.swift](../Sources/App/FilterLibraryScreen.swift), [MarketplaceScreen.swift](../Sources/App/MarketplaceScreen.swift), [ProfileScreen.swift](../Sources/App/ProfileScreen.swift), [FilterMarketStore.swift](../Sources/App/FilterMarketStore.swift), [AppComponents.swift](../Sources/App/AppComponents.swift), [Info.plist](../Sources/App/Info.plist) | 앱 엔트리, 탭 shell, 카메라/필터/마켓/프로필 mock 화면 |
-| `Camera` | [CameraSession.swift](../Sources/Camera/CameraSession.swift) | 권한 요청, back camera session, video frame callback |
+| `Camera` | [CameraSession.swift](../Sources/Camera/CameraSession.swift) | 권한 요청, back camera session, video frame callback, `AVCapturePhotoOutput` photo data capture |
 | `FilterEngine` | [MetalPreviewRenderer.swift](../Sources/FilterEngine/MetalPreviewRenderer.swift), [MetalPreviewView.swift](../Sources/FilterEngine/MetalPreviewView.swift), [RenderFilter.swift](../Sources/FilterEngine/RenderFilter.swift), [PreviewFilter.swift](../Sources/FilterEngine/PreviewFilter.swift), [ShaderSources.swift](../Sources/FilterEngine/ShaderSources.swift), [LUTSampler.swift](../Sources/FilterEngine/LUTSampler.swift), [LUTImageDecoder.swift](../Sources/FilterEngine/LUTImageDecoder.swift), [LUTResourceResolver.swift](../Sources/FilterEngine/LUTResourceResolver.swift), [LUTTextureFactory.swift](../Sources/FilterEngine/LUTTextureFactory.swift), [RenderMetrics.swift](../Sources/FilterEngine/RenderMetrics.swift), [PreviewUniforms.swift](../Sources/FilterEngine/PreviewUniforms.swift) | Metal preview renderer, 공용 filter render config, Y/CbCr texture conversion, procedural LUT fallback, PNG LUT decoder, resource resolver, 3D LUT texture, intensity uniform, render metrics, LUT sampler |
 | `Models` | [FilterModels.swift](../Sources/Models/FilterModels.swift), [FilterManifest.swift](../Sources/Models/FilterManifest.swift), [JSONCoding.swift](../Sources/Models/JSONCoding.swift) | 필터/manifest Codable 모델 |
 | `Storage` | [FilterCache.swift](../Sources/Storage/FilterCache.swift) | actor 기반 in-memory cache 초안 |
@@ -138,7 +139,7 @@ Toolchain Identifier: com.apple.dt.toolchain.Metal.32023.864
 ```
 
 최근 검증:
-- 2026-05-06 17:02 KST
+- 2026-05-06 17:08 KST
 
 중요 확인:
 - [Shaders/BasicYUVShaders.metal](../Shaders/BasicYUVShaders.metal)이 Xcode `CompileMetalFile` 단계에서 컴파일됨
@@ -160,7 +161,7 @@ Toolchain Identifier: com.apple.dt.toolchain.Metal.32023.864
 ```
 
 최근 검증:
-- 2026-05-06 17:02 KST
+- 2026-05-06 17:08 KST
 
 테스트 결과:
 - `ModelsTests.FilterManifestTests`: 1개 통과
@@ -208,6 +209,8 @@ Toolchain Identifier: com.apple.dt.toolchain.Metal.32023.864
 | UI-01 | App navigation shell 구성 | Done | `Camera`, `Filters`, `Market`, `Profile` 탭 추가 |
 | UI-02 | Camera controls UI 정리 | Partial | simulator 렌더링 확인, 실기기 preview 위 배치 확인 필요 |
 | UI-03 | Filter carousel 구현 | Partial | bundle seed catalog 선택 UI와 실제 seed LUT texture 적용 경로 연결, 실기기 시각 확인 필요 |
+| M1-A04 | 셔터, 햅틱, 촬영 상태 UI | Partial | 셔터가 `AVCapturePhotoOutput` capture를 호출하고 result sheet에 photo data size 표시. 실기기 검증 필요 |
+| M1-A05 | PhotoKit 저장 구현 | Not Started | photo data 획득 완료, 저장 권한/PhotoKit write 후속 |
 | M1-B01 | renderer/capture 공용 필터 적용 인터페이스 정리 | Done | `RenderFilter`, `FilterRenderConfiguration`, `LUTResourceResolver` 추가. preview renderer가 공용 config 수신 |
 | M1-B02 | LUT PNG -> 3D texture loader 구현 | Done | 33^3 packed PNG decoder, seed LUT fixtures, manifest `lutFile` preview 연결, fallback 유지 |
 
@@ -268,7 +271,7 @@ Toolchain Identifier: com.apple.dt.toolchain.Metal.32023.864
 
 ### 코드 작업 기준 다음 순서
 
-실기기 검증과 병행 가능한 다음 코드 작업은 **`AVCapturePhotoOutput` 기반 촬영 구현**이다. preview와 capture가 공유할 filter configuration은 준비됐으므로, 다음 구현에서는 셔터 입력을 실제 photo capture로 연결하고 저장 전 result data를 확보한다.
+실기기 검증과 병행 가능한 다음 코드 작업은 **고해상 촬영 결과에 동일 필터 chain 적용**이다. 셔터는 이제 `AVCapturePhotoOutput`으로 photo data를 확보하므로, 다음 구현에서는 저장 전 이미지에 현재 `FilterRenderConfiguration`을 적용하는 capture renderer 경로를 만든다.
 
 ---
 
@@ -292,11 +295,10 @@ M0 실기기 검증이 통과하면 M1로 진입한다. M1의 목표는 **로컬
 
 ### M1 구현 순서
 
-1. `AVCapturePhotoOutput` 기반 촬영 구현
-2. 고해상 이미지에 동일 필터 chain 적용
-3. PhotoKit 저장 및 권한 처리
-4. 전/후면 전환, 탭 포커스/노출, 비율 전환 추가
-5. 핵심 플로우 테스트 및 실기기 smoke test
+1. 고해상 이미지에 동일 필터 chain 적용
+2. PhotoKit 저장 및 권한 처리
+3. 전/후면 전환, 탭 포커스/노출, 비율 전환 추가
+4. 핵심 플로우 테스트 및 실기기 smoke test
 
 ### M1 진입 전 결정 필요
 

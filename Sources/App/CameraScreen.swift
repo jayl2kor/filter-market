@@ -10,7 +10,7 @@ struct CameraScreen: View {
     @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var store: FilterMarketStore
     @StateObject private var controller = CameraPreviewController()
-    @State private var captureResult: Filter?
+    @State private var captureResult: CameraCaptureResult?
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -53,8 +53,8 @@ struct CameraScreen: View {
         .onDisappear {
             controller.stop()
         }
-        .sheet(item: $captureResult) { filter in
-            CaptureResultScreen(filter: filter)
+        .sheet(item: $captureResult) { result in
+            CaptureResultScreen(result: result)
                 .presentationDetents([.medium])
         }
     }
@@ -171,17 +171,27 @@ struct CameraScreen: View {
 
             Button {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                captureResult = store.selectedFilter
+                Task {
+                    captureResult = await controller.capture(filter: store.selectedFilter)
+                }
             } label: {
-                Circle()
-                    .fill(.white)
-                    .frame(width: 74, height: 74)
-                    .overlay {
-                        Circle()
-                            .stroke(.black.opacity(0.45), lineWidth: 3)
-                            .frame(width: 61, height: 61)
+                ZStack {
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 74, height: 74)
+                        .overlay {
+                            Circle()
+                                .stroke(.black.opacity(0.45), lineWidth: 3)
+                                .frame(width: 61, height: 61)
+                        }
+
+                    if controller.isCapturing {
+                        ProgressView()
+                            .tint(.black)
                     }
+                }
             }
+            .disabled(controller.isCapturing)
             .accessibilityIdentifier("camera.shutter")
 
             Spacer()
@@ -200,11 +210,18 @@ struct CameraScreen: View {
     }
 }
 
+private struct CameraCaptureResult: Identifiable {
+    let id = UUID()
+    let filter: Filter
+    let photo: CapturedPhoto
+}
+
 @MainActor
 private final class CameraPreviewController: ObservableObject {
     @Published private(set) var statusMessage = "Preparing camera"
     @Published private(set) var metricsText = "0 FPS · GPU 0.00ms · CPU 0.00ms"
     @Published private(set) var intensity: Float = 0.65
+    @Published private(set) var isCapturing = false
 
     let renderer = MetalPreviewRenderer(lutResourceBundle: MarketplaceResources.bundle)
 
@@ -270,6 +287,22 @@ private final class CameraPreviewController: ObservableObject {
         renderer.apply(configuration: FilterRenderConfiguration(filter: renderFilter, intensityValue: intensity))
     }
 
+    func capture(filter: Filter?) async -> CameraCaptureResult? {
+        guard let filter, !isCapturing else { return nil }
+
+        isCapturing = true
+        defer { isCapturing = false }
+
+        do {
+            let photo = try await cameraSession.capturePhoto()
+            statusMessage = "Captured photo"
+            return CameraCaptureResult(filter: filter, photo: photo)
+        } catch {
+            statusMessage = "Capture failed"
+            return nil
+        }
+    }
+
     private func startMetricsPolling() {
         guard metricsTask == nil else { return }
 
@@ -292,7 +325,7 @@ private final class CameraPreviewController: ObservableObject {
 }
 
 private struct CaptureResultScreen: View {
-    let filter: Filter
+    let result: CameraCaptureResult
 
     var body: some View {
         VStack(spacing: FMSpacing.large) {
@@ -300,14 +333,14 @@ private struct CaptureResultScreen: View {
                 .fill(.white.opacity(0.28))
                 .frame(width: 42, height: 4)
 
-            FilterThumbnail(filter: filter)
+            FilterThumbnail(filter: result.filter)
                 .frame(width: 160, height: 160)
 
             VStack(spacing: FMSpacing.xSmall) {
-                Text("Captured with \(filter.title)")
+                Text("Captured with \(result.filter.title)")
                     .font(.title3.weight(.bold))
                     .foregroundStyle(.white)
-                Text("PhotoKit saving is scheduled for M1.")
+                Text("\(formattedByteCount(result.photo.byteCount)) captured. PhotoKit saving is next.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.64))
             }
@@ -324,5 +357,9 @@ private struct CaptureResultScreen: View {
         .padding(FMSpacing.large)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(FMColor.background)
+    }
+
+    private func formattedByteCount(_ byteCount: Int) -> String {
+        ByteCountFormatter.string(fromByteCount: Int64(byteCount), countStyle: .file)
     }
 }
