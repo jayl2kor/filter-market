@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>M · Confirmation Alert — filterMarket</title>
+<link rel="stylesheet" href="../../shared/fonts.css" />
+<link rel="stylesheet" href="../../shared/tokens.css" />
+<link rel="stylesheet" href="../../shared/components.css" />
+<link rel="stylesheet" href="../../shared/phone-frame.css" />
+<style>
+  body {
+    background:
+      radial-gradient(900px 500px at 80% -10%, var(--accent-bg) 0%, transparent 60%),
+      var(--bg-0);
+    min-height: 100vh;
+    padding: 56px 24px 96px;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 32px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .grid-3 > .stage { padding: 0; min-height: auto; }
+  .label-strip {
+    text-align: center;
+    margin-top: var(--sp-md);
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+  }
+
+  /* 부모 — 프로필 미니 */
+  .parent-profile {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    background: var(--bg-0);
+    pointer-events: none;
+  }
+  .parent-profile__head {
+    padding: var(--sp-md) var(--screen-pad) 0;
+    display: flex; flex-direction: column; align-items: center;
+    gap: var(--sp-sm); text-align: center;
+  }
+  .parent-profile__avatar {
+    width: 64px; height: 64px;
+    background: var(--accent);
+    color: #FFF;
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    font-weight: 700;
+    font-size: var(--t-title-size);
+    margin-top: var(--sp-md);
+  }
+  .parent-profile__name { font-size: var(--t-title-size); font-weight: 700; letter-spacing: -0.3px; color: var(--text-primary); }
+  .parent-profile__handle { font-size: var(--t-subhead-size); color: var(--text-secondary); }
+  .parent-profile__grid {
+    flex: 1;
+    margin: var(--sp-lg) var(--screen-pad);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+  }
+  .parent-profile__tile {
+    aspect-ratio: 1;
+    border-radius: var(--r-sm);
+  }
+
+  .page-head {
+    text-align: center;
+    margin-bottom: var(--sp-2xl);
+  }
+  .page-head h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin: 0;
+  }
+  .page-head h1 span { color: var(--accent); }
+  .page-head p {
+    color: var(--text-secondary);
+    font-size: var(--t-callout-size);
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<header class="page-head">
+  <h1>Confirmation <span>Alerts</span></h1>
+  <p>v1.2 · iOS 표준 알림의 3 변형 — destructive / logout / consent</p>
+</header>
+
+<div class="grid-3">
+
+  <!-- 변형 1: 삭제 (destructive) -->
+  <div>
+    <div class="stage" style="padding: 24px 0;">
+      <div class="phone">
+        <div class="dynamic-island"></div>
+        <div class="statusbar">
+          <span class="statusbar__time">9:41</span>
+          <span class="statusbar__indicators">
+            <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+            <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+            <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+          </span>
+        </div>
+
+        <div class="screen" style="background: var(--bg-0);">
+          <div class="parent-profile">
+            <div class="screen__top-spacer"></div>
+            <div class="parent-profile__head">
+              <div class="parent-profile__avatar">다</div>
+              <div class="parent-profile__name">다온</div>
+              <div class="parent-profile__handle">@daon</div>
+            </div>
+            <div class="parent-profile__grid">
+              <div class="parent-profile__tile photo photo--cinematic"></div>
+              <div class="parent-profile__tile photo photo--vintage"></div>
+              <div class="parent-profile__tile photo photo--portrait"></div>
+              <div class="parent-profile__tile photo photo--moody"></div>
+              <div class="parent-profile__tile photo photo--warm"></div>
+              <div class="parent-profile__tile photo photo--pastel"></div>
+            </div>
+          </div>
+
+          <div class="scrim"></div>
+
+          <div class="alert" role="alertdialog" aria-modal="true" aria-labelledby="a1-title" aria-describedby="a1-msg">
+            <div class="alert__body">
+              <h2 class="alert__title" id="a1-title">필터 삭제</h2>
+              <p class="alert__message" id="a1-msg">
+                "Cinematic Dusk"를 삭제하면 마켓에서도 사라지고 되돌릴 수 없어요.
+              </p>
+            </div>
+            <div class="alert__actions">
+              <button class="alert__action alert__action--bold">취소</button>
+              <button class="alert__action alert__action--destructive">삭제</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+    <div class="label-strip">A · Destructive 삭제</div>
+  </div>
+
+  <!-- 변형 2: 로그아웃 -->
+  <div>
+    <div class="stage" style="padding: 24px 0;">
+      <div class="phone">
+        <div class="dynamic-island"></div>
+        <div class="statusbar">
+          <span class="statusbar__time">9:41</span>
+          <span class="statusbar__indicators">
+            <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+            <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+            <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+          </span>
+        </div>
+
+        <div class="screen" style="background: var(--bg-0);">
+          <div class="parent-profile">
+            <div class="screen__top-spacer"></div>
+            <div style="padding: var(--sp-md) var(--screen-pad);">
+              <div style="font-size: var(--t-title-lg-size); font-weight: 700; letter-spacing: -0.4px;">설정</div>
+            </div>
+            <div style="padding: 0 var(--screen-pad);">
+              <div class="list">
+                <div class="list-row"><span class="list-row__title">계정</span><span class="list-row__value">@daon</span></div>
+                <div class="list-row"><span class="list-row__title">알림</span><span class="list-row__value">켜짐</span></div>
+                <div class="list-row" style="color: var(--error);"><span class="list-row__title" style="color: var(--error);">로그아웃</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="scrim"></div>
+
+          <div class="alert" role="alertdialog" aria-modal="true" aria-labelledby="a2-title" aria-describedby="a2-msg">
+            <div class="alert__body">
+              <h2 class="alert__title" id="a2-title">로그아웃</h2>
+              <p class="alert__message" id="a2-msg">
+                다시 로그인하기 전까지 다운로드한 필터만 사용할 수 있어요.
+              </p>
+            </div>
+            <div class="alert__actions">
+              <button class="alert__action alert__action--bold">취소</button>
+              <button class="alert__action">로그아웃</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+    <div class="label-strip">B · Logout 확인</div>
+  </div>
+
+  <!-- 변형 3: 약관 동의 -->
+  <div>
+    <div class="stage" style="padding: 24px 0;">
+      <div class="phone">
+        <div class="dynamic-island"></div>
+        <div class="statusbar">
+          <span class="statusbar__time">9:41</span>
+          <span class="statusbar__indicators">
+            <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+            <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+            <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+          </span>
+        </div>
+
+        <div class="screen" style="background: var(--bg-0);">
+          <div class="parent-profile">
+            <div class="screen__top-spacer"></div>
+            <div style="padding: var(--sp-md) var(--screen-pad);">
+              <div style="font-size: var(--t-title-lg-size); font-weight: 700; letter-spacing: -0.4px;">필터 등록</div>
+              <div style="font-size: var(--t-subhead-size); color: var(--text-secondary); margin-top: 4px;">3단계 · 약관</div>
+            </div>
+            <div style="padding: 0 var(--screen-pad);">
+              <div class="list">
+                <div class="list-row"><span class="list-row__title">제목</span><span class="list-row__value">Cinematic Dusk</span></div>
+                <div class="list-row"><span class="list-row__title">카테고리</span><span class="list-row__value">시네마틱</span></div>
+                <div class="list-row"><span class="list-row__title">사용권</span><span class="list-row__value">CC BY-NC</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="scrim"></div>
+
+          <div class="alert" role="alertdialog" aria-modal="true" aria-labelledby="a3-title" aria-describedby="a3-msg">
+            <div class="alert__body">
+              <h2 class="alert__title" id="a3-title">필터를 마켓에 공개할까요?</h2>
+              <p class="alert__message" id="a3-msg">
+                커뮤니티 가이드라인과 메이커 약관에 동의하면 누구나 다운로드할 수 있어요.
+              </p>
+            </div>
+            <div class="alert__actions">
+              <button class="alert__action">취소</button>
+              <button class="alert__action alert__action--bold" style="color: var(--accent);">동의 후 공개</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+    <div class="label-strip">C · 약관 동의</div>
+  </div>
+
+</div>
+</body>
+</html>

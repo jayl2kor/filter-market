@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>M · Action Sheet — filterMarket</title>
+<link rel="stylesheet" href="../../shared/fonts.css" />
+<link rel="stylesheet" href="../../shared/tokens.css" />
+<link rel="stylesheet" href="../../shared/components.css" />
+<link rel="stylesheet" href="../../shared/phone-frame.css" />
+<style>
+  /* 부모 — 캡처 미리보기 (다크 톤) */
+  .parent {
+    position: absolute; inset: 0;
+    background: #0A0A0A;
+    pointer-events: none;
+  }
+  .parent__photo {
+    position: absolute;
+    inset: var(--safe-top) var(--screen-pad) auto var(--screen-pad);
+    aspect-ratio: 4/5;
+    border-radius: var(--r-lg);
+  }
+  .parent__hud {
+    position: absolute;
+    bottom: 80px;
+    left: 0; right: 0;
+    text-align: center;
+    color: rgba(255,255,255,0.6);
+    font-size: var(--t-subhead-size);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time" style="color: #FFFFFF;">9:41</span>
+      <span class="statusbar__indicators" style="color: #FFFFFF;">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="screen" style="background: #0A0A0A;">
+      <!-- 부모: 캡처 미리보기 -->
+      <div class="parent">
+        <div class="parent__photo photo photo--cinematic photo--vignette"></div>
+        <div class="parent__hud">방금 촬영한 사진</div>
+      </div>
+
+      <!-- Scrim -->
+      <div class="scrim" style="background: rgba(0,0,0,0.4);"></div>
+
+      <!-- Action Sheet (iOS) -->
+      <div class="action-sheet" role="dialog" aria-modal="true" aria-label="사진 액션">
+        <div class="action-sheet__group">
+          <div class="action-sheet__title">방금 촬영한 사진</div>
+          <button class="action-sheet__item">사진에 저장</button>
+          <button class="action-sheet__item">공유…</button>
+          <button class="action-sheet__item">정보 보기</button>
+          <button class="action-sheet__item action-sheet__item--destructive">삭제</button>
+        </div>
+        <button class="action-sheet__cancel">취소</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

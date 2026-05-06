@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>filterMarket — Design Mockups v1.2 (Light Minimal)</title>
+<link rel="stylesheet" href="shared/fonts.css" />
+<link rel="stylesheet" href="shared/tokens.css" />
+<link rel="stylesheet" href="shared/components.css" />
+<style>
+  body {
+    background:
+      radial-gradient(900px 500px at 80% -10%, var(--accent-bg) 0%, transparent 60%),
+      radial-gradient(700px 400px at 10% 110%, rgba(184,133,58,0.04) 0%, transparent 60%),
+      var(--bg-0);
+    min-height: 100vh;
+    padding: 64px 32px 96px;
+    color: var(--text-primary);
+  }
+
+  .gallery {
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  /* 헤더 */
+  .gallery-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-bottom: var(--sp-2xl);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: var(--sp-2xl);
+    gap: var(--sp-xl);
+    flex-wrap: wrap;
+  }
+  .brand-mark {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-md);
+  }
+  .brand-mark__logo {
+    width: 56px; height: 56px;
+    border-radius: var(--r-md);
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    display: grid;
+    place-items: center;
+    color: var(--accent);
+    box-shadow: 0 8px 24px rgba(184,133,58,0.10), 0 1px 0 rgba(15,15,14,0.04);
+  }
+  .brand-mark__title {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin: 0;
+    color: var(--text-primary);
+  }
+  .brand-mark__subtitle {
+    font-size: var(--t-callout-size);
+    color: var(--text-secondary);
+    margin-top: 4px;
+    letter-spacing: -0.1px;
+  }
+  .brand-mark__subtitle .accent { color: var(--accent); font-weight: 600; }
+
+  .gallery-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-sm);
+    align-items: center;
+  }
+  .meta-pill {
+    padding: 6px 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-full);
+    font-size: var(--t-caption-size);
+    color: var(--text-secondary);
+    letter-spacing: 0.3px;
+  }
+  .meta-pill .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: var(--r-full);
+    margin-right: 6px;
+  }
+  .meta-pill a { color: var(--accent); }
+
+  /* 인트로 */
+  .intro {
+    max-width: 720px;
+    margin-bottom: var(--sp-3xl);
+    color: var(--text-secondary);
+    font-size: var(--t-headline-size);
+    line-height: 1.6;
+    word-break: keep-all;
+  }
+  .intro b { color: var(--text-primary); font-weight: 600; }
+
+  /* 그룹 헤더 */
+  .group-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-md);
+    margin: var(--sp-2xl) 0 var(--sp-md);
+    flex-wrap: wrap;
+  }
+  .group-head__num {
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 1px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .group-head__title {
+    font-size: var(--t-title-size);
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin: 0;
+    color: var(--text-primary);
+  }
+  .group-head__sub {
+    color: var(--text-tertiary);
+    font-size: var(--t-subhead-size);
+  }
+  .theme-flag {
+    margin-left: auto;
+    padding: 4px 10px;
+    border-radius: var(--r-full);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+  .theme-flag--light {
+    background: var(--accent-bg);
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .theme-flag--dark {
+    background: #0F0F0E;
+    color: #FAFAF7;
+    border: 1px solid #2A2A2A;
+  }
+  .theme-flag--mixed {
+    background: linear-gradient(90deg, var(--accent-bg) 50%, #0F0F0E 50%);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+  }
+
+  /* 그룹 설명 */
+  .group-desc {
+    max-width: 680px;
+    color: var(--text-secondary);
+    font-size: var(--t-subhead-size);
+    line-height: 1.5;
+    margin-bottom: var(--sp-md);
+    word-break: keep-all;
+  }
+
+  /* 카드 그리드 */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 28px;
+  }
+
+  .mock {
+    position: relative;
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-xl);
+    padding: var(--sp-md);
+    transition: all var(--d-base) var(--ease-spring);
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    box-shadow: var(--elev-1-shadow);
+  }
+  .mock:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-strong);
+    box-shadow:
+      0 18px 40px rgba(15,15,14,0.10),
+      0 0 0 1px var(--accent-bg);
+  }
+
+  .mock__num {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 1.5px;
+    margin-bottom: var(--sp-xs);
+  }
+  .mock__theme-tag {
+    position: absolute;
+    top: 28px;
+    right: 28px;
+    padding: 3px 8px;
+    border-radius: var(--r-sm);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    z-index: 5;
+  }
+  .mock__theme-tag--light {
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+  .mock__theme-tag--dark {
+    background: #0F0F0E;
+    color: #FAFAF7;
+  }
+
+  /* 미니어처 폰 프레임 */
+  .mock__phone-wrap {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    aspect-ratio: 393 / 852;
+    background: var(--bg-1);
+    border-radius: 18px;
+    border: 1px solid var(--border-subtle);
+  }
+  .mock__phone-wrap iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 393px;
+    height: 852px;
+    transform-origin: top left;
+    pointer-events: none;
+    border: 0;
+  }
+  .mock {
+    container-type: inline-size;
+  }
+  @container (min-width: 0) {
+    .mock__phone-wrap iframe {
+      transform: scale(calc((100cqw - 32px) / 393));
+    }
+  }
+
+  /* 라벨 */
+  .mock__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: var(--sp-md);
+  }
+  .mock__title {
+    font-size: var(--t-headline-size);
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    color: var(--text-primary);
+  }
+  .mock__open {
+    color: var(--text-tertiary);
+    font-size: var(--t-caption-size);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .mock:hover .mock__open { color: var(--accent); }
+  .mock__desc {
+    color: var(--text-secondary);
+    font-size: var(--t-subhead-size);
+    line-height: 1.4;
+    margin-top: 4px;
+    word-break: keep-all;
+  }
+  .mock__phase-tag {
+    position: absolute;
+    top: 28px;
+    left: 28px;
+    padding: 3px 8px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-radius: var(--r-sm);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    z-index: 5;
+  }
+
+  /* 카탈로그 와이드 카드 */
+  .mock--wide {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--sp-xl);
+    align-items: start;
+  }
+  .mock--wide .mock__phone-wrap {
+    aspect-ratio: 16 / 9;
+    border-radius: var(--r-lg);
+  }
+  .mock--wide .mock__phone-wrap iframe {
+    width: 1440px;
+    height: 810px;
+    transform-origin: top left;
+  }
+  @container (min-width: 0) {
+    .mock--wide .mock__phone-wrap iframe {
+      transform: scale(calc((100cqw - 32px) / 1440));
+    }
+  }
+  .mock--wide .mock__body {
+    padding-top: var(--sp-sm);
+  }
+  .mock--wide .mock__num { font-size: 11px; }
+  .mock--wide .mock__title { font-size: var(--t-title-size); }
+  .mock--wide .mock__desc { font-size: var(--t-body-size); margin-top: var(--sp-xs); }
+  .mock--wide .mock__head { margin-top: 0; }
+
+  /* 팔레트 스트립 */
+  .palette-strip {
+    display: flex;
+    gap: 0;
+    margin: var(--sp-md) 0 var(--sp-3xl);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--elev-1-shadow);
+  }
+  .palette-strip > div {
+    flex: 1;
+    height: 64px;
+    display: flex;
+    align-items: flex-end;
+    padding: 8px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.3px;
+  }
+
+  /* 구분선 */
+  .section-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: var(--sp-3xl) 0 0;
+  }
+
+  /* 푸터 */
+  .gallery-foot {
+    margin-top: 96px;
+    padding-top: var(--sp-2xl);
+    border-top: 1px solid var(--border-subtle);
+    color: var(--text-tertiary);
+    font-size: var(--t-subhead-size);
+    text-align: center;
+    line-height: 1.6;
+  }
+  .gallery-foot a { color: var(--text-secondary); }
+
+  @media (max-width: 600px) {
+    body { padding: 32px 16px 64px; }
+    .brand-mark__title { font-size: 28px; }
+    .grid { grid-template-columns: 1fr; gap: 20px; }
+    .mock--wide { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main class="gallery">
+
+  <header class="gallery-head">
+    <div class="brand-mark">
+      <div class="brand-mark__logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 7.5 L3 18 a2 2 0 0 0 2 2 L19 20 a2 2 0 0 0 2 -2 L21 7.5 a2 2 0 0 0 -2 -2 L17 5.5 L15 3 L9 3 L7 5.5 L5 5.5 a2 2 0 0 0 -2 2 Z"/>
+          <circle cx="12" cy="13" r="4"/>
+          <circle cx="12" cy="13" r="1.5" fill="currentColor"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="brand-mark__title">filterMarket <span style="color: var(--accent); font-weight: 500;">Mockups</span></h1>
+        <div class="brand-mark__subtitle">
+          <span class="accent">v1.2 · Light Minimal</span> · iOS 카메라 + 마켓플레이스 · 12 코어 + 17 확장 = 29 화면
+        </div>
+      </div>
+    </div>
+    <div class="gallery-meta">
+      <span class="meta-pill"><span class="dot"></span> 29 화면</span>
+      <span class="meta-pill">iPhone 14 Pro · 393×852pt</span>
+      <span class="meta-pill"><a href="../docs/DESIGN_SYSTEM.md">디자인 시스템 →</a></span>
+      <span class="meta-pill"><a href="../docs/DESIGN_PRINCIPLES.md">디자인 원칙 →</a></span>
+      <span class="meta-pill"><a href="../docs/MOTION_SPEC.md">모션 스펙 →</a></span>
+    </div>
+  </header>
+
+  <p class="intro">
+    <b>"누구나 자신만의 카메라 필터를 만들고, 거래하고, 공유한다."</b>
+    PRD v1.2, SYSTEM_DESIGN, ARCHITECTURE 를 기반으로 그린 29개 화면입니다.
+    v1.2에서는 상태 카탈로그(빈 상태·로딩·에러), 권한 요청 8화면, 모달 패턴 4화면이 추가됐습니다.
+    따뜻한 오프화이트(<span style="color: var(--accent); font-weight: 600;">#FAFAF7</span>) 캔버스,
+    골드 <span style="color: var(--accent); font-weight: 600;">#B8853A</span>(AA 4.8:1).
+    카메라 흐름은 다크 유지.
+  </p>
+
+  <div class="palette-strip" aria-label="라이트 컬러 팔레트">
+    <div style="background:#FAFAF7; color:#4A4845;">bg/0</div>
+    <div style="background:#F5F4EF; color:#4A4845;">bg/1</div>
+    <div style="background:#FFFFFF; color:#4A4845;">bg/2</div>
+    <div style="background:#EDEBE5; color:#4A4845;">bg/3</div>
+    <div style="background:#D8D5CD; color:#0F0F0E;">border</div>
+    <div style="background:#8A8782; color:#FAFAF7;">tertiary</div>
+    <div style="background:#4A4845; color:#FAFAF7;">secondary</div>
+    <div style="background:#0F0F0E; color:#FAFAF7;">primary</div>
+    <div style="background:#B8853A; color:#FFFFFF; font-weight: 700;">accent · #B8853A</div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 그룹 A: 코어 화면 (Light Screens) -->
+  <!-- ============================================================ -->
+
+  <!-- 그룹 A1: 진입 & 인증 (LIGHT) -->
+  <div class="group-head">
+    <span class="group-head__num">A1 — Entry</span>
+    <h2 class="group-head__title">진입 & 인증</h2>
+    <span class="group-head__sub">앱을 처음 만나는 순간</span>
+    <span class="theme-flag theme-flag--light">Light</span>
+  </div>
+  <div class="grid">
+    <a class="mock" href="screens/01-onboarding.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">01</div>
+      <div class="mock__phone-wrap"><iframe src="screens/01-onboarding.html" loading="lazy" title="Onboarding"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">온보딩</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">3슬라이드 — 마켓 카드 스택으로 가치 시각화</p>
+    </a>
+    <a class="mock" href="screens/02-login.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">02</div>
+      <div class="mock__phone-wrap"><iframe src="screens/02-login.html" loading="lazy" title="Login"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">로그인</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">Apple/Google/이메일 + 게스트 모드</p>
+    </a>
+  </div>
+
+  <!-- 그룹 A2: 촬영 흐름 (DARK) -->
+  <div class="group-head">
+    <span class="group-head__num">A2 — Capture</span>
+    <h2 class="group-head__title">촬영 흐름</h2>
+    <span class="group-head__sub">제품의 심장 — 라이브 필터링 (다크 유지)</span>
+    <span class="theme-flag theme-flag--dark">Dark</span>
+  </div>
+  <div class="grid">
+    <a class="mock" href="screens/03-camera-live.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--dark">Dark</span>
+      <div class="mock__num">03</div>
+      <div class="mock__phone-wrap"><iframe src="screens/03-camera-live.html" loading="lazy" title="Camera Live"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">카메라 라이브</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">Metal 60fps 프리뷰 + 미니멀 컨트롤</p>
+    </a>
+    <a class="mock" href="screens/04-filter-swipe.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--dark">Dark</span>
+      <div class="mock__num">04</div>
+      <div class="mock__phone-wrap"><iframe src="screens/04-filter-swipe.html" loading="lazy" title="Filter Swipe"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">필터 스와이프</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">좌우 스와이프 + 강도 슬라이더 + 캐러셀</p>
+    </a>
+    <a class="mock" href="screens/05-capture-preview.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--dark">Dark</span>
+      <div class="mock__num">05</div>
+      <div class="mock__phone-wrap"><iframe src="screens/05-capture-preview.html" loading="lazy" title="Capture Preview"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">촬영 미리보기</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">방금 찍은 사진 + 저장/공유/재촬영</p>
+    </a>
+  </div>
+
+  <!-- 그룹 A3: 마켓플레이스 (LIGHT) -->
+  <div class="group-head">
+    <span class="group-head__num">A3 — Market</span>
+    <h2 class="group-head__title">마켓플레이스</h2>
+    <span class="group-head__sub">메이커가 만든 빛, 큐레이션과 함께</span>
+    <span class="theme-flag theme-flag--light">Light</span>
+  </div>
+  <div class="grid">
+    <a class="mock" href="screens/06-marketplace-home.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">06</div>
+      <div class="mock__phone-wrap"><iframe src="screens/06-marketplace-home.html" loading="lazy" title="Marketplace"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">마켓 홈</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">트렌딩 캐러셀 + 카테고리 칩 + 큐레이션 컬렉션</p>
+    </a>
+    <a class="mock" href="screens/07-filter-detail.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">07</div>
+      <div class="mock__phone-wrap"><iframe src="screens/07-filter-detail.html" loading="lazy" title="Filter Detail"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">필터 상세</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">비포/애프터 슬라이더 + 메이커 + 샘플 + 댓글</p>
+    </a>
+    <a class="mock" href="screens/08-search.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">08</div>
+      <div class="mock__phone-wrap"><iframe src="screens/08-search.html" loading="lazy" title="Search"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">검색</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">최근 검색 + 추천 키워드 + 인기 메이커 + 결과</p>
+    </a>
+  </div>
+
+  <!-- 그룹 A4: 사용자 영역 (LIGHT) -->
+  <div class="group-head">
+    <span class="group-head__num">A4 — Account</span>
+    <h2 class="group-head__title">사용자 영역</h2>
+    <span class="group-head__sub">메이커와 촬영자의 정체성</span>
+    <span class="theme-flag theme-flag--light">Light</span>
+  </div>
+  <div class="grid">
+    <a class="mock" href="screens/09-profile.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">09</div>
+      <div class="mock__phone-wrap"><iframe src="screens/09-profile.html" loading="lazy" title="Profile"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">프로필</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">필터/팔로워 통계 + 3열 그리드 + 세그먼트</p>
+    </a>
+    <a class="mock" href="screens/10-settings.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">10</div>
+      <div class="mock__phone-wrap"><iframe src="screens/10-settings.html" loading="lazy" title="Settings"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">설정</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">계정 / 카메라 / 알림 / 정보 그룹 리스트</p>
+    </a>
+  </div>
+
+  <!-- 그룹 A5: 메이커 도구 (LIGHT, Phase 2+) -->
+  <div class="group-head">
+    <span class="group-head__num">A5 — Maker</span>
+    <h2 class="group-head__title">메이커 도구</h2>
+    <span class="group-head__sub">필터를 만들고 등록하는 흐름 (Phase 2+)</span>
+    <span class="theme-flag theme-flag--light">Light</span>
+  </div>
+  <div class="grid">
+    <a class="mock" href="screens/11-filter-editor.html" target="_blank">
+      <span class="mock__phase-tag">PHASE 2</span>
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">11</div>
+      <div class="mock__phone-wrap"><iframe src="screens/11-filter-editor.html" loading="lazy" title="Filter Editor"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">필터 에디터</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">LUT + 파라미터 슬라이더 (노출/대비/온도/그레인)</p>
+    </a>
+    <a class="mock" href="screens/12-upload-flow.html" target="_blank">
+      <span class="mock__phase-tag">PHASE 2</span>
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">12</div>
+      <div class="mock__phone-wrap"><iframe src="screens/12-upload-flow.html" loading="lazy" title="Upload"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">업로드 플로우</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">3단계 스테퍼 + 미리보기 등록 + 약관 동의</p>
+    </a>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ============================================================ -->
+  <!-- 그룹 B: States Catalog (v1.2 신규) -->
+  <!-- ============================================================ -->
+  <div class="group-head">
+    <span class="group-head__num">B — States Catalog</span>
+    <h2 class="group-head__title">상태 카탈로그</h2>
+    <span class="group-head__sub">빈 상태 · 로딩 · 에러 · 성공 전체 목록</span>
+    <span class="theme-flag theme-flag--light">Light</span>
+  </div>
+  <p class="group-desc">
+    앱에서 발생할 수 있는 모든 UI 상태(빈 상태 5종, 스켈레톤 로딩, 에러 배너, 성공 토스트, 오프라인 등)를
+    한 화면에서 확인할 수 있는 참조 카탈로그입니다. 단일 페이지(39KB), 외부 의존 없음.
+  </p>
+  <div class="grid">
+    <a class="mock mock--wide" href="screens/states-catalog.html" target="_blank">
+      <div class="mock__phone-wrap">
+        <iframe src="screens/states-catalog.html" loading="lazy" title="States Catalog"></iframe>
+      </div>
+      <div class="mock__body">
+        <div class="mock__num">CATALOG</div>
+        <div class="mock__head">
+          <span class="mock__title">States Catalog</span>
+          <span class="mock__open">열기 ↗</span>
+        </div>
+        <p class="mock__desc">
+          §1 Empty States (5종) — 빈 마켓플레이스, 검색 무결과, 빈 프로필, 빈 다운로드, 빈 댓글<br>
+          §2 Loading States — 스켈레톤 시머, Pull to Refresh, 진행 표시<br>
+          §3 Error States — 네트워크 오류, 서버 오류, 입력 오류<br>
+          §4 Success States — 저장 완료, 업로드 완료, 결제 완료
+        </p>
+      </div>
+    </a>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ============================================================ -->
+  <!-- 그룹 C: Permissions (v1.2 신규) -->
+  <!-- ============================================================ -->
+  <div class="group-head">
+    <span class="group-head__num">C — Permissions</span>
+    <h2 class="group-head__title">권한 요청 화면</h2>
+    <span class="group-head__sub">카메라 · 사진 · 알림 · 위치 — priming + denied 쌍</span>
+    <span class="theme-flag theme-flag--light">Light</span>
+  </div>
+  <p class="group-desc">
+    각 권한마다 priming 화면(사용자 동의 유도)과 denied 화면(거부 후 설정 안내)이 쌍을 이룹니다.
+    iOS 는 한 번 거부하면 시스템 다이얼로그를 재호출할 수 없어 priming 이 핵심입니다.
+    흐름 상세는 <a href="../docs/PERMISSIONS_FLOW.md" style="color: var(--accent);">PERMISSIONS_FLOW.md →</a>
+  </p>
+  <div class="grid">
+    <!-- 카메라 -->
+    <a class="mock" href="screens/permissions/camera-priming.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P-01A</div>
+      <div class="mock__phone-wrap"><iframe src="screens/permissions/camera-priming.html" loading="lazy" title="Camera Priming"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">카메라 Priming</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">라이브 필터 촬영 전 맥락 설명 + 허용 유도</p>
+    </a>
+    <a class="mock" href="screens/permissions/camera-denied.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P-01B</div>
+      <div class="mock__phone-wrap"><iframe src="screens/permissions/camera-denied.html" loading="lazy" title="Camera Denied"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">카메라 Denied</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">거부 후 설정 이동 3단계 안내</p>
+    </a>
+    <!-- 사진 -->
+    <a class="mock" href="screens/permissions/photos-priming.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P-02A</div>
+      <div class="mock__phone-wrap"><iframe src="screens/permissions/photos-priming.html" loading="lazy" title="Photos Priming"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">사진 Priming</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">사진 저장 전 Add-Only 맥락 설명</p>
+    </a>
+    <a class="mock" href="screens/permissions/photos-denied.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P-02B</div>
+      <div class="mock__phone-wrap"><iframe src="screens/permissions/photos-denied.html" loading="lazy" title="Photos Denied"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">사진 Denied</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">거부 후 설정 이동 안내</p>
+    </a>
+    <!-- 알림 -->
+    <a class="mock" href="screens/permissions/notifications-priming.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P-03A</div>
+      <div class="mock__phone-wrap"><iframe src="screens/permissions/notifications-priming.html" loading="lazy" title="Notifications Priming"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">알림 Priming</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">팔로우 메이커 소식 + 알림 가치 설명</p>
+    </a>
+    <a class="mock" href="screens/permissions/notifications-denied.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P-03B</div>
+      <div class="mock__phone-wrap"><iframe src="screens/permissions/notifications-denied.html" loading="lazy" title="Notifications Denied"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">알림 Denied</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">인앱 알림 탭으로 graceful fallback</p>
+    </a>
+    <!-- 위치 -->
+    <a class="mock" href="screens/permissions/location-priming.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P-04A</div>
+      <div class="mock__phone-wrap"><iframe src="screens/permissions/location-priming.html" loading="lazy" title="Location Priming"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">위치 Priming</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">EXIF 태그 전용 — WhenInUse, 서버 전송 없음 강조</p>
+    </a>
+    <a class="mock" href="screens/permissions/location-denied.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P-04B</div>
+      <div class="mock__phone-wrap"><iframe src="screens/permissions/location-denied.html" loading="lazy" title="Location Denied"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">위치 Denied</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">위치 없이 저장 가능 — 강요 없는 fallback</p>
+    </a>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ============================================================ -->
+  <!-- 그룹 D: Modals (v1.2 신규) -->
+  <!-- ============================================================ -->
+  <div class="group-head">
+    <span class="group-head__num">D — Modals</span>
+    <h2 class="group-head__title">모달 패턴</h2>
+    <span class="group-head__sub">Bottom Sheet · Action Sheet · Alert · Share</span>
+    <span class="theme-flag theme-flag--mixed">Light + Dark</span>
+  </div>
+  <p class="group-desc">
+    filterMarket 에서 사용하는 4종 모달의 시각적 패턴과 iOS SwiftUI API 매핑.
+    사용 결정 기준 및 접근성 요건은 <a href="../docs/MODAL_PATTERNS.md" style="color: var(--accent);">MODAL_PATTERNS.md →</a>
+  </p>
+  <div class="grid">
+    <a class="mock" href="screens/modals/bottom-sheet.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">M-01</div>
+      <div class="mock__phone-wrap"><iframe src="screens/modals/bottom-sheet.html" loading="lazy" title="Bottom Sheet"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">Bottom Sheet</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">필터 빠른 정보 + 구매/저장/공유 액션 — <code>.sheet</code></p>
+    </a>
+    <a class="mock" href="screens/modals/action-sheet.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--dark">Dark ctx</span>
+      <div class="mock__num">M-02</div>
+      <div class="mock__phone-wrap"><iframe src="screens/modals/action-sheet.html" loading="lazy" title="Action Sheet"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">Action Sheet</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">촬영 사진 저장/공유/삭제 옵션 — <code>.confirmationDialog</code></p>
+    </a>
+    <a class="mock" href="screens/modals/confirmation-alert.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">M-03</div>
+      <div class="mock__phone-wrap"><iframe src="screens/modals/confirmation-alert.html" loading="lazy" title="Confirmation Alert"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">Confirmation Alert</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">파괴적 액션 확인 (필터 삭제) — <code>.alert</code></p>
+    </a>
+    <a class="mock" href="screens/modals/share-sheet.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">M-04</div>
+      <div class="mock__phone-wrap"><iframe src="screens/modals/share-sheet.html" loading="lazy" title="Share Sheet"></iframe></div>
+      <div class="mock__head">
+        <span class="mock__title">Share Sheet</span>
+        <span class="mock__open">열기 ↗</span>
+      </div>
+      <p class="mock__desc">사진·필터 링크 외부 공유 — <code>ShareLink</code></p>
+    </a>
+  </div>
+
+  <footer class="gallery-foot">
+    <p>filterMarket © 2026 · Design Mockups v1.2 · Light Minimal with #B8853A Gold Accent</p>
+    <p>
+      코어 12화면 + States Catalog 1 + Permissions 8 + Modals 4 = 총 25 파일 (29 화면) ·
+      <a href="shared/tokens.css">tokens.css</a> 단일 토큰 소스 ·
+      <a href="README.md">README →</a> ·
+      <a href="../docs/MOTION_SPEC.md">모션 스펙 →</a> ·
+      <a href="../docs/PERMISSIONS_FLOW.md">권한 플로우 →</a> ·
+      <a href="../docs/MODAL_PATTERNS.md">모달 패턴 →</a> ·
+      <a href="../docs/EMPTY_STATES.md">빈 상태 →</a>
+    </p>
+  </footer>
+
+</main>
+</body>
+</html>

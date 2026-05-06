@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>10 · Settings — filterMarket</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .settings {
+    padding: var(--sp-md) var(--screen-pad) var(--sp-3xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-lg);
+  }
+  .me {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-md);
+    padding: var(--sp-md);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    box-shadow: var(--elev-1-shadow);
+  }
+  .me .avatar { color: #FFFFFF; }
+  .me__name { font-weight: 600; color: var(--text-primary); }
+  .me__handle { color: var(--text-secondary); font-size: var(--t-subhead-size); margin-top: 2px; }
+  .me__edit {
+    margin-left: auto;
+    padding: 6px 12px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    color: var(--text-secondary);
+    font-size: var(--t-subhead-size);
+    background: var(--bg-2);
+  }
+  .me__edit:hover { background: var(--bg-1); border-color: var(--border-strong); }
+  .red { color: var(--error); }
+  .accent { color: var(--accent); }
+  .badge {
+    margin-left: auto;
+    padding: 2px 8px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-radius: var(--r-sm);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  .footer-note {
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: var(--t-footnote-size);
+    margin-top: var(--sp-md);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="screen" style="background: var(--bg-1);">
+      <div class="screen__top-spacer"></div>
+
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">설정</span>
+        <span style="width:44px"></span>
+      </header>
+
+      <div class="screen__body">
+        <div class="settings">
+          <section class="me fade-in">
+            <span class="avatar avatar--md" style="background: linear-gradient(135deg,#B8853A,#5e4434);">JS</span>
+            <div>
+              <div class="me__name t-headline">jisoo.films</div>
+              <div class="me__handle">필터 24개 · 팔로워 1.2k</div>
+            </div>
+            <button class="me__edit">편집</button>
+          </section>
+
+          <section class="fade-in fade-in--delay-1">
+            <div class="list__group-label">계정</div>
+            <div class="list">
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21 c0-4.4 3.6-8 8-8 s8 3.6 8 8"/></svg>
+                <span class="list-row__title">프로필 정보</span>
+                <svg class="list-row__chevron icon" viewBox="0 0 24 24"><path d="M9 6 L15 12 L9 18"/></svg>
+              </div>
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10 L21 10"/></svg>
+                <span class="list-row__title">결제 및 구독</span>
+                <span class="badge">PRO</span>
+                <svg class="list-row__chevron icon" viewBox="0 0 24 24"><path d="M9 6 L15 12 L9 18"/></svg>
+              </div>
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24"><path d="M12 2 L4 6 L4 12 a8 8 0 0 0 16 0 L20 6 Z"/><path d="M9 12 L11 14 L15 10"/></svg>
+                <span class="list-row__title">개인정보 및 보안</span>
+                <svg class="list-row__chevron icon" viewBox="0 0 24 24"><path d="M9 6 L15 12 L9 18"/></svg>
+              </div>
+            </div>
+          </section>
+
+          <section class="fade-in fade-in--delay-2">
+            <div class="list__group-label">카메라</div>
+            <div class="list">
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M9 6 L11 3 L13 3 L15 6"/></svg>
+                <span class="list-row__title">기본 비율</span>
+                <span class="list-row__value">4:3</span>
+                <svg class="list-row__chevron icon" viewBox="0 0 24 24"><path d="M9 6 L15 12 L9 18"/></svg>
+              </div>
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24"><path d="M3 12 L21 12"/><path d="M12 3 L12 21"/><path d="M5 6 L5 18 M19 6 L19 18 M3 9 L7 9 M17 9 L21 9 M3 15 L7 15 M17 15 L21 15"/></svg>
+                <span class="list-row__title">그리드 표시</span>
+                <span class="toggle toggle--on"></span>
+              </div>
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7 L12 12 L16 14"/></svg>
+                <span class="list-row__title">셔터 사운드</span>
+                <span class="toggle"></span>
+              </div>
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24"><path d="M4 16 L8 12 L12 14 L20 6"/><path d="M14 6 L20 6 L20 12"/></svg>
+                <span class="list-row__title">원본 함께 저장</span>
+                <span class="toggle toggle--on"></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="fade-in fade-in--delay-3">
+            <div class="list__group-label">알림 및 콘텐츠</div>
+            <div class="list">
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24"><path d="M6 19 a6 6 0 0 1 12 0 Z" transform="rotate(180 12 14)"/><path d="M12 3 L12 6 M9 19 a3 3 0 0 0 6 0"/></svg>
+                <span class="list-row__title">푸시 알림</span>
+                <span class="toggle toggle--on"></span>
+              </div>
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24"><path d="M12 4 L4 8 L4 14 a8 8 0 0 0 16 0 L20 8 Z"/></svg>
+                <span class="list-row__title">다운로드 관리</span>
+                <span class="list-row__value">42 / 200MB</span>
+                <svg class="list-row__chevron icon" viewBox="0 0 24 24"><path d="M9 6 L15 12 L9 18"/></svg>
+              </div>
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8 L12 13 M12 16.5 L12 16.5"/></svg>
+                <span class="list-row__title">민감한 콘텐츠 필터링</span>
+                <span class="list-row__value accent">강함</span>
+                <svg class="list-row__chevron icon" viewBox="0 0 24 24"><path d="M9 6 L15 12 L9 18"/></svg>
+              </div>
+            </div>
+          </section>
+
+          <section class="fade-in fade-in--delay-4">
+            <div class="list__group-label">정보</div>
+            <div class="list">
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8 L12 13 M12 16.5 L12 16.5"/></svg>
+                <span class="list-row__title">도움말</span>
+                <svg class="list-row__chevron icon" viewBox="0 0 24 24"><path d="M9 6 L15 12 L9 18"/></svg>
+              </div>
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9 L20 9"/></svg>
+                <span class="list-row__title">이용약관</span>
+                <svg class="list-row__chevron icon" viewBox="0 0 24 24"><path d="M9 6 L15 12 L9 18"/></svg>
+              </div>
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7 L12 13 M12 16.5 L12 16.5"/></svg>
+                <span class="list-row__title">버전</span>
+                <span class="list-row__value">1.1.0 (build 144)</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="fade-in fade-in--delay-4">
+            <div class="list">
+              <div class="list-row">
+                <svg class="list-row__icon icon" viewBox="0 0 24 24" style="color:var(--error)"><path d="M16 17 L21 12 L16 7"/><path d="M21 12 L9 12"/><path d="M9 4 L4 4 a1 1 0 0 0 -1 1 L3 19 a1 1 0 0 0 1 1 L9 20"/></svg>
+                <span class="list-row__title red">로그아웃</span>
+              </div>
+            </div>
+          </section>
+
+          <p class="footer-note">filterMarket © 2026 · 서울에서 만들었습니다</p>
+        </div>
+      </div>
+
+      <div class="screen__bottom-spacer"></div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,306 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "meta": {
+    "name": "filterMarket Design Tokens",
+    "version": "1.2.0",
+    "platform": "iOS",
+    "mode": "light-default-with-dark-camera",
+    "updatedAt": "2026-05-06",
+    "notes": "v1.2 — 상태 토큰 확장. interaction(hover/pressed/selected/focusRing), state(skeleton/overlay/empty), disabled, z-index 스케일 추가. 라이트/다크 듀얼 모두 정의. 기존 v1.1 토큰은 변경 없음."
+  },
+  "modes": {
+    "light": {
+      "color": {
+        "bg": {
+          "0": { "value": "#FAFAF7", "description": "메인 캔버스 (베이지 화이트)" },
+          "1": { "value": "#F5F4EF", "description": "기본 화면 배경 (sunken)" },
+          "2": { "value": "#FFFFFF", "description": "raised 카드 / 모달" },
+          "3": { "value": "#EDEBE5", "description": "구분/strong sunken" }
+        },
+        "surface": {
+          "raised": { "value": "#FFFFFF", "description": "모달/시트 컨테이너" },
+          "sunken": { "value": "#EDEBE5", "description": "비교 슬라이더, 코드블록" },
+          "overlay": { "value": "rgba(15,15,14,0.42)", "description": "스크림 (백드롭)" }
+        },
+        "border": {
+          "subtle": { "value": "#E8E6E0", "description": "1px 분리선" },
+          "default": { "value": "#D8D5CD", "description": "카드 외곽선" },
+          "strong": { "value": "#B8B4A8", "description": "포커스 외곽선" }
+        },
+        "text": {
+          "primary": { "value": "#0F0F0E", "description": "본문/타이틀 (딥 차콜)" },
+          "secondary": { "value": "#4A4845", "description": "서브타이틀, 메타" },
+          "tertiary": { "value": "#8A8782", "description": "캡션, 비활성 라벨" },
+          "disabled": { "value": "#C8C5BE", "description": "비활성 텍스트" },
+          "inverse": { "value": "#FFFFFF", "description": "악센트 위 텍스트" }
+        },
+        "accent": {
+          "primary": { "value": "#B8853A", "description": "골드 (라이트용 어두워진 톤) — CTA" },
+          "hover": { "value": "#A0721E", "description": "포인터/롱프레스 호버" },
+          "pressed": { "value": "#8B5E1F", "description": "탭 다운" },
+          "soft": { "value": "#E8B86D", "description": "장식·테두리·아이콘 fill (텍스트 X)" },
+          "bg": { "value": "#FBF3E2", "description": "악센트 옅은 배경 fill" },
+          "ring": { "value": "rgba(184,133,58,0.32)", "description": "포커스 링 (4px)" }
+        },
+        "semantic": {
+          "success": { "value": "#2E7D44" },
+          "successBg": { "value": "#E8F2EA" },
+          "warning": { "value": "#A66B0F" },
+          "warningBg": { "value": "#FBF1DC" },
+          "error": { "value": "#B33A2A" },
+          "errorBg": { "value": "#F8E5E0" },
+          "info": { "value": "#1F5FA8" },
+          "infoBg": { "value": "#E5EEF8" }
+        },
+        "category": {
+          "cinematic": { "value": "#7E5FB8" },
+          "vintage": { "value": "#A57238" },
+          "pastel": { "value": "#C485A6" },
+          "monochrome": { "value": "#7A7A7A" },
+          "portrait": { "value": "#C77859" },
+          "food": { "value": "#A66B0F" },
+          "travel": { "value": "#3A7AB8" },
+          "mood": { "value": "#5A6E96" }
+        }
+      },
+      "interaction": {
+        "hover": { "value": "rgba(15,15,14,0.04)", "description": "라이트 호버 알파 오버레이" },
+        "pressed": { "value": "rgba(15,15,14,0.08)", "description": "탭 다운 알파 오버레이" },
+        "selected": { "value": "rgba(184,133,58,0.10)", "description": "선택된 항목 옅은 골드 오버레이" },
+        "focusRing": {
+          "color": { "value": "rgba(184,133,58,0.32)" },
+          "width": { "value": 2, "unit": "px" },
+          "offset": { "value": 2, "unit": "px" },
+          "description": "키보드 포커스 — 외곽 2px + 2px offset"
+        }
+      },
+      "state": {
+        "skeleton": {
+          "base": { "value": "#EDEBE5", "description": "스켈레톤 베이스 (bg-3과 동일 톤)" },
+          "highlight": { "value": "#F8F6F0", "description": "시머 하이라이트" }
+        },
+        "overlay": {
+          "scrim": { "value": "rgba(15,15,14,0.60)", "description": "모달 백드롭 (alert/confirm용 더 짙은 톤)" },
+          "blur": { "value": "rgba(255,255,255,0.72)", "description": "backdrop-blur 위 흐림 fill" }
+        },
+        "empty": {
+          "illustrationTint": { "value": "#C8C5BE", "description": "빈 상태 일러스트 라인 컬러" },
+          "illustrationAccent": { "value": "#E8B86D", "description": "빈 상태 일러스트 골드 액센트" }
+        }
+      },
+      "disabled": {
+        "text": { "value": 0.4, "description": "비활성 텍스트 opacity" },
+        "fill": { "value": 0.3, "description": "비활성 배경 opacity" },
+        "border": { "value": 0.5, "description": "비활성 보더 opacity" }
+      },
+      "elevation": {
+        "0": { "shadow": "none", "border": "0", "description": "기본 — 효과 없음" },
+        "1": { "shadow": "0 1px 0 rgba(15,15,14,0.04)", "border": "1px solid #E8E6E0", "description": "subtle border + 매우 약한 그림자" },
+        "2": { "shadow": "0 1px 3px rgba(15,15,14,0.06), 0 0 0 1px rgba(15,15,14,0.03)", "border": "1px solid #E8E6E0", "description": "올라간 카드" },
+        "3": { "shadow": "0 12px 32px rgba(15,15,14,0.10), 0 2px 6px rgba(15,15,14,0.05)", "border": "1px solid #E8E6E0", "description": "모달/시트" }
+      }
+    },
+    "dark": {
+      "color": {
+        "bg": {
+          "0": { "value": "#000000", "description": "카메라 풀스크린 / 모달 뒤 배경" },
+          "1": { "value": "#0A0A0A", "description": "화면 기본 배경" },
+          "2": { "value": "#141414", "description": "카드 / 섹션 표면" },
+          "3": { "value": "#1F1F1F", "description": "올라간 카드, 입력 필드 채움" }
+        },
+        "surface": {
+          "raised": { "value": "#1F1F1F" },
+          "sunken": { "value": "#050505" },
+          "overlay": { "value": "rgba(0,0,0,0.72)" }
+        },
+        "border": {
+          "subtle": { "value": "#1F1F1F" },
+          "default": { "value": "#2A2A2A" },
+          "strong": { "value": "#3A3A3A" }
+        },
+        "text": {
+          "primary": { "value": "#FFFFFF" },
+          "secondary": { "value": "#A8A8A8" },
+          "tertiary": { "value": "#6B6B6B" },
+          "disabled": { "value": "#3A3A3A" },
+          "inverse": { "value": "#0A0A0A" }
+        },
+        "accent": {
+          "primary": { "value": "#E8B86D" },
+          "hover": { "value": "#F0C683" },
+          "pressed": { "value": "#C99A52" },
+          "soft": { "value": "rgba(232,184,109,0.16)" },
+          "bg": { "value": "rgba(232,184,109,0.10)" },
+          "ring": { "value": "rgba(232,184,109,0.40)" }
+        },
+        "semantic": {
+          "success": { "value": "#5FB37C" },
+          "successBg": { "value": "rgba(95,179,124,0.16)" },
+          "warning": { "value": "#D9A441" },
+          "warningBg": { "value": "rgba(217,164,65,0.16)" },
+          "error": { "value": "#D96B6B" },
+          "errorBg": { "value": "rgba(217,107,107,0.16)" },
+          "info": { "value": "#6B9AD9" },
+          "infoBg": { "value": "rgba(107,154,217,0.16)" }
+        },
+        "category": {
+          "cinematic": { "value": "#9C7BD9" },
+          "vintage": { "value": "#C99A52" },
+          "pastel": { "value": "#E5A8C6" },
+          "monochrome": { "value": "#A8A8A8" },
+          "portrait": { "value": "#E89A7B" },
+          "food": { "value": "#D9A441" },
+          "travel": { "value": "#6BB3D9" },
+          "mood": { "value": "#7B8FB3" }
+        }
+      },
+      "interaction": {
+        "hover": { "value": "rgba(255,255,255,0.06)", "description": "다크 호버 알파 오버레이" },
+        "pressed": { "value": "rgba(255,255,255,0.10)", "description": "탭 다운 알파 오버레이" },
+        "selected": { "value": "rgba(232,184,109,0.16)", "description": "선택된 항목 옅은 골드 오버레이" },
+        "focusRing": {
+          "color": { "value": "rgba(232,184,109,0.40)" },
+          "width": { "value": 2, "unit": "px" },
+          "offset": { "value": 2, "unit": "px" }
+        }
+      },
+      "state": {
+        "skeleton": {
+          "base": { "value": "#1F1F1F" },
+          "highlight": { "value": "#2A2A2A" }
+        },
+        "overlay": {
+          "scrim": { "value": "rgba(0,0,0,0.72)" },
+          "blur": { "value": "rgba(20,20,20,0.72)" }
+        },
+        "empty": {
+          "illustrationTint": { "value": "#3A3A3A" },
+          "illustrationAccent": { "value": "#E8B86D" }
+        }
+      },
+      "disabled": {
+        "text": { "value": 0.4 },
+        "fill": { "value": 0.3 },
+        "border": { "value": 0.5 }
+      },
+      "elevation": {
+        "0": { "shadow": "none", "border": "0" },
+        "1": { "shadow": "none", "border": "1px solid #1F1F1F" },
+        "2": { "shadow": "0 1px 2px rgba(0,0,0,0.6)", "border": "1px solid #2A2A2A" },
+        "3": { "shadow": "0 8px 24px rgba(0,0,0,0.7)", "border": "1px solid #2A2A2A" }
+      }
+    }
+  },
+  "z": {
+    "base": { "value": 0, "description": "기본 stacking" },
+    "dropdown": { "value": 100, "description": "메뉴, 셀렉트 드롭다운" },
+    "sticky": { "value": 200, "description": "TopBar, TabBar, 오프라인 배너" },
+    "modal": { "value": 1000, "description": "모달/시트 컨테이너 + scrim" },
+    "popover": { "value": 1200, "description": "툴팁/팝오버 (모달 위)" },
+    "tooltip": { "value": 1400, "description": "단순 툴팁" },
+    "toast": { "value": 1600, "description": "토스트 — 항상 가장 위" }
+  },
+  "typography": {
+    "fontFamily": {
+      "primary": { "value": "-apple-system, BlinkMacSystemFont, \"SF Pro Display\", \"SF Pro Text\", \"Pretendard Variable\", \"Apple SD Gothic Neo\", sans-serif" },
+      "mono": { "value": "ui-monospace, SFMono-Regular, \"SF Mono\", Menlo, monospace" }
+    },
+    "scale": {
+      "display": { "size": 34, "lineHeight": 41, "weight": 700, "letterSpacing": -0.4, "swiftui": ".largeTitle", "use": "온보딩 헤로, 빈 상태" },
+      "titleLarge": { "size": 28, "lineHeight": 34, "weight": 700, "letterSpacing": -0.3, "swiftui": ".title", "use": "화면 메인 타이틀" },
+      "title": { "size": 22, "lineHeight": 28, "weight": 600, "letterSpacing": -0.2, "swiftui": ".title2", "use": "섹션 헤더" },
+      "headline": { "size": 17, "lineHeight": 22, "weight": 600, "letterSpacing": -0.1, "swiftui": ".headline", "use": "리스트 강조 항목" },
+      "body": { "size": 15, "lineHeight": 20, "weight": 400, "letterSpacing": 0, "swiftui": ".body", "use": "본문 기본" },
+      "callout": { "size": 14, "lineHeight": 19, "weight": 500, "letterSpacing": 0, "swiftui": ".callout", "use": "버튼 라벨, 작은 강조" },
+      "subhead": { "size": 13, "lineHeight": 18, "weight": 500, "letterSpacing": 0, "swiftui": ".subheadline", "use": "메타 정보" },
+      "footnote": { "size": 12, "lineHeight": 16, "weight": 400, "letterSpacing": 0, "swiftui": ".footnote", "use": "보조 설명, 타임스탬프" },
+      "caption": { "size": 11, "lineHeight": 13, "weight": 500, "letterSpacing": 0.2, "swiftui": ".caption", "use": "라벨, 칩 텍스트" }
+    },
+    "weight": {
+      "regular": { "value": 400 },
+      "medium": { "value": 500 },
+      "semibold": { "value": 600 },
+      "bold": { "value": 700 }
+    }
+  },
+  "spacing": {
+    "xxs": { "value": 4 },
+    "xs": { "value": 8 },
+    "sm": { "value": 12 },
+    "md": { "value": 16 },
+    "lg": { "value": 20 },
+    "xl": { "value": 24 },
+    "2xl": { "value": 32 },
+    "3xl": { "value": 48 },
+    "4xl": { "value": 64 }
+  },
+  "radius": {
+    "none": { "value": 0 },
+    "sm": { "value": 4, "use": "칩, 작은 인디케이터" },
+    "md": { "value": 8, "use": "버튼, 카드 기본" },
+    "lg": { "value": 12, "use": "필터 타일, 큰 카드" },
+    "xl": { "value": 16, "use": "모달, 시트 상단" },
+    "full": { "value": 9999, "use": "아바타, 토글" }
+  },
+  "motion": {
+    "duration": {
+      "instant": { "value": 100, "unit": "ms" },
+      "fast": { "value": 200, "unit": "ms" },
+      "base": { "value": 300, "unit": "ms" },
+      "slow": { "value": 500, "unit": "ms" }
+    },
+    "easing": {
+      "standard": { "value": "cubic-bezier(0.2, 0, 0, 1)", "use": "기본 진입" },
+      "decelerate": { "value": "cubic-bezier(0, 0, 0.2, 1)", "use": "들어옴" },
+      "accelerate": { "value": "cubic-bezier(0.4, 0, 1, 1)", "use": "나감" },
+      "spring": { "value": "cubic-bezier(0.34, 1.4, 0.64, 1)", "use": "탭 응답" }
+    },
+    "spring": {
+      "sheet": { "response": 0.4, "damping": 0.85, "use": "Modal sheet" },
+      "swipe": { "response": 0.4, "damping": 0.80, "use": "필터 스와이프 snap" },
+      "tap": { "response": 0.25, "damping": 0.75, "use": "버튼 탭" }
+    },
+    "shimmer": {
+      "duration": { "value": 1500, "unit": "ms" },
+      "pause": { "value": 200, "unit": "ms", "description": "사이클 사이 호흡" },
+      "gradientWidth": { "value": 30, "unit": "%" },
+      "tilt": { "value": 5, "unit": "deg" }
+    }
+  },
+  "haptic": {
+    "light": { "use": "필터 변경, 좋아요, 미세 선택" },
+    "medium": { "use": "셔터, 다운로드 시작, snap 트리거" },
+    "heavy": { "use": "권한 거부, 업로드 실패, 위험 액션" },
+    "selection": { "use": "휠/세그먼트 변경" },
+    "success": { "use": "완료 알림" },
+    "warning": { "use": "주의 안내" },
+    "error": { "use": "실패 알림" }
+  },
+  "icon": {
+    "size": {
+      "xs": { "value": 14 },
+      "sm": { "value": 16 },
+      "md": { "value": 20 },
+      "lg": { "value": 24 },
+      "xl": { "value": 28 },
+      "2xl": { "value": 32 }
+    },
+    "stroke": {
+      "default": { "value": 1.5 },
+      "bold": { "value": 2.0 }
+    }
+  },
+  "layout": {
+    "screenPadding": { "value": 16 },
+    "tabBarHeight": { "value": 49 },
+    "topBarHeight": { "value": 44 },
+    "minTapTarget": { "value": 44 },
+    "safeAreaTop": { "value": 59, "description": "iPhone 14 Pro 다이내믹 아일랜드 영역" },
+    "safeAreaBottom": { "value": 34, "description": "홈 인디케이터 영역" }
+  },
+  "themeRouting": {
+    "default": "light",
+    "darkScreens": ["03-camera-live", "04-filter-swipe", "05-capture-preview"],
+    "rationale": "라이브 카메라 프리뷰는 어두운 환경이 자연스럽고 눈부심을 줄임. 그 외 9개 화면은 라이트 미니멀."
+  }
+}

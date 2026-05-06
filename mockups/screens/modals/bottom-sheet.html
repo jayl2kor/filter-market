@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>M · Bottom Sheet — filterMarket</title>
+<link rel="stylesheet" href="../../shared/fonts.css" />
+<link rel="stylesheet" href="../../shared/tokens.css" />
+<link rel="stylesheet" href="../../shared/components.css" />
+<link rel="stylesheet" href="../../shared/phone-frame.css" />
+<style>
+  /* 부모 화면 — 마켓 홈 미니 재현, 흐려짐 */
+  .parent {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-1);
+    pointer-events: none;
+  }
+  .parent__greeting {
+    padding: var(--sp-md) var(--screen-pad) 0;
+    font-size: var(--t-title-lg-size);
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    color: var(--text-primary);
+  }
+  .parent__greeting span { color: var(--accent); }
+  .parent__field {
+    margin: var(--sp-sm) var(--screen-pad);
+    height: 40px;
+    border-radius: var(--r-md);
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    display: flex; align-items: center; padding: 0 var(--sp-md);
+    color: var(--text-tertiary);
+    font-size: var(--t-body-size);
+    gap: 8px;
+  }
+  .parent__grid {
+    flex: 1;
+    padding: var(--sp-md) var(--screen-pad);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-sm);
+  }
+  .parent__tile {
+    aspect-ratio: 4/5;
+    border-radius: var(--r-lg);
+  }
+
+  /* 시트 본문 */
+  .sheet-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-md);
+  }
+  .sheet-preview {
+    display: flex; gap: var(--sp-md);
+    align-items: center;
+  }
+  .sheet-preview__photo {
+    width: 88px;
+    height: 110px;
+    border-radius: var(--r-md);
+    flex-shrink: 0;
+  }
+  .sheet-preview__name {
+    font-size: var(--t-headline-size);
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: var(--text-primary);
+  }
+  .sheet-preview__maker {
+    font-size: var(--t-subhead-size);
+    color: var(--text-secondary);
+    margin-top: 2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .sheet-preview__verified {
+    width: 14px; height: 14px;
+    color: var(--accent);
+  }
+  .sheet-preview__meta {
+    margin-top: var(--sp-sm);
+    display: flex; gap: var(--sp-sm);
+  }
+  .sheet-preview__chip {
+    padding: 4px 10px;
+    border-radius: var(--r-full);
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-size: var(--t-caption-size);
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+  .sheet-preview__chip--neutral {
+    background: var(--bg-3);
+    color: var(--text-secondary);
+  }
+
+  .sheet-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--sp-xs);
+    margin-top: var(--sp-xs);
+  }
+  .sheet-action {
+    padding: var(--sp-sm);
+    background: var(--bg-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-primary);
+    transition: background var(--d-fast) var(--ease-standard);
+  }
+  .sheet-action:active { background: var(--bg-3); }
+  .sheet-action svg { width: 20px; height: 20px; color: var(--text-primary); }
+  .sheet-action__label {
+    font-size: var(--t-caption-size);
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .sheet-action--accent svg { color: var(--accent); }
+  .sheet-action--accent .sheet-action__label { color: var(--accent); }
+  .sheet-action--danger svg { color: var(--error); }
+  .sheet-action--danger .sheet-action__label { color: var(--error); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="screen" style="background: var(--bg-1);">
+      <!-- 흐려진 부모 (마켓 홈) -->
+      <div class="parent">
+        <div class="screen__top-spacer"></div>
+        <div class="parent__greeting">안녕, <span>다온</span>.</div>
+        <div class="parent__field">
+          <svg class="icon icon--sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21 L16 16"/></svg>
+          필터 또는 메이커 검색
+        </div>
+        <div class="parent__grid">
+          <div class="parent__tile photo photo--cinematic"></div>
+          <div class="parent__tile photo photo--vintage"></div>
+          <div class="parent__tile photo photo--portrait"></div>
+          <div class="parent__tile photo photo--moody"></div>
+        </div>
+      </div>
+
+      <!-- Scrim -->
+      <div class="scrim"></div>
+
+      <!-- Bottom Sheet -->
+      <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+        <div class="sheet__handle" aria-hidden="true"></div>
+        <div class="sheet__head">
+          <span class="sheet__title" id="sheet-title">필터 미리보기</span>
+          <button class="topbar__action" aria-label="닫기">
+            <svg class="icon icon--sm" viewBox="0 0 24 24"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+          </button>
+        </div>
+        <div class="sheet__body">
+          <div class="sheet-content">
+
+            <div class="sheet-preview">
+              <div class="sheet-preview__photo photo photo--cinematic photo--vignette"></div>
+              <div>
+                <div class="sheet-preview__name">Cinematic Dusk</div>
+                <div class="sheet-preview__maker">
+                  by 김도영
+                  <svg class="sheet-preview__verified" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1 L10 3 L13 3 L13 6 L15 8 L13 10 L13 13 L10 13 L8 15 L6 13 L3 13 L3 10 L1 8 L3 6 L3 3 L6 3 Z" opacity="0.18"/><path d="M5 8 L7 10 L11 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="sheet-preview__meta">
+                  <span class="sheet-preview__chip">시네마틱</span>
+                  <span class="sheet-preview__chip sheet-preview__chip--neutral">2.1k</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="sheet-actions">
+              <button class="sheet-action sheet-action--accent">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 4 L12 16 M6 10 L12 16 L18 10"/>
+                  <path d="M4 20 L20 20"/>
+                </svg>
+                <span class="sheet-action__label">저장</span>
+              </button>
+              <button class="sheet-action">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="6" cy="12" r="2"/>
+                  <circle cx="18" cy="6" r="2"/>
+                  <circle cx="18" cy="18" r="2"/>
+                  <path d="M8 11 L16 7 M8 13 L16 17"/>
+                </svg>
+                <span class="sheet-action__label">공유</span>
+              </button>
+              <button class="sheet-action sheet-action--danger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 4 a8 8 0 1 1 0 16 a8 8 0 0 1 0 -16 Z"/>
+                  <path d="M12 8 L12 13 M12 15 L12 15.5"/>
+                </svg>
+                <span class="sheet-action__label">신고</span>
+              </button>
+            </div>
+
+            <button class="btn btn--primary btn--block btn--lg">상세 보기</button>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

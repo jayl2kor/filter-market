@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>P · Location Denied — filterMarket</title>
+<link rel="stylesheet" href="../../shared/fonts.css" />
+<link rel="stylesheet" href="../../shared/tokens.css" />
+<link rel="stylesheet" href="../../shared/components.css" />
+<link rel="stylesheet" href="../../shared/phone-frame.css" />
+<link rel="stylesheet" href="_shared.css" />
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="screen" style="background: var(--bg-0);">
+      <div class="screen__top-spacer"></div>
+      <header class="topbar topbar--transparent">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span></span><span></span>
+      </header>
+
+      <main class="perm">
+        <div class="perm__top">
+          <div class="perm__art perm__art--denied" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 21 C 8 16 4 13 4 9 a8 8 0 0 1 16 0 C 20 13 16 16 12 21 Z"/>
+              <circle cx="12" cy="9" r="3"/>
+              <path d="M3 3 L21 21"/>
+            </svg>
+          </div>
+          <h1 class="perm__title">위치 없이도 촬영할 수 있어요</h1>
+          <p class="perm__body">
+            위치 권한은 선택 사항입니다. 사진의 EXIF에 위치를 추가하려면
+            설정에서 켤 수 있어요.
+          </p>
+          <ol class="perm__steps">
+            <li class="perm__step">
+              <span class="perm__step-num">1</span>
+              <span><strong>설정</strong> → <strong>filterMarket</strong></span>
+            </li>
+            <li class="perm__step">
+              <span class="perm__step-num">2</span>
+              <span><strong>위치</strong> 선택</span>
+            </li>
+            <li class="perm__step">
+              <span class="perm__step-num">3</span>
+              <span><strong>"앱을 사용하는 동안"</strong> 선택</span>
+            </li>
+          </ol>
+        </div>
+
+        <div class="perm__bottom">
+          <button class="btn btn--secondary btn--block btn--lg">설정 열기</button>
+          <button class="btn btn--ghost btn--block">계속 사용</button>
+        </div>
+      </main>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

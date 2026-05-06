@@ -1,0 +1,179 @@
+/* filterMarket — iPhone 14 Pro 프레임 (393×852pt) v1.1 (Light Minimal)
+   다이내믹 아일랜드 + 홈 인디케이터 + 시스템 상태바 시뮬레이션
+   라이트 기본 / [data-theme="dark"] 카메라 흐름 변형 */
+
+.stage {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #FFFFFF 0%, transparent 60%),
+    var(--bg-1);
+  padding: 40px 0;
+}
+
+[data-theme="dark"] .stage {
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #161616 0%, transparent 60%),
+    var(--bg-1);
+}
+
+.phone {
+  position: relative;
+  width: var(--phone-w);
+  height: var(--phone-h);
+  background: var(--bg-0);
+  border-radius: 54px;
+  /* 라이트 — 따뜻한 베이지 베젤, 부드러운 그림자 */
+  box-shadow:
+    0 0 0 12px #1c1c1c,
+    0 0 0 13px #2a2a2a,
+    0 30px 80px rgba(15, 15, 14, 0.18),
+    0 0 120px rgba(184, 133, 58, 0.04);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+[data-theme="dark"] .phone {
+  background: #000000;
+  box-shadow:
+    0 0 0 12px #1a1a1a,
+    0 0 0 13px #2a2a2a,
+    0 30px 80px rgba(0, 0, 0, 0.7),
+    0 0 120px rgba(232, 184, 109, 0.05);
+}
+
+.phone--no-chrome {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* 다이내믹 아일랜드 (어떤 모드에서도 검정) */
+.dynamic-island {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 124px;
+  height: 36px;
+  background: #000;
+  border-radius: var(--r-full);
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* 시스템 상태바 (시간/배터리/wifi) — 토큰을 통해 색상 자동 전환 */
+.statusbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--safe-top);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 32px 0;
+  z-index: 90;
+  pointer-events: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--statusbar-color);
+  letter-spacing: -0.1px;
+}
+
+.statusbar__time {
+  width: 80px;
+  text-align: left;
+}
+
+.statusbar__indicators {
+  width: 80px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+
+.statusbar__indicators svg {
+  width: 16px;
+  height: 12px;
+  fill: var(--statusbar-color);
+  color: var(--statusbar-color);
+}
+
+.statusbar__battery {
+  width: 26px;
+  height: 12px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  position: relative;
+  padding: 1px;
+}
+.statusbar__battery::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  top: 3px;
+  width: 2px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 0 1px 1px 0;
+}
+.statusbar__battery-fill {
+  height: 100%;
+  width: 90%;
+  background: currentColor;
+  border-radius: 1px;
+}
+
+/* 홈 인디케이터 — 라이트는 차콜, 다크는 흰색 */
+.home-indicator {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 134px;
+  height: 5px;
+  background: var(--text-primary);
+  border-radius: var(--r-full);
+  z-index: 100;
+  opacity: 0.55;
+}
+
+[data-theme="dark"] .home-indicator { opacity: 0.9; }
+
+.home-indicator--dim { opacity: 0.3; }
+[data-theme="dark"] .home-indicator--dim { opacity: 0.4; }
+
+/* 콘텐츠 영역 */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-1);
+}
+
+.screen__top-spacer { flex: 0 0 var(--safe-top); }
+.screen__bottom-spacer { flex: 0 0 var(--safe-bottom); }
+.screen__body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.screen__body::-webkit-scrollbar { display: none; }
+
+/* 화면 라벨 (갤러리에서만 표시) */
+.debug-label {
+  position: absolute;
+  top: -32px;
+  left: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  z-index: 200;
+}

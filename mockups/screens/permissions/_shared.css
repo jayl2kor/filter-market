@@ -1,0 +1,136 @@
+/* filterMarket — Permission Screen Shared Styles v1.2
+   priming + denied 변형이 공유하는 레이아웃 */
+
+.perm {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--sp-2xl) var(--screen-pad) var(--sp-lg);
+  text-align: center;
+  word-break: keep-all;
+}
+
+.perm__top {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: var(--sp-3xl);
+}
+
+.perm__art {
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-full);
+  background: var(--accent-bg);
+  margin-bottom: var(--sp-xl);
+  position: relative;
+}
+
+.perm__art svg {
+  width: 44px;
+  height: 44px;
+  color: var(--accent);
+  stroke-width: 1.5;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.perm__art--denied {
+  background: var(--bg-3);
+}
+.perm__art--denied svg { color: var(--text-tertiary); }
+.perm__art--denied::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  right: -2px;
+  bottom: -2px;
+  background: var(--error);
+  border-radius: var(--r-full);
+  border: 2px solid var(--bg-0);
+  background-image: linear-gradient(135deg, transparent 45%, #FFF 45%, #FFF 55%, transparent 55%),
+                    linear-gradient(45deg, transparent 45%, #FFF 45%, #FFF 55%, transparent 55%);
+  background-size: 8px 8px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.perm__title {
+  font-size: var(--t-title-lg-size);
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin: 0 0 var(--sp-sm);
+  max-width: 280px;
+}
+
+.perm__body {
+  font-size: var(--t-body-size);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 280px;
+  margin: 0 0 var(--sp-md);
+}
+
+.perm__steps {
+  margin: var(--sp-md) 0 0;
+  padding: var(--sp-md);
+  background: var(--bg-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  text-align: left;
+  width: 100%;
+  max-width: 320px;
+}
+
+.perm__step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-xs) 0;
+  font-size: var(--t-subhead-size);
+  color: var(--text-secondary);
+}
+.perm__step:not(:last-child) {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.perm__step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-full);
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.perm__step strong { color: var(--text-primary); font-weight: 600; }
+
+.perm__bottom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xs);
+  width: 100%;
+  padding-bottom: var(--safe-bottom);
+}
+
+.perm__bottom .btn { width: 100%; }
+
+.perm__hint {
+  font-size: var(--t-footnote-size);
+  color: var(--text-tertiary);
+  margin-top: var(--sp-xs);
+}

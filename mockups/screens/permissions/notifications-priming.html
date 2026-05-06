@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>P · Notifications Priming — filterMarket</title>
+<link rel="stylesheet" href="../../shared/fonts.css" />
+<link rel="stylesheet" href="../../shared/tokens.css" />
+<link rel="stylesheet" href="../../shared/components.css" />
+<link rel="stylesheet" href="../../shared/phone-frame.css" />
+<link rel="stylesheet" href="_shared.css" />
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="screen" style="background: var(--bg-0);">
+      <div class="screen__top-spacer"></div>
+      <header class="topbar topbar--transparent">
+        <button class="topbar__action" aria-label="닫기">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+        </button>
+        <span></span><span></span>
+      </header>
+
+      <main class="perm">
+        <div class="perm__top">
+          <div class="perm__art" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M6 18 L6 11 a6 6 0 0 1 12 0 L18 18 L20 20 L4 20 Z"/>
+              <path d="M10 23 a2 2 0 0 0 4 0"/>
+              <circle cx="18" cy="6" r="2.5" fill="currentColor"/>
+            </svg>
+          </div>
+          <h1 class="perm__title">놓치고 싶지 않은 순간</h1>
+          <p class="perm__body">
+            메이커가 새 필터를 올리거나 내 필터에 댓글이 달렸을 때
+            알림을 보내드려요. 마케팅 알림은 보내지 않아요.
+          </p>
+        </div>
+
+        <div class="perm__bottom">
+          <button class="btn btn--primary btn--block btn--lg">알림 받기</button>
+          <button class="btn btn--ghost btn--block">건너뛰기</button>
+          <p class="perm__hint">설정에서 종류별로 끌 수 있어요.</p>
+        </div>
+      </main>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

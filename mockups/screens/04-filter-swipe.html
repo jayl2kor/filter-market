@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<title>04 · Filter Swipe — filterMarket</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .cam-screen {
+    position: absolute;
+    inset: 0;
+    background: var(--bg-0);
+    overflow: hidden;
+  }
+  /* 가운데 사진 + 양옆에 다음/이전 필터 살짝 보이게 */
+  .preview-stack {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: stretch;
+  }
+  .preview-stack .photo {
+    flex: 0 0 100%;
+    height: 100%;
+  }
+  .preview-stack .photo--side {
+    transform: scaleX(0.06);
+    transform-origin: center;
+  }
+
+  .preview-prev, .preview-next {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 56px;
+    z-index: 5;
+  }
+  .preview-prev { left: 0; }
+  .preview-next { right: 0; }
+  .preview-prev .photo, .preview-next .photo { height: 100%; }
+  .preview-prev::after, .preview-next::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(0,0,0,0.7), transparent);
+  }
+  .preview-next::after {
+    background: linear-gradient(270deg, rgba(0,0,0,0.7), transparent);
+  }
+
+  .swipe-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    background: var(--surface-overlay);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--r-full);
+    display: grid;
+    place-items: center;
+    color: var(--text-primary);
+    z-index: 10;
+    opacity: 0.6;
+  }
+  .swipe-arrow--left { left: 14px; }
+  .swipe-arrow--right { right: 14px; }
+
+  /* 컴포지션 그리드 */
+  .grid-line {
+    position: absolute;
+    background: rgba(255,255,255,0.08);
+    z-index: 4;
+    pointer-events: none;
+  }
+  .gv1 { left: 33.33%; top: 0; bottom: 0; width: 1px; }
+  .gv2 { left: 66.66%; top: 0; bottom: 0; width: 1px; }
+
+  /* 상단 - 닫기 + 비교 + 더보기 */
+  .cam-top {
+    position: absolute;
+    top: var(--safe-top);
+    left: 0; right: 0;
+    padding: var(--sp-sm) var(--sp-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 20;
+  }
+
+  .icon-btn {
+    width: 40px; height: 40px;
+    background: var(--surface-overlay);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--r-full);
+    display: grid;
+    place-items: center;
+    color: var(--text-primary);
+  }
+
+  /* 필터 캐러셀 (하단) */
+  .filter-rail-wrap {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    padding-bottom: calc(var(--safe-bottom) + var(--sp-sm));
+    z-index: 25;
+    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.95) 100%);
+  }
+
+  .intensity {
+    padding: var(--sp-sm) var(--sp-xl) var(--sp-md);
+  }
+  .intensity__row {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-md);
+  }
+  .intensity__label {
+    font-size: var(--t-caption-size);
+    color: var(--text-secondary);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    min-width: 56px;
+  }
+
+  .filter-rail {
+    display: flex;
+    gap: var(--sp-xs);
+    overflow-x: auto;
+    padding: var(--sp-sm) var(--sp-md);
+    scrollbar-width: none;
+    scroll-snap-type: x mandatory;
+  }
+  .filter-rail::-webkit-scrollbar { display: none; }
+
+  .filter-chip {
+    flex: 0 0 64px;
+    text-align: center;
+    scroll-snap-align: center;
+    cursor: pointer;
+  }
+  .filter-chip__photo {
+    width: 64px; height: 64px;
+    border-radius: var(--r-md);
+    border: 2px solid transparent;
+    margin-bottom: 6px;
+    overflow: hidden;
+    transition: border-color var(--d-fast) var(--ease-standard);
+  }
+  .filter-chip--active .filter-chip__photo {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--bg-0);
+  }
+  .filter-chip__name {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.2px;
+    line-height: 12px;
+  }
+  .filter-chip--active .filter-chip__name { color: var(--accent); }
+
+  .filter-chip__none {
+    width: 64px; height: 64px;
+    border-radius: var(--r-md);
+    border: 2px solid var(--border-default);
+    background: var(--bg-2);
+    margin-bottom: 6px;
+    display: grid;
+    place-items: center;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* 페이지 점 인디케이터 */
+  .pager {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 0 var(--sp-xs);
+  }
+  .pager__dot {
+    width: 4px; height: 4px;
+    background: rgba(255,255,255,0.3);
+    border-radius: var(--r-full);
+    transition: all var(--d-fast) var(--ease-standard);
+  }
+  .pager__dot--active {
+    width: 16px;
+    background: var(--accent);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="cam-screen">
+      <!-- 메인 미리보기 -->
+      <div class="photo photo--cafe photo--vignette" style="position:absolute; inset:0;"></div>
+
+      <!-- 좌우에 살짝 보이는 다음/이전 필터 -->
+      <div class="preview-prev"><div class="photo photo--bw photo--vignette"></div></div>
+      <div class="preview-next"><div class="photo photo--cool photo--vignette"></div></div>
+
+      <!-- 화살표 힌트 -->
+      <div class="swipe-arrow swipe-arrow--left" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6 L9 12 L15 18"/></svg>
+      </div>
+      <div class="swipe-arrow swipe-arrow--right" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6 L15 12 L9 18"/></svg>
+      </div>
+
+      <!-- 컴포지션 라인 -->
+      <div class="grid-line gv1"></div>
+      <div class="grid-line gv2"></div>
+
+      <!-- 상단 -->
+      <header class="cam-top">
+        <button class="icon-btn" aria-label="닫기">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+        </button>
+        <span class="pill" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--surface-overlay); backdrop-filter: blur(20px); border-radius: var(--r-full); font-size: 11px; font-weight: 600; letter-spacing: 0.4px;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="2"/><circle cx="18" cy="12" r="2"/></svg>
+          비포 / 애프터
+        </span>
+        <button class="icon-btn" aria-label="더보기">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="6" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="18" r="1"/></svg>
+        </button>
+      </header>
+
+      <!-- 하단 -->
+      <div class="filter-rail-wrap">
+        <div class="intensity">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-xs);">
+            <div>
+              <div style="font-size: var(--t-headline-size); font-weight: 700; letter-spacing: -0.2px;">Sunset 1973</div>
+              <div style="font-size: var(--t-caption-size); color: var(--text-secondary); margin-top: 2px; letter-spacing: 0.3px;">@jisoo.films · ↓ 9.8K</div>
+            </div>
+            <button class="icon-btn" aria-label="저장" style="background: var(--accent-soft); color: var(--accent);">
+              <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4 L19 4 L19 21 L12 17 L5 21 Z"/></svg>
+            </button>
+          </div>
+          <div class="intensity__row">
+            <span class="intensity__label">강도</span>
+            <div class="slider">
+              <div class="slider__track">
+                <div class="slider__fill" style="right: 25%;"></div>
+                <div class="slider__thumb" style="left: 75%;"></div>
+              </div>
+              <span class="slider__value">75%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-rail">
+          <div class="filter-chip">
+            <div class="filter-chip__none">없음</div>
+            <div class="filter-chip__name">원본</div>
+          </div>
+          <div class="filter-chip">
+            <div class="filter-chip__photo photo photo--bw"></div>
+            <div class="filter-chip__name">Mono</div>
+          </div>
+          <div class="filter-chip">
+            <div class="filter-chip__photo photo photo--cinematic"></div>
+            <div class="filter-chip__name">Teal</div>
+          </div>
+          <div class="filter-chip filter-chip--active">
+            <div class="filter-chip__photo photo photo--vintage"></div>
+            <div class="filter-chip__name">Sunset</div>
+          </div>
+          <div class="filter-chip">
+            <div class="filter-chip__photo photo photo--cool"></div>
+            <div class="filter-chip__name">Cold</div>
+          </div>
+          <div class="filter-chip">
+            <div class="filter-chip__photo photo photo--pastel"></div>
+            <div class="filter-chip__name">Pastel</div>
+          </div>
+          <div class="filter-chip">
+            <div class="filter-chip__photo photo photo--moody"></div>
+            <div class="filter-chip__name">Mood</div>
+          </div>
+          <div class="filter-chip">
+            <div class="filter-chip__photo photo photo--warm"></div>
+            <div class="filter-chip__name">Honey</div>
+          </div>
+        </div>
+
+        <div class="pager" aria-label="필터 페이지">
+          <span class="pager__dot"></span>
+          <span class="pager__dot"></span>
+          <span class="pager__dot pager__dot--active"></span>
+          <span class="pager__dot"></span>
+          <span class="pager__dot"></span>
+          <span class="pager__dot"></span>
+          <span class="pager__dot"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator home-indicator--dim"></div>
+  </div>
+</div>
+</body>
+</html>

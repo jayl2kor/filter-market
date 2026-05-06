@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>M · Share Sheet — filterMarket</title>
+<link rel="stylesheet" href="../../shared/fonts.css" />
+<link rel="stylesheet" href="../../shared/tokens.css" />
+<link rel="stylesheet" href="../../shared/components.css" />
+<link rel="stylesheet" href="../../shared/phone-frame.css" />
+<style>
+  .parent-detail {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background: var(--bg-0);
+    display: flex; flex-direction: column;
+  }
+  .parent-detail__hero {
+    margin: var(--sp-md) var(--screen-pad);
+    aspect-ratio: 4/3;
+    border-radius: var(--r-lg);
+  }
+  .parent-detail__title {
+    padding: var(--sp-sm) var(--screen-pad) 0;
+    font-size: var(--t-title-size);
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+  .parent-detail__sub {
+    padding: 4px var(--screen-pad);
+    color: var(--text-secondary);
+    font-size: var(--t-subhead-size);
+  }
+
+  /* iOS 시스템 공유 시트 (높이 ~70%) */
+  .share-sheet {
+    position: absolute;
+    inset: auto 0 0 0;
+    background: rgba(245, 244, 239, 0.94);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    box-shadow: var(--elev-3-shadow);
+    z-index: calc(var(--z-modal) + 1);
+    height: 580px;
+    display: flex; flex-direction: column;
+    padding-top: var(--sp-sm);
+    animation: sheetUp 350ms var(--ease-spring) both;
+  }
+
+  .share-sheet__handle {
+    width: 36px; height: 4px;
+    background: var(--bg-3);
+    border-radius: var(--r-full);
+    margin: 6px auto var(--sp-md);
+  }
+
+  .share-sheet__head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 var(--sp-md) var(--sp-sm);
+    border-bottom: 0.5px solid var(--border-subtle);
+  }
+
+  .share-sheet__source {
+    display: flex; align-items: center; gap: var(--sp-sm);
+  }
+  .share-sheet__thumb {
+    width: 36px; height: 36px;
+    border-radius: var(--r-md);
+    flex-shrink: 0;
+  }
+  .share-sheet__src-info { line-height: 1.2; }
+  .share-sheet__src-name {
+    font-size: var(--t-subhead-size);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .share-sheet__src-meta {
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+    margin-top: 2px;
+  }
+  .share-sheet__close {
+    width: 28px; height: 28px;
+    background: var(--bg-3);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    color: var(--text-tertiary);
+  }
+
+  .share-sheet__body {
+    flex: 1; overflow: hidden;
+    padding: var(--sp-md) 0 calc(var(--safe-bottom) + var(--sp-md));
+  }
+
+  /* 앱 그리드 (가로 스크롤) */
+  .app-row {
+    display: flex; gap: var(--sp-md);
+    padding: 0 var(--sp-md) var(--sp-sm);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .app-row::-webkit-scrollbar { display: none; }
+
+  .app {
+    flex: 0 0 64px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 6px;
+    text-align: center;
+  }
+  .app__icon {
+    width: 60px; height: 60px;
+    border-radius: 14px;
+    display: grid; place-items: center;
+    color: #FFFFFF;
+    font-size: 22px;
+  }
+  .app__name {
+    font-size: var(--t-caption-size);
+    color: var(--text-primary);
+    line-height: 1.1;
+    word-break: keep-all;
+  }
+
+  /* iOS 앱 색감 모방 */
+  .app__icon--airdrop { background: linear-gradient(135deg, #2DBFFF, #007AFF); }
+  .app__icon--messages { background: linear-gradient(135deg, #5BE361, #1FAA37); }
+  .app__icon--mail { background: linear-gradient(135deg, #5AC8FA, #007AFF); }
+  .app__icon--instagram { background: radial-gradient(circle at 30% 110%, #FED576, #F47133, #BC3081, #4C63D2); }
+  .app__icon--kakao { background: #FAE100; color: #391B1B; }
+  .app__icon--more { background: var(--bg-2); border: 1px solid var(--border-default); color: var(--text-secondary); }
+
+  /* 액션 그리드 */
+  .action-list {
+    margin: 0 var(--sp-md);
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .action-list__item {
+    width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px var(--sp-md);
+    font-size: 17px;
+    color: var(--text-primary);
+    background: transparent;
+    border-bottom: 0.5px solid var(--border-subtle);
+    text-align: left;
+  }
+  .action-list__item:last-child { border-bottom: 0; }
+  .action-list__item svg {
+    width: 22px; height: 22px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    color: var(--text-secondary);
+  }
+  .action-list__item:active { background: var(--ix-pressed); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="screen" style="background: var(--bg-0);">
+      <!-- 부모: 필터 상세 -->
+      <div class="parent-detail">
+        <div class="screen__top-spacer"></div>
+        <div class="parent-detail__hero photo photo--cinematic photo--vignette"></div>
+        <div class="parent-detail__title">Cinematic Dusk</div>
+        <div class="parent-detail__sub">by 김도영 · 시네마틱</div>
+      </div>
+
+      <!-- Scrim (시스템 시트는 약한 scrim) -->
+      <div class="scrim" style="background: rgba(15,15,14,0.30);"></div>
+
+      <!-- iOS 시스템 공유 시트 -->
+      <div class="share-sheet" role="dialog" aria-modal="true" aria-label="공유">
+        <div class="share-sheet__handle"></div>
+        <div class="share-sheet__head">
+          <div class="share-sheet__source">
+            <div class="share-sheet__thumb photo photo--cinematic"></div>
+            <div class="share-sheet__src-info">
+              <div class="share-sheet__src-name">Cinematic Dusk</div>
+              <div class="share-sheet__src-meta">filterMarket · 링크</div>
+            </div>
+          </div>
+          <button class="share-sheet__close" aria-label="닫기">
+            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 6 L18 18 M18 6 L6 18"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="share-sheet__body">
+
+          <!-- 앱 그리드 (가로 스크롤) -->
+          <div class="app-row">
+            <div class="app">
+              <div class="app__icon app__icon--airdrop">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 14 a7 7 0 0 1 14 0 M9 14 a3 3 0 0 1 6 0"/>
+                  <circle cx="12" cy="14" r="0.5" fill="currentColor"/>
+                </svg>
+              </div>
+              <div class="app__name">에어드롭</div>
+            </div>
+            <div class="app">
+              <div class="app__icon app__icon--messages">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9 a6 6 0 0 1 6 -6 L14 3 a6 6 0 0 1 6 6 L20 12 a6 6 0 0 1 -6 6 L8 18 L4 21 L4.5 17.5 a6 6 0 0 1 -0.5 -2.5 Z"/></svg>
+              </div>
+              <div class="app__name">메시지</div>
+            </div>
+            <div class="app">
+              <div class="app__icon app__icon--mail">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="6" width="18" height="12" rx="2"/>
+                  <path d="M3 8 L12 14 L21 8"/>
+                </svg>
+              </div>
+              <div class="app__name">메일</div>
+            </div>
+            <div class="app">
+              <div class="app__icon app__icon--instagram">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="5"/>
+                  <circle cx="12" cy="12" r="4"/>
+                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
+                </svg>
+              </div>
+              <div class="app__name">인스타그램</div>
+            </div>
+            <div class="app">
+              <div class="app__icon app__icon--kakao">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 C 6 5 2 9 2 13 a7 7 0 0 0 4 6 L5 22 L9 19 a14 14 0 0 0 3 0.4 c 6 0 10 -4 10 -8 S 18 5 12 5 Z"/></svg>
+              </div>
+              <div class="app__name">카카오톡</div>
+            </div>
+            <div class="app">
+              <div class="app__icon app__icon--more">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="6" cy="12" r="1.5" fill="currentColor"/>
+                  <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                  <circle cx="18" cy="12" r="1.5" fill="currentColor"/>
+                </svg>
+              </div>
+              <div class="app__name">더보기</div>
+            </div>
+          </div>
+
+          <!-- 액션 그리드 -->
+          <div class="action-list">
+            <button class="action-list__item">
+              <span>링크 복사</span>
+              <svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><rect x="4" y="4" width="12" height="12" rx="2"/></svg>
+            </button>
+            <button class="action-list__item">
+              <span>사진에 저장</span>
+              <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M3 16 L8 12 L13 16 L17 13 L21 17"/></svg>
+            </button>
+            <button class="action-list__item">
+              <span>홈 화면에 추가</span>
+              <svg viewBox="0 0 24 24"><path d="M12 4 L12 20 M4 12 L20 12"/></svg>
+            </button>
+            <button class="action-list__item">
+              <span>QR 코드 표시</span>
+              <svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="2" height="2"/><rect x="18" y="14" width="2" height="2"/><rect x="14" y="18" width="6" height="2"/></svg>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

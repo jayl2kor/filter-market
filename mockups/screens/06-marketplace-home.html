@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>06 · Marketplace — filterMarket</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .market-top {
+    padding: var(--sp-md) var(--screen-pad) var(--sp-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--sp-sm);
+    background: var(--bg-0);
+  }
+  .market-top .field { flex: 1; height: 40px; }
+  .greeting {
+    padding: var(--sp-sm) var(--screen-pad) 0;
+    font-size: var(--t-title-lg-size);
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    color: var(--text-primary);
+  }
+  .greeting span { color: var(--accent); }
+
+  .h-scroll {
+    display: flex;
+    gap: var(--sp-sm);
+    overflow-x: auto;
+    padding: 0 var(--screen-pad) var(--sp-xs);
+    scrollbar-width: none;
+  }
+  .h-scroll::-webkit-scrollbar { display: none; }
+
+  .featured {
+    flex: 0 0 268px;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--r-lg);
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--elev-2-shadow);
+  }
+  .featured__overlay {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: var(--sp-md);
+    background: linear-gradient(180deg, transparent 0%, rgba(15,15,14,0.78) 100%);
+    z-index: 2;
+  }
+  .featured__tag {
+    position: absolute;
+    top: var(--sp-sm);
+    left: var(--sp-sm);
+    padding: 4px 10px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    color: var(--accent);
+    border-radius: var(--r-sm);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    z-index: 2;
+  }
+  .featured__title {
+    color: #FFFFFF;
+    font-size: var(--t-headline-size);
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+  .featured__sub {
+    color: rgba(255,255,255,0.8);
+    font-size: var(--t-subhead-size);
+    margin-top: 2px;
+  }
+
+  .grid-2 {
+    padding: 0 var(--screen-pad);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-sm);
+  }
+
+  .collection {
+    margin: 0 var(--screen-pad);
+    padding: var(--sp-md);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--sp-md);
+    box-shadow: var(--elev-1-shadow);
+    transition: box-shadow var(--d-fast) var(--ease-standard), transform var(--d-fast) var(--ease-spring);
+    cursor: pointer;
+  }
+  .collection:hover { box-shadow: var(--elev-2-shadow); }
+  .collection:active { transform: scale(0.99); }
+  .collection__cluster {
+    width: 64px;
+    height: 64px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .collection__cluster .photo {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--r-sm);
+    border: 2px solid var(--bg-2);
+    box-shadow: 0 1px 2px rgba(15,15,14,0.06);
+  }
+  .collection__cluster .photo:nth-child(1) { top: 0; left: 0; }
+  .collection__cluster .photo:nth-child(2) { top: 0; right: 0; }
+  .collection__cluster .photo:nth-child(3) { bottom: 0; left: 14px; }
+  .collection__name { font-weight: 600; color: var(--text-primary); }
+  .collection__sub { color: var(--text-secondary); font-size: var(--t-subhead-size); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="screen" style="background: var(--bg-0);">
+      <div class="screen__top-spacer"></div>
+
+      <div class="screen__body">
+        <div class="market-top fade-in">
+          <div class="field">
+            <svg class="field__icon icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21 L16 16"/></svg>
+            <input type="text" placeholder="필터, 메이커, 분위기 검색" />
+          </div>
+          <button class="topbar__action" aria-label="알림">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 16 a6 6 0 0 1 12 0 L18 16" transform="rotate(180 12 14)"/><path d="M9 19 a3 3 0 0 0 6 0"/></svg>
+          </button>
+        </div>
+
+        <h1 class="greeting fade-in fade-in--delay-1">오늘의 빛, <br/><span>지금 만나보세요</span></h1>
+
+        <section class="section fade-in fade-in--delay-2">
+          <div class="section__head">
+            <h2 class="section__title">트렌딩</h2>
+            <a class="section__more">더보기 →</a>
+          </div>
+        </section>
+        <div class="h-scroll fade-in fade-in--delay-2">
+          <article class="featured photo photo--cinematic photo--vignette">
+            <span class="featured__tag">★ 이 주의 추천</span>
+            <div class="featured__overlay">
+              <div class="featured__title">Teal Story</div>
+              <div class="featured__sub">@alex.lab · 다운로드 12.4K</div>
+            </div>
+          </article>
+          <article class="featured photo photo--vintage photo--vignette">
+            <span class="featured__tag">트렌딩</span>
+            <div class="featured__overlay">
+              <div class="featured__title">Sunset 1973</div>
+              <div class="featured__sub">@jisoo.films · 다운로드 9.8K</div>
+            </div>
+          </article>
+          <article class="featured photo photo--moody photo--vignette">
+            <span class="featured__tag">신규</span>
+            <div class="featured__overlay">
+              <div class="featured__title">Midnight Walk</div>
+              <div class="featured__sub">@noon.studio · 다운로드 2.1K</div>
+            </div>
+          </article>
+        </div>
+
+        <section class="section fade-in fade-in--delay-3" style="padding-bottom:var(--sp-xs);">
+          <div class="section__head">
+            <h2 class="section__title">카테고리</h2>
+          </div>
+        </section>
+        <div class="h-scroll fade-in fade-in--delay-3">
+          <span class="chip chip--active">전체</span>
+          <span class="chip">Cinematic</span>
+          <span class="chip">Vintage</span>
+          <span class="chip">Pastel</span>
+          <span class="chip">B&W</span>
+          <span class="chip">Portrait</span>
+          <span class="chip">Food</span>
+          <span class="chip">Travel</span>
+          <span class="chip">Mood</span>
+        </div>
+
+        <section class="section fade-in fade-in--delay-4" style="padding-bottom: var(--sp-md);">
+          <div class="section__head">
+            <h2 class="section__title">새로 들어온 필터</h2>
+          </div>
+        </section>
+        <div class="grid-2 fade-in fade-in--delay-4">
+          <article class="filter-tile">
+            <div class="filter-tile__photo photo photo--warm photo--vignette"></div>
+            <span class="filter-tile__badge">free</span>
+            <div class="filter-tile__overlay">
+              <div class="filter-tile__name">Honey Glow</div>
+              <div class="filter-tile__meta">@warm.house · ↓ 3.2K</div>
+            </div>
+          </article>
+          <article class="filter-tile">
+            <div class="filter-tile__photo photo photo--cool photo--vignette"></div>
+            <div class="filter-tile__overlay">
+              <div class="filter-tile__name">Cold Blue 02</div>
+              <div class="filter-tile__meta">@noon.studio · ↓ 1.8K</div>
+            </div>
+          </article>
+          <article class="filter-tile">
+            <div class="filter-tile__photo photo photo--bw photo--vignette"></div>
+            <div class="filter-tile__overlay">
+              <div class="filter-tile__name">Mono Soft</div>
+              <div class="filter-tile__meta">@jisoo.films · ↓ 5.1K</div>
+            </div>
+          </article>
+          <article class="filter-tile">
+            <div class="filter-tile__photo photo photo--pastel photo--vignette"></div>
+            <span class="filter-tile__badge">★ pro</span>
+            <div class="filter-tile__overlay">
+              <div class="filter-tile__name">Pastel Air</div>
+              <div class="filter-tile__meta">@air.films · ↓ 2.0K</div>
+            </div>
+          </article>
+        </div>
+
+        <section class="section fade-in" style="padding-bottom: var(--sp-md);">
+          <div class="section__head">
+            <h2 class="section__title">큐레이션 컬렉션</h2>
+            <a class="section__more">전체 →</a>
+          </div>
+        </section>
+        <div style="display: flex; flex-direction: column; gap: var(--sp-sm); margin-bottom: var(--sp-xl);">
+          <article class="collection fade-in">
+            <div class="collection__cluster">
+              <div class="photo photo--cinematic"></div>
+              <div class="photo photo--moody"></div>
+              <div class="photo photo--cool"></div>
+            </div>
+            <div style="flex:1;">
+              <div class="collection__name">시네마 다이어리</div>
+              <div class="collection__sub">영화 같은 순간을 위한 12종</div>
+            </div>
+            <svg class="icon" style="color:var(--text-tertiary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 6 L15 12 L9 18"/></svg>
+          </article>
+          <article class="collection fade-in">
+            <div class="collection__cluster">
+              <div class="photo photo--vintage"></div>
+              <div class="photo photo--warm"></div>
+              <div class="photo photo--portrait"></div>
+            </div>
+            <div style="flex:1;">
+              <div class="collection__name">필름 한 통</div>
+              <div class="collection__sub">아날로그의 결을 담은 8종</div>
+            </div>
+            <svg class="icon" style="color:var(--text-tertiary)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 6 L15 12 L9 18"/></svg>
+          </article>
+        </div>
+      </div>
+
+      <nav class="tabbar">
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M9 6 L11 3 L13 3 L15 6"/></svg>카메라</span>
+        <span class="tab tab--active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>마켓</span>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21 L16 16"/></svg>검색</span>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 21 s-7-4.5-7-10 a4 4 0 0 1 7 -2.6 a4 4 0 0 1 7 2.6 c0 5.5 -7 10 -7 10 z"/></svg>저장됨</span>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21 c0-4.4 3.6-8 8-8 s8 3.6 8 8"/></svg>프로필</span>
+      </nav>
+      <div class="screen__bottom-spacer"></div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

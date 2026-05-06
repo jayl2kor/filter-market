@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>07 · Filter Detail — filterMarket</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .ba-wrap {
+    position: relative;
+    aspect-ratio: 4/5;
+    overflow: hidden;
+    margin: 0;
+    background: var(--bg-3);
+  }
+  .ba-before, .ba-after {
+    position: absolute;
+    inset: 0;
+  }
+  .ba-after {
+    clip-path: inset(0 0 0 50%);
+  }
+  .ba-handle {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 50%;
+    width: 2px;
+    background: #FFFFFF;
+    transform: translateX(-50%);
+    z-index: 10;
+    box-shadow: 0 0 0 1px rgba(15,15,14,0.2);
+  }
+  .ba-handle::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 36px; height: 36px;
+    background: #FFFFFF;
+    border-radius: var(--r-full);
+    box-shadow: 0 0 0 1px rgba(15,15,14,0.12), 0 4px 14px rgba(15,15,14,0.25);
+  }
+  .ba-handle::after {
+    content: '⇄';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 700;
+    z-index: 11;
+  }
+  .ba-label {
+    position: absolute;
+    top: 12px;
+    padding: 4px 10px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    color: var(--text-primary);
+    border-radius: var(--r-sm);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    z-index: 9;
+  }
+  .ba-label--before { left: 12px; }
+  .ba-label--after { right: 12px; color: var(--accent); }
+
+  .info {
+    padding: var(--sp-lg) var(--screen-pad) var(--sp-md);
+  }
+  .info__name {
+    font-size: var(--t-title-lg-size);
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    margin: 0;
+    color: var(--text-primary);
+  }
+  .info__author-row {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-xs);
+    margin-top: var(--sp-xs);
+    color: var(--text-secondary);
+    font-size: var(--t-subhead-size);
+  }
+  .info__author-row .avatar { width: 24px; height: 24px; font-size: 11px; color: #FFFFFF; }
+  .info__author-row .name { color: var(--text-primary); font-weight: 600; }
+  .info__follow {
+    margin-left: auto;
+    padding: 6px 14px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: var(--r-md);
+    font-size: var(--t-caption-size);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    background: var(--accent-bg);
+  }
+
+  .stats-row {
+    display: flex;
+    gap: var(--sp-xl);
+    padding: var(--sp-md) var(--screen-pad);
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    margin: var(--sp-md) 0 0;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .stat__num {
+    font-size: var(--t-title-size);
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+  .stat__label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .stat__num .star { color: var(--accent); }
+
+  .desc {
+    padding: var(--sp-md) var(--screen-pad);
+    color: var(--text-secondary);
+    font-size: var(--t-body-size);
+    line-height: 1.5;
+    word-break: keep-all;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 var(--screen-pad) var(--sp-md);
+  }
+
+  .samples-grid {
+    padding: 0 var(--screen-pad);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    margin-bottom: var(--sp-md);
+  }
+  .samples-grid .photo {
+    aspect-ratio: 1;
+    border-radius: var(--r-sm);
+  }
+
+  .comments-preview {
+    padding: var(--sp-md);
+    margin: 0 var(--screen-pad) var(--sp-3xl);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    box-shadow: var(--elev-1-shadow);
+  }
+  .comment {
+    display: flex;
+    gap: var(--sp-sm);
+    padding: var(--sp-xs) 0;
+  }
+  .comment + .comment { border-top: 1px solid var(--border-subtle); margin-top: var(--sp-xs); padding-top: var(--sp-sm); }
+  .comment__body {
+    flex: 1;
+    font-size: var(--t-subhead-size);
+    line-height: 1.4;
+  }
+  .comment__head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-xs);
+    margin-bottom: 2px;
+  }
+  .comment__name { font-weight: 600; font-size: var(--t-subhead-size); color: var(--text-primary); }
+  .comment__time { color: var(--text-tertiary); font-size: 10px; }
+  .comment__text { color: var(--text-secondary); }
+
+  /* 고정 하단 CTA */
+  .cta-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    padding: var(--sp-sm) var(--sp-md) calc(var(--safe-bottom) + var(--sp-xs));
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    gap: var(--sp-xs);
+    z-index: 30;
+  }
+  .cta-bar .btn--primary { flex: 1; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="screen" style="background: var(--bg-0);">
+      <div class="screen__top-spacer"></div>
+      <header class="topbar topbar--transparent" style="position: absolute; top: var(--safe-top); left: 0; right: 0; z-index: 30;">
+        <button class="topbar__action" aria-label="뒤로" style="background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border-radius: var(--r-full); width: 36px; min-width:36px; height: 36px;">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span></span>
+        <button class="topbar__action" aria-label="공유" style="background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border-radius: var(--r-full); width: 36px; min-width:36px; height: 36px;">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.5 10.5 L15.5 7 M8.5 13.5 L15.5 17"/></svg>
+        </button>
+      </header>
+
+      <div class="screen__body" style="padding-bottom: 88px;">
+        <!-- 비포/애프터 -->
+        <section class="ba-wrap fade-in">
+          <span class="ba-label ba-label--before">BEFORE</span>
+          <span class="ba-label ba-label--after">AFTER · SUNSET 1973</span>
+          <div class="ba-before photo photo--cafe"></div>
+          <div class="ba-after photo photo--vintage photo--vignette"></div>
+          <div class="ba-handle" aria-hidden="true"></div>
+        </section>
+
+        <section class="info fade-in fade-in--delay-1">
+          <h1 class="info__name">Sunset 1973</h1>
+          <div class="info__author-row">
+            <span class="avatar" style="background: linear-gradient(135deg,#B8853A,#5e4434);">JS</span>
+            <span class="name">jisoo.films</span>
+            <span style="color: var(--text-tertiary);">· 빈티지 · 시네마틱</span>
+            <span class="info__follow">팔로우</span>
+          </div>
+        </section>
+
+        <section class="stats-row fade-in fade-in--delay-2">
+          <div class="stat">
+            <div class="stat__num">9.8K</div>
+            <div class="stat__label">다운로드</div>
+          </div>
+          <div class="stat">
+            <div class="stat__num"><span class="star">★</span> 4.8</div>
+            <div class="stat__label">324 리뷰</div>
+          </div>
+          <div class="stat">
+            <div class="stat__num">2.1K</div>
+            <div class="stat__label">좋아요</div>
+          </div>
+        </section>
+
+        <p class="desc fade-in fade-in--delay-3">
+          73년 코닥 필름의 따뜻한 황혼을 담았습니다. 카페 조명, 골목길 가로등, 노을이 깔리는 시간에 가장 잘 어울려요. 인물 피부톤은 자연스럽게 살리되 배경은 한 단계 깊은 톤으로.
+        </p>
+
+        <div class="tags fade-in fade-in--delay-3">
+          <span class="chip chip--small">#warm</span>
+          <span class="chip chip--small">#golden-hour</span>
+          <span class="chip chip--small">#film</span>
+          <span class="chip chip--small">#cafe</span>
+          <span class="chip chip--small">#analog</span>
+        </div>
+
+        <section class="section fade-in fade-in--delay-4" style="padding: var(--sp-md) var(--screen-pad) var(--sp-sm);">
+          <div class="section__head">
+            <h2 class="section__title" style="font-size: var(--t-title-size);">샘플</h2>
+            <a class="section__more">9개 모두 →</a>
+          </div>
+        </section>
+        <div class="samples-grid fade-in fade-in--delay-4">
+          <div class="photo photo--vintage photo--vignette"></div>
+          <div class="photo photo--cafe photo--vignette"></div>
+          <div class="photo photo--portrait photo--vignette"></div>
+          <div class="photo photo--warm photo--vignette"></div>
+          <div class="photo photo--mountain photo--vignette"></div>
+          <div class="photo photo--cinematic photo--vignette"></div>
+        </div>
+
+        <section class="section fade-in" style="padding: var(--sp-md) var(--screen-pad) var(--sp-sm);">
+          <div class="section__head">
+            <h2 class="section__title" style="font-size: var(--t-title-size);">댓글</h2>
+            <a class="section__more">324개 →</a>
+          </div>
+        </section>
+        <div class="comments-preview fade-in">
+          <div class="comment">
+            <span class="avatar" style="background:#3A7AB8; width:28px; height:28px; font-size:11px; color:#FFFFFF;">SJ</span>
+            <div class="comment__body">
+              <div class="comment__head">
+                <span class="comment__name">soojin_92</span>
+                <span class="comment__time">3시간</span>
+              </div>
+              <div class="comment__text">와 카페 사진에 너무 잘 어울려요. 강도 60%로 쓰니까 자연스럽고 좋네요.</div>
+            </div>
+          </div>
+          <div class="comment">
+            <span class="avatar" style="background:#A57238; width:28px; height:28px; font-size:11px; color:#FFFFFF;">MJ</span>
+            <div class="comment__body">
+              <div class="comment__head">
+                <span class="comment__name">minjun.shoots</span>
+                <span class="comment__time">1일</span>
+              </div>
+              <div class="comment__text">필름 디테일이 살아있어요. 인물에 적용해도 피부톤이 안 죽음 👍</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 고정 하단 CTA -->
+      <div class="cta-bar">
+        <button class="btn btn--secondary btn--lg btn--icon" aria-label="좋아요">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 21 s-7-4.5-7-10 a4 4 0 0 1 7 -2.6 a4 4 0 0 1 7 2.6 c0 5.5 -7 10 -7 10 z"/></svg>
+        </button>
+        <button class="btn btn--primary btn--lg btn--block">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4 L12 16 M7 11 L12 16 L17 11"/><path d="M5 20 L19 20"/></svg>
+          무료 다운로드
+        </button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

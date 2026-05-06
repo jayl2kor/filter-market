@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>States Catalog — filterMarket v1.2</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<style>
+  body {
+    background:
+      radial-gradient(900px 500px at 80% -10%, var(--accent-bg) 0%, transparent 60%),
+      var(--bg-0);
+    min-height: 100vh;
+    padding: 56px 24px 96px;
+    color: var(--text-primary);
+  }
+  .catalog { max-width: 1440px; margin: 0 auto; }
+  .catalog-head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding-bottom: var(--sp-2xl);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: var(--sp-2xl);
+    gap: var(--sp-xl); flex-wrap: wrap;
+  }
+  .catalog-head h1 {
+    font-size: 32px; font-weight: 700; letter-spacing: -0.5px;
+    margin: 0; color: var(--text-primary);
+  }
+  .catalog-head h1 span { color: var(--accent); }
+  .catalog-head .meta { color: var(--text-secondary); font-size: var(--t-callout-size); margin-top: 6px; }
+  .catalog-head .pills { display: flex; gap: var(--sp-xs); flex-wrap: wrap; }
+  .catalog-head .pill {
+    padding: 5px 12px; background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-full);
+    font-size: var(--t-caption-size); color: var(--text-secondary);
+    letter-spacing: 0.3px;
+  }
+  .catalog-head .pill .dot {
+    display: inline-block; width: 6px; height: 6px;
+    background: var(--accent); border-radius: var(--r-full); margin-right: 6px;
+  }
+
+  .section-head {
+    display: flex; align-items: baseline; gap: var(--sp-md);
+    margin: var(--sp-3xl) 0 var(--sp-md); flex-wrap: wrap;
+  }
+  .section-head__num {
+    font-size: 11px; color: var(--accent); letter-spacing: 1.5px;
+    font-weight: 700; text-transform: uppercase;
+  }
+  .section-head__title {
+    font-size: var(--t-title-size); font-weight: 700;
+    letter-spacing: -0.3px; margin: 0;
+  }
+  .section-head__sub { color: var(--text-tertiary); font-size: var(--t-subhead-size); }
+
+  /* 미니어처 그리드 */
+  .mini-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 24px;
+  }
+
+  .mini {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-xl);
+    padding: var(--sp-md);
+    box-shadow: var(--elev-1-shadow);
+    transition: box-shadow var(--d-base) var(--ease-spring), transform var(--d-base) var(--ease-spring);
+  }
+  .mini:hover { box-shadow: var(--elev-2-shadow); transform: translateY(-2px); }
+  .mini__label {
+    font-size: 10px; font-weight: 700; color: var(--accent);
+    letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 4px;
+  }
+  .mini__title {
+    font-size: var(--t-headline-size); font-weight: 600;
+    color: var(--text-primary); letter-spacing: -0.1px;
+  }
+  .mini__desc {
+    font-size: var(--t-subhead-size); color: var(--text-secondary);
+    margin-top: 2px; line-height: 1.4; word-break: keep-all;
+  }
+
+  /* 미니 폰 프레임 */
+  .mini-phone {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 393 / 852;
+    border-radius: 24px;
+    overflow: hidden;
+    background: var(--bg-1);
+    border: 1px solid var(--border-default);
+    margin: var(--sp-sm) 0 var(--sp-md);
+    box-shadow:
+      inset 0 0 0 4px #1c1c1c,
+      0 4px 12px rgba(15,15,14,0.06);
+  }
+  .mini-phone .mp-screen {
+    position: absolute; inset: 4px;
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--bg-1);
+    display: flex; flex-direction: column;
+  }
+  .mp-statusbar {
+    flex: 0 0 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px 0;
+    font-size: 10px; font-weight: 600; color: var(--statusbar-color);
+  }
+  .mp-statusbar__dot {
+    width: 60px; height: 18px; background: #000; border-radius: var(--r-full);
+    position: absolute; left: 50%; top: 8px; transform: translateX(-50%);
+  }
+  .mp-topbar {
+    height: 32px; padding: 0 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--text-primary);
+    font-size: 11px; font-weight: 600;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+  }
+  .mp-body {
+    flex: 1; overflow: hidden; padding: 10px;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .mp-tabbar {
+    height: 30px;
+    background: var(--tabbar-bg);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border-subtle);
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    align-items: center; justify-items: center;
+    flex-shrink: 0;
+  }
+  .mp-tab-dot {
+    width: 6px; height: 6px; border-radius: var(--r-full);
+    background: var(--text-tertiary); opacity: 0.5;
+  }
+  .mp-tab-dot--active { background: var(--accent); opacity: 1; }
+
+  /* 카메라 다크 미니 */
+  .mini-phone[data-theme="dark"] {
+    background: #000;
+    border-color: #2a2a2a;
+    box-shadow:
+      inset 0 0 0 4px #2a2a2a,
+      0 4px 12px rgba(0,0,0,0.3);
+  }
+  .mini-phone[data-theme="dark"] .mp-screen { background: #000; }
+
+  /* 빈 상태 미니 */
+  .mp-empty {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 16px 12px;
+    word-break: keep-all;
+  }
+  .mp-empty svg {
+    width: 56px; height: 56px;
+    color: var(--empty-tint);
+    margin-bottom: 12px;
+  }
+  .mp-empty svg .accent { color: var(--empty-accent); }
+  .mp-empty__title {
+    font-size: 12px; font-weight: 700; color: var(--text-primary);
+    letter-spacing: -0.1px; margin-bottom: 4px;
+  }
+  .mp-empty__body {
+    font-size: 10px; color: var(--text-secondary);
+    line-height: 1.4; max-width: 140px; margin-bottom: 12px;
+  }
+  .mp-empty__cta {
+    height: 28px; padding: 0 14px;
+    background: var(--accent); color: #FFF;
+    border-radius: var(--r-md);
+    font-size: 10px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .mp-empty__cta--ghost {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+
+  .mp-suggest-chips {
+    display: flex; gap: 4px; flex-wrap: wrap;
+    justify-content: center; margin-top: 8px;
+  }
+  .mp-suggest-chip {
+    padding: 3px 8px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-full);
+    font-size: 9px; color: var(--text-secondary);
+  }
+
+  /* 스켈레톤 미니 그리드 */
+  .mp-grid-2 {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  }
+  .mp-grid-2 .skeleton { aspect-ratio: 4 / 5; border-radius: 6px; }
+  .mp-section-skel { margin-top: 8px; }
+
+  /* 스피너 미니 */
+  .mp-spinner-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px;
+    border-radius: var(--r-md);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+  }
+  .mp-spinner-row__text { font-size: 10px; color: var(--text-secondary); }
+  .mp-spinner-center {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+  }
+  .mp-spinner-center .label {
+    font-size: 10px; color: var(--text-secondary);
+  }
+  .mp-spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--bg-3);
+    border-top-color: var(--accent);
+    border-radius: var(--r-full);
+    animation: spinnerRotate 800ms linear infinite;
+  }
+  .mp-spinner--lg { width: 28px; height: 28px; border-width: 2.5px; }
+
+  /* 토스트/배너 미니 */
+  .mp-toast {
+    position: absolute;
+    left: 8px; right: 8px; bottom: 36px;
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-left: 2px solid var(--success);
+    border-radius: var(--r-md);
+    font-size: 10px; color: var(--text-primary);
+    box-shadow: 0 8px 20px rgba(15,15,14,0.10);
+  }
+  .mp-toast .ico { width: 12px; height: 12px; color: var(--success); flex-shrink: 0; }
+  .mp-toast--warning { border-left-color: var(--warning); }
+  .mp-toast--warning .ico { color: var(--warning); }
+  .mp-toast--error { border-left-color: var(--error); }
+  .mp-toast--error .ico { color: var(--error); }
+  .mp-toast--info { border-left-color: var(--info); }
+  .mp-toast--info .ico { color: var(--info); }
+
+  .mp-banner {
+    position: absolute;
+    left: 0; right: 0; top: 32px;
+    padding: 6px 10px;
+    display: flex; align-items: flex-start; gap: 6px;
+    font-size: 10px; line-height: 1.3;
+  }
+  .mp-banner .ico { width: 12px; height: 12px; flex-shrink: 0; margin-top: 1px; }
+  .mp-banner--warning { background: var(--warning-bg); color: var(--warning); }
+  .mp-banner--info    { background: var(--info-bg);    color: var(--info); }
+  .mp-banner--success { background: var(--success-bg); color: var(--success); }
+  .mp-banner--error   { background: var(--error-bg);   color: var(--error); }
+  .mp-banner__close {
+    margin-left: auto; color: currentColor; opacity: 0.7;
+    width: 14px; height: 14px;
+  }
+
+  .mp-banner--offline {
+    background: #2A2624; color: #FFF;
+  }
+  .mp-banner--offline .ico { color: var(--accent-soft); }
+
+  /* 오프라인 흐림 영역 */
+  .mp-dimmed {
+    flex: 1;
+    opacity: 0.45;
+    filter: saturate(0.6);
+    pointer-events: none;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  }
+  .mp-dimmed .skeleton { aspect-ratio: 4 / 5; border-radius: 6px; animation: none; }
+
+  /* 업로드 큐 카드 미니 */
+  .mp-upload-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    margin-top: 6px;
+  }
+  .mp-upload-thumb {
+    width: 28px; height: 28px;
+    border-radius: var(--r-sm);
+    flex-shrink: 0;
+  }
+  .mp-upload-body { flex: 1; min-width: 0; }
+  .mp-upload-name { font-size: 9px; font-weight: 600; color: var(--text-primary); }
+  .mp-upload-status { font-size: 8px; color: var(--text-tertiary); margin-top: 1px; }
+  .mp-upload-status--err { color: var(--error); }
+  .mp-upload-action {
+    width: 18px; height: 18px;
+    display: grid; place-items: center;
+    color: var(--accent);
+  }
+  .mp-upload-action svg { width: 12px; height: 12px; }
+
+  /* SVG icon helpers (mini) */
+  .mp-icon { stroke: currentColor; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+  @media (max-width: 720px) {
+    body { padding: 32px 12px 64px; }
+    .catalog-head h1 { font-size: 24px; }
+    .mini-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton::after,
+    .mp-spinner,
+    .spinner { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="catalog">
+
+  <header class="catalog-head">
+    <div>
+      <h1>States <span>Catalog</span></h1>
+      <p class="meta">v1.2 · Empty / Loading / Error / Offline / Toast & Banner — 17 미니어처</p>
+    </div>
+    <div class="pills">
+      <span class="pill"><span class="dot"></span> Light Minimal</span>
+      <span class="pill">tokens.css 단일 출처</span>
+      <span class="pill"><a href="../index.html" style="color: var(--accent);">갤러리 →</a></span>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       SECTION 1 — Empty States (5)
+       ============================================================ -->
+  <div class="section-head">
+    <span class="section-head__num">01 · Empty</span>
+    <h2 class="section-head__title">빈 상태 (5종)</h2>
+    <span class="section-head__sub">콘텐츠가 없는 경계, 다음 행동을 제안</span>
+  </div>
+
+  <div class="mini-grid">
+
+    <!-- E1: 빈 마켓플레이스 -->
+    <div class="mini">
+      <div class="mini__label">Empty · 01</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar">
+            <span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span>
+          </div>
+          <div class="mp-topbar"><span>마켓</span><span>🔍</span></div>
+          <div class="mp-body">
+            <div class="mp-empty">
+              <svg viewBox="0 0 64 64" class="mp-icon">
+                <rect x="10" y="14" width="44" height="40" rx="3"/>
+                <path d="M10 28 L54 28"/>
+                <path d="M22 14 L22 8 L42 8 L42 14"/>
+                <circle cx="32" cy="42" r="6" class="accent" stroke="currentColor"/>
+                <path d="M28 38 L36 46" class="accent" stroke="currentColor"/>
+              </svg>
+              <div class="mp-empty__title">곧 첫 필터를 만나요</div>
+              <div class="mp-empty__body">메이커들이 작품을 올리는 중입니다.</div>
+              <div class="mp-empty__cta">알림 받기</div>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">빈 마켓</div>
+      <p class="mini__desc">필터가 0개일 때, 알림 받기로 다음 행동을 만든다.</p>
+    </div>
+
+    <!-- E2: 검색 무결과 -->
+    <div class="mini">
+      <div class="mini__label">Empty · 02</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>← 검색</span><span></span></div>
+          <div class="mp-body">
+            <div class="mp-empty">
+              <svg viewBox="0 0 64 64" class="mp-icon">
+                <circle cx="28" cy="28" r="14"/>
+                <path d="M38 38 L52 52"/>
+                <path d="M22 28 L34 28" class="accent" stroke="currentColor"/>
+              </svg>
+              <div class="mp-empty__title">결과가 없어요</div>
+              <div class="mp-empty__body">"필름 v3"과 일치하는 필터를 못 찾았어요.</div>
+              <div class="mp-suggest-chips">
+                <span class="mp-suggest-chip">시네마틱</span>
+                <span class="mp-suggest-chip">필름</span>
+                <span class="mp-suggest-chip">빈티지</span>
+              </div>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">검색 무결과</div>
+      <p class="mini__desc">추천 키워드 칩으로 사용자 다음 시도를 유도.</p>
+    </div>
+
+    <!-- E3: 빈 프로필 (내 필터 0개) -->
+    <div class="mini">
+      <div class="mini__label">Empty · 03</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>프로필</span><span>···</span></div>
+          <div class="mp-body">
+            <div class="mp-empty">
+              <svg viewBox="0 0 64 64" class="mp-icon">
+                <circle cx="32" cy="22" r="8"/>
+                <path d="M16 50 a16 14 0 0 1 32 0"/>
+                <circle cx="48" cy="14" r="6" fill="var(--accent-bg)" stroke="var(--accent)" class="accent"/>
+                <path d="M48 11 L48 17 M45 14 L51 14" class="accent" stroke="currentColor"/>
+              </svg>
+              <div class="mp-empty__title">첫 필터를 등록하세요</div>
+              <div class="mp-empty__body">당신의 작품을 마켓에 공개해보세요.</div>
+              <div class="mp-empty__cta">메이커 시작</div>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">빈 프로필</div>
+      <p class="mini__desc">메이커 전환 CTA로 사용자 정체성 확장.</p>
+    </div>
+
+    <!-- E4: 빈 다운로드 -->
+    <div class="mini">
+      <div class="mini__label">Empty · 04</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>← 내 필터</span><span></span></div>
+          <div class="mp-body">
+            <div class="mp-empty">
+              <svg viewBox="0 0 64 64" class="mp-icon">
+                <path d="M14 42 L14 50 a4 4 0 0 0 4 4 L46 54 a4 4 0 0 0 4 -4 L50 42"/>
+                <path d="M32 12 L32 38 M22 30 L32 40 L42 30" class="accent" stroke="currentColor"/>
+              </svg>
+              <div class="mp-empty__title">아직 다운로드 없음</div>
+              <div class="mp-empty__body">마켓에서 마음에 드는 필터를 찾아보세요.</div>
+              <div class="mp-empty__cta">마켓 둘러보기</div>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">빈 다운로드</div>
+      <p class="mini__desc">"마켓으로" 링크로 자연스럽게 환승.</p>
+    </div>
+
+    <!-- E5: 빈 댓글 -->
+    <div class="mini">
+      <div class="mini__label">Empty · 05</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>← 댓글</span><span></span></div>
+          <div class="mp-body">
+            <div class="mp-empty">
+              <svg viewBox="0 0 64 64" class="mp-icon">
+                <path d="M12 18 a4 4 0 0 1 4 -4 L48 14 a4 4 0 0 1 4 4 L52 38 a4 4 0 0 1 -4 4 L26 42 L18 50 L18 42 L16 42 a4 4 0 0 1 -4 -4 Z"/>
+                <path d="M22 26 L34 26 M22 32 L42 32" class="accent" stroke="currentColor"/>
+              </svg>
+              <div class="mp-empty__title">아직 댓글이 없어요</div>
+              <div class="mp-empty__body">첫 댓글을 남겨보세요.</div>
+              <div class="mp-empty__cta mp-empty__cta--ghost">댓글 쓰기</div>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">빈 댓글</div>
+      <p class="mini__desc">필터 상세 하단, 첫 댓글을 부드럽게 권유.</p>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       SECTION 2 — Loading States (3)
+       ============================================================ -->
+  <div class="section-head">
+    <span class="section-head__num">02 · Loading</span>
+    <h2 class="section-head__title">로딩 상태 (3종)</h2>
+    <span class="section-head__sub">스켈레톤 + 스피너 — 200ms 이상 지연 예상 시</span>
+  </div>
+
+  <div class="mini-grid">
+
+    <!-- L1: 스켈레톤 그리드 -->
+    <div class="mini">
+      <div class="mini__label">Loading · 01</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>마켓</span><span>🔍</span></div>
+          <div class="mp-body" style="gap: 8px;">
+            <div class="skeleton skeleton--text-xl" style="width: 60%; margin-bottom: 4px;"></div>
+            <div class="skeleton" style="width: 100%; height: 64px; border-radius: 8px;"></div>
+            <div class="mp-grid-2">
+              <div class="skeleton"></div>
+              <div class="skeleton"></div>
+              <div class="skeleton"></div>
+              <div class="skeleton"></div>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">스켈레톤 · 그리드</div>
+      <p class="mini__desc">시머 1.5s 한 사이클. 사이 200ms 호흡.</p>
+    </div>
+
+    <!-- L2: 스켈레톤 상세 -->
+    <div class="mini">
+      <div class="mini__label">Loading · 02</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>← 필터</span><span>↗</span></div>
+          <div class="mp-body" style="gap: 8px;">
+            <div class="skeleton" style="width: 100%; aspect-ratio: 4/3; border-radius: 8px;"></div>
+            <div class="skeleton skeleton--text-lg" style="width: 70%;"></div>
+            <div class="skeleton skeleton--text" style="width: 45%;"></div>
+            <div class="mp-grid-2" style="margin-top: 4px;">
+              <div class="skeleton" style="aspect-ratio: 1; border-radius: 6px;"></div>
+              <div class="skeleton" style="aspect-ratio: 1; border-radius: 6px;"></div>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">스켈레톤 · 상세</div>
+      <p class="mini__desc">히어로 + 메타 + 사진 그리드 자리 잡기.</p>
+    </div>
+
+    <!-- L3: 스피너 (인라인 + 풀스크린) -->
+    <div class="mini">
+      <div class="mini__label">Loading · 03</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>← 처리</span><span></span></div>
+          <div class="mp-body">
+            <div class="mp-spinner-row">
+              <span class="mp-spinner"></span>
+              <span class="mp-spinner-row__text">댓글 불러오는 중…</span>
+            </div>
+            <div class="mp-spinner-center">
+              <span class="mp-spinner mp-spinner--lg"></span>
+              <span class="label">필터 적용 중</span>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">스피너 · 두 종</div>
+      <p class="mini__desc">인라인(16px)은 부분, 풀스크린(28px+)은 처리 중.</p>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       SECTION 3 — Error States (4)
+       ============================================================ -->
+  <div class="section-head">
+    <span class="section-head__num">03 · Error</span>
+    <h2 class="section-head__title">에러 상태 (4종)</h2>
+    <span class="section-head__sub">원인 + 회복 액션. 네트워크/서버/업로드/404</span>
+  </div>
+
+  <div class="mini-grid">
+
+    <!-- ER1: 네트워크 끊김 -->
+    <div class="mini">
+      <div class="mini__label">Error · 01</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>마켓</span><span>🔍</span></div>
+          <div class="mp-body">
+            <div class="mp-empty">
+              <svg viewBox="0 0 64 64" class="mp-icon">
+                <path d="M8 24 a36 36 0 0 1 48 0" stroke-dasharray="6 4"/>
+                <path d="M16 32 a24 24 0 0 1 32 0" stroke-dasharray="4 3"/>
+                <path d="M24 40 a12 12 0 0 1 16 0"/>
+                <circle cx="32" cy="50" r="2.5" fill="currentColor"/>
+                <path d="M52 12 L12 52" class="accent" stroke="currentColor"/>
+              </svg>
+              <div class="mp-empty__title">연결을 확인해주세요</div>
+              <div class="mp-empty__body">와이파이 또는 모바일 데이터를 켜주세요.</div>
+              <div class="mp-empty__cta">다시 시도</div>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">네트워크 끊김</div>
+      <p class="mini__desc">와이파이 OFF 시각화 + 즉시 재시도.</p>
+    </div>
+
+    <!-- ER2: 서버 오류 -->
+    <div class="mini">
+      <div class="mini__label">Error · 02</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>← 마켓</span><span></span></div>
+          <div class="mp-body">
+            <div class="mp-empty">
+              <svg viewBox="0 0 64 64" class="mp-icon">
+                <rect x="10" y="14" width="44" height="14" rx="3"/>
+                <rect x="10" y="36" width="44" height="14" rx="3"/>
+                <circle cx="18" cy="21" r="1.5" fill="currentColor"/>
+                <circle cx="18" cy="43" r="1.5" fill="currentColor"/>
+                <path d="M30 38 L46 22 M30 22 L46 38" class="accent" stroke="currentColor"/>
+              </svg>
+              <div class="mp-empty__title">잠시 후 다시 시도</div>
+              <div class="mp-empty__body">서버에 문제가 있어요. (5xx)</div>
+              <div class="mp-empty__cta">다시 시도</div>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">서버 오류 (5xx)</div>
+      <p class="mini__desc">사용자 잘못이 아님을 부드럽게 전달.</p>
+    </div>
+
+    <!-- ER3: 업로드 실패 -->
+    <div class="mini">
+      <div class="mini__label">Error · 03</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>← 업로드</span><span></span></div>
+          <div class="mp-body" style="padding-top: 12px;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; padding: 0 4px;">큐 (3)</div>
+            <div class="mp-upload-row">
+              <div class="mp-upload-thumb photo photo--cinematic"></div>
+              <div class="mp-upload-body">
+                <div class="mp-upload-name">Cinematic v3.fmpkg</div>
+                <div class="mp-upload-status" style="color: var(--success);">완료</div>
+              </div>
+              <div class="mp-upload-action" style="color: var(--success);">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 8 L7 12 L13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="mp-upload-row" style="border-color: var(--error); background: var(--error-bg);">
+              <div class="mp-upload-thumb photo photo--vintage"></div>
+              <div class="mp-upload-body">
+                <div class="mp-upload-name">Vintage Film 03.fmpkg</div>
+                <div class="mp-upload-status mp-upload-status--err">실패 — 네트워크</div>
+              </div>
+              <div class="mp-upload-action">
+                <svg viewBox="0 0 16 16" class="mp-icon"><path d="M2 8 a6 6 0 1 1 12 0 M11 4 L14 4 L14 7"/></svg>
+              </div>
+            </div>
+            <div class="mp-upload-row">
+              <div class="mp-upload-thumb photo photo--portrait"></div>
+              <div class="mp-upload-body">
+                <div class="mp-upload-name">Soft Skin v1.fmpkg</div>
+                <div class="mp-upload-status">대기 중…</div>
+              </div>
+              <div class="mp-upload-action" style="color: var(--text-tertiary);">
+                <svg viewBox="0 0 16 16" class="mp-icon"><path d="M4 4 L12 12 M12 4 L4 12"/></svg>
+              </div>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">업로드 실패</div>
+      <p class="mini__desc">큐 카드 안에서 실패 row만 빨간 톤 + 재시도.</p>
+    </div>
+
+    <!-- ER4: 콘텐츠 없음 (404) -->
+    <div class="mini">
+      <div class="mini__label">Error · 04</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>←</span><span></span></div>
+          <div class="mp-body">
+            <div class="mp-empty">
+              <svg viewBox="0 0 64 64" class="mp-icon">
+                <rect x="14" y="10" width="36" height="44" rx="4"/>
+                <path d="M22 22 L42 22 M22 30 L34 30"/>
+                <circle cx="32" cy="44" r="4" class="accent" stroke="currentColor"/>
+                <path d="M30 42 L34 46 M34 42 L30 46" class="accent" stroke="currentColor"/>
+              </svg>
+              <div class="mp-empty__title">필터를 찾을 수 없어요</div>
+              <div class="mp-empty__body">삭제되었거나 비공개로 전환되었습니다.</div>
+              <div class="mp-empty__cta mp-empty__cta--ghost">마켓으로</div>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">404 — 필터 없음</div>
+      <p class="mini__desc">막다른 길에서 마켓으로 환승 옵션.</p>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       SECTION 4 — Offline (1)
+       ============================================================ -->
+  <div class="section-head">
+    <span class="section-head__num">04 · Offline</span>
+    <h2 class="section-head__title">오프라인 모드 (1종)</h2>
+    <span class="section-head__sub">상단 슬림 배너 + 마켓 영역 흐림 처리</span>
+  </div>
+
+  <div class="mini-grid">
+
+    <div class="mini">
+      <div class="mini__label">Offline · 01</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>마켓</span><span>🔍</span></div>
+          <div class="mp-banner mp-banner--offline">
+            <svg viewBox="0 0 16 16" class="mp-icon ico"><path d="M2 6 a8 8 0 0 1 12 0 M5 9 a4 4 0 0 1 6 0 M14 2 L2 14"/></svg>
+            <span>오프라인 — 다운로드한 필터만 사용 가능</span>
+          </div>
+          <div class="mp-body" style="padding-top: 22px;">
+            <div class="mp-dimmed">
+              <div class="skeleton" style="background: var(--bg-3);"></div>
+              <div class="skeleton" style="background: var(--bg-3);"></div>
+              <div class="skeleton" style="background: var(--bg-3);"></div>
+              <div class="skeleton" style="background: var(--bg-3);"></div>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">오프라인</div>
+      <p class="mini__desc">상단 다크 배너 + 마켓 영역 opacity 0.45 흐림.</p>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       SECTION 5 — Toast & Banner (4 + 4)
+       ============================================================ -->
+  <div class="section-head">
+    <span class="section-head__num">05 · Toast & Banner</span>
+    <h2 class="section-head__title">토스트 / 배너 (4종)</h2>
+    <span class="section-head__sub">success / warning / error / info — 짝으로 표시</span>
+  </div>
+
+  <div class="mini-grid">
+
+    <!-- T1: Toast Success -->
+    <div class="mini">
+      <div class="mini__label">Toast · success</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>← 필터</span><span>···</span></div>
+          <div class="mp-body">
+            <div class="skeleton" style="aspect-ratio: 4/5; border-radius: 8px;"></div>
+          </div>
+          <div class="mp-toast mp-toast--success">
+            <svg viewBox="0 0 16 16" class="mp-icon ico"><circle cx="8" cy="8" r="7"/><path d="M5 8 L7 10 L11 5"/></svg>
+            <span>다운로드 완료</span>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">Toast · 성공</div>
+      <p class="mini__desc">하단 floating, 4초 후 자동 dismiss.</p>
+    </div>
+
+    <!-- T2: Toast Error -->
+    <div class="mini">
+      <div class="mini__label">Toast · error</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>← 업로드</span><span></span></div>
+          <div class="mp-body">
+            <div class="skeleton" style="aspect-ratio: 4/5; border-radius: 8px;"></div>
+          </div>
+          <div class="mp-toast mp-toast--error">
+            <svg viewBox="0 0 16 16" class="mp-icon ico"><circle cx="8" cy="8" r="7"/><path d="M8 4 L8 9 M8 11.5 L8 12"/></svg>
+            <span>저장 실패 — 다시 시도</span>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">Toast · 실패</div>
+      <p class="mini__desc">2.5초 + 햅틱 error 동반.</p>
+    </div>
+
+    <!-- B1: Banner Warning -->
+    <div class="mini">
+      <div class="mini__label">Banner · warning</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>설정</span><span></span></div>
+          <div class="mp-banner mp-banner--warning">
+            <svg viewBox="0 0 16 16" class="mp-icon ico"><path d="M8 1 L15 14 L1 14 Z"/><path d="M8 6 L8 10 M8 12 L8 12.5"/></svg>
+            <span>저장 공간이 90% 찼습니다.</span>
+            <span class="mp-banner__close">✕</span>
+          </div>
+          <div class="mp-body" style="padding-top: 28px;">
+            <div class="skeleton skeleton--text-lg" style="width: 80%; margin-bottom: 6px;"></div>
+            <div class="skeleton skeleton--text" style="width: 60%;"></div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">Banner · 경고</div>
+      <p class="mini__desc">상단 sticky, 닫기 가능. 영구적 상태.</p>
+    </div>
+
+    <!-- B2: Banner Info -->
+    <div class="mini">
+      <div class="mini__label">Banner · info</div>
+      <div class="mini-phone">
+        <div class="mp-screen">
+          <div class="mp-statusbar"><span>9:41</span><div class="mp-statusbar__dot"></div><span>•••</span></div>
+          <div class="mp-topbar"><span>마켓</span><span>🔍</span></div>
+          <div class="mp-banner mp-banner--info">
+            <svg viewBox="0 0 16 16" class="mp-icon ico"><circle cx="8" cy="8" r="7"/><path d="M8 7 L8 12 M8 4.5 L8 5"/></svg>
+            <span>새 버전이 있어요. 탭하여 업데이트.</span>
+            <span class="mp-banner__close">✕</span>
+          </div>
+          <div class="mp-body" style="padding-top: 28px;">
+            <div class="mp-grid-2">
+              <div class="skeleton"></div>
+              <div class="skeleton"></div>
+            </div>
+          </div>
+          <div class="mp-tabbar">
+            <span class="mp-tab-dot mp-tab-dot--active"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+            <span class="mp-tab-dot"></span><span class="mp-tab-dot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mini__title">Banner · 정보</div>
+      <p class="mini__desc">알림 + 액션 한 줄. info 톤 컬러.</p>
+    </div>
+
+  </div>
+
+  <footer style="margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border-subtle); color: var(--text-tertiary); font-size: var(--t-subhead-size); text-align: center; line-height: 1.6;">
+    <p>filterMarket © 2026 · States Catalog v1.2 · Light Minimal</p>
+    <p>모든 미니어처는 단일 정보 출처(<a href="../shared/tokens.css" style="color: var(--text-secondary);">tokens.css</a>)에서 파생됩니다.</p>
+  </footer>
+
+</main>
+</body>
+</html>

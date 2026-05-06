@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>P · Camera Priming — filterMarket</title>
+<link rel="stylesheet" href="../../shared/fonts.css" />
+<link rel="stylesheet" href="../../shared/tokens.css" />
+<link rel="stylesheet" href="../../shared/components.css" />
+<link rel="stylesheet" href="../../shared/phone-frame.css" />
+<link rel="stylesheet" href="_shared.css" />
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="screen" style="background: var(--bg-0);">
+      <div class="screen__top-spacer"></div>
+      <header class="topbar topbar--transparent">
+        <button class="topbar__action" aria-label="닫기">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+        </button>
+        <span></span>
+        <span></span>
+      </header>
+
+      <main class="perm">
+        <div class="perm__top">
+          <div class="perm__art" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M3 8.5 L3 18 a2 2 0 0 0 2 2 L19 20 a2 2 0 0 0 2 -2 L21 8.5 a2 2 0 0 0 -2 -2 L17 6.5 L15 4 L9 4 L7 6.5 L5 6.5 a2 2 0 0 0 -2 2 Z"/>
+              <circle cx="12" cy="13" r="4"/>
+              <circle cx="12" cy="13" r="1.5" fill="currentColor"/>
+            </svg>
+          </div>
+          <h1 class="perm__title">필터를 입혀 촬영하기</h1>
+          <p class="perm__body">
+            라이브 프리뷰에서 필터를 적용해 사진을 찍으려면 카메라 접근이 필요해요.
+            촬영한 사진은 언제든 저장 또는 삭제할 수 있어요.
+          </p>
+        </div>
+
+        <div class="perm__bottom">
+          <button class="btn btn--primary btn--block btn--lg">허용</button>
+          <button class="btn btn--ghost btn--block">나중에</button>
+          <p class="perm__hint">설정에서 언제든 변경할 수 있어요.</p>
+        </div>
+      </main>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>11 · Filter Editor — filterMarket</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .editor-screen {
+    position: absolute;
+    inset: 0;
+    background: var(--bg-1);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ed-top {
+    height: var(--topbar-h);
+    padding: 0 var(--sp-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-0);
+  }
+  .ed-top__title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .ed-top__name { font-size: var(--t-headline-size); font-weight: 600; color: var(--text-primary); }
+  .ed-top__sub { font-size: 10px; color: var(--text-tertiary); letter-spacing: 0.4px; text-transform: uppercase; }
+
+  .ed-preview {
+    flex: 1;
+    background: var(--bg-3);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .ed-preview .photo {
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: 360px;
+  }
+  .ed-preview__hud {
+    position: absolute;
+    top: var(--sp-md);
+    left: var(--sp-md);
+    display: flex;
+    gap: 6px;
+  }
+  .hud-pill {
+    padding: 4px 10px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--r-sm);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    color: var(--text-primary);
+  }
+  .hud-pill--accent { color: var(--accent); border: 1px solid var(--accent); background: var(--accent-bg); }
+
+  .ed-preview__compare {
+    position: absolute;
+    top: var(--sp-md);
+    right: var(--sp-md);
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-full);
+    display: grid;
+    place-items: center;
+    color: var(--text-primary);
+  }
+
+  /* 파라미터 시트 (하단) */
+  .ed-sheet {
+    background: var(--bg-2);
+    border-top: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    box-shadow: 0 -4px 16px rgba(15,15,14,0.04);
+  }
+
+  /* 파라미터 카테고리 탭 */
+  .ed-cats {
+    display: flex;
+    gap: var(--sp-md);
+    padding: var(--sp-sm) var(--sp-md);
+    border-bottom: 1px solid var(--border-subtle);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ed-cats::-webkit-scrollbar { display: none; }
+  .ed-cat {
+    flex-shrink: 0;
+    padding: 6px 0;
+    font-size: var(--t-subhead-size);
+    font-weight: 500;
+    color: var(--text-tertiary);
+    border-bottom: 2px solid transparent;
+    transition: all var(--d-fast) var(--ease-standard);
+  }
+  .ed-cat--active {
+    color: var(--text-primary);
+    border-bottom-color: var(--accent);
+  }
+
+  .ed-params {
+    padding: var(--sp-sm) var(--sp-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-sm);
+  }
+
+  .param-row {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-md);
+  }
+  .param-row__label {
+    flex: 0 0 88px;
+    font-size: var(--t-subhead-size);
+    color: var(--text-secondary);
+  }
+  .param-row__slider { flex: 1; }
+  .param-row__value {
+    flex: 0 0 40px;
+    text-align: right;
+    font-size: var(--t-subhead-size);
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* 슬라이더 - 양방향 (중심 0) */
+  .slider-bi {
+    height: 4px;
+    background: var(--bg-3);
+    border-radius: var(--r-full);
+    position: relative;
+  }
+  .slider-bi__fill {
+    position: absolute;
+    top: 0; bottom: 0;
+    background: var(--accent);
+    border-radius: var(--r-full);
+  }
+  .slider-bi__center {
+    position: absolute;
+    top: -2px; bottom: -2px;
+    width: 1px;
+    background: var(--text-tertiary);
+    left: 50%;
+  }
+  .slider-bi__thumb {
+    position: absolute;
+    top: 50%;
+    width: 14px; height: 14px;
+    background: #FFFFFF;
+    border: 2px solid var(--accent);
+    border-radius: var(--r-full);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 6px rgba(15,15,14,0.18);
+  }
+
+  .ed-actions {
+    padding: var(--sp-md) var(--sp-md) calc(var(--safe-bottom) + var(--sp-sm));
+    display: flex;
+    gap: var(--sp-xs);
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-2);
+  }
+  .ed-actions .btn { flex: 1; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="editor-screen">
+      <div class="screen__top-spacer"></div>
+
+      <header class="ed-top">
+        <button class="topbar__action" aria-label="닫기">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+        </button>
+        <div class="ed-top__title">
+          <div class="ed-top__name">Untitled · 작업중</div>
+          <div class="ed-top__sub">에디터</div>
+        </div>
+        <button class="topbar__action topbar__action--accent">완료</button>
+      </header>
+
+      <section class="ed-preview fade-in">
+        <div class="photo photo--cafe photo--vignette"></div>
+        <div class="ed-preview__hud">
+          <span class="hud-pill hud-pill--accent">LUT · 33³</span>
+          <span class="hud-pill" style="color: var(--text-secondary);">unsaved</span>
+        </div>
+        <button class="ed-preview__compare" aria-label="비교">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="12" r="3"/><path d="M9 12 L15 12"/></svg>
+        </button>
+      </section>
+
+      <section class="ed-sheet">
+        <div class="ed-cats fade-in fade-in--delay-1">
+          <span class="ed-cat ed-cat--active">기본</span>
+          <span class="ed-cat">컬러</span>
+          <span class="ed-cat">톤 곡선</span>
+          <span class="ed-cat">그레인</span>
+          <span class="ed-cat">비네팅</span>
+          <span class="ed-cat">LUT</span>
+        </div>
+
+        <div class="ed-params fade-in fade-in--delay-2">
+          <div class="param-row">
+            <span class="param-row__label">강도</span>
+            <div class="param-row__slider">
+              <div class="slider__track" style="position:relative; height: 4px; background: var(--bg-3); border-radius: var(--r-full);">
+                <div class="slider__fill" style="right: 25%;"></div>
+                <div class="slider__thumb" style="left: 75%;"></div>
+              </div>
+            </div>
+            <span class="param-row__value">75</span>
+          </div>
+
+          <div class="param-row">
+            <span class="param-row__label">노출</span>
+            <div class="param-row__slider">
+              <div class="slider-bi">
+                <div class="slider-bi__center"></div>
+                <div class="slider-bi__fill" style="left: 50%; right: 35%;"></div>
+                <div class="slider-bi__thumb" style="left: 65%;"></div>
+              </div>
+            </div>
+            <span class="param-row__value">+0.6</span>
+          </div>
+
+          <div class="param-row">
+            <span class="param-row__label">대비</span>
+            <div class="param-row__slider">
+              <div class="slider-bi">
+                <div class="slider-bi__center"></div>
+                <div class="slider-bi__fill" style="left: 50%; right: 25%;"></div>
+                <div class="slider-bi__thumb" style="left: 75%;"></div>
+              </div>
+            </div>
+            <span class="param-row__value">+18</span>
+          </div>
+
+          <div class="param-row">
+            <span class="param-row__label">채도</span>
+            <div class="param-row__slider">
+              <div class="slider-bi">
+                <div class="slider-bi__center"></div>
+                <div class="slider-bi__fill" style="left: 42%; right: 50%;"></div>
+                <div class="slider-bi__thumb" style="left: 42%;"></div>
+              </div>
+            </div>
+            <span class="param-row__value">-8</span>
+          </div>
+
+          <div class="param-row">
+            <span class="param-row__label">색온도</span>
+            <div class="param-row__slider">
+              <div class="slider-bi">
+                <div class="slider-bi__center"></div>
+                <div class="slider-bi__fill" style="left: 50%; right: 30%;"></div>
+                <div class="slider-bi__thumb" style="left: 70%;"></div>
+              </div>
+            </div>
+            <span class="param-row__value">+12</span>
+          </div>
+
+          <div class="param-row">
+            <span class="param-row__label">색조</span>
+            <div class="param-row__slider">
+              <div class="slider-bi">
+                <div class="slider-bi__center"></div>
+                <div class="slider-bi__fill" style="left: 47%; right: 50%;"></div>
+                <div class="slider-bi__thumb" style="left: 47%;"></div>
+              </div>
+            </div>
+            <span class="param-row__value">-3</span>
+          </div>
+
+          <div class="param-row">
+            <span class="param-row__label">그레인</span>
+            <div class="param-row__slider">
+              <div class="slider__track" style="position:relative; height: 4px; background: var(--bg-3); border-radius: var(--r-full);">
+                <div class="slider__fill" style="right: 80%;"></div>
+                <div class="slider__thumb" style="left: 20%;"></div>
+              </div>
+            </div>
+            <span class="param-row__value">20</span>
+          </div>
+
+          <div class="param-row">
+            <span class="param-row__label">비네팅</span>
+            <div class="param-row__slider">
+              <div class="slider__track" style="position:relative; height: 4px; background: var(--bg-3); border-radius: var(--r-full);">
+                <div class="slider__fill" style="right: 65%;"></div>
+                <div class="slider__thumb" style="left: 35%;"></div>
+              </div>
+            </div>
+            <span class="param-row__value">35</span>
+          </div>
+        </div>
+
+        <div class="ed-actions">
+          <button class="btn btn--secondary btn--lg">초기화</button>
+          <button class="btn btn--primary btn--lg btn--block">
+            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4 L19 4 L19 21 L12 17 L5 21 Z"/></svg>
+            저장하고 다음
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

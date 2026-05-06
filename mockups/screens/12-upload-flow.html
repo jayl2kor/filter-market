@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>12 · Upload Flow — filterMarket</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .upload-body {
+    padding: var(--sp-md) var(--screen-pad) var(--sp-3xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-lg);
+  }
+
+  /* 진행 인디케이터 */
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: var(--sp-xs);
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .step__circle {
+    width: 22px; height: 22px;
+    border-radius: var(--r-full);
+    border: 1.5px solid var(--border-default);
+    color: var(--text-tertiary);
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--bg-2);
+  }
+  .step__label {
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+    letter-spacing: 0.3px;
+  }
+  .step--active .step__circle {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-bg);
+  }
+  .step--active .step__label { color: var(--text-primary); font-weight: 600; }
+  .step--done .step__circle {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--text-inverse);
+  }
+  .step--done .step__label { color: var(--text-secondary); }
+  .step__line {
+    flex: 1;
+    height: 1px;
+    background: var(--border-default);
+    min-width: 12px;
+  }
+  .step__line--active { background: var(--accent); }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-xs);
+  }
+  .field-label {
+    font-size: var(--t-subhead-size);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .field-label .req { color: var(--accent); margin-left: 2px; }
+  .field-hint {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+  }
+
+  .field-textarea {
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+    color: var(--text-primary);
+    font-family: var(--font-primary);
+    font-size: var(--t-body-size);
+    min-height: 88px;
+    resize: vertical;
+    outline: none;
+    transition: border-color var(--d-fast) var(--ease-standard), box-shadow var(--d-fast) var(--ease-standard);
+  }
+  .field-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-ring); }
+
+  .preview-upload {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-xs);
+  }
+  .preview-slot {
+    aspect-ratio: 4/5;
+    border-radius: var(--r-md);
+    border: 1.5px dashed var(--border-default);
+    display: grid;
+    place-items: center;
+    color: var(--text-tertiary);
+    background: var(--bg-2);
+    font-size: var(--t-subhead-size);
+    text-align: center;
+    flex-direction: column;
+  }
+  .preview-slot--filled {
+    border: 1px solid var(--border-default);
+    border-style: solid;
+    overflow: hidden;
+    position: relative;
+    box-shadow: var(--elev-1-shadow);
+  }
+  .preview-slot--filled .photo { width: 100%; height: 100%; }
+  .preview-slot__label {
+    position: absolute;
+    top: 8px; left: 8px;
+    padding: 2px 8px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px);
+    border-radius: var(--r-sm);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+  }
+  .preview-slot__label--before { color: var(--text-secondary); }
+
+  .cat-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-xs);
+  }
+
+  .terms {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: var(--sp-md);
+    display: flex;
+    gap: var(--sp-sm);
+    align-items: flex-start;
+    box-shadow: var(--elev-1-shadow);
+  }
+  .checkbox {
+    width: 22px; height: 22px;
+    flex-shrink: 0;
+    border: 1.5px solid var(--accent);
+    border-radius: var(--r-sm);
+    background: var(--accent);
+    display: grid;
+    place-items: center;
+    color: var(--text-inverse);
+    margin-top: 1px;
+  }
+  .terms__text {
+    font-size: var(--t-subhead-size);
+    line-height: 1.45;
+    color: var(--text-secondary);
+  }
+  .terms__text a { color: var(--accent); text-decoration: underline; font-weight: 500; }
+
+  .cta-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: var(--sp-sm) var(--sp-md) calc(var(--safe-bottom) + var(--sp-xs));
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    gap: var(--sp-xs);
+    z-index: 30;
+  }
+  .cta-bar .btn--primary { flex: 1; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg viewBox="0 0 18 12"><path d="M2 7 a7 7 0 0 1 14 0 M5 9 a4 4 0 0 1 8 0" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="screen" style="background: var(--bg-1);">
+      <div class="screen__top-spacer"></div>
+
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">필터 등록</span>
+        <button class="topbar__action" style="color: var(--text-tertiary); font-size: var(--t-callout-size); min-width: auto; padding: 0 var(--sp-xs);">임시저장</button>
+      </header>
+
+      <div class="screen__body" style="padding-bottom: 88px;">
+        <div class="upload-body">
+          <!-- 스테퍼 -->
+          <nav class="stepper fade-in" aria-label="3단계 중 2단계">
+            <div class="step step--done">
+              <span class="step__circle">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg>
+              </span>
+              <span class="step__label">정보</span>
+            </div>
+            <span class="step__line step__line--active"></span>
+            <div class="step step--active">
+              <span class="step__circle">2</span>
+              <span class="step__label">미리보기</span>
+            </div>
+            <span class="step__line"></span>
+            <div class="step">
+              <span class="step__circle">3</span>
+              <span class="step__label">검수</span>
+            </div>
+          </nav>
+
+          <!-- 미리보기 업로드 -->
+          <section class="field-group fade-in fade-in--delay-1">
+            <label class="field-label">미리보기 사진<span class="req">*</span></label>
+            <p class="field-hint">비포(원본) 1장 + 애프터(필터 적용) 1장. 인물 사진은 본인 또는 동의 받은 사진만.</p>
+            <div class="preview-upload">
+              <div class="preview-slot preview-slot--filled">
+                <span class="preview-slot__label preview-slot__label--before">BEFORE</span>
+                <div class="photo photo--cafe"></div>
+              </div>
+              <div class="preview-slot preview-slot--filled">
+                <span class="preview-slot__label">AFTER</span>
+                <div class="photo photo--vintage photo--vignette"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 추가 샘플 -->
+          <section class="field-group fade-in fade-in--delay-2">
+            <label class="field-label">추가 샘플 (선택)</label>
+            <p class="field-hint">최대 6장. 다양한 환경(인물/풍경/실내)에서 적용 모습을 보여주면 다운로드율이 높아집니다.</p>
+            <div class="preview-upload" style="grid-template-columns: 1fr 1fr 1fr;">
+              <div class="preview-slot preview-slot--filled">
+                <div class="photo photo--portrait photo--vignette"></div>
+              </div>
+              <div class="preview-slot preview-slot--filled">
+                <div class="photo photo--mountain photo--vignette"></div>
+              </div>
+              <div class="preview-slot preview-slot--filled">
+                <div class="photo photo--warm photo--vignette"></div>
+              </div>
+              <div class="preview-slot preview-slot--filled">
+                <div class="photo photo--cinematic photo--vignette"></div>
+              </div>
+              <div class="preview-slot">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5 L12 19 M5 12 L19 12"/></svg>
+                <span style="margin-top: 6px;">추가</span>
+              </div>
+              <div class="preview-slot">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5 L12 19 M5 12 L19 12"/></svg>
+                <span style="margin-top: 6px;">추가</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- 캡션 -->
+          <section class="field-group fade-in fade-in--delay-3">
+            <label class="field-label">메이커 노트</label>
+            <p class="field-hint">어떤 분위기에 어울리는지, 어떤 장면을 의도했는지 알려주세요.</p>
+            <textarea class="field-textarea" placeholder="예: 73년 코닥 필름의 따뜻한 황혼을 담았습니다...">73년 코닥 필름의 따뜻한 황혼을 담았습니다. 카페 조명, 골목길 가로등, 노을이 깔리는 시간에 가장 잘 어울려요.</textarea>
+          </section>
+
+          <!-- 약관 -->
+          <section class="terms fade-in fade-in--delay-4">
+            <span class="checkbox" aria-checked="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg>
+            </span>
+            <p class="terms__text">
+              본 필터는 제 창작물이며, 제3자 권리를 침해하지 않음을 확인합니다. 검수 기간은 최대 24시간이며, <a href="#">메이커 약관</a>과 <a href="#">콘텐츠 가이드라인</a>에 동의합니다.
+            </p>
+          </section>
+        </div>
+      </div>
+
+      <!-- 고정 하단 -->
+      <div class="cta-bar">
+        <button class="btn btn--secondary btn--lg">이전</button>
+        <button class="btn btn--primary btn--lg btn--block">
+          검수 제출
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12 L19 12 M13 6 L19 12 L13 18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>
