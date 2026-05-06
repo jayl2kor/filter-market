@@ -1,0 +1,74 @@
+import Metal
+
+enum LUTTextureFactory {
+    static func makeWarmLUT(device: MTLDevice, size: Int = 33) -> MTLTexture? {
+        makeLUT(device: device, size: size) { red, green, blue in
+            let warmedRed = min(red * 1.08 + 0.025, 1)
+            let warmedGreen = min(green * 1.02 + 0.008, 1)
+            let cooledBlue = max(blue * 0.92 - 0.012, 0)
+            return (warmedRed, warmedGreen, cooledBlue)
+        }
+    }
+
+    static func makeIdentityLUT(device: MTLDevice, size: Int = 33) -> MTLTexture? {
+        makeLUT(device: device, size: size) { red, green, blue in
+            (red, green, blue)
+        }
+    }
+
+    private static func makeLUT(
+        device: MTLDevice,
+        size: Int,
+        transform: (Float, Float, Float) -> (Float, Float, Float)
+    ) -> MTLTexture? {
+        let descriptor = MTLTextureDescriptor()
+        descriptor.textureType = .type3D
+        descriptor.pixelFormat = .rgba32Float
+        descriptor.width = size
+        descriptor.height = size
+        descriptor.depth = size
+        descriptor.mipmapLevelCount = 1
+        descriptor.usage = .shaderRead
+        descriptor.storageMode = .shared
+
+        guard let texture = device.makeTexture(descriptor: descriptor) else {
+            return nil
+        }
+
+        var values: [Float] = []
+        values.reserveCapacity(size * size * size * 4)
+
+        for blueIndex in 0..<size {
+            for greenIndex in 0..<size {
+                for redIndex in 0..<size {
+                    let red = Float(redIndex) / Float(size - 1)
+                    let green = Float(greenIndex) / Float(size - 1)
+                    let blue = Float(blueIndex) / Float(size - 1)
+                    let color = transform(red, green, blue)
+                    values.append(color.0)
+                    values.append(color.1)
+                    values.append(color.2)
+                    values.append(1)
+                }
+            }
+        }
+
+        let bytesPerPixel = 4 * MemoryLayout<Float>.size
+        let bytesPerRow = size * bytesPerPixel
+        let bytesPerImage = size * bytesPerRow
+        let region = MTLRegionMake3D(0, 0, 0, size, size, size)
+
+        values.withUnsafeBytes { buffer in
+            texture.replace(
+                region: region,
+                mipmapLevel: 0,
+                slice: 0,
+                withBytes: buffer.baseAddress!,
+                bytesPerRow: bytesPerRow,
+                bytesPerImage: bytesPerImage
+            )
+        }
+
+        return texture
+    }
+}
