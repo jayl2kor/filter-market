@@ -1,0 +1,10 @@
+rules_version = '2';
+// 미디어는 Cloudflare R2를 사용하므로 Firebase Storage는 기본적으로 차단.
+// (TECH_STACK.md §6 참조 — egress 비용 회피 위해 R2만 사용)
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

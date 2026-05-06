@@ -1,0 +1,41 @@
+rules_version = '2';
+// Skeleton — see docs/FIRESTORE_RULES.md for the canonical rules.
+// This file is the deployable mirror; keep them in sync.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny — explicit allows are added below as collections come online.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // TODO: copy over rules from FIRESTORE_RULES.md sections:
+    //   §2 users/{uid}
+    //   §3 filters/{filterId}
+    //   §4 filters/{filterId}/reports/{reportId}
+    //   §5 filters/{filterId}/moderation/{decisionId}
+    //   §6 handles/{handle}
+    //   §7 follows/{followerUid}_{followeeUid}
+
+    // CURRENCY_DESIGN.md §8.2 — wallet & transactions are server-only writes.
+    match /wallets/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;  // Cloud Functions only
+    }
+    match /transactions/{txId} {
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+    match /payouts/{payoutId} {
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+    match /topupIntents/{intentId} {
+      allow read, write: if false;  // server-only
+    }
+    match /config/{doc} {
+      allow read: if true;  // economy/coinPackages public read
+      allow write: if false;
+    }
+  }
+}

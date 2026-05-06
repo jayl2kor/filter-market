@@ -1,0 +1,5 @@
+{
+  "indexes": [],
+  "fieldOverrides": [],
+  "_comment": "Skeleton — populate per docs/API_SPEC.md §3.4. Composite indexes for: filters by (status, category, publishedAt desc), filters by (ownerUid, createdAt desc), reports by (filterId, createdAt asc)."
+}
