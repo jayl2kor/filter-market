@@ -87,6 +87,7 @@
 		95492EEEFCD60CA2E64666A5 /* ReduceMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCF82BA88FE8A0FCB5612ACD /* ReduceMotion.swift */; };
 		961ABCB37D04DAAE1F581E72 /* LUTSamplerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49CE763E3DE75A81BBBA35B /* LUTSamplerTests.swift */; };
 		9958D4572EDCEF827C6DBB2C /* Models.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 17B1469C92033DB00AD14607 /* Models.framework */; };
+		9E741D7E42757E5EC2821E84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A5351CED6F1DF3CD977446C4 /* Assets.xcassets */; };
 		A1CD84CC2E138343F8939C23 /* PermissionScaffold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09CE5E216D06FBC248800288 /* PermissionScaffold.swift */; };
 		A1F1281F920B3D8A1F39DC04 /* Models.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 17B1469C92033DB00AD14607 /* Models.framework */; };
 		A2AD78682DA72F91057836B0 /* FilterEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 19A5F57CB1F9511DB9EEE36F /* FilterEngine.framework */; };
@@ -386,6 +387,7 @@
 		9149F580BC82A6AC5DAA75C0 /* LUTTextureFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LUTTextureFactory.swift; sourceTree = "<group>"; };
 		9A1235D2D5FB004AC0811A48 /* Auth.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Auth.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C9D1842B9C35E234AF87C08 /* BundleSeedFilterRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleSeedFilterRepository.swift; sourceTree = "<group>"; };
+		A5351CED6F1DF3CD977446C4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A989842A9E1BA002F56ADB18 /* FMEmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMEmptyState.swift; sourceTree = "<group>"; };
 		AA80AEE3D4DD5B9103378940 /* PhotosPermissionPriming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotosPermissionPriming.swift; sourceTree = "<group>"; };
 		AE15FDD0D63491F42DC3EB6B /* CapturePreviewScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePreviewScreen.swift; sourceTree = "<group>"; };
@@ -525,6 +527,7 @@
 				0B526CA1CB709EEE6680518A /* Onboarding */,
 				2B8E07A4507B5FAFCA232C54 /* Permissions */,
 				F69E60BB03404AFC3AD1794F /* Profile */,
+				D7E649234BE27293DAF823BB /* Resources */,
 				DF303A4507D1D48D500EDF23 /* Search */,
 				D28F39C7EE1EC8EFE2A3CA82 /* Settings */,
 			);
@@ -807,6 +810,14 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
+		D7E649234BE27293DAF823BB /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A5351CED6F1DF3CD977446C4 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		DE6337C0EBC20CDD98852982 /* Tokens */ = {
 			isa = PBXGroup;
 			children = (
@@ -866,13 +877,6 @@
 				BDF21144BA3731FF0820005E /* BasicYUVShaders.metal */,
 			);
 			path = Shaders;
-			sourceTree = "<group>";
-		};
-		"TEMP_709D7C4C-8006-485E-9D80-87B65FB29295" /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1203,6 +1207,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9E741D7E42757E5EC2821E84 /* Assets.xcassets in Resources */,
 				19BF8D4F3C0BCE6AF0D31F9E /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

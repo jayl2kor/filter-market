@@ -1,19 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Moodit App Icon — Light variant (1024x1024).
-  Background: bg-1 warm off-white (#F5F4EF) for tactile, gallery-paper feel.
-  Mark: gold accent (#B8853A) — outline + filled twin-lens.
-
-  Export 1024x1024 PNG via:
-    rsvg-convert -w 1024 -h 1024 app-icon-light.svg -o app-icon-light.png
-
-  iOS does not require pre-rounded corners — Xcode masks automatically.
+  Moodit App Icon — Light variant (1024x1024, v0.3).
+  Outline r=162 with stroke=36 → outer 180, matching filled r=180.
+  Background: bg-1 warm off-white (#F5F4EF). Mark: gold (#B8853A).
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Moodit App Icon">
-  <!-- Background (full bleed, iOS auto-masks corners) -->
   <rect width="1024" height="1024" fill="#F5F4EF"/>
-
-  <!-- Twin-lens mark, centered. r=180, stroke=36, centers 256 apart -->
-  <circle cx="384" cy="512" r="180" fill="none" stroke="#B8853A" stroke-width="36"/>
+  <circle cx="384" cy="512" r="162" fill="none" stroke="#B8853A" stroke-width="36"/>
   <circle cx="640" cy="512" r="180" fill="#B8853A"/>
 </svg>

@@ -51,13 +51,15 @@ struct LoginScreen: View {
 
     private var brandSection: some View {
         VStack(spacing: Sp.md) {
-            logo
+            // Phase Brand: 'Twin Lens' 심볼 + "moodit" 워드마크 세로 락업.
+            // SVG 벡터 자산 — Asset Catalog 의 preserves-vector-representation 으로 다이내믹 타입과
+            // 모든 해상도에서 선명. 다크 모드 분기는 별도 자산 없이 라이트 워드마크 그대로 노출
+            // (요구되면 후속 변형 자산 추가 가능 — 현재는 라이트 컨텍스트 기준).
+            Image("MooditLockupVertical")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: 220, maxHeight: 160)
                 .accessibilityHidden(true)
-
-            Text("moodit")
-                .fmTypography(.display)
-                .foregroundStyle(FMColors.Text.primary)
-                .multilineTextAlignment(.center)
 
             Text("모두의 필터, 단 하나의 마켓.\n촬영하고, 만들고, 거래하세요.")
                 .fmTypography(.body)
@@ -66,28 +68,8 @@ struct LoginScreen: View {
                 .frame(maxWidth: 280)
         }
         .padding(.top, Sp.xxxxl)
-    }
-
-    private var logo: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: R.lg)
-                .fill(FMColors.Background.bg2)
-                .overlay {
-                    RoundedRectangle(cornerRadius: R.lg)
-                        .strokeBorder(FMColors.Border.default, lineWidth: 1)
-                }
-                .shadow(
-                    color: FMColors.Accent.primary.opacity(0.12),
-                    radius: 24,
-                    x: 0,
-                    y: 8
-                )
-
-            Image(systemName: "camera.aperture")
-                .font(.system(size: 32, weight: .light))
-                .foregroundStyle(FMColors.Accent.primary)
-        }
-        .frame(width: 64, height: 64)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("moodit. 모두의 필터, 단 하나의 마켓. 촬영하고, 만들고, 거래하세요.")
     }
 
     private var buttonsSection: some View {

@@ -1,6 +1,6 @@
 # Moodit — Brand Guide
 
-> 버전: v0.1 · 작성일: 2026-05-06 · 상태: 초안 (피드백 후 v0.2)
+> 버전: v0.3 · 작성일: 2026-05-06 · 상태: 초안 (피드백 후 v0.4)
 >
 > 이 문서는 Moodit의 로고·심볼·워드마크 사용 규칙이다. 자산 파일은 [`../mockups/brand/`](../mockups/brand/)에 있고, 시각 카탈로그는 [`brand/preview.html`](../mockups/brand/preview.html)을 브라우저에서 열어 확인한다.
 
@@ -12,10 +12,20 @@
 
 | 원 | 의미 |
 |---|---|
-| 외곽선 (`fill: none`, gold stroke) | **보는 눈** — 사진을 감상하는 사람, 큐레이터, 마켓의 둘러보는 사용자 |
-| 채움 (gold solid) | **담는 눈** — 셔터를 누른 사람, 메이커, 결정의 순간 |
+| **외곽선 (`fill: none`, gold stroke)** | 보는 눈 — 사진을 감상하는 사람, 큐레이터, 마켓의 둘러보는 사용자 |
+| **채움 (gold solid)** | 담는 눈 — 셔터를 누른 사람, 메이커, 결정의 순간 |
 
 두 원이 짝을 이루는 형태는 메이커×촬영자 양면 마켓 컨셉을 한 시각 단위로 압축한다.
+
+### 두 원의 시각 크기 일치 (v0.3 보정)
+
+외곽선 원은 SVG의 stroke가 반경 외부로 절반(0.5 × stroke-width)만큼 추가로 그려지므로, 같은 `r` 값이라도 채움 원보다 시각적으로 커 보인다. v0.3에서는 외곽선 원의 `r`을 (stroke-width ÷ 2)만큼 줄여 **두 원의 시각적 외곽 지름이 정확히 같도록** 맞췄다.
+
+| 컨텍스트 | 외곽선 원 | 채움 원 | 시각 외곽 지름 |
+|---|---|---|---|
+| 64u 심볼 | r=9.75, stroke=2.5 | r=11 | 22u |
+| 120u 락업 | r=12.5, stroke=3 | r=14 | 28u |
+| 1024u 앱 아이콘 | r=162, stroke=36 | r=180 | 360u |
 
 ---
 
@@ -143,3 +153,71 @@ done
 - [`DESIGN_PRINCIPLES.md`](./DESIGN_PRINCIPLES.md) — 절제·골드 단일 등 원칙
 - [`DESIGN_TOKENS.json`](./DESIGN_TOKENS.json) — 머신 리더블 토큰
 - [`../mockups/brand/preview.html`](../mockups/brand/preview.html) — 시각 카탈로그
+
+---
+
+## 9. iOS 통합
+
+### 9.1 Asset Catalog 위치
+
+`Sources/App/Resources/Assets.xcassets/` — `moodit` 앱 타깃의 resources build phase 에 자동 포함 (xcodegen 인식). `project.yml` 에서 `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon` 설정.
+
+### 9.2 자산 카탈로그 구조
+
+| 슬롯 | 종류 | 원본 | 비고 |
+|---|---|---|---|
+| `AppIcon.appiconset` | iOS 17+ 단일 1024×1024 PNG | `mockups/brand/app-icon-{light,dark,tinted}.svg` | iOS 18 Light/Dark/Tinted 3 슬롯, `tools/render-app-icon.swift` 가 Core Graphics 로 생성 |
+| `MooditSymbol.imageset` | 벡터 SVG | `symbol.svg` | `preserves-vector-representation: true` |
+| `MooditSymbolMono.imageset` | 벡터 SVG | `symbol-mono.svg` | template-rendering — `.foregroundStyle()` 으로 색 지정 |
+| `MooditWordmark.imageset` | 벡터 SVG | `wordmark.svg` | "moodit" 글자 로고 |
+| `MooditLockupHorizontal.imageset` | 벡터 SVG | `lockup-horizontal.svg` | TopBar 등 가로 헤더용 |
+| `MooditLockupVertical.imageset` | 벡터 SVG | `lockup-vertical.svg` | 스플래시·로그인 중앙 정렬 |
+
+> Asset Catalog 안의 SVG 는 `mockups/brand/` 의 단일 진실원에서 **복사**해 둔 것이다. 디자인 변경 시 mockups/brand/ 를 수정한 뒤 image set 안의 사본을 갱신한다.
+
+### 9.3 SwiftUI 사용 예
+
+```swift
+// 워드마크 (라이트 컨텍스트)
+Image("MooditWordmark")
+    .resizable()
+    .scaledToFit()
+    .frame(height: 28)
+
+// 가로 락업 — 마켓 헤더
+Image("MooditLockupHorizontal")
+    .resizable()
+    .scaledToFit()
+    .frame(height: 32)
+
+// 세로 락업 — 로그인 / 스플래시
+Image("MooditLockupVertical")
+    .resizable()
+    .scaledToFit()
+    .frame(maxWidth: 220, maxHeight: 160)
+
+// 단색 심볼 — 사용자 색에 맞춰 틴트
+Image("MooditSymbolMono")
+    .renderingMode(.template)
+    .resizable()
+    .scaledToFit()
+    .frame(width: 24, height: 12)
+    .foregroundStyle(FMColors.Accent.primary)
+```
+
+### 9.4 App Icon PNG 재생성
+
+```bash
+swift tools/render-app-icon.swift light  Sources/App/Resources/Assets.xcassets/AppIcon.appiconset/app-icon-light.png
+swift tools/render-app-icon.swift dark   Sources/App/Resources/Assets.xcassets/AppIcon.appiconset/app-icon-dark.png
+swift tools/render-app-icon.swift tinted Sources/App/Resources/Assets.xcassets/AppIcon.appiconset/app-icon-tinted.png
+```
+
+`rsvg-convert` (Homebrew librsvg) 가 설치돼 있다면 SVG 직접 변환도 가능하지만, 현재 도구는 Core Graphics 로 두 원을 직접 그려 외부 의존성이 없다. SVG 디자인이 바뀌면 `tools/render-app-icon.swift` 의 좌표·반지름·색을 함께 갱신.
+
+### 9.5 통합된 화면
+
+| 화면 | 자산 | 위치 |
+|---|---|---|
+| `LoginScreen` | `MooditLockupVertical` | 중앙 brand section (이전 SF Symbol placeholder 대체) |
+| `OnboardingScreen` | `MooditWordmark` | TopBar 좌측 (높이 20pt) |

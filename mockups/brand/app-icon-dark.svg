@@ -1,14 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Moodit App Icon — Dark variant (1024x1024). iOS 18+ Dark/Tinted slot.
-  Background: deep black (#000) — same as carrier UI, lets gold pop.
-  Mark: accent-soft (#E8B86D) — slightly brighter for dark canvas.
-
-  Export 1024x1024 PNG via:
-    rsvg-convert -w 1024 -h 1024 app-icon-dark.svg -o app-icon-dark.png
+  Moodit App Icon — Dark variant (1024x1024, v0.3).
+  Same proportions as light variant, brighter gold (#E8B86D) for dark canvas.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Moodit App Icon Dark">
   <rect width="1024" height="1024" fill="#000000"/>
-  <circle cx="384" cy="512" r="180" fill="none" stroke="#E8B86D" stroke-width="36"/>
+  <circle cx="384" cy="512" r="162" fill="none" stroke="#E8B86D" stroke-width="36"/>
   <circle cx="640" cy="512" r="180" fill="#E8B86D"/>
 </svg>

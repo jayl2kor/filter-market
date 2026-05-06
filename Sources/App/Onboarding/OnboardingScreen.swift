@@ -61,6 +61,13 @@ struct OnboardingScreen: View {
 
     private var topBar: some View {
         HStack {
+            // Phase Brand: 좌측 워드마크 (작게). 클리어 스페이스 보장을 위해 height 20pt.
+            Image("MooditWordmark")
+                .resizable()
+                .scaledToFit()
+                .frame(height: 20)
+                .accessibilityHidden(true)
+
             Spacer()
             if !isLastPage {
                 Button {

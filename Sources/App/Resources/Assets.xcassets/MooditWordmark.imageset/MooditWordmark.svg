@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Moodit Wordmark — set in system sans (SF Pro / Pretendard fallback) at
+  weight 700, tracked tight (-3 letter-spacing) for editorial density.
+  Color: text/primary (#0F0F0E) in light, text/primary inverts to white in
+  dark contexts. Apply via CSS or inline override; defaults below assume light.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 90" role="img" aria-label="Moodit">
+  <text x="180" y="62" text-anchor="middle"
+        font-family="-apple-system, 'SF Pro Display', 'Pretendard Variable', 'Apple SD Gothic Neo', system-ui, sans-serif"
+        font-size="56" font-weight="700" letter-spacing="-3"
+        fill="#0F0F0E">moodit</text>
+</svg>
