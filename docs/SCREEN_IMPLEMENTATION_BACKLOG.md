@@ -34,8 +34,10 @@
 | `09-profile.html`, `09b-other-user-profile.html` | `ProfileScreen` | `Bespoke` | 본인/타인 variant 분리, follow API |
 | `10-settings.html` | `SettingsScreen` | `Bespoke` | 세부 설정 persist/API |
 | `18-saved-filters.html` | `SavedScreen` | `Bespoke` | 다운로드/즐겨찾기/오프라인 세그먼트 |
+| `07b-filter-download.html` | `FilterDownloadProgressScreen` | `Bespoke` | 실제 package/API progress 연결 |
+| `07c-filter-after-download.html` | `FilterAfterDownloadScreen` | `Bespoke` | favorite persistence, collection picker |
 | `permissions/*` | `Sources/App/Permissions/*` | `Bespoke` | 실제 권한 resolver 와 모든 진입점 연결 |
-| `07b`, `07c`, `11*`, `12*`, `13`, `15`~`17`, `19`, `20`~`54` | `WorkflowScreens.swift` route views | `Workflow/Bespoke` | 화면별 서비스/API/스토어 통합 |
+| `11*`, `12*`, `13`, `15`~`17`, `19`, `20`~`54` | `WorkflowScreens.swift` route views | `Workflow/Bespoke` | 화면별 서비스/API/스토어 통합 |
 
 ---
 
@@ -51,8 +53,8 @@
 | `16-photo-import.html` | `AppRoute.photoImport` → `PhotoImportScreen` | `Workflow/Bespoke` | Photos picker, selection grid, permission branch |
 | `17-photo-edit.html` | `AppRoute.photoEdit` → `PhotoEditScreen` | `Workflow/Bespoke` | 후보정 editor, compare slider, intensity, save/share |
 | `19-builtin-filter-library.html` | `AppRoute.builtinFilters` → `BuiltinFilterLibraryScreen` | `Workflow/Bespoke` | 기본 필터 library, apply/manage |
-| `07b-filter-download.html` | `AppRoute.filterDownload` → `FilterDownloadProgressScreen` | `Workflow/Bespoke` | 다운로드 progress, cancel/retry/error |
-| `07c-filter-after-download.html` | `AppRoute.filterAfterDownload` → `FilterAfterDownloadScreen` | `Workflow/Bespoke` | apply/favorite/collection/remove actions |
+| `07b-filter-download.html` | `AppRoute.filterDownload` → `FilterDownloadProgressScreen` | `Bespoke` | `MooditStore.download(_:)` 연동 완료. 실제 package/API progress 연결 남음 |
+| `07c-filter-after-download.html` | `AppRoute.filterAfterDownload` → `FilterAfterDownloadScreen` | `Bespoke` | apply/favorite/remove 연동 완료. collection picker/persistence 남음 |
 
 ### 3.2 P1 — Auth, Account, Profile Detail
 

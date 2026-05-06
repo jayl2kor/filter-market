@@ -6,6 +6,7 @@ import Models
 final class MooditStore: ObservableObject {
     @Published private(set) var filters: [Filter] = []
     @Published private(set) var downloadedFilterIDs: Set<Filter.ID> = []
+    @Published private(set) var favoriteFilterIDs: Set<Filter.ID> = []
     @Published var selectedFilterID: Filter.ID?
     /// manifest 로드 실패 시 마지막 에러. UI 는 이 값을 보고 ErrorBanner / FMEmptyState 를 노출.
     @Published private(set) var loadError: Error?
@@ -63,7 +64,59 @@ final class MooditStore: ObservableObject {
         downloadedFilterIDs.insert(filter.id)
     }
 
+    func removeDownload(_ filter: Filter) {
+        downloadedFilterIDs.remove(filter.id)
+        favoriteFilterIDs.remove(filter.id)
+        if selectedFilterID == filter.id {
+            selectedFilterID = libraryFilters.first?.id ?? filters.first?.id
+        }
+    }
+
+    func toggleFavorite(_ filter: Filter) {
+        if favoriteFilterIDs.contains(filter.id) {
+            favoriteFilterIDs.remove(filter.id)
+        } else {
+            favoriteFilterIDs.insert(filter.id)
+        }
+    }
+
+    func isFavorite(_ filter: Filter) -> Bool {
+        favoriteFilterIDs.contains(filter.id)
+    }
+
     func isDownloaded(_ filter: Filter) -> Bool {
         downloadedFilterIDs.contains(filter.id)
+    }
+
+    func filter(matching routeID: String) -> Filter? {
+        let normalizedRouteID = routeID.normalizedFilterLookupKey
+        if let uuid = UUID(uuidString: routeID),
+           let filter = filters.first(where: { $0.id == uuid }) {
+            return filter
+        }
+        if let exact = filters.first(where: { $0.title.normalizedFilterLookupKey == normalizedRouteID }) {
+            return exact
+        }
+        if let partial = filters.first(where: { filter in
+            let key = filter.title.normalizedFilterLookupKey
+            return normalizedRouteID.contains(key) || key.contains(normalizedRouteID)
+        }) {
+            return partial
+        }
+        let routeTokens = normalizedRouteID.split(separator: " ")
+        return filters.first { filter in
+            let titleTokens = Set(filter.title.normalizedFilterLookupKey.split(separator: " "))
+            return routeTokens.contains { titleTokens.contains($0) }
+        }
+    }
+}
+
+private extension String {
+    var normalizedFilterLookupKey: String {
+        lowercased()
+            .replacingOccurrences(of: "@", with: "")
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
