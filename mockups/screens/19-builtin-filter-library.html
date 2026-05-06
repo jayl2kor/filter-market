@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<!-- P0-09 · PRD §3.2 F1 (built-in 15 filters) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>19 · Built-in Filter Library — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .lib { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .lib__head {
+    padding: var(--sp-sm) var(--sp-md);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .lib__title { font-size: var(--t-title-lg-size); font-weight: 700; margin: 0 0 4px; }
+  .lib__sub { font-size: var(--t-subhead-size); color: var(--text-secondary); margin: 0; }
+
+  .lib__seg { padding: var(--sp-sm) var(--sp-md); display: flex; gap: var(--sp-xs); overflow-x: auto; scrollbar-width: none; }
+  .lib__seg::-webkit-scrollbar { display: none; }
+
+  .lib__grid {
+    flex: 1; overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--sp-sm);
+    padding: var(--sp-sm) var(--sp-md) var(--sp-md);
+  }
+
+  .lib__tile {
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    position: relative;
+    background: var(--bg-2);
+    box-shadow: var(--elev-1-shadow);
+  }
+  .lib__tile-photo {
+    aspect-ratio: 4 / 5;
+    position: relative;
+  }
+  .lib__tile-overlay {
+    position: absolute; inset: auto 0 0 0;
+    padding: var(--sp-sm);
+    background: linear-gradient(180deg, transparent, rgba(15,15,14,0.78));
+    color: #fff;
+  }
+  .lib__tile-name {
+    font-size: var(--t-subhead-size);
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.1px;
+  }
+  .lib__tile-cat {
+    font-size: 10px;
+    color: rgba(255,255,255,0.78);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin: 2px 0 0;
+  }
+  .lib__tile-badge {
+    position: absolute; top: var(--sp-xs); left: var(--sp-xs);
+    padding: 3px 7px;
+    background: rgba(255,255,255,0.94);
+    color: var(--accent);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    border-radius: var(--r-sm);
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="lib">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">기본 필터</span>
+        <button class="topbar__action topbar__action--accent">관리</button>
+      </header>
+
+      <div class="lib__head">
+        <h1 class="lib__title">기본 필터 15</h1>
+        <p class="lib__sub">moodit과 함께 제공되는 기본 필터. 항상 오프라인 사용 가능.</p>
+      </div>
+
+      <div class="lib__seg">
+        <span class="chip chip--active">전체</span>
+        <span class="chip">시네마틱</span>
+        <span class="chip">빈티지</span>
+        <span class="chip">파스텔</span>
+        <span class="chip">흑백</span>
+        <span class="chip">무드</span>
+      </div>
+
+      <div class="lib__grid">
+        <div class="lib__tile">
+          <div class="lib__tile-photo photo photo--vintage photo--vignette"></div>
+          <span class="lib__tile-badge">기본</span>
+          <div class="lib__tile-overlay"><p class="lib__tile-name">Sunset 1973</p><p class="lib__tile-cat">Vintage</p></div>
+        </div>
+        <div class="lib__tile">
+          <div class="lib__tile-photo photo photo--cinematic photo--vignette"></div>
+          <span class="lib__tile-badge">기본</span>
+          <div class="lib__tile-overlay"><p class="lib__tile-name">Teal Drift</p><p class="lib__tile-cat">Cinematic</p></div>
+        </div>
+        <div class="lib__tile">
+          <div class="lib__tile-photo photo photo--bw photo--vignette"></div>
+          <span class="lib__tile-badge">기본</span>
+          <div class="lib__tile-overlay"><p class="lib__tile-name">Mono Noir</p><p class="lib__tile-cat">Monochrome</p></div>
+        </div>
+        <div class="lib__tile">
+          <div class="lib__tile-photo photo photo--pastel photo--vignette"></div>
+          <span class="lib__tile-badge">기본</span>
+          <div class="lib__tile-overlay"><p class="lib__tile-name">Cotton Candy</p><p class="lib__tile-cat">Pastel</p></div>
+        </div>
+        <div class="lib__tile">
+          <div class="lib__tile-photo photo photo--warm photo--vignette"></div>
+          <span class="lib__tile-badge">기본</span>
+          <div class="lib__tile-overlay"><p class="lib__tile-name">Honey Hour</p><p class="lib__tile-cat">Warm</p></div>
+        </div>
+        <div class="lib__tile">
+          <div class="lib__tile-photo photo photo--cool photo--vignette"></div>
+          <span class="lib__tile-badge">기본</span>
+          <div class="lib__tile-overlay"><p class="lib__tile-name">Ice Lake</p><p class="lib__tile-cat">Cool</p></div>
+        </div>
+        <div class="lib__tile">
+          <div class="lib__tile-photo photo photo--moody photo--vignette"></div>
+          <span class="lib__tile-badge">기본</span>
+          <div class="lib__tile-overlay"><p class="lib__tile-name">Indigo Dusk</p><p class="lib__tile-cat">Mood</p></div>
+        </div>
+        <div class="lib__tile">
+          <div class="lib__tile-photo photo photo--portrait photo--vignette"></div>
+          <span class="lib__tile-badge">기본</span>
+          <div class="lib__tile-overlay"><p class="lib__tile-name">Skin Velvet</p><p class="lib__tile-cat">Portrait</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

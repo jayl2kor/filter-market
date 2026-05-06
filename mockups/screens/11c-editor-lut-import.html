@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<!-- P1-02 · PRD §3.2 F3 Tier 1 (LUT import) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>11c · Editor LUT Import — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .ed { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .ed__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+  .ed__head-card { padding: var(--sp-md); background: var(--bg-2); border: 1px solid var(--border-subtle); border-radius: var(--r-lg); margin-bottom: var(--sp-md); }
+  .ed__head-title { font-size: var(--t-headline-size); font-weight: 600; margin: 0 0 4px; }
+  .ed__head-sub { font-size: var(--t-subhead-size); color: var(--text-secondary); margin: 0; line-height: 1.4; word-break: keep-all; }
+
+  /* LUT picker drop zone */
+  .ed__dropzone {
+    background: var(--accent-bg);
+    border: 2px dashed var(--accent);
+    border-radius: var(--r-lg);
+    padding: var(--sp-2xl) var(--sp-md);
+    text-align: center;
+    color: var(--accent);
+    margin-bottom: var(--sp-md);
+  }
+  .ed__dropzone-icon {
+    width: 56px; height: 56px;
+    margin: 0 auto var(--sp-sm);
+  }
+  .ed__dropzone-title { font-weight: 700; font-size: var(--t-headline-size); margin: 0 0 4px; }
+  .ed__dropzone-sub { font-size: var(--t-caption-size); color: var(--text-secondary); margin: 0; }
+
+  .ed__dropzone-actions {
+    display: flex; gap: var(--sp-xs);
+    justify-content: center;
+    margin-top: var(--sp-md);
+  }
+
+  /* LUT card (after import) */
+  .ed__lut-card {
+    background: var(--bg-2);
+    border: 1px solid var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-ring);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    margin-bottom: var(--sp-md);
+  }
+  .ed__lut-row {
+    display: flex; align-items: center; gap: var(--sp-sm);
+  }
+  .ed__lut-thumb {
+    width: 64px; height: 64px;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    flex: 0 0 64px;
+    background: linear-gradient(135deg, #c97a5a, #4a2a2a 50%, #1a0e08);
+    position: relative;
+  }
+  .ed__lut-thumb::after {
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(45deg, rgba(255,255,255,0.12) 0 4px, transparent 4px 8px);
+  }
+  .ed__lut-info { flex: 1; min-width: 0; }
+  .ed__lut-name { font-size: var(--t-headline-size); font-weight: 600; margin: 0; }
+  .ed__lut-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .ed__lut-replace {
+    color: var(--accent);
+    font-size: var(--t-subhead-size);
+    font-weight: 600;
+    padding: var(--sp-xs);
+  }
+
+  /* Format support note */
+  .ed__formats {
+    display: flex; gap: var(--sp-xs);
+    flex-wrap: wrap;
+    margin-bottom: var(--sp-md);
+  }
+  .ed__format-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-full);
+    font-size: var(--t-caption-size);
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .ed__format-chip--ok { color: var(--success); border-color: var(--success); }
+
+  /* Intensity slider for the LUT */
+  .ed__intensity {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+  }
+  .ed__intensity-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: var(--sp-sm);
+  }
+  .ed__intensity-label { font-size: var(--t-callout-size); font-weight: 500; }
+  .ed__intensity-value { font-weight: 700; color: var(--accent); }
+
+  .ed__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="ed">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">LUT 가져오기</span>
+        <button class="topbar__action topbar__action--accent" style="font-weight: 600;">완료</button>
+      </header>
+
+      <div class="ed__body">
+        <div class="ed__head-card">
+          <h1 class="ed__head-title">LUT 파일 추가</h1>
+          <p class="ed__head-sub">3D LUT을 가져오면 파라미터 위에 색상 그레이딩이 자동 적용됩니다. iCloud Drive·Files·다른 앱에서 가져올 수 있습니다.</p>
+        </div>
+
+        <div class="ed__formats">
+          <span class="ed__format-chip ed__format-chip--ok">.cube</span>
+          <span class="ed__format-chip ed__format-chip--ok">.3dl</span>
+          <span class="ed__format-chip ed__format-chip--ok">.png (33³)</span>
+          <span class="ed__format-chip ed__format-chip--ok">.png (65³)</span>
+        </div>
+
+        <!-- Imported state -->
+        <div class="ed__lut-card">
+          <div class="ed__lut-row">
+            <div class="ed__lut-thumb"></div>
+            <div class="ed__lut-info">
+              <p class="ed__lut-name">sunset_warm.cube</p>
+              <p class="ed__lut-meta">33×33×33 · RGBA8 · 142 KB · 어제 가져옴</p>
+            </div>
+            <button class="ed__lut-replace">교체</button>
+          </div>
+        </div>
+
+        <div class="ed__intensity">
+          <div class="ed__intensity-row">
+            <span class="ed__intensity-label">LUT 강도</span>
+            <span class="ed__intensity-value">82%</span>
+          </div>
+          <div class="slider">
+            <div class="slider__track">
+              <div class="slider__fill" style="right: 18%;"></div>
+              <div class="slider__thumb" style="left: 82%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ed__foot">
+        <button class="btn btn--secondary btn--lg btn--block">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3 V15 M7 10 L12 15 L17 10 M5 19 H19"/></svg>
+          파일 앱에서 가져오기
+        </button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

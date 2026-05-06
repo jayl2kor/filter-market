@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<!-- P2-01 · PRD §3.2 F4 (comments list) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>23 · Comments List — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .cm { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .cm__filter-mini {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm) var(--sp-md);
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .cm__filter-thumb {
+    width: 36px; height: 36px;
+    border-radius: var(--r-sm);
+    overflow: hidden;
+    flex: 0 0 36px;
+    position: relative;
+  }
+  .cm__filter-thumb .photo { position: absolute; inset: 0; }
+  .cm__filter-name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .cm__filter-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+
+  .cm__list { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  .cm__row {
+    display: flex; gap: var(--sp-sm);
+    padding: var(--sp-sm) 0;
+  }
+  .cm__row + .cm__row { border-top: 1px solid var(--border-subtle); }
+  .cm__avatar {
+    width: 36px; height: 36px;
+    border-radius: var(--r-full);
+    flex: 0 0 36px;
+    overflow: hidden;
+  }
+  .cm__avatar--a { background: linear-gradient(135deg, #f3dcc4, #d4a482); }
+  .cm__avatar--b { background: linear-gradient(135deg, #aec59a, #4a6a3c); }
+  .cm__avatar--c { background: linear-gradient(135deg, #e0c39a, #8e6a4a); }
+  .cm__avatar--d { background: linear-gradient(135deg, #aab5cb, #3a4560); }
+  .cm__avatar--reply { width: 28px; height: 28px; flex: 0 0 28px; }
+
+  .cm__body { flex: 1; min-width: 0; }
+  .cm__head { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .cm__name { font-size: var(--t-subhead-size); font-weight: 600; color: var(--text-primary); }
+  .cm__handle { font-size: var(--t-caption-size); color: var(--text-tertiary); }
+  .cm__time { font-size: var(--t-caption-size); color: var(--text-tertiary); margin-left: auto; }
+  .cm__text { font-size: var(--t-body-size); color: var(--text-primary); line-height: 1.45; word-break: keep-all; margin: 0; }
+  .cm__text mark { color: var(--accent); background: transparent; font-weight: 500; }
+  .cm__actions { display: flex; gap: var(--sp-md); margin-top: 6px; font-size: var(--t-caption-size); color: var(--text-tertiary); }
+  .cm__action-btn { color: var(--text-tertiary); display: inline-flex; align-items: center; gap: 4px; }
+  .cm__action-btn--liked { color: var(--accent); }
+
+  .cm__replies { padding-left: 44px; margin-top: var(--sp-xs); }
+
+  .cm__compose {
+    flex: 0 0 auto;
+    padding: var(--sp-sm) var(--sp-md) calc(var(--sp-sm) + var(--safe-bottom));
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+    display: flex; align-items: center; gap: var(--sp-sm);
+  }
+  .cm__compose-avatar {
+    width: 32px; height: 32px;
+    flex: 0 0 32px;
+    border-radius: var(--r-full);
+    background: linear-gradient(135deg, #b9d2e8, #4a6a90);
+  }
+  .cm__compose-input {
+    flex: 1;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-full);
+    padding: 8px 14px;
+    font-size: var(--t-subhead-size);
+    color: var(--text-tertiary);
+  }
+  .cm__compose-send {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="cm">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">댓글 142</span>
+        <button class="topbar__action" aria-label="필터">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6 H21 M6 12 H18 M9 18 H15"/></svg>
+        </button>
+      </header>
+
+      <div class="cm__filter-mini">
+        <div class="cm__filter-thumb"><div class="photo photo--vintage"></div></div>
+        <div>
+          <p class="cm__filter-name">Sunset 1973</p>
+          <p class="cm__filter-meta">@jisoo.films · ★ 4.9</p>
+        </div>
+      </div>
+
+      <div class="cm__list">
+        <article class="cm__row">
+          <div class="cm__avatar cm__avatar--a"></div>
+          <div class="cm__body">
+            <div class="cm__head"><span class="cm__name">민지</span><span class="cm__handle">@minji.lab</span><span class="cm__time">2시간</span></div>
+            <p class="cm__text">카페 사진에 진짜 잘 어울려요. 강도 80%가 베스트네요 ☕</p>
+            <div class="cm__actions">
+              <button class="cm__action-btn cm__action-btn--liked">♥ 24</button>
+              <button class="cm__action-btn">답글</button>
+              <button class="cm__action-btn" aria-label="더보기">···</button>
+            </div>
+            <div class="cm__replies">
+              <article class="cm__row" style="border-top: 0; padding: var(--sp-xs) 0;">
+                <div class="cm__avatar cm__avatar--reply cm__avatar--c"></div>
+                <div class="cm__body">
+                  <div class="cm__head"><span class="cm__name">jisoo</span><span class="cm__handle">@jisoo.films · 메이커</span><span class="cm__time">1시간</span></div>
+                  <p class="cm__text"><mark>@minji.lab</mark> 감사합니다! 아침 햇빛에서도 한번 써보세요 :)</p>
+                  <div class="cm__actions">
+                    <button class="cm__action-btn">♡ 8</button>
+                    <button class="cm__action-btn">답글</button>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </article>
+
+        <article class="cm__row">
+          <div class="cm__avatar cm__avatar--b"></div>
+          <div class="cm__body">
+            <div class="cm__head"><span class="cm__name">Alex</span><span class="cm__handle">@alex.grade</span><span class="cm__time">5시간</span></div>
+            <p class="cm__text">Mid-tone에 살짝 마젠타가 도는 느낌이 좋네요. 어떤 LUT 사이즈로 만드셨어요? 33³ 인가요?</p>
+            <div class="cm__actions">
+              <button class="cm__action-btn">♡ 12</button>
+              <button class="cm__action-btn">답글</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="cm__row">
+          <div class="cm__avatar cm__avatar--d"></div>
+          <div class="cm__body">
+            <div class="cm__head"><span class="cm__name">유나</span><span class="cm__handle">@yuna.diary</span><span class="cm__time">어제</span></div>
+            <p class="cm__text">제 셀카에는 강도 60%가 자연스러웠어요. 추천! 🌞</p>
+            <div class="cm__actions">
+              <button class="cm__action-btn">♡ 6</button>
+              <button class="cm__action-btn">답글</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="cm__row">
+          <div class="cm__avatar cm__avatar--a"></div>
+          <div class="cm__body">
+            <div class="cm__head"><span class="cm__name">Emma</span><span class="cm__handle">@emma.travel</span><span class="cm__time">2일</span></div>
+            <p class="cm__text">유럽 여행 사진들에 진짜 다 잘 맞네요. 다른 비슷한 톤도 있나요?</p>
+            <div class="cm__actions">
+              <button class="cm__action-btn">♡ 4</button>
+              <button class="cm__action-btn">답글</button>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="cm__compose">
+        <div class="cm__compose-avatar"></div>
+        <div class="cm__compose-input">댓글 추가...</div>
+        <button class="cm__compose-send" aria-label="보내기">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12 L21 4 L13 21 L11 13 Z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

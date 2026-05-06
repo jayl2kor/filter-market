@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<!-- P1-05 · Upload step 2 — tags + category · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>12c · Upload Tags &amp; Category — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .up { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .up__stepper {
+    display: flex; align-items: center; justify-content: center;
+    padding: var(--sp-sm) var(--sp-md);
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 6px;
+  }
+  .up__step-dot { width: 8px; height: 8px; background: var(--bg-3); border-radius: var(--r-full); }
+  .up__step-dot--active { width: 24px; background: var(--accent); }
+  .up__step-dot--done { background: var(--accent); }
+  .up__step-line { width: 16px; height: 1px; background: var(--border-default); }
+
+  .up__body { flex: 1; padding: var(--sp-md); overflow-y: auto; }
+
+  .up__field { margin-bottom: var(--sp-md); }
+  .up__field-label { display: block; font-size: var(--t-caption-size); font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: var(--sp-xs); }
+  .up__field-help { font-size: var(--t-caption-size); color: var(--text-tertiary); margin-top: var(--sp-xxs); line-height: 1.4; }
+
+  .up__cat-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;
+  }
+  .up__cat-card {
+    padding: var(--sp-sm) var(--sp-md);
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    display: flex; align-items: center; gap: var(--sp-xs);
+  }
+  .up__cat-card--active {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .up__cat-dot {
+    width: 8px; height: 8px;
+    border-radius: var(--r-full);
+    flex: 0 0 8px;
+  }
+
+  .up__tag-input {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: var(--sp-sm);
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    min-height: 60px;
+  }
+  .up__tag-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-radius: var(--r-full);
+    font-size: var(--t-subhead-size);
+    font-weight: 500;
+  }
+  .up__tag-pill button { color: inherit; opacity: 0.7; }
+  .up__tag-input-text {
+    flex: 1; min-width: 80px;
+    border: 0; outline: 0;
+    font: inherit; font-size: var(--t-body-size);
+    background: transparent;
+  }
+
+  .up__suggested {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: var(--sp-sm);
+  }
+  .up__suggested-chip {
+    padding: 4px 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-full);
+    font-size: var(--t-subhead-size);
+    color: var(--text-secondary);
+  }
+
+  .up__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+    display: flex; gap: var(--sp-xs);
+  }
+  .up__foot .btn { flex: 1; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="up">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">필터 업로드 · 2 / 3</span>
+        <span style="width: 44px;"></span>
+      </header>
+
+      <div class="up__stepper">
+        <span class="up__step-dot up__step-dot--done"></span>
+        <span class="up__step-line"></span>
+        <span class="up__step-dot up__step-dot--active"></span>
+        <span class="up__step-line"></span>
+        <span class="up__step-dot"></span>
+      </div>
+
+      <div class="up__body">
+        <div class="up__field">
+          <label class="up__field-label" for="up-name">필터 이름 *</label>
+          <input id="up-name" class="ed__input" type="text" value="Amber Café" style="width:100%; background: var(--bg-2); border:1px solid var(--border-default); border-radius: var(--r-md); padding: var(--sp-sm) var(--sp-md); font: inherit;"/>
+        </div>
+
+        <div class="up__field">
+          <label class="up__field-label">카테고리 *</label>
+          <div class="up__cat-grid">
+            <div class="up__cat-card"><span class="up__cat-dot" style="background: var(--cat-cinematic);"></span> 시네마틱</div>
+            <div class="up__cat-card up__cat-card--active"><span class="up__cat-dot" style="background: var(--cat-vintage);"></span> 빈티지</div>
+            <div class="up__cat-card"><span class="up__cat-dot" style="background: var(--cat-pastel);"></span> 파스텔</div>
+            <div class="up__cat-card"><span class="up__cat-dot" style="background: var(--cat-monochrome);"></span> 흑백</div>
+            <div class="up__cat-card"><span class="up__cat-dot" style="background: var(--cat-portrait);"></span> 포트레잇</div>
+            <div class="up__cat-card"><span class="up__cat-dot" style="background: var(--cat-food);"></span> 푸드</div>
+            <div class="up__cat-card"><span class="up__cat-dot" style="background: var(--cat-travel);"></span> 트래블</div>
+            <div class="up__cat-card"><span class="up__cat-dot" style="background: var(--cat-mood);"></span> 무드</div>
+          </div>
+        </div>
+
+        <div class="up__field">
+          <label class="up__field-label" for="up-tags">태그 (최대 8개)</label>
+          <div class="up__tag-input">
+            <span class="up__tag-pill">#카페 <button aria-label="제거">×</button></span>
+            <span class="up__tag-pill">#골든아워 <button aria-label="제거">×</button></span>
+            <span class="up__tag-pill">#필름 <button aria-label="제거">×</button></span>
+            <span class="up__tag-pill">#warm <button aria-label="제거">×</button></span>
+            <input id="up-tags" class="up__tag-input-text" placeholder="태그 입력 후 Enter"/>
+          </div>
+          <p class="up__field-help">검색 키워드로 사용됩니다. 4 / 8</p>
+
+          <div class="up__suggested">
+            <span class="up__suggested-chip">#vintage</span>
+            <span class="up__suggested-chip">#일상</span>
+            <span class="up__suggested-chip">#실내</span>
+            <span class="up__suggested-chip">#차분한</span>
+          </div>
+        </div>
+
+        <div class="up__field">
+          <label class="up__field-label" for="up-description">설명 *</label>
+          <textarea id="up-description" placeholder="이 필터의 분위기, 추천 사용처, 강도 가이드를 적어주세요" style="width:100%; background: var(--bg-2); border:1px solid var(--border-default); border-radius: var(--r-md); padding: var(--sp-sm) var(--sp-md); font: inherit; min-height: 100px; resize: none; line-height: 1.5;">70년대 필름 카메라 톤. 카페·실내·골든아워에 어울리는 부드러운 골드. 강도 75% 이상 권장.</textarea>
+          <p class="up__field-help">82 / 500</p>
+        </div>
+      </div>
+
+      <div class="up__foot">
+        <button class="btn btn--secondary btn--lg">이전</button>
+        <button class="btn btn--primary btn--lg">다음</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<!-- P1-04 · PRD US-04 (upload — cover photos) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>12b · Upload Cover Photos — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .up { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .up__stepper {
+    display: flex; align-items: center; justify-content: center;
+    padding: var(--sp-sm) var(--sp-md);
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 6px;
+  }
+  .up__step-dot {
+    width: 8px; height: 8px;
+    background: var(--bg-3);
+    border-radius: var(--r-full);
+  }
+  .up__step-dot--active { width: 24px; background: var(--accent); }
+  .up__step-dot--done { background: var(--accent); }
+  .up__step-line { width: 16px; height: 1px; background: var(--border-default); }
+
+  .up__body { flex: 1; padding: var(--sp-md); overflow-y: auto; }
+  .up__title { font-size: var(--t-title-size); font-weight: 700; margin: 0 0 4px; }
+  .up__sub { font-size: var(--t-subhead-size); color: var(--text-secondary); margin: 0 0 var(--sp-md); line-height: 1.4; word-break: keep-all; }
+
+  /* Cover photo grid */
+  .up__cover-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: var(--sp-md);
+  }
+  .up__cover-tile {
+    aspect-ratio: 4 / 5;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    position: relative;
+    background: var(--bg-3);
+  }
+  .up__cover-tile .photo { position: absolute; inset: 0; }
+  .up__cover-tile-num {
+    position: absolute; top: 6px; left: 6px;
+    background: var(--accent);
+    color: #fff;
+    width: 22px; height: 22px;
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .up__cover-tile-remove {
+    position: absolute; top: 6px; right: 6px;
+    width: 24px; height: 24px;
+    background: rgba(15,15,14,0.62);
+    backdrop-filter: blur(8px);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    color: #fff;
+  }
+  .up__cover-tile--add {
+    aspect-ratio: 4 / 5;
+    background: var(--bg-2);
+    border: 2px dashed var(--border-default);
+    border-radius: var(--r-md);
+    display: grid; place-items: center;
+    color: var(--text-tertiary);
+  }
+
+  /* Hero pick */
+  .up__hero-row {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-md);
+  }
+  .up__hero-thumb {
+    width: 44px; height: 56px;
+    border-radius: var(--r-sm);
+    overflow: hidden;
+    flex: 0 0 44px;
+    position: relative;
+  }
+  .up__hero-thumb .photo { position: absolute; inset: 0; }
+  .up__hero-text { flex: 1; }
+  .up__hero-title { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .up__hero-sub { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+
+  /* Auto BA toggle */
+  .up__ba-card {
+    background: var(--accent-bg);
+    border: 1px solid var(--accent);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+    display: flex; align-items: center; gap: var(--sp-sm);
+    margin-bottom: var(--sp-md);
+  }
+  .up__ba-icon { width: 24px; height: 24px; color: var(--accent); flex: 0 0 24px; }
+  .up__ba-text { flex: 1; }
+  .up__ba-title { font-size: var(--t-callout-size); font-weight: 600; margin: 0; color: var(--accent); }
+  .up__ba-desc { font-size: var(--t-caption-size); color: var(--text-secondary); margin: 2px 0 0; }
+
+  .up__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+    display: flex; gap: var(--sp-xs);
+  }
+  .up__foot .btn { flex: 1; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="up">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="취소">취소</button>
+        <span class="topbar__title">필터 업로드 · 1 / 3</span>
+        <span style="width: 44px;"></span>
+      </header>
+
+      <div class="up__stepper">
+        <span class="up__step-dot up__step-dot--active"></span>
+        <span class="up__step-line"></span>
+        <span class="up__step-dot"></span>
+        <span class="up__step-line"></span>
+        <span class="up__step-dot"></span>
+      </div>
+
+      <div class="up__body">
+        <h1 class="up__title">표지 사진 선택</h1>
+        <p class="up__sub">필터의 분위기를 보여줄 사진 3장 이상. 첫 번째 사진이 마켓 카드의 메인이 됩니다.</p>
+
+        <div class="up__cover-grid">
+          <div class="up__cover-tile">
+            <div class="photo photo--vintage photo--vignette"></div>
+            <span class="up__cover-tile-num">1</span>
+            <button class="up__cover-tile-remove" aria-label="제거">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+            </button>
+          </div>
+          <div class="up__cover-tile">
+            <div class="photo photo--cafe photo--vignette"></div>
+            <span class="up__cover-tile-num">2</span>
+            <button class="up__cover-tile-remove" aria-label="제거">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+            </button>
+          </div>
+          <div class="up__cover-tile">
+            <div class="photo photo--portrait photo--vignette"></div>
+            <span class="up__cover-tile-num">3</span>
+            <button class="up__cover-tile-remove" aria-label="제거">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+            </button>
+          </div>
+          <button class="up__cover-tile--add" aria-label="사진 추가">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5 V19 M5 12 H19"/></svg>
+          </button>
+        </div>
+
+        <div class="up__hero-row">
+          <div class="up__hero-thumb"><div class="photo photo--vintage photo--vignette"></div></div>
+          <div class="up__hero-text">
+            <p class="up__hero-title">메인 표지: 1번 사진</p>
+            <p class="up__hero-sub">길게 눌러서 순서를 변경할 수 있습니다</p>
+          </div>
+        </div>
+
+        <div class="up__ba-card">
+          <svg class="up__ba-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="12" r="2"/><circle cx="18" cy="12" r="2"/><path d="M8 12 H16"/></svg>
+          <div class="up__ba-text">
+            <p class="up__ba-title">자동 비포/애프터 슬라이더</p>
+            <p class="up__ba-desc">원본과 필터 적용본을 자동으로 짝지어 마켓 카드에 노출합니다.</p>
+          </div>
+          <span class="toggle toggle--on" role="switch" aria-checked="true"></span>
+        </div>
+      </div>
+
+      <div class="up__foot">
+        <button class="btn btn--secondary btn--lg">초안 저장</button>
+        <button class="btn btn--primary btn--lg">다음</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

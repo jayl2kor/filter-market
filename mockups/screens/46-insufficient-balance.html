@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<!-- W-04 · CURRENCY_DESIGN §3.2 — Insufficient balance bottom sheet · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>46 · Insufficient Balance — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .bg-faint { position: absolute; inset: 0; background: var(--bg-1); overflow: hidden; }
+  .bg-faint .photo { position: absolute; inset: 0; opacity: 0.3; }
+  .scrim { position: absolute; inset: 0; background: var(--surface-overlay); z-index: var(--z-modal); }
+
+  .ib {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--surface-raised);
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    box-shadow: var(--elev-3-shadow);
+    padding: 0 var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    z-index: calc(var(--z-modal) + 1);
+  }
+  .ib__handle { width: 36px; height: 4px; background: var(--bg-3); border-radius: var(--r-full); margin: 8px auto var(--sp-sm); }
+
+  .ib__head {
+    text-align: center;
+    padding: var(--sp-sm) 0 var(--sp-md);
+  }
+  .ib__alert {
+    width: 64px; height: 64px;
+    background: var(--warning-bg);
+    color: var(--warning);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    margin: 0 auto var(--sp-sm);
+  }
+  .ib__title { font-size: var(--t-headline-size); font-weight: 700; margin: 0 0 4px; }
+  .ib__sub { font-size: var(--t-subhead-size); color: var(--text-secondary); margin: 0; word-break: keep-all; max-width: 280px; margin: 0 auto; }
+
+  /* Need vs have */
+  .ib__balance-row {
+    display: flex; gap: var(--sp-xs);
+    margin-bottom: var(--sp-md);
+  }
+  .ib__balance-card {
+    flex: 1;
+    padding: var(--sp-sm) var(--sp-md);
+    background: var(--bg-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    text-align: center;
+  }
+  .ib__balance-label { font-size: var(--t-caption-size); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px; margin: 0; }
+  .ib__balance-value {
+    font-size: var(--t-title-size); font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    margin-top: 4px;
+  }
+  .ib__balance-value .coin { width: 18px; height: 18px; }
+  .ib__balance-value--need { color: var(--warning); }
+
+  /* Recommended package */
+  .ib__sec-title {
+    font-size: var(--t-callout-size); font-weight: 700;
+    margin: 0 0 var(--sp-xs);
+  }
+  .ib__pkg {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm);
+    border: 2px solid var(--accent);
+    border-radius: var(--r-md);
+    background: var(--accent-bg);
+    margin-bottom: var(--sp-xs);
+    box-shadow: 0 0 0 4px var(--accent-ring);
+  }
+  .ib__pkg-icon {
+    width: 44px; height: 44px;
+    border-radius: var(--r-full);
+    background: linear-gradient(135deg, var(--accent), #A0721E);
+    color: #fff;
+    display: grid; place-items: center;
+    flex: 0 0 44px;
+  }
+  .ib__pkg-info { flex: 1; }
+  .ib__pkg-name { font-size: var(--t-callout-size); font-weight: 700; margin: 0; display: flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+  .ib__pkg-meta { font-size: var(--t-caption-size); color: var(--text-secondary); margin: 2px 0 0; }
+  .ib__pkg-price { font-size: var(--t-callout-size); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .ib__pkg-recommended { font-size: 10px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+
+  .ib__pkg-secondary {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm) var(--sp-md);
+    background: var(--bg-1);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    font-size: var(--t-subhead-size);
+    margin-bottom: var(--sp-md);
+  }
+  .ib__pkg-secondary-icon { color: var(--accent); flex: 0 0 16px; }
+
+  .ib__foot { display: flex; gap: var(--sp-xs); }
+  .ib__foot .btn { flex: 1; }
+
+  .coin { width: 14px; height: 14px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="bg-faint"><div class="photo photo--cinematic"></div></div>
+    <div class="scrim"></div>
+
+    <section class="ib" role="dialog" aria-labelledby="ib-title">
+      <div class="ib__handle"></div>
+
+      <div class="ib__head">
+        <div class="ib__alert">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 8 V13 M12 17 h.01"/></svg>
+        </div>
+        <h2 id="ib-title" class="ib__title">코인이 부족해요</h2>
+        <p class="ib__sub">Tokyo Night을 구매하려면 <strong>80 코인</strong>이 필요합니다. 충전 후 다시 시도하세요.</p>
+      </div>
+
+      <div class="ib__balance-row">
+        <div class="ib__balance-card">
+          <p class="ib__balance-label">현재 잔액</p>
+          <div class="ib__balance-value">
+            <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#B8853A"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            12
+          </div>
+        </div>
+        <div class="ib__balance-card">
+          <p class="ib__balance-label">필요</p>
+          <div class="ib__balance-value ib__balance-value--need">
+            <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#A66B0F"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            80
+          </div>
+        </div>
+      </div>
+
+      <h3 class="ib__sec-title">추천 패키지</h3>
+      <div class="ib__pkg">
+        <div class="ib__pkg-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+        </div>
+        <div class="ib__pkg-info">
+          <p class="ib__pkg-name"><span>100 코인</span></p>
+          <p class="ib__pkg-meta">Starter · 충전 후 잔액 112</p>
+          <span class="ib__pkg-recommended">최소 충족</span>
+        </div>
+        <span class="ib__pkg-price">₩1,500</span>
+      </div>
+
+      <div class="ib__pkg-secondary">
+        <svg class="ib__pkg-secondary-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L15 9 L22 10 L17 15 L18 22 L12 18 L6 22 L7 15 L2 10 L9 9 Z"/></svg>
+        <span><strong>550 코인</strong> 패키지로 +50 보너스 받기 — ₩7,500</span>
+      </div>
+
+      <div class="ib__foot">
+        <button class="btn btn--secondary btn--lg">취소</button>
+        <button class="btn btn--primary btn--lg">충전 화면으로</button>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

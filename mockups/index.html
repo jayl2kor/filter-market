@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>moodit — Design Mockups v1.2 (Light Minimal)</title>
+<title>moodit — Design Mockups v1.4 (Light Minimal)</title>
 <link rel="stylesheet" href="shared/fonts.css" />
 <link rel="stylesheet" href="shared/tokens.css" />
 <link rel="stylesheet" href="shared/components.css" />
@@ -313,6 +313,54 @@
   .mock--wide .mock__desc { font-size: var(--t-body-size); margin-top: var(--sp-xs); }
   .mock--wide .mock__head { margin-top: 0; }
 
+  /* 확장 화면 빠른 링크 */
+  .quick-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--sp-sm);
+    margin-top: var(--sp-md);
+  }
+  .quick-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-sm);
+    padding: 12px 14px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    color: var(--text-primary);
+    text-decoration: none;
+    box-shadow: var(--elev-1-shadow);
+    transition: transform var(--d-fast) var(--ease-standard), border-color var(--d-fast) var(--ease-standard);
+  }
+  .quick-link:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+  }
+  .quick-link__num {
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+  }
+  .quick-link__title {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--t-subhead-size);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .quick-link__phase {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
   /* 팔레트 스트립 */
   .palette-strip {
     display: flex;
@@ -376,12 +424,12 @@
       <div>
         <h1 class="brand-mark__title">moodit <span style="color: var(--accent); font-weight: 500;">Mockups</span></h1>
         <div class="brand-mark__subtitle">
-          <span class="accent">v1.2 · Light Minimal</span> · iOS 카메라 + 마켓플레이스 · 12 코어 + 17 확장 = 29 화면
+          <span class="accent">v1.4 · Light Minimal</span> · iOS 카메라 + 마켓플레이스 · 제품 화면 67 + 상태/권한/모달
         </div>
       </div>
     </div>
     <div class="gallery-meta">
-      <span class="meta-pill"><span class="dot"></span> 29 화면</span>
+      <span class="meta-pill"><span class="dot"></span> 제품 화면 67</span>
       <span class="meta-pill">iPhone 14 Pro · 393×852pt</span>
       <span class="meta-pill"><a href="../docs/DESIGN_SYSTEM.md">디자인 시스템 →</a></span>
       <span class="meta-pill"><a href="../docs/DESIGN_PRINCIPLES.md">디자인 원칙 →</a></span>
@@ -391,8 +439,8 @@
 
   <p class="intro">
     <b>"누구나 자신만의 카메라 필터를 만들고, 거래하고, 공유한다."</b>
-    PRD v1.2, SYSTEM_DESIGN, ARCHITECTURE 를 기반으로 그린 29개 화면입니다.
-    v1.2에서는 상태 카탈로그(빈 상태·로딩·에러), 권한 요청 8화면, 모달 패턴 4화면이 추가됐습니다.
+    PRD v1.2, SYSTEM_DESIGN, ARCHITECTURE 를 기반으로 그린 제품 화면 67개입니다.
+    상태 카탈로그(빈 상태·로딩·에러), 권한 요청 8화면, 모달 패턴 4화면까지 함께 관리합니다.
     따뜻한 오프화이트(<span style="color: var(--accent); font-weight: 600;">#FAFAF7</span>) 캔버스,
     골드 <span style="color: var(--accent); font-weight: 600;">#B8853A</span>(AA 4.8:1).
     카메라 흐름은 다크 유지.
@@ -586,10 +634,96 @@
     </a>
   </div>
 
+  <!-- 그룹 A6: 확장 제품 화면 (P0~P3) -->
+  <div class="group-head">
+    <span class="group-head__num">A6 — Extended Screens</span>
+    <h2 class="group-head__title">확장 제품 화면</h2>
+    <span class="group-head__sub">P0/P1/P2/P3 목업 전체 빠른 링크</span>
+    <span class="theme-flag theme-flag--light">Light + Dark</span>
+  </div>
+  <p class="group-desc">
+    코어 12화면 이후 추가된 촬영 보강, 후보정, 저장됨, 에디터 상세, 소셜, 추천, 모더레이션 화면입니다.
+    상세 구현 순서와 문서 매핑은 <a href="../docs/SCREENS_PLAN.md" style="color: var(--accent);">SCREENS_PLAN.md →</a>
+  </p>
+
+  <div class="group-head">
+    <span class="group-head__num">P0</span>
+    <h2 class="group-head__title">MVP 차단 화면</h2>
+    <span class="group-head__sub">카메라 · 온보딩 · 후보정 · 계정 · 링크</span>
+  </div>
+  <div class="quick-grid">
+    <a class="quick-link" href="screens/13-camera-aspect-picker.html" target="_blank"><span class="quick-link__num">13</span><span class="quick-link__title">카메라 비율 선택</span><span class="quick-link__phase">P0</span></a>
+    <a class="quick-link" href="screens/14-camera-zoom-grid-flash.html" target="_blank"><span class="quick-link__num">14</span><span class="quick-link__title">줌 · 그리드 · 플래시</span><span class="quick-link__phase">P0</span></a>
+    <a class="quick-link" href="screens/15-camera-timer-countdown.html" target="_blank"><span class="quick-link__num">15</span><span class="quick-link__title">타이머 카운트다운</span><span class="quick-link__phase">P0</span></a>
+    <a class="quick-link" href="screens/01b-onboarding-carousel.html" target="_blank"><span class="quick-link__num">01b</span><span class="quick-link__title">온보딩 캐러셀</span><span class="quick-link__phase">P0</span></a>
+    <a class="quick-link" href="screens/02b-login-guest.html" target="_blank"><span class="quick-link__num">02b</span><span class="quick-link__title">게스트 로그인</span><span class="quick-link__phase">P0</span></a>
+    <a class="quick-link" href="screens/16-photo-import.html" target="_blank"><span class="quick-link__num">16</span><span class="quick-link__title">사진 가져오기</span><span class="quick-link__phase">P0</span></a>
+    <a class="quick-link" href="screens/17-photo-edit.html" target="_blank"><span class="quick-link__num">17</span><span class="quick-link__title">사진 후보정</span><span class="quick-link__phase">P0</span></a>
+    <a class="quick-link" href="screens/18-saved-filters.html" target="_blank"><span class="quick-link__num">18</span><span class="quick-link__title">저장된 필터</span><span class="quick-link__phase">P0</span></a>
+    <a class="quick-link" href="screens/19-builtin-filter-library.html" target="_blank"><span class="quick-link__num">19</span><span class="quick-link__title">내장 필터 라이브러리</span><span class="quick-link__phase">P0</span></a>
+    <a class="quick-link" href="screens/07b-filter-download.html" target="_blank"><span class="quick-link__num">07b</span><span class="quick-link__title">필터 다운로드 진행</span><span class="quick-link__phase">P0</span></a>
+    <a class="quick-link" href="screens/07c-filter-after-download.html" target="_blank"><span class="quick-link__num">07c</span><span class="quick-link__title">다운로드 후 상세</span><span class="quick-link__phase">P0</span></a>
+    <a class="quick-link" href="screens/20-account-deletion.html" target="_blank"><span class="quick-link__num">20</span><span class="quick-link__title">계정 삭제</span><span class="quick-link__phase">P0</span></a>
+    <a class="quick-link" href="screens/53-data-export.html" target="_blank"><span class="quick-link__num">53</span><span class="quick-link__title">데이터 내보내기</span><span class="quick-link__phase">Audit</span></a>
+    <a class="quick-link" href="screens/21-edit-profile.html" target="_blank"><span class="quick-link__num">21</span><span class="quick-link__title">프로필 편집</span><span class="quick-link__phase">P0</span></a>
+    <a class="quick-link" href="screens/22-universal-link-landing.html" target="_blank"><span class="quick-link__num">22</span><span class="quick-link__title">Universal Link 랜딩</span><span class="quick-link__phase">P0</span></a>
+  </div>
+
+  <div class="group-head">
+    <span class="group-head__num">P1</span>
+    <h2 class="group-head__title">에디터 · 업로드 상세</h2>
+    <span class="group-head__sub">메이커 제작과 제출 흐름</span>
+  </div>
+  <div class="quick-grid">
+    <a class="quick-link" href="screens/11b-editor-parameters.html" target="_blank"><span class="quick-link__num">11b</span><span class="quick-link__title">에디터 파라미터</span><span class="quick-link__phase">P1</span></a>
+    <a class="quick-link" href="screens/11c-editor-lut-import.html" target="_blank"><span class="quick-link__num">11c</span><span class="quick-link__title">LUT 가져오기</span><span class="quick-link__phase">P1</span></a>
+    <a class="quick-link" href="screens/11d-editor-save-draft.html" target="_blank"><span class="quick-link__num">11d</span><span class="quick-link__title">초안 저장</span><span class="quick-link__phase">P1</span></a>
+    <a class="quick-link" href="screens/12b-upload-cover.html" target="_blank"><span class="quick-link__num">12b</span><span class="quick-link__title">업로드 커버</span><span class="quick-link__phase">P1</span></a>
+    <a class="quick-link" href="screens/12c-upload-tags-category.html" target="_blank"><span class="quick-link__num">12c</span><span class="quick-link__title">태그 · 카테고리</span><span class="quick-link__phase">P1</span></a>
+    <a class="quick-link" href="screens/12d-upload-tos-submit.html" target="_blank"><span class="quick-link__num">12d</span><span class="quick-link__title">약관 · 제출</span><span class="quick-link__phase">P1</span></a>
+    <a class="quick-link" href="screens/12e-upload-pending.html" target="_blank"><span class="quick-link__num">12e</span><span class="quick-link__title">심사 대기</span><span class="quick-link__phase">P1</span></a>
+    <a class="quick-link" href="screens/09b-other-user-profile.html" target="_blank"><span class="quick-link__num">09b</span><span class="quick-link__title">타인 프로필</span><span class="quick-link__phase">P1</span></a>
+    <a class="quick-link" href="screens/48-filter-rejected.html" target="_blank"><span class="quick-link__num">48</span><span class="quick-link__title">필터 반려 안내</span><span class="quick-link__phase">Audit</span></a>
+    <a class="quick-link" href="screens/50-my-filters.html" target="_blank"><span class="quick-link__num">50</span><span class="quick-link__title">내 필터 관리</span><span class="quick-link__phase">Audit</span></a>
+  </div>
+
+  <div class="group-head">
+    <span class="group-head__num">P2</span>
+    <h2 class="group-head__title">소셜 · 참여 화면</h2>
+    <span class="group-head__sub">댓글, 평점, 팔로우, 알림, 신고</span>
+  </div>
+  <div class="quick-grid">
+    <a class="quick-link" href="screens/23-comments-list.html" target="_blank"><span class="quick-link__num">23</span><span class="quick-link__title">댓글 리스트</span><span class="quick-link__phase">P2</span></a>
+    <a class="quick-link" href="screens/23b-comments-compose.html" target="_blank"><span class="quick-link__num">23b</span><span class="quick-link__title">댓글 작성</span><span class="quick-link__phase">P2</span></a>
+    <a class="quick-link" href="screens/24-rating-form.html" target="_blank"><span class="quick-link__num">24</span><span class="quick-link__title">평점 입력</span><span class="quick-link__phase">P2</span></a>
+    <a class="quick-link" href="screens/25-followers-list.html" target="_blank"><span class="quick-link__num">25</span><span class="quick-link__title">팔로워 목록</span><span class="quick-link__phase">P2</span></a>
+    <a class="quick-link" href="screens/26-following-list.html" target="_blank"><span class="quick-link__num">26</span><span class="quick-link__title">팔로잉 목록</span><span class="quick-link__phase">P2</span></a>
+    <a class="quick-link" href="screens/27-notifications-inbox.html" target="_blank"><span class="quick-link__num">27</span><span class="quick-link__title">알림 인박스</span><span class="quick-link__phase">P2</span></a>
+    <a class="quick-link" href="screens/51-notification-settings.html" target="_blank"><span class="quick-link__num">51</span><span class="quick-link__title">알림 설정</span><span class="quick-link__phase">Audit</span></a>
+    <a class="quick-link" href="screens/28-maker-dashboard.html" target="_blank"><span class="quick-link__num">28</span><span class="quick-link__title">메이커 대시보드</span><span class="quick-link__phase">P2</span></a>
+    <a class="quick-link" href="screens/29-report-form.html" target="_blank"><span class="quick-link__num">29</span><span class="quick-link__title">신고 폼</span><span class="quick-link__phase">P2</span></a>
+    <a class="quick-link" href="screens/30-favorites-collection.html" target="_blank"><span class="quick-link__num">30</span><span class="quick-link__title">즐겨찾기 컬렉션</span><span class="quick-link__phase">P2</span></a>
+  </div>
+
+  <div class="group-head">
+    <span class="group-head__num">P3</span>
+    <h2 class="group-head__title">추천 · 운영 · 리믹스</h2>
+    <span class="group-head__sub">개인화 피드와 운영자 도구</span>
+  </div>
+  <div class="quick-grid">
+    <a class="quick-link" href="screens/31-foryou-feed.html" target="_blank"><span class="quick-link__num">31</span><span class="quick-link__title">For You 피드</span><span class="quick-link__phase">P3</span></a>
+    <a class="quick-link" href="screens/32-following-feed.html" target="_blank"><span class="quick-link__num">32</span><span class="quick-link__title">Following 피드</span><span class="quick-link__phase">P3</span></a>
+    <a class="quick-link" href="screens/33-mod-queue.html" target="_blank"><span class="quick-link__num">33</span><span class="quick-link__title">모더레이션 큐</span><span class="quick-link__phase">P3</span></a>
+    <a class="quick-link" href="screens/34-mod-detail.html" target="_blank"><span class="quick-link__num">34</span><span class="quick-link__title">모더레이션 상세</span><span class="quick-link__phase">P3</span></a>
+    <a class="quick-link" href="screens/35-block-list.html" target="_blank"><span class="quick-link__num">35</span><span class="quick-link__title">차단 · 뮤트 관리</span><span class="quick-link__phase">P3</span></a>
+    <a class="quick-link" href="screens/36-remix-flow.html" target="_blank"><span class="quick-link__num">36</span><span class="quick-link__title">리믹스 흐름</span><span class="quick-link__phase">P3</span></a>
+    <a class="quick-link" href="screens/49-pro-status.html" target="_blank"><span class="quick-link__num">49</span><span class="quick-link__title">Pro 상태 관리</span><span class="quick-link__phase">Audit</span></a>
+  </div>
+
   <div class="section-divider"></div>
 
   <!-- ============================================================ -->
-  <!-- 그룹 B: States Catalog (v1.2 신규) -->
+  <!-- 그룹 B: States Catalog -->
   <!-- ============================================================ -->
   <div class="group-head">
     <span class="group-head__num">B — States Catalog</span>
@@ -625,7 +759,7 @@
   <div class="section-divider"></div>
 
   <!-- ============================================================ -->
-  <!-- 그룹 C: Permissions (v1.2 신규) -->
+  <!-- 그룹 C: Permissions -->
   <!-- ============================================================ -->
   <div class="group-head">
     <span class="group-head__num">C — Permissions</span>
@@ -728,7 +862,7 @@
   <div class="section-divider"></div>
 
   <!-- ============================================================ -->
-  <!-- 그룹 D: Modals (v1.2 신규) -->
+  <!-- 그룹 D: Modals -->
   <!-- ============================================================ -->
   <div class="group-head">
     <span class="group-head__num">D — Modals</span>
@@ -783,16 +917,128 @@
     </a>
   </div>
 
+  <div class="section-divider"></div>
+
+  <!-- ============================================================ -->
+  <!-- 그룹 E: Wallet & Coins (Phase 6 — 코인 화폐 모델) -->
+  <!-- ============================================================ -->
+  <div class="group-head">
+    <span class="group-head__num">E — Wallet &amp; Coins</span>
+    <h2 class="group-head__title">지갑 · 코인 · 출금</h2>
+    <span class="group-head__sub">Coin 화폐 충전/사용/적립/출금 (Phase 6)</span>
+    <span class="theme-flag theme-flag--light">Light</span>
+  </div>
+  <p class="group-desc">
+    moodit 내부 화폐 <strong>Coin</strong>으로 필터를 거래하는 화면 묶음. 사용자는 Apple IAP로 코인을 충전(W-02)하고
+    필터에 코인을 지불(P6-01) — 메이커는 60%를 적립받아 원화로 출금(W-05). 사양은
+    <a href="../docs/CURRENCY_DESIGN.md" style="color: var(--accent);">CURRENCY_DESIGN.md →</a>
+  </p>
+  <div class="grid">
+    <a class="mock" href="screens/43-wallet.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">W-01</div>
+      <div class="mock__phone-wrap"><iframe src="screens/43-wallet.html" loading="lazy" title="Wallet"></iframe></div>
+      <div class="mock__head"><span class="mock__title">지갑 메인</span><span class="mock__open">열기 ↗</span></div>
+      <p class="mock__desc">잔액 1,250 C · 통계 3 · Pro CTA · 최근 거래 4건</p>
+    </a>
+    <a class="mock" href="screens/44-wallet-topup.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">W-02</div>
+      <div class="mock__phone-wrap"><iframe src="screens/44-wallet-topup.html" loading="lazy" title="Topup"></iframe></div>
+      <div class="mock__head"><span class="mock__title">코인 충전</span><span class="mock__open">열기 ↗</span></div>
+      <p class="mock__desc">100/550/1200/3000 C 패키지 + 보너스 0/+10/+20/+30%</p>
+    </a>
+    <a class="mock" href="screens/45-wallet-transactions.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">W-03</div>
+      <div class="mock__phone-wrap"><iframe src="screens/45-wallet-transactions.html" loading="lazy" title="Transactions"></iframe></div>
+      <div class="mock__head"><span class="mock__title">거래 내역</span><span class="mock__open">열기 ↗</span></div>
+      <p class="mock__desc">충전·구매·적립·보너스·환불·출금 통합 ledger</p>
+    </a>
+    <a class="mock" href="screens/46-insufficient-balance.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">W-04</div>
+      <div class="mock__phone-wrap"><iframe src="screens/46-insufficient-balance.html" loading="lazy" title="Insufficient"></iframe></div>
+      <div class="mock__head"><span class="mock__title">잔액 부족</span><span class="mock__open">열기 ↗</span></div>
+      <p class="mock__desc">필요 vs 보유 + 최소 충족 패키지 추천 sheet</p>
+    </a>
+    <a class="mock" href="screens/52-payment-failed.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">52</div>
+      <div class="mock__phone-wrap"><iframe src="screens/52-payment-failed.html" loading="lazy" title="Payment Failed"></iframe></div>
+      <div class="mock__head"><span class="mock__title">결제 실패</span><span class="mock__open">열기 ↗</span></div>
+      <p class="mock__desc">IAP 실패/취소/네트워크 오류 fallback sheet</p>
+    </a>
+    <a class="mock" href="screens/54-refund-request.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">54</div>
+      <div class="mock__phone-wrap"><iframe src="screens/54-refund-request.html" loading="lazy" title="Refund Request"></iframe></div>
+      <div class="mock__head"><span class="mock__title">환불 요청</span><span class="mock__open">열기 ↗</span></div>
+      <p class="mock__desc">Apple 환불 안내 + Coin 환원 조건</p>
+    </a>
+    <a class="mock" href="screens/47-earnings-withdraw.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">W-05</div>
+      <div class="mock__phone-wrap"><iframe src="screens/47-earnings-withdraw.html" loading="lazy" title="Withdraw"></iframe></div>
+      <div class="mock__head"><span class="mock__title">출금 신청</span><span class="mock__open">열기 ↗</span></div>
+      <p class="mock__desc">메이커 코인 → 원화 환전 + 수수료/세금 명세</p>
+    </a>
+    <a class="mock" href="screens/37-paywall-single.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P6-01</div>
+      <div class="mock__phone-wrap"><iframe src="screens/37-paywall-single.html" loading="lazy" title="Coin Purchase"></iframe></div>
+      <div class="mock__head"><span class="mock__title">필터 구매 (코인)</span><span class="mock__open">열기 ↗</span></div>
+      <p class="mock__desc">80 C 가격 · 잔액 표시 · 메이커 60% 분배 시각화</p>
+    </a>
+    <a class="mock" href="screens/38-paywall-subscription.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P6-02</div>
+      <div class="mock__phone-wrap"><iframe src="screens/38-paywall-subscription.html" loading="lazy" title="Pro Subscription"></iframe></div>
+      <div class="mock__head"><span class="mock__title">Pro 멤버십</span><span class="mock__open">열기 ↗</span></div>
+      <p class="mock__desc">모든 유료 필터 무제한 + 월 300 C 자동 적립 (월/연간)</p>
+    </a>
+    <a class="mock" href="screens/39-orders-history.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P6-03</div>
+      <div class="mock__phone-wrap"><iframe src="screens/39-orders-history.html" loading="lazy" title="Orders"></iframe></div>
+      <div class="mock__head"><span class="mock__title">보유 필터</span><span class="mock__open">열기 ↗</span></div>
+      <p class="mock__desc">구매/보유 필터 목록 + 환불 상태 표시</p>
+    </a>
+    <a class="mock" href="screens/40-payout-onboarding.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P6-04</div>
+      <div class="mock__phone-wrap"><iframe src="screens/40-payout-onboarding.html" loading="lazy" title="Payout Onboarding"></iframe></div>
+      <div class="mock__head"><span class="mock__title">정산 온보딩</span><span class="mock__open">열기 ↗</span></div>
+      <p class="mock__desc">Stripe Connect 가입 전 단계와 요구 정보 안내</p>
+    </a>
+    <a class="mock" href="screens/41-payout-tax-info.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P6-05</div>
+      <div class="mock__phone-wrap"><iframe src="screens/41-payout-tax-info.html" loading="lazy" title="Tax Info"></iframe></div>
+      <div class="mock__head"><span class="mock__title">세무 정보</span><span class="mock__open">열기 ↗</span></div>
+      <p class="mock__desc">개인/사업자 세무 정보와 정산 명세 수신 정보</p>
+    </a>
+    <a class="mock" href="screens/42-payout-history.html" target="_blank">
+      <span class="mock__theme-tag mock__theme-tag--light">Light</span>
+      <div class="mock__num">P6-06</div>
+      <div class="mock__phone-wrap"><iframe src="screens/42-payout-history.html" loading="lazy" title="Payout History"></iframe></div>
+      <div class="mock__head"><span class="mock__title">정산 내역</span><span class="mock__open">열기 ↗</span></div>
+      <p class="mock__desc">최근 정산, 다음 지급 예정일, 실패/처리 상태</p>
+    </a>
+  </div>
+
   <footer class="gallery-foot">
-    <p>moodit © 2026 · Design Mockups v1.2 · Light Minimal with #B8853A Gold Accent</p>
+    <p>moodit © 2026 · Design Mockups v1.3 · Light Minimal with #B8853A Gold Accent</p>
     <p>
-      코어 12화면 + States Catalog 1 + Permissions 8 + Modals 4 = 총 25 파일 (29 화면) ·
+      제품 화면 67 + States 1 + Permissions 8 + Modals 4 + 브랜드 SVG 10 = 총 90개 핵심 HTML/SVG 자산 ·
       <a href="shared/tokens.css">tokens.css</a> 단일 토큰 소스 ·
       <a href="README.md">README →</a> ·
-      <a href="../docs/MOTION_SPEC.md">모션 스펙 →</a> ·
-      <a href="../docs/PERMISSIONS_FLOW.md">권한 플로우 →</a> ·
-      <a href="../docs/MODAL_PATTERNS.md">모달 패턴 →</a> ·
-      <a href="../docs/EMPTY_STATES.md">빈 상태 →</a>
+      <a href="../docs/CURRENCY_DESIGN.md">코인 모델 →</a> ·
+      <a href="../docs/MOTION_SPEC.md">모션 →</a> ·
+      <a href="../docs/PERMISSIONS_FLOW.md">권한 →</a> ·
+      <a href="../docs/MODAL_PATTERNS.md">모달 →</a> ·
+      <a href="../docs/EMPTY_STATES.md">빈 상태 →</a> ·
+      <a href="../docs/SCREENS_PLAN.md">화면 인덱스 →</a>
     </p>
   </footer>
 

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<!-- Audit P1-F · GAPS_AUDIT §3.2 — Per-category notification preferences · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>51 · Notification Settings — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .ns { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .ns__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  /* System banner — push permission status */
+  .ns__system-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    margin-bottom: var(--sp-md);
+    display: flex; align-items: center; gap: var(--sp-sm);
+  }
+  .ns__system-icon {
+    width: 40px; height: 40px;
+    background: var(--success-bg);
+    color: var(--success);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    flex: 0 0 40px;
+  }
+  .ns__system-icon--off { background: var(--warning-bg); color: var(--warning); }
+  .ns__system-info { flex: 1; }
+  .ns__system-title { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .ns__system-desc { font-size: var(--t-caption-size); color: var(--text-secondary); margin: 2px 0 0; }
+  .ns__system-link { color: var(--accent); font-size: var(--t-subhead-size); font-weight: 600; }
+
+  .ns__group-label {
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: var(--sp-md) 0 var(--sp-xs);
+  }
+
+  .ns__list {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    margin-bottom: var(--sp-md);
+  }
+  .ns__row {
+    display: flex; align-items: flex-start;
+    padding: var(--sp-sm) var(--sp-md);
+    gap: var(--sp-sm);
+  }
+  .ns__row + .ns__row { border-top: 1px solid var(--border-subtle); }
+  .ns__row-icon {
+    width: 36px; height: 36px;
+    background: var(--bg-3);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    color: var(--text-secondary);
+    flex: 0 0 36px;
+    margin-top: 2px;
+  }
+  .ns__row-icon--like { background: var(--error-bg); color: var(--error); }
+  .ns__row-icon--cmt  { background: var(--info-bg); color: var(--info); }
+  .ns__row-icon--mkt  { background: var(--accent-bg); color: var(--accent); }
+  .ns__row-icon--sys  { background: var(--bg-3); color: var(--text-secondary); }
+
+  .ns__row-text { flex: 1; min-width: 0; padding-right: var(--sp-xs); }
+  .ns__row-name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .ns__row-desc { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; line-height: 1.4; word-break: keep-all; }
+  .ns__row-channels {
+    display: flex; gap: 6px;
+    margin-top: 6px;
+  }
+  .ns__channel-pill {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: var(--r-sm);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .ns__channel-pill--on { background: var(--accent-bg); color: var(--accent); }
+  .ns__channel-pill--off { background: var(--bg-3); color: var(--text-tertiary); }
+
+  /* Quiet hours */
+  .ns__quiet {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    margin-bottom: var(--sp-md);
+  }
+  .ns__quiet-row {
+    display: flex; align-items: center;
+    padding: var(--sp-sm) var(--sp-md);
+    gap: var(--sp-sm);
+  }
+  .ns__quiet-row + .ns__quiet-row { border-top: 1px solid var(--border-subtle); }
+  .ns__quiet-text { flex: 1; }
+  .ns__quiet-name { font-size: var(--t-callout-size); font-weight: 500; margin: 0; }
+  .ns__quiet-desc { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .ns__quiet-value { color: var(--accent); font-size: var(--t-callout-size); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="ns">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">알림 설정</span>
+        <span style="width: 44px;"></span>
+      </header>
+
+      <div class="ns__body">
+        <div class="ns__system-card">
+          <span class="ns__system-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 8 a6 6 0 1 1 12 0 v4 l2 4 H4 l2-4 z"/><path d="M9 19 a3 3 0 0 0 6 0"/></svg>
+          </span>
+          <div class="ns__system-info">
+            <p class="ns__system-title">시스템 알림 — 켜짐</p>
+            <p class="ns__system-desc">iOS 설정 > 알림 > moodit에서 추가 옵션 (잠금화면·배지·소리) 관리</p>
+          </div>
+          <a class="ns__system-link" href="#">설정 열기 →</a>
+        </div>
+
+        <p class="ns__group-label">소셜</p>
+
+        <div class="ns__list">
+          <article class="ns__row">
+            <span class="ns__row-icon ns__row-icon--like">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21 s-7-4.5-7-10 a4 4 0 0 1 7 -2.6 a4 4 0 0 1 7 2.6 c0 5.5 -7 10 -7 10 z"/></svg>
+            </span>
+            <div class="ns__row-text">
+              <p class="ns__row-name">좋아요</p>
+              <p class="ns__row-desc">내 필터/사진에 좋아요가 추가되었을 때</p>
+              <div class="ns__row-channels">
+                <span class="ns__channel-pill ns__channel-pill--on">PUSH</span>
+                <span class="ns__channel-pill ns__channel-pill--on">인앱</span>
+                <span class="ns__channel-pill ns__channel-pill--off">이메일</span>
+              </div>
+            </div>
+            <span class="toggle toggle--on" role="switch" aria-checked="true"></span>
+          </article>
+
+          <article class="ns__row">
+            <span class="ns__row-icon ns__row-icon--cmt">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12 a8 8 0 0 1 -8 8 H5 V12 a8 8 0 1 1 16 0 z"/></svg>
+            </span>
+            <div class="ns__row-text">
+              <p class="ns__row-name">댓글 + 답글</p>
+              <p class="ns__row-desc">@멘션과 답글은 항상 알림</p>
+              <div class="ns__row-channels">
+                <span class="ns__channel-pill ns__channel-pill--on">PUSH</span>
+                <span class="ns__channel-pill ns__channel-pill--on">인앱</span>
+                <span class="ns__channel-pill ns__channel-pill--on">이메일</span>
+              </div>
+            </div>
+            <span class="toggle toggle--on" role="switch" aria-checked="true"></span>
+          </article>
+
+          <article class="ns__row">
+            <span class="ns__row-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21 c0-4.4 3.6-8 8-8 s8 3.6 8 8"/></svg>
+            </span>
+            <div class="ns__row-text">
+              <p class="ns__row-name">새 팔로워</p>
+              <p class="ns__row-desc">누군가 회원님을 팔로우하기 시작했을 때</p>
+              <div class="ns__row-channels">
+                <span class="ns__channel-pill ns__channel-pill--on">PUSH</span>
+                <span class="ns__channel-pill ns__channel-pill--on">인앱</span>
+              </div>
+            </div>
+            <span class="toggle toggle--on" role="switch" aria-checked="true"></span>
+          </article>
+
+          <article class="ns__row">
+            <span class="ns__row-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="6"/><circle cx="15" cy="15" r="6"/></svg>
+            </span>
+            <div class="ns__row-text">
+              <p class="ns__row-name">팔로우한 메이커의 새 필터</p>
+              <p class="ns__row-desc">팔로우 중인 메이커가 새 필터를 게시했을 때</p>
+              <div class="ns__row-channels">
+                <span class="ns__channel-pill ns__channel-pill--on">PUSH</span>
+                <span class="ns__channel-pill ns__channel-pill--on">인앱</span>
+              </div>
+            </div>
+            <span class="toggle toggle--on" role="switch" aria-checked="true"></span>
+          </article>
+        </div>
+
+        <p class="ns__group-label">메이커</p>
+
+        <div class="ns__list">
+          <article class="ns__row">
+            <span class="ns__row-icon ns__row-icon--mkt">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4 V14 M7 11 L12 16 L17 11"/></svg>
+            </span>
+            <div class="ns__row-text">
+              <p class="ns__row-name">필터 다운로드 마일스톤</p>
+              <p class="ns__row-desc">100·1K·10K 등 누적 다운로드 도달 시</p>
+              <div class="ns__row-channels">
+                <span class="ns__channel-pill ns__channel-pill--on">PUSH</span>
+                <span class="ns__channel-pill ns__channel-pill--off">이메일</span>
+              </div>
+            </div>
+            <span class="toggle toggle--on" role="switch" aria-checked="true"></span>
+          </article>
+
+          <article class="ns__row">
+            <span class="ns__row-icon ns__row-icon--mkt">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12 L10 17 L20 7"/></svg>
+            </span>
+            <div class="ns__row-text">
+              <p class="ns__row-name">검수 결과 (승인 / 거부)</p>
+              <p class="ns__row-desc">업로드한 필터의 검수 완료 알림</p>
+              <div class="ns__row-channels">
+                <span class="ns__channel-pill ns__channel-pill--on">PUSH</span>
+                <span class="ns__channel-pill ns__channel-pill--on">인앱</span>
+                <span class="ns__channel-pill ns__channel-pill--on">이메일</span>
+              </div>
+            </div>
+            <span class="toggle toggle--on" role="switch" aria-checked="true"></span>
+          </article>
+
+          <article class="ns__row">
+            <span class="ns__row-icon ns__row-icon--mkt">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </span>
+            <div class="ns__row-text">
+              <p class="ns__row-name">코인 적립 / 출금 완료</p>
+              <p class="ns__row-desc">필터 판매로 코인 적립 시 / 출금 처리 완료</p>
+              <div class="ns__row-channels">
+                <span class="ns__channel-pill ns__channel-pill--on">PUSH</span>
+                <span class="ns__channel-pill ns__channel-pill--on">이메일</span>
+              </div>
+            </div>
+            <span class="toggle toggle--on" role="switch" aria-checked="true"></span>
+          </article>
+        </div>
+
+        <p class="ns__group-label">시스템 / 마케팅</p>
+
+        <div class="ns__list">
+          <article class="ns__row">
+            <span class="ns__row-icon ns__row-icon--sys">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 8 V12 L15 14"/></svg>
+            </span>
+            <div class="ns__row-text">
+              <p class="ns__row-name">시스템 안내</p>
+              <p class="ns__row-desc">서비스 점검·약관 변경·중요 정책 업데이트 (필수)</p>
+              <div class="ns__row-channels">
+                <span class="ns__channel-pill ns__channel-pill--on">PUSH</span>
+                <span class="ns__channel-pill ns__channel-pill--on">이메일</span>
+              </div>
+            </div>
+            <span class="toggle toggle--on" role="switch" aria-checked="true" style="opacity: 0.5; pointer-events: none;"></span>
+          </article>
+
+          <article class="ns__row">
+            <span class="ns__row-icon ns__row-icon--sys">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 L15 9 L22 10 L17 15 L18 22 L12 18 L6 22 L7 15 L2 10 L9 9 Z"/></svg>
+            </span>
+            <div class="ns__row-text">
+              <p class="ns__row-name">큐레이션 추천</p>
+              <p class="ns__row-desc">매주 큐레이터가 고른 필터 추천</p>
+              <div class="ns__row-channels">
+                <span class="ns__channel-pill ns__channel-pill--off">PUSH</span>
+                <span class="ns__channel-pill ns__channel-pill--on">인앱</span>
+              </div>
+            </div>
+            <span class="toggle" role="switch" aria-checked="false"></span>
+          </article>
+
+          <article class="ns__row">
+            <span class="ns__row-icon ns__row-icon--sys">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6 L21 6 M3 12 L15 12 M3 18 L9 18"/></svg>
+            </span>
+            <div class="ns__row-text">
+              <p class="ns__row-name">마케팅 / 프로모션</p>
+              <p class="ns__row-desc">신규 기능·이벤트·할인 안내</p>
+              <div class="ns__row-channels">
+                <span class="ns__channel-pill ns__channel-pill--off">PUSH</span>
+                <span class="ns__channel-pill ns__channel-pill--off">이메일</span>
+              </div>
+            </div>
+            <span class="toggle" role="switch" aria-checked="false"></span>
+          </article>
+        </div>
+
+        <p class="ns__group-label">방해 금지 시간</p>
+
+        <div class="ns__quiet">
+          <div class="ns__quiet-row">
+            <div class="ns__quiet-text">
+              <p class="ns__quiet-name">방해 금지 시간 사용</p>
+              <p class="ns__quiet-desc">시스템 알림 외 모두 차단</p>
+            </div>
+            <span class="toggle toggle--on" role="switch" aria-checked="true"></span>
+          </div>
+          <button class="ns__quiet-row">
+            <div class="ns__quiet-text">
+              <p class="ns__quiet-name">시작</p>
+            </div>
+            <span class="ns__quiet-value">22:00</span>
+          </button>
+          <button class="ns__quiet-row">
+            <div class="ns__quiet-text">
+              <p class="ns__quiet-name">종료</p>
+            </div>
+            <span class="ns__quiet-value">07:00</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

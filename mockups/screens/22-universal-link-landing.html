@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<!-- P0-14 · PRD §3.2 F5 / US-08 — Universal Link landing · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>22 · Universal Link Landing — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .ull {
+    position: absolute; inset: 0;
+    background: var(--bg-1);
+    display: flex; flex-direction: column;
+    padding-top: var(--safe-top);
+  }
+
+  .ull__source-bar {
+    background: var(--info-bg);
+    border-bottom: 1px solid var(--info);
+    padding: var(--sp-sm) var(--sp-md);
+    display: flex; align-items: center; gap: var(--sp-xs);
+    color: var(--info);
+    font-size: var(--t-caption-size);
+  }
+
+  .ull__hero {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: var(--sp-2xl) var(--sp-xl);
+    text-align: center;
+  }
+
+  .ull__photo-stack {
+    position: relative;
+    width: 240px; height: 300px;
+    margin-bottom: var(--sp-xl);
+  }
+  .ull__photo {
+    position: absolute;
+    border-radius: var(--r-lg);
+    box-shadow: 0 12px 32px rgba(15,15,14,0.18);
+    overflow: hidden;
+  }
+  .ull__photo--bg-l {
+    width: 60%; height: 80%;
+    top: 10%; left: -8%;
+    transform: rotate(-6deg);
+    opacity: 0.7;
+  }
+  .ull__photo--bg-r {
+    width: 60%; height: 80%;
+    top: 10%; right: -8%;
+    transform: rotate(6deg);
+    opacity: 0.7;
+  }
+  .ull__photo--main {
+    width: 80%; height: 100%;
+    top: 0; left: 10%;
+    border: 4px solid #fff;
+    z-index: 2;
+  }
+  .ull__photo .photo { position: absolute; inset: 0; }
+
+  .ull__pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-radius: var(--r-full);
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin-bottom: var(--sp-sm);
+  }
+  .ull__title {
+    font-size: var(--t-title-lg-size);
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin: 0 0 var(--sp-xxs);
+    color: var(--text-primary);
+  }
+  .ull__author {
+    color: var(--text-secondary);
+    font-size: var(--t-subhead-size);
+    margin: 0 0 var(--sp-md);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ull__author-avatar { width: 24px; height: 24px; }
+  .ull__sub {
+    color: var(--text-secondary);
+    font-size: var(--t-body-size);
+    line-height: 1.5;
+    word-break: keep-all;
+    max-width: 280px;
+  }
+  .ull__meta {
+    display: flex; justify-content: center; gap: var(--sp-md);
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+    margin-top: var(--sp-sm);
+  }
+
+  .ull__foot {
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    display: flex; flex-direction: column; gap: var(--sp-xs);
+  }
+  .ull__foot-note {
+    text-align: center;
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+    margin-top: var(--sp-xs);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="ull">
+      <div class="ull__source-bar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13 a5 5 0 0 0 7 0 L20 10 a5 5 0 0 0 -7 -7 L11 5"/><path d="M14 11 a5 5 0 0 0 -7 0 L4 14 a5 5 0 0 0 7 7 L13 19"/></svg>
+        instagram.com/jisoo.films 에서 공유함
+      </div>
+
+      <section class="ull__hero">
+        <div class="ull__photo-stack">
+          <div class="ull__photo ull__photo--bg-l"><div class="photo photo--cafe photo--vignette"></div></div>
+          <div class="ull__photo ull__photo--bg-r"><div class="photo photo--moody photo--vignette"></div></div>
+          <div class="ull__photo ull__photo--main"><div class="photo photo--vintage photo--vignette"></div></div>
+        </div>
+
+        <span class="ull__pill">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="6"/><circle cx="15" cy="15" r="6"/></svg>
+          moodit 필터 공유
+        </span>
+        <h1 class="ull__title">Sunset 1973</h1>
+        <p class="ull__author">
+          <span class="avatar ull__author-avatar">JS</span>
+          @jisoo.films
+        </p>
+        <p class="ull__sub">친구가 공유한 필터입니다. 다운로드하면 카메라에서 즉시 사용할 수 있습니다.</p>
+        <div class="ull__meta">
+          <span>★ 4.9 (1.2K)</span>
+          <span>↓ 9.8K</span>
+          <span>2.4 MB</span>
+        </div>
+      </section>
+
+      <div class="ull__foot">
+        <button class="btn btn--primary btn--lg btn--block">다운로드 + 카메라 열기</button>
+        <button class="btn btn--secondary btn--lg btn--block">상세 페이지 보기</button>
+        <p class="ull__foot-note">moodit이 설치되어 있지 않은 친구는 App Store로 이동합니다.</p>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

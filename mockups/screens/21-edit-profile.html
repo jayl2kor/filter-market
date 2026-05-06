@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<!-- P0-13 · PRD §3.2 F5 (profile edit) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>21 · Edit Profile — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .edit { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .edit__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  .edit__avatar {
+    text-align: center;
+    padding: var(--sp-md) var(--sp-md) var(--sp-xl);
+  }
+  .edit__avatar-wrap {
+    position: relative;
+    display: inline-block;
+  }
+  .edit__avatar-img {
+    width: 96px; height: 96px;
+    border-radius: var(--r-full);
+    background: linear-gradient(135deg, #f3dcc4 0%, #d4a482 50%, #8a6a52 100%);
+    border: 1px solid var(--border-subtle);
+  }
+  .edit__avatar-edit {
+    position: absolute; right: -2px; bottom: -2px;
+    width: 32px; height: 32px;
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    border: 3px solid var(--bg-1);
+  }
+  .edit__avatar-link {
+    display: block; margin-top: var(--sp-sm);
+    color: var(--accent);
+    font-size: var(--t-callout-size);
+    font-weight: 600;
+  }
+
+  .edit__field {
+    margin-bottom: var(--sp-md);
+  }
+  .edit__field label {
+    display: block;
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: var(--sp-xs);
+  }
+  .edit__input, .edit__textarea {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+    font: inherit;
+    font-size: var(--t-body-size);
+    color: var(--text-primary);
+    outline: 0;
+    transition: border-color var(--d-fast) var(--ease-standard), box-shadow var(--d-fast) var(--ease-standard);
+  }
+  .edit__textarea { min-height: 96px; resize: none; line-height: 1.5; }
+  .edit__input:focus, .edit__textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-ring);
+  }
+
+  .edit__handle {
+    display: flex;
+    align-items: center;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+    gap: var(--sp-xs);
+  }
+  .edit__handle-prefix { color: var(--text-tertiary); font-size: var(--t-body-size); }
+  .edit__handle-input { flex: 1; border: 0; outline: 0; font: inherit; font-size: var(--t-body-size); background: transparent; }
+  .edit__handle-status {
+    width: 20px; height: 20px;
+    color: var(--success);
+    flex: 0 0 20px;
+  }
+
+  .edit__hint {
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+    margin-top: var(--sp-xxs);
+    line-height: 1.4;
+  }
+  .edit__hint--ok { color: var(--success); }
+  .edit__hint--err { color: var(--error); }
+
+  .edit__char-counter {
+    display: flex; justify-content: flex-end;
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+    margin-top: var(--sp-xxs);
+  }
+
+  .edit__foot {
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    background: var(--bg-1);
+    border-top: 1px solid var(--border-subtle);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="edit">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="취소">취소</button>
+        <span class="topbar__title">프로필 편집</span>
+        <button class="topbar__action topbar__action--accent" style="font-weight: 600;">저장</button>
+      </header>
+
+      <div class="edit__body">
+        <section class="edit__avatar">
+          <div class="edit__avatar-wrap">
+            <div class="edit__avatar-img" role="img" aria-label="현재 프로필 사진"></div>
+            <button class="edit__avatar-edit" aria-label="아바타 변경">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 5 L19 10 L8 21 L3 21 L3 16 Z"/><path d="M13 6 L18 11"/></svg>
+            </button>
+          </div>
+          <button class="edit__avatar-link">사진 변경</button>
+        </section>
+
+        <div class="edit__field">
+          <label for="edit-name">이름</label>
+          <input id="edit-name" class="edit__input" type="text" value="정지수"/>
+        </div>
+
+        <div class="edit__field">
+          <label for="edit-handle">핸들 (Username)</label>
+          <div class="edit__handle">
+            <span class="edit__handle-prefix">@</span>
+            <input id="edit-handle" class="edit__handle-input" type="text" value="jisoo.films"/>
+            <svg class="edit__handle-status" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12 L10 17 L20 7"/></svg>
+          </div>
+          <p class="edit__hint edit__hint--ok">사용 가능한 핸들입니다</p>
+        </div>
+
+        <div class="edit__field">
+          <label for="edit-bio">소개</label>
+          <textarea id="edit-bio" class="edit__textarea" maxlength="160">필름 카메라와 햇빛을 좋아합니다. 카페·여행·일상 위주로 필터를 만들어요.</textarea>
+          <div class="edit__char-counter">68 / 160</div>
+        </div>
+
+        <div class="edit__field">
+          <label for="edit-website">링크</label>
+          <input id="edit-website" class="edit__input" type="url" placeholder="https://" value="https://jisoo.films"/>
+        </div>
+
+        <div class="edit__field">
+          <label>연락 가능한 메이커</label>
+          <div class="list">
+            <div class="list-row">
+              <span class="list-row__title">메이커 페이지 노출</span>
+              <span class="toggle toggle--on" role="switch" aria-checked="true"></span>
+            </div>
+            <div class="list-row">
+              <span class="list-row__title">필터 적용 사진 공유 허용</span>
+              <span class="toggle" role="switch" aria-checked="false"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<!-- Audit P0-B · App Store Guideline 3.1.2(b) — Pro membership active status · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>49 · Pro Status — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .ps { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .ps__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  .ps__hero {
+    background: linear-gradient(135deg, var(--accent) 0%, #8B5E1F 100%);
+    color: #fff;
+    padding: var(--sp-lg);
+    border-radius: var(--r-lg);
+    margin-bottom: var(--sp-md);
+    box-shadow: var(--elev-2-shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .ps__hero::before {
+    content: ''; position: absolute;
+    top: -40px; right: -40px;
+    width: 160px; height: 160px;
+    border: 28px solid rgba(255,255,255,0.10);
+    border-radius: var(--r-full);
+  }
+  .ps__hero-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: rgba(255,255,255,0.18);
+    border-radius: var(--r-full);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin-bottom: var(--sp-xs);
+  }
+  .ps__hero-title { font-size: var(--t-title-lg-size); font-weight: 700; letter-spacing: -0.3px; margin: 0; line-height: 1.1; }
+  .ps__hero-meta { font-size: var(--t-subhead-size); opacity: 0.85; margin: var(--sp-xs) 0 0; }
+
+  /* Renewal info */
+  .ps__renew {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    margin-bottom: var(--sp-md);
+  }
+  .ps__renew-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0;
+  }
+  .ps__renew-row + .ps__renew-row { border-top: 1px solid var(--border-subtle); }
+  .ps__renew-label { font-size: var(--t-subhead-size); color: var(--text-secondary); }
+  .ps__renew-value { font-size: var(--t-callout-size); font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+  /* Benefits used */
+  .ps__sec-title { font-size: var(--t-callout-size); font-weight: 700; margin: var(--sp-md) 0 var(--sp-sm); }
+
+  .ps__usage { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-xs); margin-bottom: var(--sp-md); }
+  .ps__usage-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm);
+  }
+  .ps__usage-num { font-size: var(--t-title-size); font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .ps__usage-label { font-size: var(--t-caption-size); color: var(--text-tertiary); }
+  .ps__usage-tag { font-size: 10px; color: var(--accent); font-weight: 600; margin-top: 2px; }
+
+  /* Manage section (Apple-mandatory subscription info) */
+  .ps__manage {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    margin-bottom: var(--sp-md);
+  }
+  .ps__manage-row {
+    display: flex; align-items: center;
+    padding: var(--sp-sm) var(--sp-md);
+    gap: var(--sp-sm);
+  }
+  .ps__manage-row + .ps__manage-row { border-top: 1px solid var(--border-subtle); }
+  .ps__manage-icon { width: 24px; height: 24px; color: var(--text-secondary); flex: 0 0 24px; }
+  .ps__manage-text { flex: 1; font-size: var(--t-body-size); }
+  .ps__manage-chev { width: 16px; height: 16px; color: var(--text-tertiary); flex: 0 0 16px; }
+
+  .ps__legal {
+    background: var(--info-bg);
+    color: var(--info);
+    padding: var(--sp-sm) var(--sp-md);
+    border-radius: var(--r-md);
+    font-size: var(--t-caption-size);
+    line-height: 1.5;
+    margin-bottom: var(--sp-md);
+    word-break: keep-all;
+  }
+  .ps__legal a { color: var(--info); font-weight: 700; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="ps">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">Pro 멤버십</span>
+        <span style="width: 44px;"></span>
+      </header>
+
+      <div class="ps__body">
+        <div class="ps__hero">
+          <span class="ps__hero-pill">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L15 9 L22 10 L17 15 L18 22 L12 18 L6 22 L7 15 L2 10 L9 9 Z"/></svg>
+            활성
+          </span>
+          <h1 class="ps__hero-title">moodit Pro 연간</h1>
+          <p class="ps__hero-meta">가입일: 2025년 11월 8일 · 218일 사용</p>
+        </div>
+
+        <div class="ps__renew">
+          <div class="ps__renew-row">
+            <span class="ps__renew-label">현재 플랜</span>
+            <span class="ps__renew-value">연간 ₩34,800</span>
+          </div>
+          <div class="ps__renew-row">
+            <span class="ps__renew-label">다음 결제일</span>
+            <span class="ps__renew-value">2026년 11월 8일</span>
+          </div>
+          <div class="ps__renew-row">
+            <span class="ps__renew-label">다음 결제 금액</span>
+            <span class="ps__renew-value">₩34,800</span>
+          </div>
+          <div class="ps__renew-row">
+            <span class="ps__renew-label">결제 수단</span>
+            <span class="ps__renew-value">Apple ID · ****8421</span>
+          </div>
+        </div>
+
+        <h2 class="ps__sec-title">이번 달 혜택</h2>
+        <div class="ps__usage">
+          <div class="ps__usage-card">
+            <div class="ps__usage-num">42</div>
+            <div class="ps__usage-label">Pro 필터 사용</div>
+            <div class="ps__usage-tag">코인 0 차감</div>
+          </div>
+          <div class="ps__usage-card">
+            <div class="ps__usage-num">300</div>
+            <div class="ps__usage-label">월간 보너스 코인</div>
+            <div class="ps__usage-tag">5월 1일 적립</div>
+          </div>
+        </div>
+
+        <h2 class="ps__sec-title">멤버십 관리</h2>
+        <div class="ps__manage">
+          <button class="ps__manage-row">
+            <svg class="ps__manage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 V6 M12 18 V22 M2 12 H6 M18 12 H22"/><circle cx="12" cy="12" r="4"/></svg>
+            <span class="ps__manage-text">플랜 변경 (월간 ↔ 연간)</span>
+            <svg class="ps__manage-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 6 L15 12 L9 18"/></svg>
+          </button>
+          <button class="ps__manage-row">
+            <svg class="ps__manage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10 H21"/></svg>
+            <span class="ps__manage-text">결제 수단 변경 (App Store)</span>
+            <svg class="ps__manage-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 6 L15 12 L9 18"/></svg>
+          </button>
+          <button class="ps__manage-row">
+            <svg class="ps__manage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4 V20 M5 13 L12 20 L19 13"/></svg>
+            <span class="ps__manage-text">영수증 내려받기</span>
+            <svg class="ps__manage-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 6 L15 12 L9 18"/></svg>
+          </button>
+          <button class="ps__manage-row" style="color: var(--error);">
+            <svg class="ps__manage-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+            <span class="ps__manage-text">멤버십 해지</span>
+            <svg class="ps__manage-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 6 L15 12 L9 18"/></svg>
+          </button>
+        </div>
+
+        <p class="ps__legal">
+          멤버십은 Apple ID 설정에서 관리됩니다. 다음 결제일 24시간 전까지 해지하지 않으면 자동 갱신됩니다.
+          해지 후에도 현재 결제 기간 동안 모든 혜택을 계속 사용할 수 있습니다.
+          <a href="#">전체 약관 →</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

@@ -42,6 +42,7 @@
 | `app-icon-light.svg` | iOS 앱 아이콘 라이트 | `0 0 1024 1024` |
 | `app-icon-dark.svg` | iOS 앱 아이콘 다크 | `0 0 1024 1024` |
 | `app-icon-tinted.svg` | iOS 18+ Tinted 슬롯 | `0 0 1024 1024` |
+| `coin.svg` | Coin 화폐 아이콘 — 골드 디스크 + 흰 "M" ([CURRENCY_DESIGN.md](./CURRENCY_DESIGN.md)) | `0 0 24 24` |
 
 PNG 변환은 빌드 시:
 

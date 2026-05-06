@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<!-- Audit P0-C(extended) · GAPS_AUDIT §3.1 — Refund request guidance · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>54 · Refund Request — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .rf { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .rf__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  /* Tx receipt — what's being refunded */
+  .rf__tx {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    margin-bottom: var(--sp-md);
+  }
+  .rf__tx-head {
+    display: flex; gap: var(--sp-sm);
+    padding-bottom: var(--sp-sm);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: var(--sp-sm);
+  }
+  .rf__tx-icon {
+    width: 40px; height: 40px;
+    background: var(--success-bg);
+    color: var(--success);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    flex: 0 0 40px;
+  }
+  .rf__tx-info { flex: 1; }
+  .rf__tx-title { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .rf__tx-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .rf__tx-amount {
+    font-size: var(--t-headline-size); font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .rf__tx-amount .coin { width: 18px; height: 18px; }
+  .rf__tx-row {
+    display: flex; justify-content: space-between;
+    padding: 4px 0;
+    font-size: var(--t-caption-size);
+  }
+  .rf__tx-label { color: var(--text-tertiary); }
+  .rf__tx-value { color: var(--text-primary); font-weight: 600; }
+
+  /* Eligibility */
+  .rf__eligibility {
+    background: var(--success-bg);
+    color: var(--success);
+    padding: var(--sp-sm) var(--sp-md);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-md);
+    display: flex; gap: var(--sp-xs); align-items: flex-start;
+    font-size: var(--t-subhead-size);
+    line-height: 1.4;
+    word-break: keep-all;
+  }
+  .rf__eligibility--no { background: var(--error-bg); color: var(--error); }
+  .rf__eligibility-icon { width: 16px; height: 16px; flex: 0 0 16px; margin-top: 2px; }
+
+  /* Path A vs Path B */
+  .rf__sec-title { font-size: var(--t-callout-size); font-weight: 700; margin: var(--sp-md) 0 var(--sp-xs); }
+
+  .rf__path {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    margin-bottom: var(--sp-xs);
+  }
+  .rf__path--primary { border: 2px solid var(--accent); padding: calc(var(--sp-md) - 1px); }
+  .rf__path-head {
+    display: flex; align-items: center; gap: var(--sp-xs);
+    margin-bottom: var(--sp-xs);
+  }
+  .rf__path-num {
+    width: 22px; height: 22px;
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex: 0 0 22px;
+  }
+  .rf__path--primary .rf__path-num { background: var(--accent); }
+  .rf__path-name { font-size: var(--t-callout-size); font-weight: 700; }
+  .rf__path-tag {
+    margin-left: auto;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: var(--r-sm);
+    background: var(--accent-bg);
+    color: var(--accent);
+    letter-spacing: 0.4px;
+  }
+  .rf__path-desc {
+    font-size: var(--t-subhead-size);
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
+    word-break: keep-all;
+  }
+  .rf__path-cta {
+    margin-top: var(--sp-sm);
+    width: 100%; height: 44px;
+    border-radius: var(--r-md);
+    font-size: var(--t-callout-size);
+    font-weight: 700;
+  }
+  .rf__path-cta--apple { background: var(--text-primary); color: var(--text-inverse); display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .rf__path-cta--moodit { background: var(--bg-2); color: var(--text-primary); border: 1px solid var(--border-default); }
+
+  /* Reason */
+  .rf__reason {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    margin-bottom: var(--sp-md);
+  }
+  .rf__reason-label {
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin: 0 0 var(--sp-xs);
+  }
+  .rf__reason-textarea {
+    width: 100%;
+    background: var(--bg-1);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+    font: inherit;
+    font-size: var(--t-body-size);
+    resize: none;
+    min-height: 100px;
+    line-height: 1.5;
+  }
+  .rf__reason-help {
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+    margin-top: var(--sp-xs);
+    line-height: 1.4;
+  }
+
+  .coin { width: 14px; height: 14px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="rf">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">환불 요청</span>
+        <span style="width: 44px;"></span>
+      </header>
+
+      <div class="rf__body">
+        <div class="rf__tx">
+          <div class="rf__tx-head">
+            <span class="rf__tx-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4 V20 M5 13 L12 20 L19 13"/></svg>
+            </span>
+            <div class="rf__tx-info">
+              <p class="rf__tx-title">550 코인 충전</p>
+              <p class="rf__tx-meta">2026-05-06 09:24 · IAP-78A4F</p>
+            </div>
+            <div class="rf__tx-amount">
+              ₩7,500
+            </div>
+          </div>
+          <div class="rf__tx-row">
+            <span class="rf__tx-label">결제 수단</span><span class="rf__tx-value">Apple Pay · ****8421</span>
+          </div>
+          <div class="rf__tx-row">
+            <span class="rf__tx-label">사용된 코인</span><span class="rf__tx-value" style="display: inline-flex; align-items: center; gap: 4px;">130 <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#B8853A"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg></span>
+          </div>
+          <div class="rf__tx-row">
+            <span class="rf__tx-label">미사용 잔여</span><span class="rf__tx-value" style="color: var(--accent); display: inline-flex; align-items: center; gap: 4px;">420 <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#B8853A"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg></span>
+          </div>
+        </div>
+
+        <div class="rf__eligibility">
+          <svg class="rf__eligibility-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12 L10 17 L20 7"/></svg>
+          <span><strong>환불 가능합니다.</strong> 충전 후 7일 이내(D-5 남음) · 미사용분 420 코인 환원 가능 (이미 사용한 130 코인은 비례 차감).</span>
+        </div>
+
+        <h2 class="rf__sec-title">환불 신청 방법</h2>
+
+        <div class="rf__path rf__path--primary">
+          <div class="rf__path-head">
+            <span class="rf__path-num">1</span>
+            <span class="rf__path-name">Apple에 환불 요청</span>
+            <span class="rf__path-tag">권장 · 빠름</span>
+          </div>
+          <p class="rf__path-desc">
+            Apple ID 결제는 <strong>Apple만 환불</strong>할 수 있습니다 (App Store 정책).
+            대부분 24~48시간 내 결정되며 승인 시 원래 결제 수단으로 자동 환불됩니다.
+          </p>
+          <button class="rf__path-cta rf__path-cta--apple">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 2c.3 1.4-.3 2.8-1.1 3.6-.9.9-2.1 1.6-3.4 1.5-.3-1.3.3-2.7 1.1-3.5.9-1 2.2-1.6 3.4-1.6Zm4.4 16.7c-1.1 1.6-2.2 3.2-4.1 3.3-1.7 0-2.3-1-4.3-1-1.9 0-2.6 1-4.2 1-1.8 0-3.1-1.6-4.3-3.3C2 16.5 .9 11.5 3.4 8.5c1.4-1.6 3.5-2.6 5-2.6 1.7 0 2.7 1 4.1 1 1.4 0 2.5-1.1 4.4-1.1 1.5 0 3.4 .9 4.5 2.4-3.9 2.2-3.4 7.6.5 9.5Z"/></svg>
+            reportaproblem.apple.com 열기
+          </button>
+        </div>
+
+        <div class="rf__path">
+          <div class="rf__path-head">
+            <span class="rf__path-num" style="background: var(--bg-3); color: var(--text-secondary);">2</span>
+            <span class="rf__path-name">moodit에 사유 남기기 (선택)</span>
+          </div>
+          <p class="rf__path-desc">
+            서비스 개선을 위해 환불 사유를 알려주시면 도움이 됩니다. 본 폼은 Apple 환불 처리와 별개이며,
+            환불 자체에는 영향을 주지 않습니다.
+          </p>
+          <button class="rf__path-cta rf__path-cta--moodit">사유 작성 (선택)</button>
+        </div>
+
+        <h2 class="rf__sec-title">사유 (선택)</h2>
+        <div class="rf__reason">
+          <p class="rf__reason-label">moodit 서비스 개선용</p>
+          <textarea class="rf__reason-textarea" placeholder="실수 결제·중복·작동 안함·기타 — 자유롭게 적어주세요" maxlength="500"></textarea>
+          <p class="rf__reason-help">제출하시는 내용은 환불 결정에 영향을 주지 않으며, moodit 팀이 서비스 개선에만 사용합니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

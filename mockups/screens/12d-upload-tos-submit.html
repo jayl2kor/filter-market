@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<!-- P1-06 · Upload step 3 — ToS + submit · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>12d · Upload ToS &amp; Submit — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .up { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .up__stepper {
+    display: flex; align-items: center; justify-content: center;
+    padding: var(--sp-sm) var(--sp-md);
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 6px;
+  }
+  .up__step-dot { width: 8px; height: 8px; background: var(--bg-3); border-radius: var(--r-full); }
+  .up__step-dot--active { width: 24px; background: var(--accent); }
+  .up__step-dot--done { background: var(--accent); }
+  .up__step-line { width: 16px; height: 1px; background: var(--border-default); }
+
+  .up__body { flex: 1; padding: var(--sp-md); overflow-y: auto; }
+  .up__title { font-size: var(--t-title-size); font-weight: 700; margin: 0 0 4px; }
+  .up__sub { font-size: var(--t-subhead-size); color: var(--text-secondary); margin: 0 0 var(--sp-md); line-height: 1.4; word-break: keep-all; }
+
+  /* Summary card */
+  .up__summary {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    margin-bottom: var(--sp-md);
+  }
+  .up__summary-row {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm) var(--sp-md);
+  }
+  .up__summary-row + .up__summary-row { border-top: 1px solid var(--border-subtle); }
+  .up__summary-thumb {
+    width: 56px; height: 70px;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    flex: 0 0 56px;
+    position: relative;
+  }
+  .up__summary-thumb .photo { position: absolute; inset: 0; }
+  .up__summary-info { flex: 1; min-width: 0; }
+  .up__summary-name { font-size: var(--t-headline-size); font-weight: 600; margin: 0; }
+  .up__summary-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .up__summary-edit { color: var(--accent); font-size: var(--t-subhead-size); font-weight: 600; }
+  .up__summary-section {
+    padding: var(--sp-sm) var(--sp-md);
+    font-size: var(--t-caption-size);
+    color: var(--text-secondary);
+    background: var(--bg-1);
+    display: flex; justify-content: space-between;
+  }
+
+  /* Review notice */
+  .up__notice {
+    background: var(--info-bg);
+    color: var(--info);
+    padding: var(--sp-md);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-md);
+    display: flex; gap: var(--sp-xs);
+  }
+  .up__notice-icon { width: 20px; height: 20px; flex: 0 0 20px; margin-top: 2px; }
+  .up__notice-text { font-size: var(--t-subhead-size); line-height: 1.4; word-break: keep-all; }
+  .up__notice-text strong { font-weight: 700; }
+
+  /* ToS checks */
+  .up__tos {
+    display: flex; flex-direction: column; gap: var(--sp-sm);
+    margin-bottom: var(--sp-md);
+  }
+  .up__tos-row {
+    display: flex; align-items: flex-start; gap: var(--sp-sm);
+    padding: var(--sp-sm);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+  }
+  .up__check {
+    width: 22px; height: 22px;
+    border: 2px solid var(--border-default);
+    border-radius: var(--r-sm);
+    flex: 0 0 22px;
+    margin-top: 1px;
+    display: grid; place-items: center;
+    color: transparent;
+  }
+  .up__check--on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .up__tos-text {
+    flex: 1;
+    font-size: var(--t-subhead-size);
+    color: var(--text-primary);
+    line-height: 1.4;
+    word-break: keep-all;
+  }
+  .up__tos-text a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+
+  .up__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+    display: flex; gap: var(--sp-xs);
+  }
+  .up__foot .btn { flex: 1; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="up">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">필터 업로드 · 3 / 3</span>
+        <span style="width: 44px;"></span>
+      </header>
+
+      <div class="up__stepper">
+        <span class="up__step-dot up__step-dot--done"></span>
+        <span class="up__step-line"></span>
+        <span class="up__step-dot up__step-dot--done"></span>
+        <span class="up__step-line"></span>
+        <span class="up__step-dot up__step-dot--active"></span>
+      </div>
+
+      <div class="up__body">
+        <h1 class="up__title">검토 후 제출</h1>
+        <p class="up__sub">아래 정보를 확인하고 제출하면 검수 후 마켓에 공개됩니다.</p>
+
+        <div class="up__summary">
+          <div class="up__summary-row">
+            <div class="up__summary-thumb"><div class="photo photo--vintage photo--vignette"></div></div>
+            <div class="up__summary-info">
+              <p class="up__summary-name">Amber Café</p>
+              <p class="up__summary-meta">Vintage · 4 태그 · 표지 3장</p>
+            </div>
+            <button class="up__summary-edit">편집</button>
+          </div>
+          <div class="up__summary-section">
+            <span>파일 크기</span><span>2.4 MB</span>
+          </div>
+          <div class="up__summary-section">
+            <span>호환</span><span>iOS 17+ / A14 Bionic+</span>
+          </div>
+        </div>
+
+        <div class="up__notice">
+          <svg class="up__notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 8 V13 M12 17 h.01"/></svg>
+          <div class="up__notice-text">
+            <strong>검수 시간 24~48시간.</strong> 콘텐츠 가이드라인을 통과하면 마켓에 공개되고, 다른 사용자가 다운로드할 수 있습니다. 거절 시 사유와 함께 알림으로 안내드립니다.
+          </div>
+        </div>
+
+        <div class="up__tos">
+          <label class="up__tos-row">
+            <span class="up__check up__check--on">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg>
+            </span>
+            <span class="up__tos-text">이 필터의 모든 자산(LUT, 셰이더, 이미지)을 직접 만들었거나 사용 권리를 가지고 있습니다.</span>
+          </label>
+          <label class="up__tos-row">
+            <span class="up__check up__check--on">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg>
+            </span>
+            <span class="up__tos-text"><a href="#">콘텐츠 가이드라인</a>과 <a href="#">메이커 약관</a>에 동의합니다.</span>
+          </label>
+          <label class="up__tos-row">
+            <span class="up__check"></span>
+            <span class="up__tos-text">위 필터의 적용 사진을 moodit 마케팅 자산으로 사용하는 데 동의합니다 (선택).</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="up__foot">
+        <button class="btn btn--secondary btn--lg">이전</button>
+        <button class="btn btn--primary btn--lg">검수 제출</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

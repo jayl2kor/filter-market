@@ -189,14 +189,20 @@ moodit은 두 가지 호출 경로를 사용한다.
 | GET | `/reports` | 신고 큐 | 모더레이터 |
 | POST | `/reports/{id}/resolve` | 신고 처리 | 모더레이터 |
 
-#### Payments (Phase 6)
+#### Wallet & Coins (Phase 6 — see [`CURRENCY_DESIGN.md`](./CURRENCY_DESIGN.md))
 
 | Method | Path | 설명 | Auth |
 |---|---|---|---|
-| GET | `/products` | StoreKit product IDs + 메타 | optional |
-| POST | `/purchases` | 영수증 검증 + entitlement 부여 | 인증 |
-| GET | `/entitlements` | 본인 권한 | 인증 |
-| GET | `/payouts` | 메이커 정산 내역 | 메이커 |
+| GET | `/config/economy` | 코인 패키지 카탈로그 + 환율 + 임계치 | optional |
+| GET | `/me/wallet` | 잔액·earnedCoins·proUntil | 인증 |
+| POST | `/wallet/topup/init` | StoreKit IAP 시작 (intentId 발급) | 인증 |
+| POST | `/wallet/topup/finalize` | Apple 영수증 검증 + 코인 지급 (idempotent) | 인증 |
+| POST | `/filters/{id}/purchase` | 코인 차감 + 필터 보유권 (Idempotency-Key 필수) | 인증 |
+| GET | `/me/transactions` | 거래 ledger (페이지네이션) | 인증 |
+| GET | `/me/owned-filters` | 보유 필터 목록 | 인증 |
+| POST | `/pro/subscribe` | Pro 멤버십 구독 (StoreKit 자동 갱신) | 인증 |
+| POST | `/me/withdraw` | 메이커 코인 → 원화 출금 신청 | 인증 + KYC |
+| GET | `/me/payouts` | 메이커 정산 내역 | 메이커 |
 
 ---
 
@@ -329,16 +335,125 @@ Idempotency-Key: <client-generated-uuid>
 }
 ```
 
-### 5.9 `POST /purchases` (Phase 6)
+### 5.9 Wallet & Coin Endpoints (Phase 6)
+
+> 단일 진실원: [`CURRENCY_DESIGN.md`](./CURRENCY_DESIGN.md). 모든 잔액 변경은 서버 트랜잭션 한정 (Firestore 보안 규칙 deny-write).
+
+#### 5.9.1 `POST /wallet/topup/init`
 
 ```json
+{ "productId": "moodit.coins.popular_550" }
+```
+
+응답:
+```json
 {
-  "productId": "filter_01900b_premium",
-  "transaction": "<StoreKit2 signedTransaction JWS>"
+  "ok": true,
+  "data": {
+    "intentId": "tu_a1b2c3",
+    "productId": "moodit.coins.popular_550",
+    "expiresAt": 1730003600
+  }
 }
 ```
 
-서버는 Apple App Store Server API로 영수증 검증 → `entitlements/{uid}/{productId}` 활성화 → 메이커 매출 누적.
+#### 5.9.2 `POST /wallet/topup/finalize`
+
+```json
+{
+  "intentId": "tu_a1b2c3",
+  "signedTransaction": "<StoreKit 2 JWS>"
+}
+```
+
+서버 동작:
+1. JWS 서명 검증 (Apple 공개키)
+2. 디코딩한 `transactionId`가 이전에 처리되지 않았는지 확인 (replay 방지)
+3. Firestore 트랜잭션: `wallets/{uid}.balance += package.coins`, `transactions` 레코드 추가
+4. 응답: 신규 잔액
+
+응답:
+```json
+{ "ok": true, "data": { "balance": 1800, "granted": 600 } }
+```
+
+오류 코드:
+- `INVALID_RECEIPT` — JWS 서명/만료 검증 실패
+- `IDEMPOTENCY_REPLAY` — 동일 transactionId 이미 처리됨 (성공으로 간주, 잔액만 반환)
+
+#### 5.9.3 `POST /filters/{id}/purchase`
+
+헤더: `Idempotency-Key: <uuid>` 필수
+
+```json
+{}
+```
+
+서버 트랜잭션:
+1. 필터 published 상태 + owner 자기 자신 아님 확인
+2. Pro 멤버십 활성 → 코인 차감 0, 보유 부여 (응답 `proGranted: true`)
+3. 그 외: `wallets/{uid}.balance >= filter.priceCoins` 확인 → 차감 → 메이커에게 60% earnedCoins 적립 → ledger 4개 doc 기록
+
+응답 (코인 사용 시):
+```json
+{
+  "ok": true,
+  "data": {
+    "filterId": "01900b...",
+    "balanceAfter": 1170,
+    "downloadUrl": "https://cdn.moodit.app/...",
+    "downloadExpiresAt": 1730004200
+  }
+}
+```
+
+오류 코드:
+- `INSUFFICIENT_BALANCE` — `data.shortBy` 에 부족 코인량
+- `ALREADY_OWNED` — 이미 보유한 필터
+- `FILTER_NOT_AVAILABLE` — published 아니거나 takedown
+
+#### 5.9.4 `GET /me/transactions?cursor=...&limit=50&type=...`
+
+응답:
+```json
+{
+  "ok": true,
+  "data": {
+    "transactions": [
+      { "id": "tx_...", "type": "topup", "amount": 600, "balanceAfter": 1800, "createdAt": 1730003620 },
+      { "id": "tx_...", "type": "purchase", "amount": -80, "balanceAfter": 1720, "filterId": "01900b...", "createdAt": 1730003700 }
+    ],
+    "nextCursor": "eyJ0czoxNzMwMDAzNzAwfQ"
+  }
+}
+```
+
+#### 5.9.5 `POST /me/withdraw`
+
+```json
+{ "coins": 10000 }
+```
+
+전제: Stripe Connect onboarding 완료 + 세무 정보 등록 + 잔액 ≥ 5,000 + KYC 통과.
+
+응답:
+```json
+{
+  "ok": true,
+  "data": {
+    "payoutId": "po_...",
+    "coins": 10000,
+    "amountKRW": 140000,
+    "estimatedPaidAt": 1730172800,
+    "status": "requested"
+  }
+}
+```
+
+오류:
+- `KYC_REQUIRED` — Stripe Connect / 세무 미완
+- `BELOW_THRESHOLD` — 임계치 미달 (5,000 코인)
+- `INSUFFICIENT_EARNED` — 적립 코인 부족
 
 ---
 
@@ -426,7 +541,8 @@ cursor는 base64 JSON `{ lastId, lastSortValue }` (서버 서명 권장).
 
 다음 엔드포인트는 `Idempotency-Key` 헤더 (UUID v4) 지원:
 - `POST /filters/{id}/use` (60초 윈도)
-- `POST /purchases` (24시간 윈도, transactionId로도 중복 검출)
+- `POST /wallet/topup/finalize` (StoreKit transactionId replay 방지)
+- `POST /filters/{id}/purchase` (24시간 윈도, Coin 이중 차감 방지)
 - `POST /filters/{id}/like` (자체 토글이라 자연 idempotent)
 
 서버는 동일 키 + 동일 사용자면 첫 응답을 캐시 후 재사용.

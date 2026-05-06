@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<!-- P2-05 · Following list · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>26 · Following — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .fl { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .fl__seg { display: flex; border-bottom: 1px solid var(--border-subtle); }
+  .fl__seg-tab {
+    flex: 1; padding: var(--sp-sm) 0; text-align: center;
+    font-weight: 500; color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+  }
+  .fl__seg-tab--active { color: var(--text-primary); font-weight: 600; border-bottom-color: var(--accent); }
+
+  .fl__list { flex: 1; overflow-y: auto; padding: 0 var(--sp-md) var(--sp-md); }
+  .fl__row {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm) 0;
+  }
+  .fl__row + .fl__row { border-top: 1px solid var(--border-subtle); }
+  .fl__avatar { width: 44px; height: 44px; border-radius: var(--r-full); flex: 0 0 44px; position: relative; }
+  .fl__avatar-badge {
+    position: absolute; right: -2px; bottom: -2px;
+    width: 16px; height: 16px;
+    background: var(--accent);
+    border: 2px solid var(--bg-1);
+    border-radius: var(--r-full);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    display: grid; place-items: center;
+  }
+  .fl__info { flex: 1; min-width: 0; }
+  .fl__name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .fl__handle { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .fl__btn {
+    height: 32px; padding: 0 var(--sp-md);
+    border-radius: var(--r-md);
+    font-size: var(--t-subhead-size);
+    font-weight: 600;
+    flex: 0 0 auto;
+    background: var(--bg-2);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+  }
+
+  /* Sticky search */
+  .fl__search { padding: var(--sp-sm) var(--sp-md) 0; }
+
+  .fl__group-label {
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: var(--sp-sm) 0 var(--sp-xs);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="fl">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">@jisoo.films</span>
+        <span style="width: 44px;"></span>
+      </header>
+
+      <div class="fl__seg">
+        <button class="fl__seg-tab">팔로워 2,418</button>
+        <button class="fl__seg-tab fl__seg-tab--active">팔로잉 86</button>
+      </div>
+
+      <div class="fl__search">
+        <div class="field">
+          <svg class="field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21 L16 16"/></svg>
+          <input type="search" placeholder="팔로잉 검색"/>
+        </div>
+      </div>
+
+      <div class="fl__list">
+        <p class="fl__group-label">최근 활동 있음</p>
+        <article class="fl__row">
+          <div class="fl__avatar" style="background: linear-gradient(135deg, #aec59a, #4a6a3c);">
+            <span class="fl__avatar-badge">3</span>
+          </div>
+          <div class="fl__info">
+            <p class="fl__name">Alex · <span style="color: var(--accent); font-weight: 500; font-size: var(--t-caption-size);">새 필터 3</span></p>
+            <p class="fl__handle">@alex.grade · 시네마틱 메이커</p>
+          </div>
+          <button class="fl__btn">팔로잉</button>
+        </article>
+
+        <article class="fl__row">
+          <div class="fl__avatar" style="background: linear-gradient(135deg, #cbd4e0, #c79a72);">
+            <span class="fl__avatar-badge">1</span>
+          </div>
+          <div class="fl__info">
+            <p class="fl__name">Studio Haru · <span style="color: var(--accent); font-weight: 500; font-size: var(--t-caption-size);">새 필터 1</span></p>
+            <p class="fl__handle">@studio.haru</p>
+          </div>
+          <button class="fl__btn">팔로잉</button>
+        </article>
+
+        <p class="fl__group-label">전체</p>
+
+        <article class="fl__row">
+          <div class="fl__avatar" style="background: linear-gradient(135deg, #f3dcc4, #d4a482);"></div>
+          <div class="fl__info">
+            <p class="fl__name">민지</p>
+            <p class="fl__handle">@minji.lab</p>
+          </div>
+          <button class="fl__btn">팔로잉</button>
+        </article>
+
+        <article class="fl__row">
+          <div class="fl__avatar" style="background: linear-gradient(135deg, #f6e2e8, #b39ec2);"></div>
+          <div class="fl__info">
+            <p class="fl__name">Sarah</p>
+            <p class="fl__handle">@sarah.lens</p>
+          </div>
+          <button class="fl__btn">팔로잉</button>
+        </article>
+
+        <article class="fl__row">
+          <div class="fl__avatar" style="background: linear-gradient(135deg, #e09a78, #4a4060);"></div>
+          <div class="fl__info">
+            <p class="fl__name">Kihyeon</p>
+            <p class="fl__handle">@kihyeon</p>
+          </div>
+          <button class="fl__btn">팔로잉</button>
+        </article>
+
+        <article class="fl__row">
+          <div class="fl__avatar" style="background: linear-gradient(135deg, #f3d8b0, #a06a4a);"></div>
+          <div class="fl__info">
+            <p class="fl__name">hellofilms</p>
+            <p class="fl__handle">@hellofilms</p>
+          </div>
+          <button class="fl__btn">팔로잉</button>
+        </article>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

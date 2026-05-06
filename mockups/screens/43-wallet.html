@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<!-- W-01 · CURRENCY_DESIGN §11 — Wallet main · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>43 · Wallet — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .wl { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .wl__body { flex: 1; overflow-y: auto; }
+
+  /* Hero balance card — gold gradient */
+  .wl__hero {
+    margin: var(--sp-md);
+    padding: var(--sp-lg) var(--sp-md);
+    background: linear-gradient(135deg, var(--accent) 0%, #A0721E 100%);
+    color: #fff;
+    border-radius: var(--r-lg);
+    box-shadow: var(--elev-2-shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .wl__hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    border: 24px solid rgba(255,255,255,0.10);
+    border-radius: var(--r-full);
+  }
+  .wl__hero::after {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 120px; height: 120px;
+    border: 16px solid rgba(255,255,255,0.10);
+    border-radius: var(--r-full);
+  }
+  .wl__hero-label {
+    font-size: var(--t-caption-size); font-weight: 700;
+    letter-spacing: 0.4px; text-transform: uppercase;
+    opacity: 0.85; margin: 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .wl__hero-amount {
+    font-size: 48px; font-weight: 700;
+    letter-spacing: -1px; line-height: 1;
+    margin: var(--sp-xs) 0 0;
+    font-variant-numeric: tabular-nums;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .wl__hero-amount .coin { width: 32px; height: 32px; }
+  .wl__hero-meta {
+    margin-top: var(--sp-md);
+    font-size: var(--t-caption-size);
+    opacity: 0.85;
+  }
+  .wl__hero-actions {
+    display: flex; gap: var(--sp-xs);
+    margin-top: var(--sp-md);
+    position: relative; z-index: 1;
+  }
+  .wl__hero-btn {
+    flex: 1;
+    height: 44px;
+    border-radius: var(--r-md);
+    font-size: var(--t-callout-size);
+    font-weight: 700;
+  }
+  .wl__hero-btn--primary { background: #fff; color: var(--accent); }
+  .wl__hero-btn--ghost { background: rgba(255,255,255,0.18); color: #fff; backdrop-filter: blur(8px); }
+
+  /* Quick stats */
+  .wl__stats {
+    margin: 0 var(--sp-md) var(--sp-md);
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  .wl__stat {
+    background: var(--bg-2);
+    padding: var(--sp-sm);
+    text-align: center;
+  }
+  .wl__stat-value { font-size: var(--t-headline-size); font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .wl__stat-label { font-size: var(--t-caption-size); color: var(--text-tertiary); margin-top: 2px; }
+
+  /* Pro callout */
+  .wl__pro {
+    margin: 0 var(--sp-md) var(--sp-md);
+    padding: var(--sp-md);
+    background: var(--bg-2);
+    border: 1px solid var(--accent);
+    border-radius: var(--r-lg);
+    display: flex; align-items: center; gap: var(--sp-sm);
+  }
+  .wl__pro-icon {
+    width: 40px; height: 40px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    flex: 0 0 40px;
+  }
+  .wl__pro-info { flex: 1; }
+  .wl__pro-title { font-size: var(--t-callout-size); font-weight: 700; margin: 0; }
+  .wl__pro-desc { font-size: var(--t-caption-size); color: var(--text-secondary); margin: 2px 0 0; line-height: 1.4; }
+  .wl__pro-cta {
+    background: var(--accent);
+    color: var(--text-inverse);
+    padding: 6px 12px;
+    border-radius: var(--r-md);
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+  }
+
+  /* Recent transactions */
+  .wl__sec-title {
+    margin: 0 var(--sp-md) var(--sp-sm);
+    font-size: var(--t-callout-size);
+    font-weight: 700;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .wl__sec-title small { font-size: var(--t-caption-size); color: var(--accent); font-weight: 600; }
+
+  .wl__list {
+    margin: 0 var(--sp-md) var(--sp-md);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+  .wl__row {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm) var(--sp-md);
+  }
+  .wl__row + .wl__row { border-top: 1px solid var(--border-subtle); }
+  .wl__row-icon {
+    width: 36px; height: 36px;
+    border-radius: var(--r-full);
+    flex: 0 0 36px;
+    display: grid; place-items: center;
+  }
+  .wl__row-icon--in { background: var(--success-bg); color: var(--success); }
+  .wl__row-icon--out { background: var(--bg-3); color: var(--text-secondary); }
+  .wl__row-info { flex: 1; min-width: 0; }
+  .wl__row-title { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .wl__row-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .wl__row-amount {
+    font-size: var(--t-callout-size); font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .wl__row-amount .coin { width: 14px; height: 14px; }
+  .wl__row-amount--in { color: var(--success); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="wl">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">지갑</span>
+        <button class="topbar__action" aria-label="내역">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6 H21 M3 12 H21 M3 18 H15"/></svg>
+        </button>
+      </header>
+
+      <div class="wl__body">
+        <section class="wl__hero">
+          <p class="wl__hero-label">사용 가능 코인</p>
+          <p class="wl__hero-amount">
+            <svg class="coin" viewBox="0 0 24 24" role="img" aria-hidden="true">
+              <circle cx="12" cy="12" r="11" fill="#fff"/>
+              <text x="12" y="16.5" text-anchor="middle" fill="#A0721E" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text>
+            </svg>
+            <span>1,250</span>
+          </p>
+          <p class="wl__hero-meta">≈ ₩17,500 가치 · Pro 멤버십 만료 4월 28일</p>
+          <div class="wl__hero-actions">
+            <button class="wl__hero-btn wl__hero-btn--primary">충전하기</button>
+            <button class="wl__hero-btn wl__hero-btn--ghost">선물하기</button>
+          </div>
+        </section>
+
+        <div class="wl__stats">
+          <div class="wl__stat">
+            <div class="wl__stat-value">12</div>
+            <div class="wl__stat-label">보유 필터</div>
+          </div>
+          <div class="wl__stat">
+            <div class="wl__stat-value">340</div>
+            <div class="wl__stat-label">이번 달 사용</div>
+          </div>
+          <div class="wl__stat">
+            <div class="wl__stat-value">86</div>
+            <div class="wl__stat-label">메이커 적립</div>
+          </div>
+        </div>
+
+        <article class="wl__pro">
+          <span class="wl__pro-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 L15 9 L22 10 L17 15 L18 22 L12 18 L6 22 L7 15 L2 10 L9 9 Z"/></svg>
+          </span>
+          <div class="wl__pro-info">
+            <p class="wl__pro-title">Pro 멤버십</p>
+            <p class="wl__pro-desc">모든 유료 필터 무제한 + 월 300 코인 보너스</p>
+          </div>
+          <button class="wl__pro-cta">시작</button>
+        </article>
+
+        <h2 class="wl__sec-title">최근 거래 <small>모두 보기 →</small></h2>
+
+        <div class="wl__list">
+          <div class="wl__row">
+            <span class="wl__row-icon wl__row-icon--in">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4 V20 M5 13 L12 20 L19 13"/></svg>
+            </span>
+            <div class="wl__row-info">
+              <p class="wl__row-title">550 코인 충전</p>
+              <p class="wl__row-meta">Apple Pay · 오늘 09:24</p>
+            </div>
+            <span class="wl__row-amount wl__row-amount--in">
+              +550
+              <svg class="coin" viewBox="0 0 24 24" role="img" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#B8853A"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </span>
+          </div>
+
+          <div class="wl__row">
+            <span class="wl__row-icon wl__row-icon--out">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="6"/><circle cx="15" cy="15" r="6"/></svg>
+            </span>
+            <div class="wl__row-info">
+              <p class="wl__row-title">Sunset 1973 구매</p>
+              <p class="wl__row-meta">@jisoo.films · 어제</p>
+            </div>
+            <span class="wl__row-amount">
+              −50
+              <svg class="coin" viewBox="0 0 24 24" role="img" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#B8853A"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </span>
+          </div>
+
+          <div class="wl__row">
+            <span class="wl__row-icon wl__row-icon--in">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L15 9 L22 10 L17 15 L18 22 L12 18 L6 22 L7 15 L2 10 L9 9 Z"/></svg>
+            </span>
+            <div class="wl__row-info">
+              <p class="wl__row-title">7일 연속 접속 보너스</p>
+              <p class="wl__row-meta">시스템 · 그저께</p>
+            </div>
+            <span class="wl__row-amount wl__row-amount--in">
+              +20
+              <svg class="coin" viewBox="0 0 24 24" role="img" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#B8853A"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </span>
+          </div>
+
+          <div class="wl__row">
+            <span class="wl__row-icon wl__row-icon--out">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="6"/><circle cx="15" cy="15" r="6"/></svg>
+            </span>
+            <div class="wl__row-info">
+              <p class="wl__row-title">Amber Café 구매</p>
+              <p class="wl__row-meta">@jisoo.films · 5월 3일</p>
+            </div>
+            <span class="wl__row-amount">
+              −50
+              <svg class="coin" viewBox="0 0 24 24" role="img" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#B8853A"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

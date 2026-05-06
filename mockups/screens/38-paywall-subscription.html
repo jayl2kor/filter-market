@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<!-- P6-02 · CURRENCY_DESIGN §4 — Pro Membership (all premium filters + monthly coin grant) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>38 · Pro Membership — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .sub { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+
+  .sub__hero {
+    aspect-ratio: 16 / 9;
+    position: relative;
+    overflow: hidden;
+  }
+  .sub__hero-photos {
+    position: absolute; inset: 0;
+    display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr 1fr;
+    gap: 2px;
+  }
+  .sub__hero-photos .photo { position: relative; }
+  .sub__hero-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 30%, rgba(15,15,14,0.9));
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: var(--sp-md);
+    color: #fff;
+  }
+  .sub__hero-eyebrow { font-size: 10px; font-weight: 700; color: var(--accent-soft); letter-spacing: 0.6px; text-transform: uppercase; margin: 0 0 4px; }
+  .sub__hero-title { font-size: var(--t-title-lg-size); font-weight: 700; letter-spacing: -0.3px; margin: 0; line-height: 1.1; }
+  .sub__hero-sub { font-size: var(--t-subhead-size); opacity: 0.85; margin: 4px 0 0; word-break: keep-all; }
+
+  .sub__close-btn {
+    position: absolute; top: var(--sp-md); right: var(--sp-md);
+    width: 32px; height: 32px;
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: blur(8px);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    color: #fff;
+    z-index: 5;
+  }
+
+  .sub__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  .sub__benefits { display: flex; flex-direction: column; gap: var(--sp-xs); margin-bottom: var(--sp-md); }
+  .sub__benefit { display: flex; align-items: center; gap: var(--sp-sm); padding: var(--sp-xs) 0; }
+  .sub__benefit-icon {
+    width: 32px; height: 32px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    flex: 0 0 32px;
+  }
+  .sub__benefit-name { font-size: var(--t-callout-size); font-weight: 600; color: var(--text-primary); }
+  .sub__benefit-desc { font-size: var(--t-caption-size); color: var(--text-secondary); margin-top: 2px; }
+  .sub__benefit-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: var(--r-sm);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  .sub__plans { display: flex; flex-direction: column; gap: var(--sp-xs); margin-bottom: var(--sp-md); }
+  .sub__plan {
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    display: flex; align-items: center; gap: var(--sp-sm);
+    position: relative;
+  }
+  .sub__plan--active {
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-ring);
+    padding: calc(var(--sp-md) - 1px);
+  }
+  .sub__radio {
+    width: 22px; height: 22px;
+    border: 2px solid var(--border-default);
+    border-radius: var(--r-full);
+    flex: 0 0 22px;
+    display: grid; place-items: center;
+  }
+  .sub__plan--active .sub__radio { border-color: var(--accent); }
+  .sub__plan--active .sub__radio::after { content: ''; width: 10px; height: 10px; background: var(--accent); border-radius: var(--r-full); }
+  .sub__plan-info { flex: 1; }
+  .sub__plan-name { font-size: var(--t-headline-size); font-weight: 700; margin: 0; }
+  .sub__plan-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .sub__plan-bonus {
+    font-size: var(--t-caption-size);
+    color: var(--accent);
+    font-weight: 700;
+    margin-top: 4px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .sub__plan-bonus .coin { width: 12px; height: 12px; }
+  .sub__plan-price-row { text-align: right; }
+  .sub__plan-price { font-size: var(--t-headline-size); font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .sub__plan-suffix { font-size: var(--t-caption-size); color: var(--text-tertiary); display: block; }
+  .sub__plan-badge {
+    position: absolute; top: -10px; right: var(--sp-md);
+    background: var(--accent);
+    color: var(--text-inverse);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.4px;
+    padding: 4px 10px;
+    border-radius: var(--r-full);
+  }
+
+  .sub__cta {
+    width: 100%; height: 52px;
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-radius: var(--r-md);
+    font-size: var(--t-headline-size);
+    font-weight: 700;
+    margin-bottom: var(--sp-sm);
+  }
+  .sub__legal {
+    text-align: center;
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+    line-height: 1.5;
+    margin-bottom: var(--sp-md);
+  }
+  .sub__legal a { color: var(--text-secondary); text-decoration: underline; }
+
+  .sub__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="sub">
+      <div class="sub__hero">
+        <div class="sub__hero-photos" aria-hidden="true">
+          <span class="photo photo--vintage photo--vignette"></span>
+          <span class="photo photo--cinematic photo--vignette"></span>
+          <span class="photo photo--moody photo--vignette"></span>
+          <span class="photo photo--cafe photo--vignette"></span>
+          <span class="photo photo--portrait photo--vignette"></span>
+          <span class="photo photo--warm photo--vignette"></span>
+          <span class="photo photo--bw photo--vignette"></span>
+          <span class="photo photo--pastel photo--vignette"></span>
+        </div>
+        <button class="sub__close-btn" aria-label="닫기">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+        </button>
+        <div class="sub__hero-overlay">
+          <p class="sub__hero-eyebrow">moodit pro</p>
+          <h1 class="sub__hero-title">모든 유료 필터 무제한 + 월 코인 보너스</h1>
+          <p class="sub__hero-sub">300+ Pro 필터를 코인 차감 없이 사용하고, 매월 보너스 코인까지.</p>
+        </div>
+      </div>
+
+      <div class="sub__body">
+        <div class="sub__benefits">
+          <div class="sub__benefit">
+            <span class="sub__benefit-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L15 9 L22 10 L17 15 L18 22 L12 18 L6 22 L7 15 L2 10 L9 9 Z"/></svg>
+            </span>
+            <div>
+              <div class="sub__benefit-name">300+ 유료 필터 무제한 <span class="sub__benefit-tag">코인 0</span></div>
+              <div class="sub__benefit-desc">모든 Premium · Signature 필터 즉시 사용</div>
+            </div>
+          </div>
+          <div class="sub__benefit">
+            <span class="sub__benefit-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="11"/></svg>
+            </span>
+            <div>
+              <div class="sub__benefit-name">월 300 코인 자동 적립 <span class="sub__benefit-tag">신규 필터용</span></div>
+              <div class="sub__benefit-desc">신규 출시 필터를 적립 코인으로 우선 구매</div>
+            </div>
+          </div>
+          <div class="sub__benefit">
+            <span class="sub__benefit-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12 a9 9 0 1 1 18 0 a9 9 0 1 1 -18 0 z"/><path d="M12 7 V12 L15 14"/></svg>
+            </span>
+            <div>
+              <div class="sub__benefit-name">우선 다운로드</div>
+              <div class="sub__benefit-desc">신규 필터를 가장 먼저 사용</div>
+            </div>
+          </div>
+          <div class="sub__benefit">
+            <span class="sub__benefit-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5 H19 V11 a7 7 0 1 1 -14 0 z"/><path d="M9 5 V3 H15 V5"/></svg>
+            </span>
+            <div>
+              <div class="sub__benefit-name">광고·캠페인 제거</div>
+              <div class="sub__benefit-desc">깔끔한 마켓 경험</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sub__plans" role="radiogroup" aria-label="구독 플랜">
+          <label class="sub__plan sub__plan--active">
+            <span class="sub__plan-badge">즉시 4,000 코인 + 매월 300</span>
+            <span class="sub__radio"></span>
+            <div class="sub__plan-info">
+              <p class="sub__plan-name">연간</p>
+              <p class="sub__plan-meta">월 환산 ₩2,900 · 7일 무료 체험</p>
+              <p class="sub__plan-bonus">
+                <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+                즉시 4,000 + 월 300 보너스
+              </p>
+            </div>
+            <div class="sub__plan-price-row">
+              <span class="sub__plan-price">₩34,800</span>
+              <span class="sub__plan-suffix">/ 년</span>
+            </div>
+          </label>
+          <label class="sub__plan">
+            <span class="sub__radio"></span>
+            <div class="sub__plan-info">
+              <p class="sub__plan-name">월간</p>
+              <p class="sub__plan-meta">언제든 해지 가능</p>
+              <p class="sub__plan-bonus">
+                <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+                월 300 보너스
+              </p>
+            </div>
+            <div class="sub__plan-price-row">
+              <span class="sub__plan-price">₩4,900</span>
+              <span class="sub__plan-suffix">/ 월</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="sub__foot">
+        <button class="sub__cta">7일 무료 체험 시작</button>
+        <p class="sub__legal">취소하지 않으면 체험 종료 후 자동 결제. 적립 코인은 해지 후에도 만료 전까지 사용 가능. <a href="#">약관</a></p>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

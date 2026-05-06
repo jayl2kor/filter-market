@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<!-- P2-02 · Comment compose with @mention autocomplete · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>23b · Comment Compose — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .cc { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .cc__editor { flex: 1; padding: var(--sp-md); display: flex; flex-direction: column; gap: var(--sp-sm); }
+  .cc__user-row { display: flex; align-items: center; gap: var(--sp-xs); }
+  .cc__avatar { width: 32px; height: 32px; border-radius: var(--r-full); background: linear-gradient(135deg, #b9d2e8, #4a6a90); }
+  .cc__user-name { font-size: var(--t-subhead-size); font-weight: 600; }
+  .cc__user-handle { font-size: var(--t-caption-size); color: var(--text-tertiary); }
+
+  .cc__textarea {
+    flex: 1;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: var(--t-headline-size);
+    line-height: 1.5;
+    color: var(--text-primary);
+    outline: 0;
+    resize: none;
+    word-break: keep-all;
+  }
+  .cc__textarea:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text-tertiary);
+  }
+  .cc__textarea mark {
+    color: var(--accent);
+    background: var(--accent-bg);
+    padding: 1px 4px;
+    border-radius: var(--r-sm);
+    font-weight: 500;
+  }
+
+  /* Mention autocomplete */
+  .cc__mention {
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    box-shadow: var(--elev-2-shadow);
+    overflow: hidden;
+    margin: var(--sp-xs) 0;
+  }
+  .cc__mention-row {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-xs) var(--sp-md);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .cc__mention-row:last-child { border-bottom: 0; }
+  .cc__mention-row--highlight { background: var(--accent-bg); }
+  .cc__mention-avatar { width: 28px; height: 28px; flex: 0 0 28px; border-radius: var(--r-full); }
+  .cc__mention-info { flex: 1; min-width: 0; }
+  .cc__mention-name { font-size: var(--t-subhead-size); font-weight: 600; margin: 0; }
+  .cc__mention-handle { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 0; }
+
+  /* Toolbar */
+  .cc__tool {
+    display: flex; align-items: center; gap: var(--sp-md);
+    padding: var(--sp-sm) var(--sp-md);
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+  }
+  .cc__tool-btn {
+    width: 36px; height: 36px;
+    color: var(--text-secondary);
+    display: grid; place-items: center;
+  }
+  .cc__counter {
+    margin-left: auto;
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+  }
+  .cc__counter--warn { color: var(--warning); }
+
+  .cc__keyboard {
+    flex: 0 0 auto;
+    background: var(--bg-3);
+    height: 280px;
+    padding-bottom: var(--safe-bottom);
+    display: grid; place-items: center;
+    color: var(--text-tertiary);
+    font-size: var(--t-caption-size);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="cc">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="취소">취소</button>
+        <span class="topbar__title">새 댓글</span>
+        <button class="topbar__action topbar__action--accent" style="font-weight: 700;">게시</button>
+      </header>
+
+      <div class="cc__editor">
+        <div class="cc__user-row">
+          <div class="cc__avatar"></div>
+          <span class="cc__user-name">한별</span>
+          <span class="cc__user-handle">@hanbyul.cam · ↩ Sunset 1973에 답글</span>
+        </div>
+
+        <div class="cc__textarea" contenteditable="true" role="textbox" aria-multiline="true">
+          이 필터 너무 좋아요! <mark>@jiso</mark>
+        </div>
+
+        <div class="cc__mention" role="listbox" aria-label="멘션 추천">
+          <div class="cc__mention-row cc__mention-row--highlight">
+            <div class="cc__mention-avatar" style="background: linear-gradient(135deg, #e0c39a, #8e6a4a);"></div>
+            <div class="cc__mention-info">
+              <p class="cc__mention-name">정지수</p>
+              <p class="cc__mention-handle">@jisoo.films · 메이커</p>
+            </div>
+            <span class="chip chip--small">메이커</span>
+          </div>
+          <div class="cc__mention-row">
+            <div class="cc__mention-avatar" style="background: linear-gradient(135deg, #f6e2e8, #b39ec2);"></div>
+            <div class="cc__mention-info">
+              <p class="cc__mention-name">jisook</p>
+              <p class="cc__mention-handle">@jisook.daily</p>
+            </div>
+          </div>
+          <div class="cc__mention-row">
+            <div class="cc__mention-avatar" style="background: linear-gradient(135deg, #aec59a, #4a6a3c);"></div>
+            <div class="cc__mention-info">
+              <p class="cc__mention-name">jisoo_studio</p>
+              <p class="cc__mention-handle">@jisoo.studio</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cc__tool">
+        <button class="cc__tool-btn" aria-label="@멘션">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M16 12 V14 a3 3 0 0 0 6 0 V12 a10 10 0 1 0 -4 8"/></svg>
+        </button>
+        <button class="cc__tool-btn" aria-label="이미지 첨부">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 17 L15 11 L7 19"/></svg>
+        </button>
+        <button class="cc__tool-btn" aria-label="이모지">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9 10 h.01 M15 10 h.01 M8 14 a4 4 0 0 0 8 0"/></svg>
+        </button>
+        <span class="cc__counter">38 / 280</span>
+      </div>
+
+      <div class="cc__keyboard">↑ 시스템 키보드 영역 ↑</div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

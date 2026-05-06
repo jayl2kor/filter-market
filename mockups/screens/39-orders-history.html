@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<!-- P6-03 · Order history + receipts · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>39 · Orders History — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .or { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .or__seg {
+    display: flex;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .or__seg-tab {
+    flex: 1; padding: var(--sp-sm) 0; text-align: center;
+    font-weight: 500; color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+  }
+  .or__seg-tab--active { color: var(--text-primary); font-weight: 600; border-bottom-color: var(--accent); }
+
+  .or__summary {
+    background: var(--bg-2);
+    margin: var(--sp-md);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    display: flex; gap: var(--sp-md);
+  }
+  .or__summary-col { flex: 1; }
+  .or__summary-label { font-size: var(--t-caption-size); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 4px; }
+  .or__summary-value { font-size: var(--t-title-size); font-weight: 700; color: var(--text-primary); margin: 0; font-variant-numeric: tabular-nums; }
+
+  .or__list { flex: 1; overflow-y: auto; padding: 0 var(--sp-md) var(--sp-md); }
+
+  .or__group-label {
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: var(--sp-sm) 0 var(--sp-xs);
+  }
+
+  .or__row {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm) 0;
+  }
+  .or__row + .or__row { border-top: 1px solid var(--border-subtle); }
+  .or__thumb { width: 48px; height: 60px; border-radius: var(--r-sm); overflow: hidden; flex: 0 0 48px; position: relative; }
+  .or__thumb .photo { position: absolute; inset: 0; }
+  .or__info { flex: 1; min-width: 0; }
+  .or__name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .or__meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .or__price-col { text-align: right; }
+  .or__price { font-size: var(--t-callout-size); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .or__status {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: var(--r-sm);
+    background: var(--success-bg);
+    color: var(--success);
+    margin-top: 4px;
+    display: inline-block;
+  }
+  .or__status--refund { background: var(--info-bg); color: var(--info); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="or">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">구매 이력</span>
+        <button class="topbar__action" aria-label="환불 도움말">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9 9 a3 3 0 1 1 4 2.5 c-1 .6 -1 1 -1 1.5 M12 17 h.01"/></svg>
+        </button>
+      </header>
+
+      <div class="or__seg">
+        <button class="or__seg-tab or__seg-tab--active">구매 12</button>
+        <button class="or__seg-tab">구독 1</button>
+        <button class="or__seg-tab">선물 0</button>
+      </div>
+
+      <div class="or__summary">
+        <div class="or__summary-col">
+          <p class="or__summary-label">총 사용</p>
+          <p class="or__summary-value">₩28,400</p>
+        </div>
+        <div class="or__summary-col">
+          <p class="or__summary-label">지원한 메이커</p>
+          <p class="or__summary-value">9 명</p>
+        </div>
+      </div>
+
+      <div class="or__list">
+        <p class="or__group-label">2026년 5월</p>
+
+        <article class="or__row">
+          <div class="or__thumb"><div class="photo photo--cinematic"></div></div>
+          <div class="or__info">
+            <p class="or__name">Tokyo Night</p>
+            <p class="or__meta">@alex.grade · 5월 6일 · Apple Pay</p>
+            <span class="or__status">완료</span>
+          </div>
+          <div class="or__price-col">
+            <p class="or__price">₩1,500</p>
+          </div>
+        </article>
+
+        <article class="or__row">
+          <div class="or__thumb"><div class="photo photo--vintage"></div></div>
+          <div class="or__info">
+            <p class="or__name">Vintage Pack 4종</p>
+            <p class="or__meta">@studio.haru · 5월 3일</p>
+            <span class="or__status">완료</span>
+          </div>
+          <div class="or__price-col">
+            <p class="or__price">₩4,900</p>
+          </div>
+        </article>
+
+        <p class="or__group-label">2026년 4월</p>
+
+        <article class="or__row">
+          <div class="or__thumb"><div class="photo photo--moody"></div></div>
+          <div class="or__info">
+            <p class="or__name">Indigo Dusk</p>
+            <p class="or__meta">@minji.lab · 4월 24일</p>
+            <span class="or__status or__status--refund">환불됨</span>
+          </div>
+          <div class="or__price-col">
+            <p class="or__price" style="color: var(--text-tertiary); text-decoration: line-through;">₩1,500</p>
+          </div>
+        </article>
+
+        <article class="or__row">
+          <div class="or__thumb"><div class="photo photo--portrait"></div></div>
+          <div class="or__info">
+            <p class="or__name">Skin Velvet</p>
+            <p class="or__meta">@jisoo.films · 4월 20일</p>
+            <span class="or__status">완료</span>
+          </div>
+          <div class="or__price-col">
+            <p class="or__price">₩1,500</p>
+          </div>
+        </article>
+
+        <article class="or__row">
+          <div class="or__thumb"><div class="photo photo--warm"></div></div>
+          <div class="or__info">
+            <p class="or__name">Honey Hour</p>
+            <p class="or__meta">@hellofilms · 4월 14일</p>
+            <span class="or__status">완료</span>
+          </div>
+          <div class="or__price-col">
+            <p class="or__price">₩1,500</p>
+          </div>
+        </article>
+
+        <article class="or__row">
+          <div class="or__thumb"><div class="photo photo--bw"></div></div>
+          <div class="or__info">
+            <p class="or__name">Mono Noir</p>
+            <p class="or__meta">@studio.haru · 4월 7일</p>
+            <span class="or__status">완료</span>
+          </div>
+          <div class="or__price-col">
+            <p class="or__price">₩1,500</p>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

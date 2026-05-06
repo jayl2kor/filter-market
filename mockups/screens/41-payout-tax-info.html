@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<!-- P6-05 · Maker tax information (KR business / W-9 / VAT etc) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>41 · Payout Tax Info — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .tx { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .tx__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  .tx__intro {
+    background: var(--info-bg);
+    color: var(--info);
+    padding: var(--sp-sm) var(--sp-md);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-md);
+    font-size: var(--t-subhead-size);
+    line-height: 1.4;
+    word-break: keep-all;
+  }
+  .tx__intro strong { font-weight: 700; }
+
+  .tx__sec-title { font-size: var(--t-callout-size); font-weight: 700; margin: var(--sp-md) 0 var(--sp-xs); }
+  .tx__sec-help { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 0 0 var(--sp-sm); }
+
+  /* Country picker */
+  .tx__country {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm) var(--sp-md);
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-md);
+  }
+  .tx__country-flag {
+    width: 28px; height: 20px;
+    background: linear-gradient(180deg, #fff 33%, #cd2e3a 33%, #cd2e3a 66%, #003478 66%);
+    border-radius: 2px;
+    flex: 0 0 28px;
+  }
+  .tx__country-info { flex: 1; }
+  .tx__country-name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .tx__country-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+
+  /* Type radio */
+  .tx__type-radios { display: flex; flex-direction: column; gap: var(--sp-xs); margin-bottom: var(--sp-md); }
+  .tx__type-row {
+    display: flex; align-items: flex-start; gap: var(--sp-sm);
+    padding: var(--sp-sm) var(--sp-md);
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+  }
+  .tx__type-row--active { border: 2px solid var(--accent); padding: calc(var(--sp-sm) - 1px) calc(var(--sp-md) - 1px); }
+  .tx__radio {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border-default);
+    border-radius: var(--r-full);
+    flex: 0 0 18px;
+    margin-top: 2px;
+    display: grid; place-items: center;
+  }
+  .tx__type-row--active .tx__radio { border-color: var(--accent); }
+  .tx__type-row--active .tx__radio::after { content: ''; width: 8px; height: 8px; background: var(--accent); border-radius: var(--r-full); }
+  .tx__type-info { flex: 1; }
+  .tx__type-name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .tx__type-desc { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; line-height: 1.4; }
+
+  /* Form fields */
+  .tx__field { margin-bottom: var(--sp-md); }
+  .tx__field label {
+    display: block;
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: var(--sp-xs);
+  }
+  .tx__input {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+    font: inherit;
+    font-size: var(--t-body-size);
+    color: var(--text-primary);
+  }
+  .tx__hint { font-size: var(--t-caption-size); color: var(--text-tertiary); margin-top: var(--sp-xxs); line-height: 1.4; }
+
+  .tx__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="tx">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">세금 정보 · 3 / 4</span>
+        <button class="topbar__action topbar__action--accent">저장</button>
+      </header>
+
+      <div class="tx__body">
+        <div class="tx__intro">
+          <strong>왜 필요할까요?</strong> 세무 신고를 위해 첫 정산 전 정보를 입력해야 합니다. 입력한 정보는 Stripe와 한국 국세청이 요구하는 범위에서만 사용됩니다.
+        </div>
+
+        <h2 class="tx__sec-title">거주 국가</h2>
+        <p class="tx__sec-help">변경하려면 탭하세요. 국가에 따라 양식이 달라집니다.</p>
+        <div class="tx__country">
+          <div class="tx__country-flag"></div>
+          <div class="tx__country-info">
+            <p class="tx__country-name">대한민국</p>
+            <p class="tx__country-meta">사업자등록증 또는 주민등록번호 필요</p>
+          </div>
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-tertiary);"><path d="M9 6 L15 12 L9 18"/></svg>
+        </div>
+
+        <h2 class="tx__sec-title">납세자 유형</h2>
+        <div class="tx__type-radios">
+          <label class="tx__type-row tx__type-row--active">
+            <span class="tx__radio"></span>
+            <div class="tx__type-info">
+              <p class="tx__type-name">개인 사업자 (간이/일반과세자)</p>
+              <p class="tx__type-desc">사업자등록증 보유 · 부가세 신고 가능</p>
+            </div>
+          </label>
+          <label class="tx__type-row">
+            <span class="tx__radio"></span>
+            <div class="tx__type-info">
+              <p class="tx__type-name">개인 (사업자등록 X)</p>
+              <p class="tx__type-desc">기타소득 또는 사업소득 신고 — 연 ₩1,500만 미만 권장</p>
+            </div>
+          </label>
+          <label class="tx__type-row">
+            <span class="tx__radio"></span>
+            <div class="tx__type-info">
+              <p class="tx__type-name">법인</p>
+              <p class="tx__type-desc">법인등록번호와 대표자 정보 필요</p>
+            </div>
+          </label>
+        </div>
+
+        <h2 class="tx__sec-title">사업자 정보</h2>
+
+        <div class="tx__field">
+          <label for="tx-biznum">사업자등록번호 *</label>
+          <input id="tx-biznum" class="tx__input" type="text" inputmode="numeric" placeholder="000-00-00000" value="123-45-67890"/>
+          <p class="tx__hint">하이픈 포함 / 미포함 모두 인식</p>
+        </div>
+
+        <div class="tx__field">
+          <label for="tx-bizname">상호 *</label>
+          <input id="tx-bizname" class="tx__input" type="text" value="JISOO STUDIO"/>
+        </div>
+
+        <div class="tx__field">
+          <label for="tx-rep">대표자 성명 *</label>
+          <input id="tx-rep" class="tx__input" type="text" value="정지수"/>
+        </div>
+
+        <div class="tx__field">
+          <label for="tx-bizaddr">사업장 주소 *</label>
+          <input id="tx-bizaddr" class="tx__input" type="text" value="서울특별시 마포구 ..." />
+          <p class="tx__hint">정산 명세서·세금계산서가 발송되는 주소</p>
+        </div>
+
+        <div class="tx__field">
+          <label for="tx-vat">과세 유형</label>
+          <input id="tx-vat" class="tx__input" type="text" value="일반과세자 (부가세 10%)" disabled/>
+          <p class="tx__hint">사업자등록 정보로 자동 판정 됨</p>
+        </div>
+      </div>
+
+      <div class="tx__foot">
+        <button class="btn btn--primary btn--lg btn--block">다음 단계</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

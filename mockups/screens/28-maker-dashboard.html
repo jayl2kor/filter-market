@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<!-- P2-07 · PRD US-05 — Maker dashboard (downloads/likes/revenue) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>28 · Maker Dashboard — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .dash { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .dash__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  .dash__period {
+    display: flex; gap: var(--sp-xs);
+    margin-bottom: var(--sp-md);
+    background: var(--bg-3);
+    border-radius: var(--r-md);
+    padding: 2px;
+  }
+  .dash__period-btn {
+    flex: 1;
+    padding: 6px;
+    font-size: var(--t-subhead-size);
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-radius: var(--r-sm);
+    text-align: center;
+  }
+  .dash__period-btn--active {
+    background: var(--bg-2);
+    color: var(--text-primary);
+    box-shadow: var(--elev-1-shadow);
+  }
+
+  .dash__kpis {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-xs);
+    margin-bottom: var(--sp-md);
+  }
+  .dash__kpi {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+  }
+  .dash__kpi-label { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 0 0 var(--sp-xxs); text-transform: uppercase; letter-spacing: 0.4px; }
+  .dash__kpi-value { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin: 0; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .dash__kpi-delta { font-size: var(--t-caption-size); margin-top: 2px; font-weight: 600; }
+  .dash__kpi-delta--up { color: var(--success); }
+  .dash__kpi-delta--down { color: var(--error); }
+
+  /* Chart */
+  .dash__chart-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    margin-bottom: var(--sp-md);
+  }
+  .dash__chart-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: var(--sp-sm);
+  }
+  .dash__chart-title { font-size: var(--t-callout-size); font-weight: 600; color: var(--text-secondary); }
+
+  .dash__chart {
+    height: 120px;
+    margin: var(--sp-md) 0;
+    display: flex; align-items: flex-end;
+    gap: 4px;
+    padding: 0 4px;
+  }
+  .dash__bar {
+    flex: 1;
+    background: var(--accent-bg);
+    border-radius: 2px 2px 0 0;
+    transition: background var(--d-fast) var(--ease-standard);
+  }
+  .dash__bar--peak { background: var(--accent); }
+
+  .dash__chart-x {
+    display: flex; justify-content: space-between;
+    padding: 0 4px;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+  }
+
+  /* Top filters */
+  .dash__list {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    margin-bottom: var(--sp-md);
+  }
+  .dash__list-row {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm) var(--sp-md);
+  }
+  .dash__list-row + .dash__list-row { border-top: 1px solid var(--border-subtle); }
+  .dash__list-rank {
+    width: 24px;
+    font-size: var(--t-headline-size);
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+  }
+  .dash__list-thumb {
+    width: 40px; height: 50px;
+    border-radius: var(--r-sm);
+    overflow: hidden;
+    position: relative;
+    flex: 0 0 40px;
+  }
+  .dash__list-thumb .photo { position: absolute; inset: 0; }
+  .dash__list-info { flex: 1; min-width: 0; }
+  .dash__list-name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .dash__list-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .dash__list-num { font-size: var(--t-callout-size); font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+  .dash__sec-title { font-size: var(--t-headline-size); font-weight: 700; margin: var(--sp-sm) 0 var(--sp-sm); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="dash">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">메이커 대시보드</span>
+        <button class="topbar__action" aria-label="공유">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4 L12 16 M7 9 L12 4 L17 9 M5 14 L5 20 L19 20 L19 14"/></svg>
+        </button>
+      </header>
+
+      <div class="dash__body">
+        <div class="dash__period">
+          <button class="dash__period-btn">7일</button>
+          <button class="dash__period-btn dash__period-btn--active">30일</button>
+          <button class="dash__period-btn">90일</button>
+          <button class="dash__period-btn">전체</button>
+        </div>
+
+        <div class="dash__kpis">
+          <div class="dash__kpi" style="grid-column: 1 / -1; background: linear-gradient(135deg, var(--accent-bg), #FBF3E2); border-color: var(--accent);">
+            <p class="dash__kpi-label" style="color: var(--accent);">메이커 적립 (60% 분배)</p>
+            <p class="dash__kpi-value" style="color: var(--accent); display: inline-flex; align-items: center; gap: 8px;">
+              <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+              17,742
+            </p>
+            <p class="dash__kpi-delta dash__kpi-delta--up">↑ +2,418 코인 (≈₩33,852) 이번 달 · <a href="47-earnings-withdraw.html" style="color: var(--accent); text-decoration: underline;">출금 신청</a></p>
+          </div>
+          <div class="dash__kpi">
+            <p class="dash__kpi-label">총 다운로드</p>
+            <p class="dash__kpi-value">12,486</p>
+            <p class="dash__kpi-delta dash__kpi-delta--up">↑ +18.2% vs 이전 30일</p>
+          </div>
+          <div class="dash__kpi">
+            <p class="dash__kpi-label">유료 구매</p>
+            <p class="dash__kpi-value">2,108</p>
+            <p class="dash__kpi-delta dash__kpi-delta--up">↑ +24% · 17% 전환율</p>
+          </div>
+          <div class="dash__kpi">
+            <p class="dash__kpi-label">평점 (평균)</p>
+            <p class="dash__kpi-value">★ 4.84</p>
+            <p class="dash__kpi-delta dash__kpi-delta--up">↑ 1.2K 평가</p>
+          </div>
+          <div class="dash__kpi">
+            <p class="dash__kpi-label">새 팔로워</p>
+            <p class="dash__kpi-value">+248</p>
+            <p class="dash__kpi-delta dash__kpi-delta--up">↑ +6.4%</p>
+          </div>
+        </div>
+
+        <div class="dash__chart-card">
+          <div class="dash__chart-head">
+            <span class="dash__chart-title">일별 다운로드 — 30일</span>
+            <span style="font-size: var(--t-caption-size); color: var(--text-tertiary);">avg 416 / 일</span>
+          </div>
+          <div class="dash__chart" aria-label="30일 다운로드 차트">
+            <span class="dash__bar" style="height: 40%;"></span>
+            <span class="dash__bar" style="height: 32%;"></span>
+            <span class="dash__bar" style="height: 50%;"></span>
+            <span class="dash__bar" style="height: 45%;"></span>
+            <span class="dash__bar" style="height: 60%;"></span>
+            <span class="dash__bar" style="height: 55%;"></span>
+            <span class="dash__bar" style="height: 70%;"></span>
+            <span class="dash__bar" style="height: 65%;"></span>
+            <span class="dash__bar" style="height: 50%;"></span>
+            <span class="dash__bar" style="height: 75%;"></span>
+            <span class="dash__bar" style="height: 80%;"></span>
+            <span class="dash__bar" style="height: 72%;"></span>
+            <span class="dash__bar dash__bar--peak" style="height: 95%;"></span>
+            <span class="dash__bar" style="height: 88%;"></span>
+            <span class="dash__bar" style="height: 70%;"></span>
+            <span class="dash__bar" style="height: 65%;"></span>
+            <span class="dash__bar" style="height: 60%;"></span>
+            <span class="dash__bar" style="height: 75%;"></span>
+            <span class="dash__bar" style="height: 82%;"></span>
+            <span class="dash__bar" style="height: 90%;"></span>
+            <span class="dash__bar" style="height: 78%;"></span>
+            <span class="dash__bar" style="height: 70%;"></span>
+            <span class="dash__bar" style="height: 65%;"></span>
+            <span class="dash__bar" style="height: 72%;"></span>
+            <span class="dash__bar" style="height: 80%;"></span>
+            <span class="dash__bar" style="height: 85%;"></span>
+            <span class="dash__bar" style="height: 78%;"></span>
+            <span class="dash__bar" style="height: 88%;"></span>
+            <span class="dash__bar" style="height: 80%;"></span>
+            <span class="dash__bar" style="height: 92%;"></span>
+          </div>
+          <div class="dash__chart-x">
+            <span>4월 7일</span>
+            <span>4월 22일</span>
+            <span>오늘</span>
+          </div>
+        </div>
+
+        <h2 class="dash__sec-title">상위 필터</h2>
+        <div class="dash__list">
+          <div class="dash__list-row">
+            <span class="dash__list-rank">1</span>
+            <div class="dash__list-thumb"><div class="photo photo--vintage"></div></div>
+            <div class="dash__list-info">
+              <p class="dash__list-name">Sunset 1973</p>
+              <p class="dash__list-meta">★ 4.9 · 142 댓글</p>
+            </div>
+            <span class="dash__list-num">5,420</span>
+          </div>
+          <div class="dash__list-row">
+            <span class="dash__list-rank">2</span>
+            <div class="dash__list-thumb"><div class="photo photo--cafe"></div></div>
+            <div class="dash__list-info">
+              <p class="dash__list-name">Amber Café</p>
+              <p class="dash__list-meta">★ 4.7 · 86 댓글</p>
+            </div>
+            <span class="dash__list-num">3,108</span>
+          </div>
+          <div class="dash__list-row">
+            <span class="dash__list-rank">3</span>
+            <div class="dash__list-thumb"><div class="photo photo--portrait"></div></div>
+            <div class="dash__list-info">
+              <p class="dash__list-name">Skin Velvet</p>
+              <p class="dash__list-meta">★ 4.8 · 64 댓글</p>
+            </div>
+            <span class="dash__list-num">2,096</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

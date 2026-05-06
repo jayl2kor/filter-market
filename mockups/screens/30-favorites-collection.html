@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<!-- P2-09 · Favorites collection management · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>30 · Favorites Collections — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .col { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .col__head {
+    padding: var(--sp-sm) var(--sp-md) var(--sp-md);
+  }
+  .col__title { font-size: var(--t-title-lg-size); font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+  .col__sub { font-size: var(--t-subhead-size); color: var(--text-secondary); margin: 4px 0 0; }
+
+  .col__body { flex: 1; overflow-y: auto; padding: 0 var(--sp-md) var(--sp-md); }
+
+  .col__create {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-md);
+    background: var(--accent-bg);
+    border: 1px dashed var(--accent);
+    border-radius: var(--r-lg);
+    color: var(--accent);
+    margin-bottom: var(--sp-md);
+  }
+  .col__create-icon {
+    width: 40px; height: 40px;
+    background: var(--bg-2);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+  }
+  .col__create-text { font-size: var(--t-callout-size); font-weight: 600; }
+
+  .col__grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: var(--sp-sm);
+  }
+  .col__card {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    box-shadow: var(--elev-1-shadow);
+  }
+  .col__card-cover {
+    aspect-ratio: 1 / 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 1px;
+    position: relative;
+  }
+  .col__card-cover .photo { position: relative; }
+  .col__card-info { padding: var(--sp-sm) var(--sp-md) var(--sp-sm); }
+  .col__card-name { font-size: var(--t-callout-size); font-weight: 700; margin: 0; }
+  .col__card-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .col__card-pin {
+    position: absolute; top: var(--sp-xs); left: var(--sp-xs);
+    background: rgba(255,255,255,0.94);
+    color: var(--accent);
+    padding: 3px 7px;
+    border-radius: var(--r-sm);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .col__card-private {
+    position: absolute; top: var(--sp-xs); right: var(--sp-xs);
+    background: rgba(15,15,14,0.62);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    width: 24px; height: 24px;
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+  }
+
+  .col__card--all .col__card-cover { background: var(--accent-bg); display: grid; place-items: center; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="col">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">컬렉션</span>
+        <button class="topbar__action topbar__action--accent">편집</button>
+      </header>
+
+      <div class="col__head">
+        <h1 class="col__title">내 컬렉션</h1>
+        <p class="col__sub">즐겨찾기 12 · 컬렉션 4개</p>
+      </div>
+
+      <div class="col__body">
+        <button class="col__create">
+          <span class="col__create-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5 V19 M5 12 H19"/></svg>
+          </span>
+          <span class="col__create-text">새 컬렉션 만들기</span>
+        </button>
+
+        <div class="col__grid">
+          <div class="col__card">
+            <div class="col__card-cover">
+              <span class="col__card-pin">즐겨찾기</span>
+              <span class="photo photo--vintage"></span>
+              <span class="photo photo--cafe"></span>
+              <span class="photo photo--portrait"></span>
+              <span class="photo photo--moody"></span>
+            </div>
+            <div class="col__card-info">
+              <p class="col__card-name">전체 즐겨찾기</p>
+              <p class="col__card-meta">12 필터 · 자동 생성</p>
+            </div>
+          </div>
+
+          <div class="col__card">
+            <div class="col__card-cover">
+              <span class="photo photo--cafe"></span>
+              <span class="photo photo--warm"></span>
+              <span class="photo photo--vintage"></span>
+              <span class="photo photo--portrait"></span>
+            </div>
+            <div class="col__card-info">
+              <p class="col__card-name">카페 일상</p>
+              <p class="col__card-meta">8 필터 · 공개</p>
+            </div>
+          </div>
+
+          <div class="col__card">
+            <div class="col__card-cover">
+              <span class="col__card-private" aria-label="비공개">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="11" width="14" height="10" rx="1.5"/><path d="M8 11 V8 a4 4 0 0 1 8 0 V11"/></svg>
+              </span>
+              <span class="photo photo--cinematic"></span>
+              <span class="photo photo--moody"></span>
+              <span class="photo photo--bw"></span>
+              <span class="photo photo--cool"></span>
+            </div>
+            <div class="col__card-info">
+              <p class="col__card-name">시네마틱 무드</p>
+              <p class="col__card-meta">6 필터 · 비공개</p>
+            </div>
+          </div>
+
+          <div class="col__card">
+            <div class="col__card-cover">
+              <span class="photo photo--cityscape"></span>
+              <span class="photo photo--mountain"></span>
+              <span class="photo photo--nature"></span>
+              <span class="photo photo--travel" style="background: linear-gradient(180deg, #cbd4e0, #c79a72);"></span>
+            </div>
+            <div class="col__card-info">
+              <p class="col__card-name">여행</p>
+              <p class="col__card-meta">5 필터 · 공개</p>
+            </div>
+          </div>
+
+          <div class="col__card">
+            <div class="col__card-cover">
+              <span class="photo photo--pastel"></span>
+              <span class="photo photo--portrait"></span>
+              <span class="photo photo--warm"></span>
+              <span class="photo photo--cafe"></span>
+            </div>
+            <div class="col__card-info">
+              <p class="col__card-name">가을 분위기</p>
+              <p class="col__card-meta">4 필터 · 공개</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

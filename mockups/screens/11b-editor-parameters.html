@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<!-- P1-01 · PRD §3.2 F3 Tier 1 (parameter editor) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>11b · Editor Parameters — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .ed { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .ed__canvas { aspect-ratio: 4 / 5; background: var(--bg-3); position: relative; overflow: hidden; }
+  .ed__canvas .photo { position: absolute; inset: 0; }
+
+  .ed__compare-pill {
+    position: absolute; top: var(--sp-md); right: var(--sp-md);
+    background: rgba(15,15,14,0.62);
+    backdrop-filter: blur(12px);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: var(--r-full);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    z-index: 4;
+  }
+
+  .ed__seg-tabs {
+    display: flex; gap: var(--sp-xs);
+    padding: var(--sp-sm) var(--sp-md);
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+  }
+  .ed__seg-tabs::-webkit-scrollbar { display: none; }
+  .ed__seg-tab {
+    padding: 6px 14px;
+    font-size: var(--t-subhead-size);
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-radius: var(--r-full);
+    white-space: nowrap;
+  }
+  .ed__seg-tab--active { background: var(--text-primary); color: var(--text-inverse); }
+
+  .ed__params {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--sp-md);
+  }
+
+  .ed__param {
+    margin-bottom: var(--sp-md);
+  }
+  .ed__param-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: var(--sp-xs);
+  }
+  .ed__param-name {
+    display: flex; align-items: center; gap: var(--sp-xs);
+    font-size: var(--t-callout-size);
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .ed__param-icon { width: 16px; height: 16px; color: var(--text-tertiary); }
+  .ed__param-value {
+    font-size: var(--t-callout-size);
+    font-weight: 600;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  /* 슬라이더 — 0 가운데 (양수/음수) */
+  .ed__slider-bipolar {
+    position: relative;
+    height: 24px;
+  }
+  .ed__slider-track {
+    position: absolute;
+    top: 50%;
+    left: 0; right: 0;
+    height: 4px;
+    background: var(--bg-3);
+    border-radius: var(--r-full);
+    transform: translateY(-50%);
+  }
+  .ed__slider-center { position: absolute; top: 50%; left: 50%; width: 1px; height: 8px; background: var(--text-tertiary); transform: translate(-50%, -50%); }
+  .ed__slider-fill {
+    position: absolute;
+    top: 50%; left: 50%;
+    height: 4px;
+    background: var(--accent);
+    transform: translateY(-50%);
+    border-radius: var(--r-full);
+  }
+  .ed__slider-thumb {
+    position: absolute;
+    top: 50%;
+    width: 16px; height: 16px;
+    background: #fff;
+    border: 2px solid var(--accent);
+    border-radius: var(--r-full);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 6px rgba(15,15,14,0.18);
+  }
+
+  .ed__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+    display: flex; gap: var(--sp-xs);
+  }
+  .ed__foot .btn { flex: 1; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="ed">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="취소">취소</button>
+        <span class="topbar__title">필터 만들기</span>
+        <button class="topbar__action topbar__action--accent" style="font-weight: 600;">다음</button>
+      </header>
+
+      <div class="ed__canvas">
+        <div class="photo photo--cafe photo--vignette"></div>
+        <span class="ed__compare-pill">PRESS &amp; HOLD · 원본</span>
+      </div>
+
+      <div class="ed__seg-tabs" role="tablist" aria-label="파라미터 그룹">
+        <button class="ed__seg-tab ed__seg-tab--active">조명</button>
+        <button class="ed__seg-tab">색</button>
+        <button class="ed__seg-tab">디테일</button>
+        <button class="ed__seg-tab">효과</button>
+        <button class="ed__seg-tab">LUT</button>
+      </div>
+
+      <div class="ed__params">
+        <div class="ed__param">
+          <div class="ed__param-row">
+            <span class="ed__param-name">
+              <svg class="ed__param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 3 V5 M12 19 V21 M3 12 H5 M19 12 H21 M5.6 5.6 L7 7 M17 17 L18.4 18.4 M5.6 18.4 L7 17 M17 7 L18.4 5.6"/></svg>
+              노출
+            </span>
+            <span class="ed__param-value">+0.4</span>
+          </div>
+          <div class="ed__slider-bipolar">
+            <div class="ed__slider-track"></div>
+            <div class="ed__slider-center"></div>
+            <div class="ed__slider-fill" style="width: 16%;"></div>
+            <div class="ed__slider-thumb" style="left: 66%;"></div>
+          </div>
+        </div>
+
+        <div class="ed__param">
+          <div class="ed__param-row">
+            <span class="ed__param-name">
+              <svg class="ed__param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 3 V21 M12 12 a9 9 0 0 1 0 -9" fill="currentColor"/></svg>
+              대비
+            </span>
+            <span class="ed__param-value">+22</span>
+          </div>
+          <div class="ed__slider-bipolar">
+            <div class="ed__slider-track"></div>
+            <div class="ed__slider-center"></div>
+            <div class="ed__slider-fill" style="width: 22%;"></div>
+            <div class="ed__slider-thumb" style="left: 72%;"></div>
+          </div>
+        </div>
+
+        <div class="ed__param">
+          <div class="ed__param-row">
+            <span class="ed__param-name">
+              <svg class="ed__param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 18 H21 M3 12 H21 M3 6 H21"/></svg>
+              하이라이트
+            </span>
+            <span class="ed__param-value">−18</span>
+          </div>
+          <div class="ed__slider-bipolar">
+            <div class="ed__slider-track"></div>
+            <div class="ed__slider-center"></div>
+            <div class="ed__slider-fill" style="width: 18%; left: 32%;"></div>
+            <div class="ed__slider-thumb" style="left: 32%;"></div>
+          </div>
+        </div>
+
+        <div class="ed__param">
+          <div class="ed__param-row">
+            <span class="ed__param-name">
+              <svg class="ed__param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 18 H21 M3 12 H21 M3 6 H21"/></svg>
+              섀도
+            </span>
+            <span class="ed__param-value">+12</span>
+          </div>
+          <div class="ed__slider-bipolar">
+            <div class="ed__slider-track"></div>
+            <div class="ed__slider-center"></div>
+            <div class="ed__slider-fill" style="width: 12%;"></div>
+            <div class="ed__slider-thumb" style="left: 62%;"></div>
+          </div>
+        </div>
+
+        <div class="ed__param">
+          <div class="ed__param-row">
+            <span class="ed__param-name">
+              <svg class="ed__param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 3 V5 M12 19 V21"/></svg>
+              온도
+            </span>
+            <span class="ed__param-value">+8</span>
+          </div>
+          <div class="ed__slider-bipolar">
+            <div class="ed__slider-track"></div>
+            <div class="ed__slider-center"></div>
+            <div class="ed__slider-fill" style="width: 8%;"></div>
+            <div class="ed__slider-thumb" style="left: 58%;"></div>
+          </div>
+        </div>
+
+        <div class="ed__param">
+          <div class="ed__param-row">
+            <span class="ed__param-name">
+              <svg class="ed__param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/></svg>
+              색조
+            </span>
+            <span class="ed__param-value">−4</span>
+          </div>
+          <div class="ed__slider-bipolar">
+            <div class="ed__slider-track"></div>
+            <div class="ed__slider-center"></div>
+            <div class="ed__slider-fill" style="width: 4%; left: 46%;"></div>
+            <div class="ed__slider-thumb" style="left: 46%;"></div>
+          </div>
+        </div>
+
+        <div class="ed__param">
+          <div class="ed__param-row">
+            <span class="ed__param-name">
+              <svg class="ed__param-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg>
+              채도
+            </span>
+            <span class="ed__param-value">+15</span>
+          </div>
+          <div class="ed__slider-bipolar">
+            <div class="ed__slider-track"></div>
+            <div class="ed__slider-center"></div>
+            <div class="ed__slider-fill" style="width: 15%;"></div>
+            <div class="ed__slider-thumb" style="left: 65%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ed__foot">
+        <button class="btn btn--secondary btn--lg">초기화</button>
+        <button class="btn btn--primary btn--lg">계속</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

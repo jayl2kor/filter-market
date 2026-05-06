@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<!-- P3-04 · Moderation detail (approve / reject) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>34 · Moderation Detail — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .md { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .md__body { flex: 1; overflow-y: auto; }
+
+  .md__hero {
+    aspect-ratio: 4 / 5;
+    position: relative;
+    background: var(--bg-3);
+  }
+  .md__hero .photo { position: absolute; inset: 0; }
+
+  .md__sec {
+    padding: var(--sp-md);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .md__title { font-size: var(--t-title-size); font-weight: 700; margin: 0 0 4px; }
+  .md__author { font-size: var(--t-subhead-size); color: var(--text-secondary); margin: 0; }
+
+  .md__signals {
+    display: flex; gap: var(--sp-xs); flex-wrap: wrap;
+    margin-top: var(--sp-sm);
+  }
+  .md__signal {
+    padding: 4px 10px;
+    border-radius: var(--r-full);
+    font-size: var(--t-caption-size);
+    font-weight: 600;
+    background: var(--bg-3);
+    color: var(--text-secondary);
+  }
+  .md__signal--high { background: var(--error-bg); color: var(--error); }
+  .md__signal--med { background: var(--warning-bg); color: var(--warning); }
+
+  .md__sec-title { font-size: var(--t-callout-size); font-weight: 700; margin: 0 0 var(--sp-sm); }
+
+  /* Reports list */
+  .md__reports { display: flex; flex-direction: column; gap: var(--sp-xs); }
+  .md__report {
+    padding: var(--sp-sm) var(--sp-md);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+  }
+  .md__report-head {
+    display: flex; justify-content: space-between;
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+    margin-bottom: 4px;
+  }
+  .md__report-reason { font-size: var(--t-subhead-size); font-weight: 600; color: var(--text-primary); margin: 0 0 4px; }
+  .md__report-text { font-size: var(--t-caption-size); color: var(--text-secondary); line-height: 1.4; word-break: keep-all; margin: 0; }
+
+  /* Auto-flag results */
+  .md__auto {
+    background: var(--info-bg);
+    border: 1px solid var(--info);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+  }
+  .md__auto-row {
+    display: flex; justify-content: space-between;
+    font-size: var(--t-caption-size);
+    color: var(--info);
+    padding: 4px 0;
+  }
+  .md__auto-row + .md__auto-row { border-top: 1px solid rgba(31,95,168,0.16); }
+
+  /* Decision foot */
+  .md__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    background: var(--bg-2);
+    border-top: 1px solid var(--border-default);
+    display: flex; flex-direction: column; gap: var(--sp-sm);
+  }
+  .md__notes {
+    width: 100%;
+    background: var(--bg-1);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+    font: inherit;
+    font-size: var(--t-subhead-size);
+    min-height: 60px;
+    resize: none;
+  }
+
+  .md__btn-row { display: flex; gap: var(--sp-xs); }
+  .md__btn {
+    flex: 1;
+    height: 48px;
+    border-radius: var(--r-md);
+    font-size: var(--t-callout-size);
+    font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .md__btn--reject { background: var(--error); color: var(--text-inverse); }
+  .md__btn--takedown { background: var(--text-primary); color: var(--text-inverse); }
+  .md__btn--approve { background: var(--success); color: var(--text-inverse); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="md">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">검수 #4218</span>
+        <button class="topbar__action" aria-label="더보기">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/></svg>
+        </button>
+      </header>
+
+      <div class="md__body">
+        <div class="md__hero"><div class="photo photo--moody photo--vignette"></div></div>
+
+        <section class="md__sec">
+          <h1 class="md__title">Strange Vibe</h1>
+          <p class="md__author">@unknown_user · 2,400 다운로드 · 4월 28일 게시</p>
+          <div class="md__signals">
+            <span class="md__signal md__signal--high">🚩 12 신고</span>
+            <span class="md__signal md__signal--high">SafeSearch ADULT 0.78</span>
+            <span class="md__signal md__signal--med">저작권 의심</span>
+          </div>
+        </section>
+
+        <section class="md__sec">
+          <h2 class="md__sec-title">자동 검사 결과</h2>
+          <div class="md__auto">
+            <div class="md__auto-row"><span>Cloud Vision SafeSearch (ADULT)</span><strong>0.78 (LIKELY)</strong></div>
+            <div class="md__auto-row"><span>Cloud Vision SafeSearch (VIOLENCE)</span><strong>0.04 (UNLIKELY)</strong></div>
+            <div class="md__auto-row"><span>유사도 스캔 (기존 LUT)</span><strong>92% — Sunset 1973</strong></div>
+            <div class="md__auto-row"><span>메이커 등급</span><strong>NEW (3일)</strong></div>
+          </div>
+        </section>
+
+        <section class="md__sec">
+          <h2 class="md__sec-title">사용자 신고 12건 · 최근 5건</h2>
+          <div class="md__reports">
+            <div class="md__report">
+              <div class="md__report-head"><span>@jisoo.films</span><span>2시간 전</span></div>
+              <p class="md__report-reason">저작권 침해</p>
+              <p class="md__report-text">제 LUT을 그대로 가져다 이름만 바꿨습니다. 비교 스크린샷 첨부했어요.</p>
+            </div>
+            <div class="md__report">
+              <div class="md__report-head"><span>@minji.lab</span><span>4시간 전</span></div>
+              <p class="md__report-reason">저작권 침해</p>
+              <p class="md__report-text">jisoo.films의 Sunset 1973이랑 거의 동일한 색감.</p>
+            </div>
+            <div class="md__report">
+              <div class="md__report-head"><span>@익명</span><span>6시간 전</span></div>
+              <p class="md__report-reason">스팸 / 사칭</p>
+              <p class="md__report-text">새 계정인데 인기 필터를 그대로 따라하고 있음.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="md__foot">
+        <textarea class="md__notes" placeholder="검수 메모 (메이커에게 전달됨)" rows="2">유사도 92% — 원작자에게 알림 후 takedown 처리합니다.</textarea>
+        <div class="md__btn-row">
+          <button class="md__btn md__btn--reject">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+            거부
+          </button>
+          <button class="md__btn md__btn--takedown">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7 L19 7 M9 4 L15 4 L15 7 L9 7 Z M6 7 L7 20 L17 20 L18 7"/></svg>
+            Takedown
+          </button>
+          <button class="md__btn md__btn--approve">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12 L10 17 L20 7"/></svg>
+            승인
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

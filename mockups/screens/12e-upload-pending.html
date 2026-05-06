@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<!-- P1-07 · Upload pending review state · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>12e · Upload Pending Review — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .pen {
+    position: absolute; inset: 0;
+    background: var(--bg-1);
+    display: flex; flex-direction: column;
+    padding-top: var(--safe-top);
+  }
+  .pen__hero {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: var(--sp-2xl) var(--sp-xl);
+  }
+  .pen__circle {
+    width: 144px; height: 144px;
+    border-radius: var(--r-full);
+    background: var(--accent-bg);
+    color: var(--accent);
+    display: grid; place-items: center;
+    margin-bottom: var(--sp-xl);
+    position: relative;
+  }
+  .pen__circle::before, .pen__circle::after {
+    content: '';
+    position: absolute;
+    border-radius: var(--r-full);
+    border: 2px solid var(--accent-soft);
+    opacity: 0;
+    animation: penPulse 2s var(--ease-decelerate) infinite;
+  }
+  .pen__circle::before {
+    inset: -8px;
+    animation-delay: 0s;
+  }
+  .pen__circle::after {
+    inset: -16px;
+    animation-delay: 0.6s;
+  }
+  @keyframes penPulse {
+    0%   { opacity: 0.5; transform: scale(0.95); }
+    100% { opacity: 0; transform: scale(1.2); }
+  }
+
+  .pen__title { font-size: var(--t-title-size); font-weight: 700; margin: 0 0 var(--sp-xs); letter-spacing: -0.2px; }
+  .pen__sub { font-size: var(--t-body-size); color: var(--text-secondary); line-height: 1.5; word-break: keep-all; max-width: 320px; margin: 0; }
+
+  .pen__timeline {
+    margin: var(--sp-xl) 0 0;
+    width: 100%; max-width: 320px;
+    padding: var(--sp-md);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    text-align: left;
+  }
+  .pen__timeline-row {
+    display: flex; align-items: flex-start; gap: var(--sp-sm);
+    padding: var(--sp-xs) 0;
+  }
+  .pen__timeline-dot {
+    width: 12px; height: 12px;
+    border-radius: var(--r-full);
+    background: var(--bg-3);
+    border: 2px solid var(--bg-3);
+    margin-top: 4px;
+    flex: 0 0 12px;
+    position: relative;
+  }
+  .pen__timeline-dot--done { background: var(--success); border-color: var(--success); }
+  .pen__timeline-dot--active { background: var(--accent); border-color: var(--accent); }
+  .pen__timeline-dot--active::after {
+    content: ''; position: absolute; inset: -4px;
+    border: 2px solid var(--accent-ring);
+    border-radius: var(--r-full);
+  }
+  .pen__timeline-row + .pen__timeline-row .pen__timeline-dot::before {
+    content: ''; position: absolute;
+    left: 50%; top: -12px;
+    width: 2px; height: 12px;
+    background: var(--bg-3);
+    transform: translateX(-50%);
+  }
+  .pen__timeline-row.done + .pen__timeline-row .pen__timeline-dot::before { background: var(--success); }
+
+  .pen__timeline-text { flex: 1; }
+  .pen__timeline-name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .pen__timeline-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+
+  .pen__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="pen">
+      <header class="topbar">
+        <span style="width: 44px;"></span>
+        <span class="topbar__title">제출 완료</span>
+        <button class="topbar__action" aria-label="닫기">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+        </button>
+      </header>
+
+      <div class="pen__hero">
+        <div class="pen__circle">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="13" r="8"/><path d="M12 8 L12 13 L15 15 M9 3 L15 3"/></svg>
+        </div>
+
+        <h1 class="pen__title">검수 중입니다</h1>
+        <p class="pen__sub">평균 24~48시간 내 검수 결과를 알림으로 안내드립니다. 그 동안 다른 작업을 이어가셔도 괜찮습니다.</p>
+
+        <div class="pen__timeline">
+          <div class="pen__timeline-row done">
+            <span class="pen__timeline-dot pen__timeline-dot--done"></span>
+            <div class="pen__timeline-text">
+              <p class="pen__timeline-name">업로드 완료</p>
+              <p class="pen__timeline-meta">방금 전 · Amber Café</p>
+            </div>
+          </div>
+          <div class="pen__timeline-row">
+            <span class="pen__timeline-dot pen__timeline-dot--active"></span>
+            <div class="pen__timeline-text">
+              <p class="pen__timeline-name">콘텐츠 검수</p>
+              <p class="pen__timeline-meta">예상 24~48시간</p>
+            </div>
+          </div>
+          <div class="pen__timeline-row">
+            <span class="pen__timeline-dot"></span>
+            <div class="pen__timeline-text">
+              <p class="pen__timeline-name">마켓 공개</p>
+              <p class="pen__timeline-meta">검수 통과 시 자동 게시</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pen__foot">
+        <button class="btn btn--primary btn--lg btn--block">내 필터 보기</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

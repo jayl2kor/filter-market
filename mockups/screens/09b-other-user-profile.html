@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<!-- P1-08 · PRD §3.2 F5 · Other user public profile · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>09b · Other User Profile — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .pr { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .pr__body { flex: 1; overflow-y: auto; }
+
+  .pr__hero {
+    padding: var(--sp-xl) var(--sp-md) var(--sp-md);
+    text-align: center;
+  }
+  .pr__avatar {
+    width: 88px; height: 88px;
+    border-radius: var(--r-full);
+    background: linear-gradient(135deg, #f3dcc4 0%, #d4a482 50%, #8a6a52 100%);
+    margin: 0 auto var(--sp-sm);
+    border: 1px solid var(--border-subtle);
+  }
+  .pr__name { font-size: var(--t-title-size); font-weight: 700; margin: 0; letter-spacing: -0.2px; }
+  .pr__handle { font-size: var(--t-subhead-size); color: var(--text-tertiary); margin: 2px 0 var(--sp-sm); }
+  .pr__bio { font-size: var(--t-body-size); color: var(--text-secondary); line-height: 1.5; max-width: 320px; margin: 0 auto var(--sp-sm); word-break: keep-all; }
+
+  .pr__stats {
+    display: flex; justify-content: center;
+    gap: var(--sp-2xl);
+    padding: var(--sp-sm) 0 var(--sp-md);
+  }
+  .pr__stat { text-align: center; }
+  .pr__stat-num { font-size: var(--t-title-size); font-weight: 700; }
+  .pr__stat-label { font-size: var(--t-caption-size); color: var(--text-tertiary); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+  .pr__cta-row {
+    display: flex; gap: var(--sp-xs);
+    padding: 0 var(--sp-md) var(--sp-md);
+  }
+  .pr__cta-row .btn { flex: 1; }
+
+  .pr__seg-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+    position: sticky; top: 0;
+  }
+  .pr__seg-tab {
+    flex: 1;
+    padding: var(--sp-sm) 0;
+    font-size: var(--t-callout-size);
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-align: center;
+    border-bottom: 2px solid transparent;
+  }
+  .pr__seg-tab--active {
+    color: var(--text-primary);
+    font-weight: 600;
+    border-bottom-color: var(--accent);
+  }
+
+  .pr__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    padding: 2px;
+  }
+  .pr__cell {
+    aspect-ratio: 4 / 5;
+    position: relative;
+    overflow: hidden;
+  }
+  .pr__cell .photo { position: absolute; inset: 0; }
+  .pr__cell-overlay {
+    position: absolute; inset: auto 0 0 0;
+    padding: 6px;
+    background: linear-gradient(180deg, transparent, rgba(15,15,14,0.78));
+    color: #fff;
+  }
+  .pr__cell-name { font-size: 10px; font-weight: 700; margin: 0; line-height: 1.2; }
+  .pr__cell-meta { font-size: 9px; color: rgba(255,255,255,0.78); margin-top: 1px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="pr">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">@jisoo.films</span>
+        <button class="topbar__action" aria-label="더보기">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/></svg>
+        </button>
+      </header>
+
+      <div class="pr__body">
+        <section class="pr__hero">
+          <div class="pr__avatar"></div>
+          <h1 class="pr__name">정지수</h1>
+          <p class="pr__handle">@jisoo.films · 메이커</p>
+          <p class="pr__bio">필름 카메라와 햇빛을 좋아합니다. 카페·여행·일상 위주로 필터를 만들어요.</p>
+        </section>
+
+        <div class="pr__stats">
+          <div class="pr__stat"><div class="pr__stat-num">12</div><div class="pr__stat-label">필터</div></div>
+          <div class="pr__stat"><div class="pr__stat-num">2.4K</div><div class="pr__stat-label">팔로워</div></div>
+          <div class="pr__stat"><div class="pr__stat-num">86</div><div class="pr__stat-label">팔로잉</div></div>
+        </div>
+
+        <div class="pr__cta-row">
+          <button class="btn btn--primary btn--lg">팔로우</button>
+          <button class="btn btn--secondary btn--lg">메시지</button>
+          <button class="btn btn--secondary btn--lg" style="flex: 0 0 52px;" aria-label="공유">
+            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4 L12 16 M7 9 L12 4 L17 9 M5 14 L5 20 L19 20 L19 14"/></svg>
+          </button>
+        </div>
+
+        <nav class="pr__seg-tabs" role="tablist">
+          <button class="pr__seg-tab pr__seg-tab--active">필터 12</button>
+          <button class="pr__seg-tab">컬렉션 4</button>
+          <button class="pr__seg-tab">좋아요</button>
+        </nav>
+
+        <div class="pr__grid">
+          <div class="pr__cell"><div class="photo photo--vintage photo--vignette"></div><div class="pr__cell-overlay"><p class="pr__cell-name">Sunset 1973</p><p class="pr__cell-meta">↓ 9.8K</p></div></div>
+          <div class="pr__cell"><div class="photo photo--cafe photo--vignette"></div><div class="pr__cell-overlay"><p class="pr__cell-name">Amber Café</p><p class="pr__cell-meta">↓ 6.2K</p></div></div>
+          <div class="pr__cell"><div class="photo photo--portrait photo--vignette"></div><div class="pr__cell-overlay"><p class="pr__cell-name">Skin Velvet</p><p class="pr__cell-meta">↓ 4.5K</p></div></div>
+          <div class="pr__cell"><div class="photo photo--moody photo--vignette"></div><div class="pr__cell-overlay"><p class="pr__cell-name">Indigo Dusk</p><p class="pr__cell-meta">↓ 3.1K</p></div></div>
+          <div class="pr__cell"><div class="photo photo--warm photo--vignette"></div><div class="pr__cell-overlay"><p class="pr__cell-name">Honey Hour</p><p class="pr__cell-meta">↓ 2.8K</p></div></div>
+          <div class="pr__cell"><div class="photo photo--bw photo--vignette"></div><div class="pr__cell-overlay"><p class="pr__cell-name">Mono Noir</p><p class="pr__cell-meta">↓ 2.4K</p></div></div>
+          <div class="pr__cell"><div class="photo photo--cool photo--vignette"></div><div class="pr__cell-overlay"><p class="pr__cell-name">Ice Lake</p><p class="pr__cell-meta">↓ 1.9K</p></div></div>
+          <div class="pr__cell"><div class="photo photo--cinematic photo--vignette"></div><div class="pr__cell-overlay"><p class="pr__cell-name">Teal Drift</p><p class="pr__cell-meta">↓ 1.4K</p></div></div>
+          <div class="pr__cell"><div class="photo photo--pastel photo--vignette"></div><div class="pr__cell-overlay"><p class="pr__cell-name">Cotton Candy</p><p class="pr__cell-meta">↓ 1.1K</p></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

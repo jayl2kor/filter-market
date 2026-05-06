@@ -380,51 +380,98 @@ flowchart LR
 
 ---
 
-## 7. 결제 / 유료 필터 (Phase 6)
+## 7. 결제 / 코인 화폐 모델 (Phase 6)
 
-### 7.1 가격 모델 옵션
-- A. 일회성 구매 (\$0.99 ~ \$4.99)
-- B. 번들(메이커 팩 \$9.99)
-- C. 구독(\$4.99/월 — 모든 프리미엄 무제한)
+> 단일 진실원: [`CURRENCY_DESIGN.md`](./CURRENCY_DESIGN.md). 본 절은 시스템 흐름만 요약.
 
-> 1차 출시: A + C 동시. B는 Phase 6.5.
+### 7.1 모델 — 코인 화폐 + Pro 멤버십
 
-### 7.2 결제 흐름 (iOS)
+- **Coin (C)** — 내부 화폐. 사용자는 Apple IAP로 코인 패키지를 충전하고 코인으로 필터를 구매. 직접 통화 결제 X.
+- **패키지**: 100/550/1,200/3,000 (보너스 0/+10%/+20%/+30%)
+- **필터 가격대**: 30/50/80/120 코인 (Lite/Standard/Premium/Signature)
+- **메이커 분배**: 60% (Apple 30% 차감 후 60% / moodit 운영비 40%)
+- **Pro 멤버십** (별도 트랙): 월 ₩4,900 / 연 ₩34,800 → 모든 유료 필터 무제한 + 월 300 C 자동 적립
+
+### 7.2 충전 흐름 (Apple IAP)
 
 ```mermaid
 sequenceDiagram
     actor U
     participant App as iOS App
     participant SK as StoreKit 2
-    participant API
-    participant DB
+    participant API as Cloud Functions
+    participant DB as Firestore
 
-    U->>App: 유료 필터 "Buy"
-    App->>SK: Product.products(for: ["filter_xxx"])
-    SK-->>App: Product
+    U->>App: "550 코인 충전"
+    App->>API: POST /wallet/topup/init { productId }
+    API->>DB: topupIntents/{id} = pending
+    API-->>App: { intentId, productId }
     App->>SK: product.purchase()
     SK-->>App: VerificationResult<Transaction>
-    App->>API: POST /purchases (signed transaction)
-    API->>SK: App Store Server API (verifyReceipt 후속)
-    SK-->>API: validated
-    API->>DB: entitlements/{uid}/{filterId} = active
-    API-->>App: ok
+    App->>API: POST /wallet/topup/finalize { intentId, signedTx }
+    API->>API: JWS 검증 + transactionId 중복 체크
+    API->>DB: TX wallets/{uid}.balance += coins, transactions += 1
+    API-->>App: { balance, granted }
     App->>SK: transaction.finish()
 ```
 
-- **수수료**: Apple 30%(소형 사업자 프로그램은 15%) → 메이커에게 60% 분배(앱 운영 10%)
-- **웹 결제 우회**(Phase 6.5): 메이커가 자체 사이트에서 Stripe로 판매(Apple 정책 변화 추이 모니터링)
-- StoreKit 2의 `Transaction.updates` 스트림 구독으로 환불/구독 변경 자동 동기화
+### 7.3 구매 흐름 (코인 사용 — moodit 내부 거래)
 
-### 7.3 정산 (Stripe Connect)
-- 메이커 KYC → Stripe Connect Express 계정
-- 월 \$10 이상부터 자동 정산
-- 1099/W-9(미국) / 한국 사업자등록번호 처리
+```mermaid
+sequenceDiagram
+    actor U
+    participant App as iOS App
+    participant API as Cloud Functions
+    participant DB as Firestore
 
-### 7.4 Anti-fraud
-- 환불 정책(7일 내 미사용 시) — Apple 정책 준수
-- 의심 패턴(같은 IP에서 대량 구매) 차단
+    U->>App: 필터 "구매 (80 C)"
+    App->>API: POST /filters/{id}/purchase (Idempotency-Key)
+    API->>DB: TX 시작
+    Note over API,DB: balance ≥ 80 확인<br/>(Pro 멤버이면 분기)
+    API->>DB: wallets/{uid}.balance -= 80
+    API->>DB: wallets/{ownerUid}.earnedCoins += 48 (60%)
+    API->>DB: transactions × 4 (purchase, earn, fee, ledger)
+    API->>DB: users/{uid}/ownedFilters/{id} = true
+    API-->>App: { balanceAfter, downloadUrl }
+    App->>App: .fmpkg 다운로드 (R2 signed URL)
+```
+
+> Pro 멤버십 활성 + 필터가 Pro 풀 포함 시 코인 차감 없이 보유권 부여, `transactions { type: purchase, amount: 0, notes: "pro" }` 기록.
+
+### 7.4 출금 흐름 (메이커 → 원화)
+
+```mermaid
+sequenceDiagram
+    actor M as 메이커
+    participant App
+    participant API
+    participant DB
+    participant Stripe
+
+    M->>App: "10,000 코인 출금"
+    App->>API: POST /me/withdraw { coins: 10000 }
+    API->>API: KYC + Stripe Connect 확인
+    API->>DB: TX wallets/{uid}.earnedCoins -= 10000<br/>payouts/{id} = requested
+    API-->>App: { payoutId, amountKRW: 140000 }
+    Note over API,Stripe: Cloud Tasks 비동기
+    API->>Stripe: transfers.create
+    Stripe-->>API: transfer.id
+    API->>DB: payouts/{id} = paid
+    API->>App: FCM "정산 완료"
+```
+
+- 환율: **1 C = ₩14** (서버 설정값 `config/economy.coinToWonRate`, 변경 30일 사전 공지)
+- 임계치: 5,000 C (≈ ₩70,000)
+- 주기: 주 1회 (월요일)
+- 세금/수수료: Stripe 송금 수수료 1% + 한국 소득세 원천징수 3.3%
+
+### 7.5 Anti-fraud / 컴플라이언스
+
+- 모든 잔액 변경은 **서버 트랜잭션 한정** — Firestore 보안 규칙은 `/wallets`, `/transactions`, `/payouts` deny-write
+- IAP 영수증 `transactionId` 기반 중복 차단
+- 일일 충전 한도 ₩300,000 (초과 시 추가 인증)
 - App Attest로 디바이스 무결성 검증
+- 환불 정책: 충전 7일 / 구매 24시간 미사용분만 (Apple 정책 정합)
 
 ---
 
@@ -470,9 +517,14 @@ GET    /recommendations                  → 개인화 (Phase 4)
 GET    /feed                             → 팔로우 + 추천 혼합
 
 # Phase 6
-POST   /purchases                        { signedTransaction }
-GET    /entitlements
-GET    /payouts                          → 메이커 대시보드
+GET    /config/economy                   → Coin 패키지/환율/임계치
+GET    /me/wallet
+POST   /wallet/topup/init                { productId }
+POST   /wallet/topup/finalize            { intentId, signedTransaction }
+POST   /filters/{id}/purchase            → Coin 차감 + 보유권 부여
+GET    /me/transactions
+GET    /me/payouts                       → 메이커 정산 내역
+POST   /me/withdraw                      → 메이커 Coin 출금 신청
 ```
 
 ### 8.3 표준 응답 envelope

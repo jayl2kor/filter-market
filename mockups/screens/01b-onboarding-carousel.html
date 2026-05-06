@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!-- P0-04 · PRD §3.2 F6 (welcome) · 4-step welcome carousel · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>01b · Onboarding Carousel — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .ob-screen { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .ob-skip { align-self: flex-end; margin: var(--sp-sm) var(--sp-md) 0; padding: 8px 12px; font-size: var(--t-subhead-size); color: var(--text-tertiary); }
+
+  .ob-card {
+    flex: 1;
+    display: flex; flex-direction: column;
+    padding: var(--sp-2xl) var(--sp-xl) var(--sp-md);
+    text-align: center;
+  }
+  .ob-art {
+    flex: 1;
+    display: grid; place-items: center;
+    margin-bottom: var(--sp-xl);
+  }
+  .ob-art__circle {
+    width: 220px; height: 220px;
+    border-radius: var(--r-full);
+    background: var(--accent-bg);
+    display: grid; place-items: center;
+    color: var(--accent);
+    box-shadow: 0 12px 32px rgba(184,133,58,0.18);
+  }
+  .ob-card__eyebrow {
+    font-size: var(--t-caption-size);
+    font-weight: 700; letter-spacing: 0.6px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: var(--sp-xs);
+  }
+  .ob-card__title {
+    font-size: var(--t-title-lg-size);
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--text-primary);
+    margin: 0 0 var(--sp-sm);
+    word-break: keep-all;
+  }
+  .ob-card__body {
+    font-size: var(--t-body-size);
+    color: var(--text-secondary);
+    line-height: 1.5;
+    word-break: keep-all;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+
+  /* 페이지 점 + CTA */
+  .ob-foot {
+    padding: 0 var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    display: flex; flex-direction: column; gap: var(--sp-md);
+  }
+  .ob-pager {
+    display: flex; justify-content: center; gap: 6px;
+  }
+  .ob-pager__dot {
+    width: 6px; height: 6px;
+    background: var(--bg-3);
+    border-radius: var(--r-full);
+    transition: all var(--d-fast) var(--ease-standard);
+  }
+  .ob-pager__dot--active {
+    width: 24px;
+    background: var(--accent);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="ob-screen">
+      <button class="ob-skip">건너뛰기</button>
+
+      <!-- Step 2/4: 필터 -->
+      <section class="ob-card">
+        <div class="ob-art">
+          <div class="ob-art__circle">
+            <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <circle cx="9" cy="9" r="6"/>
+              <circle cx="15" cy="15" r="6"/>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <div class="ob-card__eyebrow">Step 2 / 4</div>
+          <h1 class="ob-card__title">메이커가 만든 필터</h1>
+          <p class="ob-card__body">
+            VSCO·Lightroom과 다른 점.<br/>
+            여기 필터는 모두 사람이 만든다.<br/>
+            마음에 드는 메이커를 팔로우하고, 컬렉션을 따라가세요.
+          </p>
+        </div>
+      </section>
+
+      <div class="ob-foot">
+        <div class="ob-pager">
+          <span class="ob-pager__dot"></span>
+          <span class="ob-pager__dot ob-pager__dot--active"></span>
+          <span class="ob-pager__dot"></span>
+          <span class="ob-pager__dot"></span>
+        </div>
+        <button class="btn btn--primary btn--block btn--lg">다음</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<!-- P0-03 · PRD §3.2 F1 (self-timer countdown) · Dark -->
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<title>15 · Camera Timer Countdown — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .cam-screen { position: absolute; inset: 0; background: var(--bg-0); overflow: hidden; }
+  .cam-preview { position: absolute; inset: 0; }
+  .cam-preview .photo { position: absolute; inset: 0; }
+
+  /* 카운트다운 — 큰 숫자 가운데 + 펄스 애니메이션 */
+  .countdown {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    z-index: 30;
+    background: rgba(0,0,0,0.32);
+  }
+  .countdown__number {
+    font-size: 224px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -8px;
+    line-height: 1;
+    text-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    animation: countdownPulse 1s var(--ease-decelerate) infinite;
+  }
+  @keyframes countdownPulse {
+    0%   { transform: scale(1.0);  opacity: 1; }
+    60%  { transform: scale(1.15); opacity: 0.85; }
+    100% { transform: scale(1.25); opacity: 0; }
+  }
+  .countdown__hint {
+    position: absolute; bottom: 20%;
+    color: var(--text-secondary);
+    font-size: var(--t-callout-size);
+    letter-spacing: 0.4px;
+    text-align: center;
+  }
+  .countdown__hint kbd {
+    background: var(--surface-overlay);
+    backdrop-filter: blur(20px);
+    padding: 4px 8px;
+    border-radius: var(--r-sm);
+    font-family: inherit;
+    font-size: var(--t-footnote-size);
+    margin: 0 4px;
+  }
+
+  /* 상단 — 타이머 선택 (3s/10s) */
+  .cam-top {
+    position: absolute; top: var(--safe-top); left: 0; right: 0;
+    padding: var(--sp-sm) var(--sp-md);
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 20;
+  }
+  .icon-btn {
+    width: 40px; height: 40px;
+    background: var(--surface-overlay);
+    backdrop-filter: blur(20px);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    color: var(--text-primary);
+  }
+  .timer-pills {
+    display: inline-flex;
+    background: var(--surface-overlay);
+    backdrop-filter: blur(20px);
+    border-radius: var(--r-full);
+    padding: 3px;
+  }
+  .timer-pills__item {
+    padding: 6px 14px;
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    color: var(--text-secondary);
+    border-radius: var(--r-full);
+    letter-spacing: 0.3px;
+  }
+  .timer-pills__item--active {
+    background: var(--accent);
+    color: var(--text-inverse);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="cam-screen">
+      <div class="cam-preview"><div class="photo photo--portrait photo--vignette"></div></div>
+
+      <!-- 상단: 닫기 + 타이머 선택 + 더보기 -->
+      <header class="cam-top">
+        <button class="icon-btn" aria-label="타이머 취소">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+        </button>
+        <div class="timer-pills" role="tablist" aria-label="셀프 타이머">
+          <button class="timer-pills__item">OFF</button>
+          <button class="timer-pills__item">3s</button>
+          <button class="timer-pills__item timer-pills__item--active" aria-selected="true">10s</button>
+        </div>
+        <button class="icon-btn" aria-label="더보기">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="6" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="18" r="1"/></svg>
+        </button>
+      </header>
+
+      <!-- 카운트다운 오버레이 — 현재 3 -->
+      <div class="countdown" role="status" aria-live="polite">
+        <div class="countdown__number">3</div>
+        <div class="countdown__hint">화면이나 <kbd>볼륨</kbd> 키를 눌러 취소</div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

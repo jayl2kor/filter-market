@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<!-- P0-10 · PRD §3.2 F4 (filter download progress) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>07b · Filter Download Progress — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .det { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .det__hero {
+    aspect-ratio: 4 / 5;
+    position: relative;
+    overflow: hidden;
+  }
+  .det__hero .photo { position: absolute; inset: 0; }
+  .det__hero-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 50%, rgba(15,15,14,0.5));
+  }
+  .det__head {
+    position: absolute; top: var(--safe-top); left: 0; right: 0;
+    padding: var(--sp-sm) var(--sp-md);
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 5;
+  }
+  .det__icon-btn {
+    width: 40px; height: 40px;
+    background: rgba(255,255,255,0.86);
+    backdrop-filter: blur(20px);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+  }
+
+  .det__body {
+    flex: 1;
+    background: var(--bg-1);
+    padding: var(--sp-md);
+    overflow-y: auto;
+  }
+  .det__title { font-size: var(--t-title-lg-size); font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+  .det__author { color: var(--text-secondary); font-size: var(--t-subhead-size); margin: 4px 0 var(--sp-sm); }
+  .det__meta { display: flex; gap: var(--sp-md); font-size: var(--t-caption-size); color: var(--text-tertiary); margin-bottom: var(--sp-md); }
+
+  /* Download progress card */
+  .det__progress {
+    background: var(--bg-2);
+    border: 1px solid var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-ring);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    margin-bottom: var(--sp-md);
+  }
+  .det__progress-row {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    margin-bottom: var(--sp-sm);
+  }
+  .det__progress-spinner {
+    width: 24px; height: 24px;
+    border: 2.5px solid var(--bg-3);
+    border-top-color: var(--accent);
+    border-radius: var(--r-full);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .det__progress-title { font-size: var(--t-headline-size); font-weight: 600; flex: 1; }
+  .det__progress-pct { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .det__progress-bar {
+    height: 6px;
+    background: var(--bg-3);
+    border-radius: var(--r-full);
+    overflow: hidden;
+    margin-bottom: var(--sp-xs);
+  }
+  .det__progress-fill {
+    height: 100%; width: 64%;
+    background: var(--accent);
+    border-radius: var(--r-full);
+    transition: width var(--d-base) var(--ease-standard);
+  }
+
+  .det__progress-meta {
+    display: flex; justify-content: space-between;
+    font-size: var(--t-caption-size);
+    color: var(--text-secondary);
+  }
+
+  .det__cancel {
+    width: 100%; height: 44px;
+    background: var(--bg-3);
+    color: var(--text-primary);
+    font-weight: 500;
+    border-radius: var(--r-md);
+    margin-top: var(--sp-sm);
+  }
+
+  .det__desc { font-size: var(--t-body-size); color: var(--text-secondary); line-height: 1.6; margin-bottom: var(--sp-md); word-break: keep-all; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="det">
+      <div class="det__hero">
+        <div class="photo photo--vintage photo--vignette"></div>
+        <div class="det__hero-overlay"></div>
+        <div class="det__head">
+          <button class="det__icon-btn" aria-label="뒤로">
+            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+          </button>
+          <button class="det__icon-btn" aria-label="공유">
+            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4 L12 16 M7 9 L12 4 L17 9 M5 14 L5 20 L19 20 L19 14"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="det__body">
+        <h1 class="det__title">Sunset 1973</h1>
+        <p class="det__author">@jisoo.films · 9.8K 다운로드</p>
+        <div class="det__meta">
+          <span>★ 4.9 (1.2K)</span>
+          <span>2.4 MB</span>
+          <span>iOS 17+</span>
+        </div>
+
+        <!-- 다운로드 진행 카드 -->
+        <div class="det__progress" role="progressbar" aria-valuenow="64" aria-valuemin="0" aria-valuemax="100">
+          <div class="det__progress-row">
+            <div class="det__progress-spinner"></div>
+            <span class="det__progress-title">다운로드 중</span>
+            <span class="det__progress-pct">64%</span>
+          </div>
+          <div class="det__progress-bar"><div class="det__progress-fill"></div></div>
+          <div class="det__progress-meta">
+            <span>1.5 MB / 2.4 MB</span>
+            <span>~3초 남음</span>
+          </div>
+          <button class="det__cancel">취소</button>
+        </div>
+
+        <p class="det__desc">70년대 필름 카메라의 따뜻한 기억. 카페·골든아워·실내광원에 어울리는 부드러운 골드 톤. 강도 75% 이상에서 가장 자연스럽게 작동합니다.</p>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

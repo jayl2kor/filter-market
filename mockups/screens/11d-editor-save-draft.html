@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<!-- P1-03 · Editor save-as-draft · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>11d · Editor Save Draft — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .ed { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .ed__preview {
+    aspect-ratio: 16 / 9;
+    background: var(--bg-3);
+    position: relative;
+    overflow: hidden;
+  }
+  .ed__preview .photo { position: absolute; inset: 0; }
+  .ed__preview-pill {
+    position: absolute; bottom: var(--sp-sm); left: var(--sp-sm);
+    background: rgba(15,15,14,0.62);
+    backdrop-filter: blur(12px);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: var(--r-full);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+  }
+
+  .ed__body { flex: 1; padding: var(--sp-md); overflow-y: auto; }
+
+  .ed__field { margin-bottom: var(--sp-md); }
+  .ed__field label { display: block; font-size: var(--t-caption-size); font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: var(--sp-xs); }
+  .ed__input, .ed__textarea {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+    font: inherit;
+    font-size: var(--t-body-size);
+    color: var(--text-primary);
+  }
+  .ed__textarea { min-height: 80px; resize: none; line-height: 1.5; }
+
+  .ed__cat-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  }
+  .ed__cat-chip {
+    padding: 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    font-size: var(--t-caption-size);
+    font-weight: 600;
+    text-align: center;
+    color: var(--text-secondary);
+  }
+  .ed__cat-chip--active {
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .ed__visibility-row {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-xs);
+  }
+  .ed__visibility-row--active { border-color: var(--accent); background: var(--accent-bg); }
+  .ed__visibility-radio {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border-default);
+    border-radius: var(--r-full);
+    flex: 0 0 18px;
+    display: grid; place-items: center;
+  }
+  .ed__visibility-row--active .ed__visibility-radio { border-color: var(--accent); }
+  .ed__visibility-row--active .ed__visibility-radio::after {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: var(--r-full);
+  }
+  .ed__visibility-text { flex: 1; }
+  .ed__visibility-name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .ed__visibility-desc { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+
+  .ed__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+    display: flex; gap: var(--sp-xs);
+  }
+  .ed__foot .btn { flex: 1; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="ed">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">초안으로 저장</span>
+        <span style="width: 44px;"></span>
+      </header>
+
+      <div class="ed__preview">
+        <div class="photo photo--vintage photo--vignette"></div>
+        <span class="ed__preview-pill">미리보기</span>
+      </div>
+
+      <div class="ed__body">
+        <div class="ed__field">
+          <label for="ed-name">이름 *</label>
+          <input id="ed-name" class="ed__input" type="text" value="Amber Café"/>
+        </div>
+
+        <div class="ed__field">
+          <label for="ed-desc">설명</label>
+          <textarea id="ed-desc" class="ed__textarea" placeholder="이 필터의 분위기와 추천 사용처를 적어주세요"></textarea>
+        </div>
+
+        <div class="ed__field">
+          <label>카테고리</label>
+          <div class="ed__cat-grid">
+            <span class="ed__cat-chip">시네마틱</span>
+            <span class="ed__cat-chip ed__cat-chip--active">빈티지</span>
+            <span class="ed__cat-chip">파스텔</span>
+            <span class="ed__cat-chip">흑백</span>
+            <span class="ed__cat-chip">포트레잇</span>
+            <span class="ed__cat-chip">푸드</span>
+          </div>
+        </div>
+
+        <div class="ed__field">
+          <label>공개 범위</label>
+          <div class="ed__visibility-row ed__visibility-row--active">
+            <span class="ed__visibility-radio"></span>
+            <div class="ed__visibility-text">
+              <p class="ed__visibility-name">초안 (내게만 보임)</p>
+              <p class="ed__visibility-desc">언제든 마켓에 공유할 수 있습니다.</p>
+            </div>
+          </div>
+          <div class="ed__visibility-row">
+            <span class="ed__visibility-radio"></span>
+            <div class="ed__visibility-text">
+              <p class="ed__visibility-name">바로 마켓에 공유</p>
+              <p class="ed__visibility-desc">검수 후 24~48시간 내 공개됩니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ed__foot">
+        <button class="btn btn--secondary btn--lg">취소</button>
+        <button class="btn btn--primary btn--lg">초안 저장</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

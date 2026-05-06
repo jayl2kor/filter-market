@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<!-- W-03 · CURRENCY_DESIGN §11 — Full transactions ledger · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>45 · Wallet Transactions — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .tx { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+
+  .tx__filter {
+    display: flex; gap: var(--sp-xs);
+    padding: var(--sp-sm) var(--sp-md);
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .tx__filter::-webkit-scrollbar { display: none; }
+
+  .tx__list { flex: 1; overflow-y: auto; padding: 0 var(--sp-md) var(--sp-md); }
+
+  .tx__group {
+    padding: var(--sp-md) 0 var(--sp-xs);
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+  }
+  .tx__group-label { font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+  .tx__group-net { font-weight: 700; }
+
+  .tx__row {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm) 0;
+  }
+  .tx__row + .tx__row { border-top: 1px solid var(--border-subtle); }
+  .tx__row-icon {
+    width: 36px; height: 36px;
+    border-radius: var(--r-full);
+    flex: 0 0 36px;
+    display: grid; place-items: center;
+  }
+  .tx__row-icon--topup { background: var(--success-bg); color: var(--success); }
+  .tx__row-icon--spend { background: var(--bg-3); color: var(--text-secondary); }
+  .tx__row-icon--earn { background: var(--accent-bg); color: var(--accent); }
+  .tx__row-icon--bonus { background: var(--info-bg); color: var(--info); }
+  .tx__row-icon--withdraw { background: var(--warning-bg); color: var(--warning); }
+  .tx__row-icon--refund { background: var(--error-bg); color: var(--error); }
+
+  .tx__row-info { flex: 1; min-width: 0; }
+  .tx__row-title { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .tx__row-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .tx__row-amount {
+    font-size: var(--t-callout-size);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .tx__row-amount .coin { width: 14px; height: 14px; }
+  .tx__row-amount--positive { color: var(--success); }
+
+  .tx__balance-after {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+    text-align: right;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="tx">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">거래 내역</span>
+        <button class="topbar__action" aria-label="필터">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6 H21 M6 12 H18 M9 18 H15"/></svg>
+        </button>
+      </header>
+
+      <div class="tx__filter">
+        <span class="chip chip--active">전체</span>
+        <span class="chip">충전</span>
+        <span class="chip">구매</span>
+        <span class="chip">메이커 적립</span>
+        <span class="chip">보너스</span>
+        <span class="chip">출금</span>
+      </div>
+
+      <div class="tx__list">
+        <div class="tx__group">
+          <span class="tx__group-label">2026년 5월 6일 · 오늘</span>
+          <span class="tx__group-net" style="color: var(--success);">+520 코인</span>
+        </div>
+
+        <article class="tx__row">
+          <span class="tx__row-icon tx__row-icon--topup">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4 V20 M5 13 L12 20 L19 13"/></svg>
+          </span>
+          <div class="tx__row-info">
+            <p class="tx__row-title">550 코인 충전</p>
+            <p class="tx__row-meta">Apple Pay · 09:24 · IAP-78A4F</p>
+          </div>
+          <div>
+            <span class="tx__row-amount tx__row-amount--positive">
+              +550
+              <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </span>
+            <p class="tx__balance-after">잔액 1,250</p>
+          </div>
+        </article>
+
+        <article class="tx__row">
+          <span class="tx__row-icon tx__row-icon--spend">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="6"/><circle cx="15" cy="15" r="6"/></svg>
+          </span>
+          <div class="tx__row-info">
+            <p class="tx__row-title">Sunset 1973 구매</p>
+            <p class="tx__row-meta">@jisoo.films · 11:12</p>
+          </div>
+          <div>
+            <span class="tx__row-amount">
+              −50
+              <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#B8853A"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </span>
+            <p class="tx__balance-after">잔액 700</p>
+          </div>
+        </article>
+
+        <article class="tx__row">
+          <span class="tx__row-icon tx__row-icon--earn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 L15 9 L22 10 L17 15 L18 22 L12 18 L6 22 L7 15 L2 10 L9 9 Z"/></svg>
+          </span>
+          <div class="tx__row-info">
+            <p class="tx__row-title">Amber Café 메이커 적립</p>
+            <p class="tx__row-meta">@minji.lab이 구매 · 60% 분배 · 14:48</p>
+          </div>
+          <div>
+            <span class="tx__row-amount tx__row-amount--positive">
+              +30
+              <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </span>
+            <p class="tx__balance-after" style="color: var(--accent);">메이커 86</p>
+          </div>
+        </article>
+
+        <div class="tx__group">
+          <span class="tx__group-label">5월 5일 · 어제</span>
+          <span class="tx__group-net">−50 코인</span>
+        </div>
+
+        <article class="tx__row">
+          <span class="tx__row-icon tx__row-icon--bonus">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 L15 9 L22 10 L17 15 L18 22 L12 18 L6 22 L7 15 L2 10 L9 9 Z"/></svg>
+          </span>
+          <div class="tx__row-info">
+            <p class="tx__row-title">7일 연속 접속 보너스</p>
+            <p class="tx__row-meta">시스템 · 08:00</p>
+          </div>
+          <div>
+            <span class="tx__row-amount tx__row-amount--positive">
+              +20
+              <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </span>
+            <p class="tx__balance-after">잔액 750</p>
+          </div>
+        </article>
+
+        <article class="tx__row">
+          <span class="tx__row-icon tx__row-icon--spend">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="6"/><circle cx="15" cy="15" r="6"/></svg>
+          </span>
+          <div class="tx__row-info">
+            <p class="tx__row-title">Tokyo Night 구매</p>
+            <p class="tx__row-meta">@alex.grade · 19:32</p>
+          </div>
+          <div>
+            <span class="tx__row-amount">
+              −80
+              <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#B8853A"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </span>
+            <p class="tx__balance-after">잔액 670</p>
+          </div>
+        </article>
+
+        <div class="tx__group">
+          <span class="tx__group-label">5월 1일</span>
+          <span class="tx__group-net">+1,200 코인</span>
+        </div>
+
+        <article class="tx__row">
+          <span class="tx__row-icon tx__row-icon--topup">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4 V20 M5 13 L12 20 L19 13"/></svg>
+          </span>
+          <div class="tx__row-info">
+            <p class="tx__row-title">1,200 코인 충전 (Best Value · +200 보너스)</p>
+            <p class="tx__row-meta">Apple Pay · 12:18</p>
+          </div>
+          <div>
+            <span class="tx__row-amount tx__row-amount--positive">
+              +1,200
+              <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </span>
+            <p class="tx__balance-after">잔액 1,500</p>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

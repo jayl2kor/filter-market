@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<!-- P3-06 · PRD US-09 — Remix flow (derive from existing filter with credit) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>36 · Remix Flow — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  /* Background = filter detail */
+  .bg-faint { position: absolute; inset: 0; background: var(--bg-1); overflow: hidden; }
+  .bg-faint .photo { position: absolute; inset: 0; opacity: 0.3; }
+
+  .scrim { position: absolute; inset: 0; background: var(--surface-overlay); z-index: var(--z-modal); }
+
+  /* Bottom sheet */
+  .rmx-sheet {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--surface-raised);
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    box-shadow: var(--elev-3-shadow);
+    padding: 0 var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    z-index: calc(var(--z-modal) + 1);
+  }
+  .rmx-handle { width: 36px; height: 4px; background: var(--bg-3); border-radius: var(--r-full); margin: 8px auto var(--sp-sm); }
+
+  .rmx-head {
+    text-align: center;
+    padding-bottom: var(--sp-md);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: var(--sp-md);
+  }
+  .rmx-head__pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-radius: var(--r-full);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    margin-bottom: var(--sp-xs);
+  }
+  .rmx-head__title { font-size: var(--t-headline-size); font-weight: 700; margin: 0 0 4px; }
+  .rmx-head__sub { font-size: var(--t-subhead-size); color: var(--text-secondary); margin: 0; }
+
+  /* Source filter card */
+  .rmx-source {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm);
+    background: var(--bg-1);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-md);
+  }
+  .rmx-source-thumb { width: 56px; height: 70px; border-radius: var(--r-sm); flex: 0 0 56px; overflow: hidden; position: relative; }
+  .rmx-source-thumb .photo { position: absolute; inset: 0; }
+  .rmx-source-info { flex: 1; min-width: 0; }
+  .rmx-source-name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .rmx-source-author { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .rmx-source-arrow { color: var(--accent); font-size: 24px; line-height: 1; }
+
+  /* What gets copied */
+  .rmx-info-card {
+    background: var(--info-bg);
+    color: var(--info);
+    padding: var(--sp-sm) var(--sp-md);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-md);
+  }
+  .rmx-info-card-title { font-size: var(--t-subhead-size); font-weight: 700; margin: 0 0 4px; }
+  .rmx-info-card-list { font-size: var(--t-caption-size); margin: 0; padding-left: 16px; line-height: 1.5; }
+
+  /* Credit toggle */
+  .rmx-credit {
+    background: var(--bg-1);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+    margin-bottom: var(--sp-md);
+  }
+  .rmx-credit-row { display: flex; align-items: center; gap: var(--sp-sm); }
+  .rmx-credit-icon { width: 24px; height: 24px; color: var(--accent); flex: 0 0 24px; }
+  .rmx-credit-info { flex: 1; }
+  .rmx-credit-name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .rmx-credit-desc { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; line-height: 1.4; }
+
+  .rmx-credit-locked {
+    margin-top: var(--sp-sm);
+    padding-top: var(--sp-sm);
+    border-top: 1px solid var(--border-subtle);
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+    line-height: 1.4;
+    word-break: keep-all;
+  }
+  .rmx-credit-locked strong { color: var(--text-secondary); }
+
+  .rmx-foot { display: flex; gap: var(--sp-xs); }
+  .rmx-foot .btn { flex: 1; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="bg-faint"><div class="photo photo--vintage"></div></div>
+    <div class="scrim"></div>
+
+    <section class="rmx-sheet" role="dialog" aria-labelledby="rmx-title">
+      <div class="rmx-handle"></div>
+
+      <header class="rmx-head">
+        <span class="rmx-head__pill">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12 a9 9 0 0 1 15.5 -6 L21 8 M21 4 L21 8 L17 8"/><path d="M21 12 a9 9 0 0 1 -15.5 6 L3 16 M3 20 L3 16 L7 16"/></svg>
+          Remix
+        </span>
+        <h2 id="rmx-title" class="rmx-head__title">이 필터를 베이스로 새로 만들기</h2>
+        <p class="rmx-head__sub">파라미터 수정 후 자신의 필터로 게시할 수 있습니다.</p>
+      </header>
+
+      <div class="rmx-source">
+        <div class="rmx-source-thumb"><div class="photo photo--vintage"></div></div>
+        <div class="rmx-source-info">
+          <p class="rmx-source-name">Sunset 1973</p>
+          <p class="rmx-source-author">@jisoo.films · ★ 4.9</p>
+        </div>
+        <span class="rmx-source-arrow">→</span>
+        <div class="rmx-source-thumb" style="background: var(--accent-bg); display: grid; place-items: center; color: var(--accent);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 5 L19 10 L8 21 L3 21 L3 16 Z"/><path d="M13 6 L18 11"/></svg>
+        </div>
+      </div>
+
+      <div class="rmx-info-card">
+        <p class="rmx-info-card-title">새 필터에 복사되는 항목</p>
+        <ul class="rmx-info-card-list">
+          <li>LUT 텍스처와 파라미터 (노출/대비/색조/온도 등)</li>
+          <li>강도 기본값과 비네트 설정</li>
+        </ul>
+      </div>
+
+      <div class="rmx-credit">
+        <div class="rmx-credit-row">
+          <svg class="rmx-credit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4 L19 8 L19 16 L12 20 L5 16 L5 8 Z"/></svg>
+          <div class="rmx-credit-info">
+            <p class="rmx-credit-name">원작자 자동 크레딧</p>
+            <p class="rmx-credit-desc">새 필터 상세에 "Remixed from @jisoo.films · Sunset 1973"이 자동 표기됩니다.</p>
+          </div>
+          <span class="toggle toggle--on" role="switch" aria-checked="true"></span>
+        </div>
+        <div class="rmx-credit-locked">
+          <strong>필수.</strong> Moodit의 Remix 정책상 크레딧 표기는 비활성화할 수 없습니다. 크레딧을 누르면 원본 필터로 이동합니다.
+        </div>
+      </div>
+
+      <div class="rmx-foot">
+        <button class="btn btn--secondary btn--lg">취소</button>
+        <button class="btn btn--primary btn--lg">에디터 열기</button>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

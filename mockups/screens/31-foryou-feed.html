@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<!-- P3-01 · PRD §6.3 (Phase 4 recommendations) — For You feed · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>31 · For You — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .fy { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .fy__head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-sm) var(--sp-md);
+  }
+  .fy__title { font-size: var(--t-title-lg-size); font-weight: 700; letter-spacing: -0.3px; }
+
+  /* Top tabs (Trending / For You / Following) */
+  .fy__tabs {
+    display: flex; gap: var(--sp-md);
+    padding: 0 var(--sp-md);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .fy__tab {
+    padding: var(--sp-sm) 0;
+    font-size: var(--t-callout-size);
+    font-weight: 500;
+    color: var(--text-tertiary);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .fy__tab--active {
+    color: var(--text-primary);
+    font-weight: 700;
+    border-bottom-color: var(--accent);
+  }
+
+  .fy__body { flex: 1; overflow-y: auto; padding: var(--sp-md) var(--sp-md) var(--sp-md); }
+
+  /* Reason chip */
+  .fy__reason {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-radius: var(--r-full);
+    font-size: var(--t-caption-size);
+    font-weight: 600;
+    margin-bottom: var(--sp-xs);
+  }
+
+  .fy__hero {
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 4 / 5;
+    margin-bottom: var(--sp-md);
+    box-shadow: var(--elev-2-shadow);
+  }
+  .fy__hero .photo { position: absolute; inset: 0; }
+  .fy__hero-overlay {
+    position: absolute; inset: auto 0 0 0;
+    padding: var(--sp-md);
+    background: linear-gradient(180deg, transparent, rgba(15,15,14,0.85));
+    color: #fff;
+  }
+  .fy__hero-name { font-size: var(--t-title-size); font-weight: 700; margin: 0; letter-spacing: -0.2px; }
+  .fy__hero-author { font-size: var(--t-subhead-size); margin: 4px 0 var(--sp-sm); opacity: 0.78; }
+  .fy__hero-actions { display: flex; gap: var(--sp-xs); }
+  .fy__hero-cta {
+    background: rgba(255,255,255,0.94);
+    color: var(--accent);
+    height: 40px;
+    padding: 0 var(--sp-md);
+    border-radius: var(--r-md);
+    font-weight: 700;
+    flex: 1;
+    font-size: var(--t-callout-size);
+  }
+  .fy__hero-icon-btn {
+    width: 40px; height: 40px;
+    background: rgba(255,255,255,0.20);
+    backdrop-filter: blur(8px);
+    border-radius: var(--r-md);
+    display: grid; place-items: center;
+    color: #fff;
+  }
+
+  .fy__sec-title {
+    font-size: var(--t-headline-size);
+    font-weight: 700;
+    margin: var(--sp-lg) 0 var(--sp-sm);
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .fy__sec-title small { font-size: var(--t-caption-size); color: var(--text-tertiary); font-weight: 500; }
+
+  .fy__rail {
+    display: flex; gap: var(--sp-sm);
+    overflow-x: auto; scrollbar-width: none;
+    margin: 0 calc(var(--sp-md) * -1);
+    padding: 0 var(--sp-md) var(--sp-xs);
+  }
+  .fy__rail::-webkit-scrollbar { display: none; }
+  .fy__rail-tile {
+    flex: 0 0 130px;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background: var(--bg-2);
+    box-shadow: var(--elev-1-shadow);
+  }
+  .fy__rail-photo { aspect-ratio: 4 / 5; position: relative; }
+  .fy__rail-photo .photo { position: absolute; inset: 0; }
+  .fy__rail-info { padding: 8px; }
+  .fy__rail-name { font-size: var(--t-caption-size); font-weight: 600; margin: 0; }
+  .fy__rail-author { font-size: 10px; color: var(--text-tertiary); margin: 2px 0 0; }
+
+  /* Maker spotlight */
+  .fy__maker-card {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    margin-bottom: var(--sp-sm);
+  }
+  .fy__maker-avatar { width: 48px; height: 48px; border-radius: var(--r-full); flex: 0 0 48px; }
+  .fy__maker-info { flex: 1; min-width: 0; }
+  .fy__maker-name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .fy__maker-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .fy__maker-btn {
+    height: 32px; padding: 0 var(--sp-md);
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-radius: var(--r-md);
+    font-size: var(--t-subhead-size);
+    font-weight: 600;
+  }
+
+  .tabbar { background: rgba(255,255,255,0.85); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="fy">
+      <header class="fy__head">
+        <span class="fy__title">발견</span>
+        <button class="topbar__action" aria-label="검색">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21 L16 16"/></svg>
+        </button>
+      </header>
+
+      <nav class="fy__tabs">
+        <button class="fy__tab">트렌딩</button>
+        <button class="fy__tab fy__tab--active">For You</button>
+        <button class="fy__tab">팔로잉</button>
+        <button class="fy__tab">신규</button>
+      </nav>
+
+      <div class="fy__body">
+        <span class="fy__reason">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L15 9 L22 10 L17 15 L18 22 L12 18 L6 22 L7 15 L2 10 L9 9 Z"/></svg>
+          좋아한 빈티지 톤과 비슷
+        </span>
+
+        <article class="fy__hero">
+          <div class="photo photo--vintage photo--vignette"></div>
+          <div class="fy__hero-overlay">
+            <h2 class="fy__hero-name">Amber Café</h2>
+            <p class="fy__hero-author">@jisoo.films · ★ 4.8 · ↓ 6.2K</p>
+            <div class="fy__hero-actions">
+              <button class="fy__hero-cta">카메라로 적용</button>
+              <button class="fy__hero-icon-btn" aria-label="저장">
+                <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4 L19 4 L19 21 L12 17 L5 21 Z"/></svg>
+              </button>
+              <button class="fy__hero-icon-btn" aria-label="더보기">
+                <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/></svg>
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <h3 class="fy__sec-title">Sunset 1973을 좋아한 사람들이 본 필터 <small>모두 보기</small></h3>
+        <div class="fy__rail">
+          <div class="fy__rail-tile"><div class="fy__rail-photo"><div class="photo photo--warm"></div></div><div class="fy__rail-info"><p class="fy__rail-name">Honey Hour</p><p class="fy__rail-author">@hellofilms</p></div></div>
+          <div class="fy__rail-tile"><div class="fy__rail-photo"><div class="photo photo--cafe"></div></div><div class="fy__rail-info"><p class="fy__rail-name">Brown Sugar</p><p class="fy__rail-author">@minji.lab</p></div></div>
+          <div class="fy__rail-tile"><div class="fy__rail-photo"><div class="photo photo--vintage"></div></div><div class="fy__rail-info"><p class="fy__rail-name">Old Polaroid</p><p class="fy__rail-author">@studio.haru</p></div></div>
+          <div class="fy__rail-tile"><div class="fy__rail-photo"><div class="photo photo--mountain"></div></div><div class="fy__rail-info"><p class="fy__rail-name">Hokkaido</p><p class="fy__rail-author">@yuna.diary</p></div></div>
+        </div>
+
+        <h3 class="fy__sec-title">새로 떠오르는 메이커</h3>
+        <div class="fy__maker-card">
+          <div class="fy__maker-avatar" style="background: linear-gradient(135deg, #aec59a, #4a6a3c);"></div>
+          <div class="fy__maker-info">
+            <p class="fy__maker-name">Alex · 시네마틱 메이커</p>
+            <p class="fy__maker-meta">@alex.grade · 24개 필터 · 신규 3</p>
+          </div>
+          <button class="fy__maker-btn">팔로우</button>
+        </div>
+        <div class="fy__maker-card">
+          <div class="fy__maker-avatar" style="background: linear-gradient(135deg, #f6e2e8, #b39ec2);"></div>
+          <div class="fy__maker-info">
+            <p class="fy__maker-name">Sarah · 파스텔 메이커</p>
+            <p class="fy__maker-meta">@sarah.lens · 18개 필터 · 신규 2</p>
+          </div>
+          <button class="fy__maker-btn">팔로우</button>
+        </div>
+      </div>
+
+      <nav class="tabbar">
+        <span class="tab tab--active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>마켓</span>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21 L16 16"/></svg>검색</span>
+        <span class="tab tab--shutter" aria-label="카메라"><span class="tab__shutter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M9 6 L11 3 L13 3 L15 6"/></svg></span></span>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 21 s-7-4.5-7-10 a4 4 0 0 1 7 -2.6 a4 4 0 0 1 7 2.6 c0 5.5 -7 10 -7 10 z"/></svg>저장됨</span>
+        <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21 c0-4.4 3.6-8 8-8 s8 3.6 8 8"/></svg>프로필</span>
+      </nav>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

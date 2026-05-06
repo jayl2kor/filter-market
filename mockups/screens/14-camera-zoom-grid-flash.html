@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<!-- P0-02 · PRD §3.2 F1 (zoom + grid + flash) · Dark -->
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<title>14 · Camera Zoom · Grid · Flash — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .cam-screen { position: absolute; inset: 0; background: var(--bg-0); overflow: hidden; }
+  .cam-preview { position: absolute; inset: 0; }
+  .cam-preview .photo { position: absolute; inset: 0; }
+
+  /* 3x3 그리드 토글 — on 상태 */
+  .grid-line { position: absolute; background: rgba(255,255,255,0.18); z-index: 5; pointer-events: none; }
+  .gv1 { left: 33.33%; top: 0; bottom: 0; width: 1px; }
+  .gv2 { left: 66.66%; top: 0; bottom: 0; width: 1px; }
+  .gh1 { top: 33.33%; left: 0; right: 0; height: 1px; }
+  .gh2 { top: 66.66%; left: 0; right: 0; height: 1px; }
+
+  /* 상단 컨트롤 */
+  .cam-top {
+    position: absolute; top: var(--safe-top); left: 0; right: 0;
+    padding: var(--sp-sm) var(--sp-md);
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 20;
+  }
+  .icon-btn {
+    width: 40px; height: 40px;
+    background: var(--surface-overlay);
+    backdrop-filter: blur(20px);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    color: var(--text-primary);
+  }
+  .icon-btn--active { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+
+  /* 플래시 모드 segmented (위) */
+  .flash-pills {
+    position: absolute; top: calc(var(--safe-top) + 56px); left: 50%;
+    transform: translateX(-50%);
+    display: inline-flex;
+    background: var(--surface-overlay);
+    backdrop-filter: blur(20px);
+    border-radius: var(--r-full);
+    padding: 3px;
+    z-index: 18;
+  }
+  .flash-pills__item {
+    padding: 6px 12px;
+    font-size: var(--t-caption-size);
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-radius: var(--r-full);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .flash-pills__item--active { background: var(--accent); color: var(--text-inverse); }
+
+  /* 줌 슬라이더 — 우측 세로 */
+  .zoom-rail {
+    position: absolute; top: 50%; right: var(--sp-md);
+    transform: translateY(-50%);
+    width: 44px;
+    height: 280px;
+    background: var(--surface-overlay);
+    backdrop-filter: blur(20px);
+    border-radius: var(--r-full);
+    z-index: 18;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--sp-md) 0;
+    justify-content: space-between;
+  }
+  .zoom-rail__label {
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.3px;
+  }
+  .zoom-rail__track {
+    flex: 1;
+    width: 4px;
+    background: rgba(255,255,255,0.18);
+    border-radius: var(--r-full);
+    margin: var(--sp-xs) 0;
+    position: relative;
+  }
+  .zoom-rail__fill {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 35%;
+    background: var(--accent);
+    border-radius: var(--r-full);
+  }
+  .zoom-rail__thumb {
+    position: absolute;
+    bottom: 35%;
+    left: 50%;
+    transform: translate(-50%, 50%);
+    width: 16px; height: 16px;
+    background: #fff;
+    border: 2px solid var(--accent);
+    border-radius: var(--r-full);
+  }
+
+  /* 줌 단계 칩 (가운데 하단) */
+  .zoom-presets {
+    position: absolute; bottom: 200px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 8px;
+    z-index: 17;
+  }
+  .zoom-presets__chip {
+    width: 36px; height: 36px;
+    background: var(--surface-overlay);
+    backdrop-filter: blur(20px);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 700;
+    color: var(--text-primary);
+  }
+  .zoom-presets__chip--active {
+    background: var(--accent);
+    color: var(--text-inverse);
+    transform: scale(1.1);
+  }
+
+  /* 하단 셔터 */
+  .cam-bottom {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: var(--sp-md) 0 calc(var(--safe-bottom) + var(--sp-md));
+    z-index: 20;
+    background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.6) 80%);
+  }
+  .shutter-row {
+    display: grid; grid-template-columns: 1fr auto 1fr;
+    align-items: center; padding: 0 var(--sp-xl); gap: var(--sp-md);
+  }
+  .gallery-thumb {
+    width: 44px; height: 44px; border-radius: var(--r-md);
+    border: 2px solid var(--text-primary); overflow: hidden;
+    justify-self: start;
+  }
+  .gallery-thumb .photo { width: 100%; height: 100%; }
+  .shutter {
+    width: 76px; height: 76px; background: var(--accent);
+    border: 4px solid var(--bg-0);
+    box-shadow: 0 0 0 3px var(--text-primary);
+    border-radius: var(--r-full);
+  }
+  .flip-cam {
+    width: 44px; height: 44px;
+    background: var(--surface-overlay);
+    backdrop-filter: blur(20px);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    color: var(--text-primary);
+    justify-self: end;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="cam-screen">
+      <div class="cam-preview"><div class="photo photo--cityscape photo--vignette"></div></div>
+
+      <!-- 그리드 (활성) -->
+      <div class="grid-line gv1"></div>
+      <div class="grid-line gv2"></div>
+      <div class="grid-line gh1"></div>
+      <div class="grid-line gh2"></div>
+
+      <!-- 상단 -->
+      <header class="cam-top">
+        <button class="icon-btn icon-btn--active" aria-label="플래시 자동" aria-pressed="true">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2 L4 14 L11 14 L9 22 L20 8 L13 8 Z"/></svg>
+        </button>
+        <div></div>
+        <button class="icon-btn icon-btn--active" aria-label="그리드 켜짐" aria-pressed="true">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="16" height="16"/><path d="M4 10 H 20 M4 14 H 20 M10 4 V 20 M14 4 V 20"/></svg>
+        </button>
+      </header>
+
+      <!-- 플래시 모드 pills -->
+      <div class="flash-pills" role="tablist" aria-label="플래시 모드">
+        <button class="flash-pills__item">OFF</button>
+        <button class="flash-pills__item flash-pills__item--active" aria-selected="true">AUTO</button>
+        <button class="flash-pills__item">ON</button>
+      </div>
+
+      <!-- 줌 단계 chips -->
+      <div class="zoom-presets" role="group" aria-label="줌 단계">
+        <button class="zoom-presets__chip">.5</button>
+        <button class="zoom-presets__chip">1</button>
+        <button class="zoom-presets__chip zoom-presets__chip--active">1.4</button>
+        <button class="zoom-presets__chip">3</button>
+      </div>
+
+      <!-- 줌 슬라이더 -->
+      <div class="zoom-rail" role="slider" aria-label="줌" aria-valuenow="1.4" aria-valuemin="0.5" aria-valuemax="10">
+        <span class="zoom-rail__label">10×</span>
+        <div class="zoom-rail__track">
+          <div class="zoom-rail__fill"></div>
+          <div class="zoom-rail__thumb"></div>
+        </div>
+        <span class="zoom-rail__label">.5×</span>
+      </div>
+
+      <!-- 하단 셔터 -->
+      <div class="cam-bottom">
+        <div class="shutter-row">
+          <button class="gallery-thumb" aria-label="갤러리"><span class="photo photo--cityscape"></span></button>
+          <button class="shutter" aria-label="촬영"></button>
+          <button class="flip-cam" aria-label="전후면">
+            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9 L7 5 L11 9"/><path d="M3 5 L3 13 a4 4 0 0 0 4 4 L17 17"/><path d="M21 15 L17 19 L13 15"/><path d="M21 19 L21 11 a4 4 0 0 0 -4 -4 L7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

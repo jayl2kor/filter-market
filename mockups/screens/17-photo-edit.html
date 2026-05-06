@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<!-- P0-07 · PRD §3.2 F2 (post-import editing) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>17 · Photo Edit — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .ed { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .ed__head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-sm) var(--sp-md);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  /* Photo canvas — Before/After clip-path slider */
+  .ed__canvas {
+    flex: 1;
+    background: var(--bg-3);
+    overflow: hidden;
+    position: relative;
+  }
+  .ed__photo {
+    position: absolute; inset: 0;
+  }
+  .ed__photo--after {
+    clip-path: inset(0 0 0 50%);
+  }
+  .ed__compare-handle {
+    position: absolute; top: 0; bottom: 0; left: 50%;
+    width: 2px; background: rgba(255,255,255,0.85);
+    transform: translateX(-50%);
+    z-index: 5;
+  }
+  .ed__compare-knob {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 36px; height: 36px;
+    background: #fff;
+    border-radius: var(--r-full);
+    box-shadow: 0 4px 12px rgba(15,15,14,0.32);
+    display: grid; place-items: center;
+    color: var(--text-primary);
+    z-index: 6;
+  }
+  .ed__compare-label {
+    position: absolute; top: var(--sp-md);
+    padding: 4px 10px;
+    background: rgba(15,15,14,0.62);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    border-radius: var(--r-sm);
+  }
+  .ed__compare-label--before { left: var(--sp-md); }
+  .ed__compare-label--after { right: var(--sp-md); color: var(--accent); }
+
+  /* Filter rail */
+  .ed__filter-rail {
+    display: flex;
+    gap: var(--sp-xs);
+    padding: var(--sp-sm) var(--sp-md);
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: var(--bg-2);
+    border-top: 1px solid var(--border-subtle);
+  }
+  .ed__filter-rail::-webkit-scrollbar { display: none; }
+  .ed__filter-chip {
+    flex: 0 0 64px;
+    text-align: center;
+  }
+  .ed__filter-chip__photo {
+    width: 64px; height: 64px;
+    border-radius: var(--r-md);
+    border: 2px solid transparent;
+    overflow: hidden;
+  }
+  .ed__filter-chip--active .ed__filter-chip__photo { border-color: var(--accent); }
+  .ed__filter-chip__name {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    line-height: 12px;
+  }
+  .ed__filter-chip--active .ed__filter-chip__name { color: var(--accent); }
+
+  /* Intensity row */
+  .ed__intensity {
+    padding: var(--sp-md);
+    background: var(--bg-2);
+    border-top: 1px solid var(--border-subtle);
+  }
+  .ed__intensity-row {
+    display: flex; align-items: center; gap: var(--sp-md);
+  }
+  .ed__intensity-label {
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    color: var(--text-secondary);
+    min-width: 56px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+
+  .ed__foot {
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    background: var(--bg-2);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="ed">
+      <header class="ed__head">
+        <button class="topbar__action" aria-label="취소">취소</button>
+        <span class="topbar__title">편집</span>
+        <button class="topbar__action topbar__action--accent" style="font-weight: 600;">완료</button>
+      </header>
+
+      <div class="ed__canvas">
+        <div class="ed__photo photo photo--cafe photo--vignette"></div>
+        <div class="ed__photo ed__photo--after photo photo--vintage photo--vignette"></div>
+        <span class="ed__compare-label ed__compare-label--before">BEFORE</span>
+        <span class="ed__compare-label ed__compare-label--after">AFTER · SUNSET 1973</span>
+        <div class="ed__compare-handle"></div>
+        <div class="ed__compare-knob" aria-label="비교 핸들">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6 L3 12 L9 18"/><path d="M15 6 L21 12 L15 18"/></svg>
+        </div>
+      </div>
+
+      <div class="ed__filter-rail" role="listbox" aria-label="필터">
+        <div class="ed__filter-chip">
+          <div class="ed__filter-chip__photo" style="border:2px solid var(--border-default); display:grid; place-items:center; color:var(--text-tertiary); font-size:11px;">없음</div>
+          <div class="ed__filter-chip__name">원본</div>
+        </div>
+        <div class="ed__filter-chip"><div class="ed__filter-chip__photo photo photo--bw"></div><div class="ed__filter-chip__name">Mono</div></div>
+        <div class="ed__filter-chip"><div class="ed__filter-chip__photo photo photo--cinematic"></div><div class="ed__filter-chip__name">Teal</div></div>
+        <div class="ed__filter-chip ed__filter-chip--active"><div class="ed__filter-chip__photo photo photo--vintage"></div><div class="ed__filter-chip__name">Sunset</div></div>
+        <div class="ed__filter-chip"><div class="ed__filter-chip__photo photo photo--cool"></div><div class="ed__filter-chip__name">Cold</div></div>
+        <div class="ed__filter-chip"><div class="ed__filter-chip__photo photo photo--pastel"></div><div class="ed__filter-chip__name">Pastel</div></div>
+        <div class="ed__filter-chip"><div class="ed__filter-chip__photo photo photo--moody"></div><div class="ed__filter-chip__name">Mood</div></div>
+        <div class="ed__filter-chip"><div class="ed__filter-chip__photo photo photo--warm"></div><div class="ed__filter-chip__name">Honey</div></div>
+      </div>
+
+      <div class="ed__intensity">
+        <div class="ed__intensity-row">
+          <span class="ed__intensity-label">강도</span>
+          <div class="slider">
+            <div class="slider__track">
+              <div class="slider__fill" style="right: 25%;"></div>
+              <div class="slider__thumb" style="left: 75%;"></div>
+            </div>
+            <span class="slider__value">75%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ed__foot">
+        <button class="btn btn--primary btn--lg btn--block">저장 / 공유</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<!-- P6-01 · CURRENCY_DESIGN §3.4 — Coin-priced filter purchase · Light · Bottom Sheet -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>37 · Filter Purchase (Coins) — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .bg-faint { position: absolute; inset: 0; background: var(--bg-1); overflow: hidden; }
+  .bg-faint .photo { position: absolute; inset: 0; opacity: 0.3; }
+  .scrim { position: absolute; inset: 0; background: var(--surface-overlay); z-index: var(--z-modal); }
+
+  .pw {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--surface-raised);
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    box-shadow: var(--elev-3-shadow);
+    padding: 0 var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    z-index: calc(var(--z-modal) + 1);
+  }
+  .pw__handle { width: 36px; height: 4px; background: var(--bg-3); border-radius: var(--r-full); margin: 8px auto var(--sp-md); }
+
+  .pw__hero {
+    display: flex; gap: var(--sp-md);
+    padding-bottom: var(--sp-md);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: var(--sp-md);
+  }
+  .pw__hero-thumb {
+    width: 96px; height: 120px;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    flex: 0 0 96px;
+    position: relative;
+    box-shadow: var(--elev-2-shadow);
+  }
+  .pw__hero-thumb .photo { position: absolute; inset: 0; }
+  .pw__hero-info { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+  .pw__hero-name { font-size: var(--t-title-size); font-weight: 700; margin: 0; letter-spacing: -0.2px; }
+  .pw__hero-author { font-size: var(--t-subhead-size); color: var(--text-secondary); margin: 4px 0 var(--sp-xs); }
+  .pw__hero-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); }
+
+  .pw__price {
+    text-align: center;
+    padding: var(--sp-md) 0;
+    margin-bottom: var(--sp-md);
+  }
+  .pw__price-value {
+    display: inline-flex; align-items: center; gap: 12px;
+    font-size: 56px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -2px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .pw__price-coin { width: 56px; height: 56px; }
+  .pw__price-once {
+    font-size: var(--t-subhead-size);
+    color: var(--text-tertiary);
+    margin-top: var(--sp-xs);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+
+  .pw__balance {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: var(--sp-sm) var(--sp-md);
+    background: var(--bg-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-md);
+  }
+  .pw__balance-label { font-size: var(--t-subhead-size); color: var(--text-secondary); }
+  .pw__balance-value {
+    font-size: var(--t-callout-size);
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .pw__balance-value .coin { width: 16px; height: 16px; }
+
+  .pw__balance-after {
+    display: flex; justify-content: space-between;
+    padding: var(--sp-sm) var(--sp-md);
+    margin-bottom: var(--sp-md);
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+  }
+  .pw__balance-after-value { font-variant-numeric: tabular-nums; }
+
+  .pw__benefits {
+    display: flex; flex-direction: column; gap: var(--sp-xs);
+    margin-bottom: var(--sp-md);
+  }
+  .pw__benefit-row {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-xs) 0;
+  }
+  .pw__benefit-check {
+    width: 22px; height: 22px;
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    flex: 0 0 22px;
+  }
+  .pw__benefit-text { font-size: var(--t-callout-size); color: var(--text-primary); }
+
+  .pw__buy {
+    width: 100%;
+    height: 56px;
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-radius: var(--r-md);
+    font-size: var(--t-headline-size);
+    font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-xs);
+    margin-bottom: var(--sp-sm);
+  }
+  .pw__buy .coin { width: 18px; height: 18px; }
+
+  .pw__pro-hint {
+    text-align: center;
+    font-size: var(--t-caption-size);
+    color: var(--text-secondary);
+    margin-top: var(--sp-xs);
+  }
+  .pw__pro-hint a { color: var(--accent); font-weight: 600; text-decoration: underline; }
+
+  .pw__legal {
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+    margin-top: var(--sp-sm);
+  }
+
+  .coin { width: 14px; height: 14px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="bg-faint"><div class="photo photo--cinematic"></div></div>
+    <div class="scrim"></div>
+
+    <section class="pw" role="dialog" aria-labelledby="pw-title">
+      <div class="pw__handle"></div>
+
+      <div class="pw__hero">
+        <div class="pw__hero-thumb"><div class="photo photo--cinematic photo--vignette"></div></div>
+        <div class="pw__hero-info">
+          <div>
+            <h2 id="pw-title" class="pw__hero-name">Tokyo Night</h2>
+            <p class="pw__hero-author">@alex.grade · 시네마틱 · Premium</p>
+          </div>
+          <p class="pw__hero-meta">★ 4.9 (2.4K) · ↓ 6.8K · 4-pass MSL</p>
+        </div>
+      </div>
+
+      <div class="pw__price">
+        <div class="pw__price-value">
+          <svg class="pw__price-coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+          <span>80</span>
+        </div>
+        <p class="pw__price-once">한 번 결제 · 영구 사용</p>
+      </div>
+
+      <div class="pw__balance">
+        <span class="pw__balance-label">현재 잔액</span>
+        <span class="pw__balance-value">
+          <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#B8853A"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+          1,250
+        </span>
+      </div>
+
+      <div class="pw__benefits">
+        <div class="pw__benefit-row">
+          <span class="pw__benefit-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span>
+          <span class="pw__benefit-text">모든 기기에서 무제한 사용</span>
+        </div>
+        <div class="pw__benefit-row">
+          <span class="pw__benefit-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span>
+          <span class="pw__benefit-text">오프라인 사용 가능</span>
+        </div>
+        <div class="pw__benefit-row">
+          <span class="pw__benefit-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span>
+          <span class="pw__benefit-text">메이커에게 48 코인(60%) 직접 지급</span>
+        </div>
+      </div>
+
+      <button class="pw__buy" aria-label="80 코인으로 구매">
+        <span>80 코인으로 구매</span>
+        <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#fff"/><text x="12" y="16.5" text-anchor="middle" fill="#A0721E" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+      </button>
+
+      <div class="pw__balance-after">
+        <span>구매 후 잔액</span>
+        <span class="pw__balance-after-value">1,170 코인</span>
+      </div>
+
+      <p class="pw__pro-hint">또는 <a href="#">Pro 멤버십</a>으로 모든 필터 무제한 사용 (월 ₩4,900)</p>
+      <p class="pw__legal">코인 1회 차감 · moodit 내부 거래 · 24시간 내 미사용 시 환불 가능</p>
+    </section>
+  </div>
+</div>
+</body>
+</html>

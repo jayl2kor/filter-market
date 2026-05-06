@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<!-- Audit P0-C · GAPS_AUDIT §3.1 — IAP / coin purchase failure fallback · Light · Bottom Sheet -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>52 · Payment Failed — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .bg-faint { position: absolute; inset: 0; background: var(--bg-1); overflow: hidden; }
+  .bg-faint .photo { position: absolute; inset: 0; opacity: 0.3; }
+  .scrim { position: absolute; inset: 0; background: var(--surface-overlay); z-index: var(--z-modal); }
+
+  .pf {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--surface-raised);
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    box-shadow: var(--elev-3-shadow);
+    padding: 0 var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    z-index: calc(var(--z-modal) + 1);
+  }
+  .pf__handle { width: 36px; height: 4px; background: var(--bg-3); border-radius: var(--r-full); margin: 8px auto var(--sp-sm); }
+
+  .pf__head {
+    text-align: center;
+    padding: var(--sp-sm) 0 var(--sp-md);
+  }
+  .pf__alert {
+    width: 72px; height: 72px;
+    background: var(--error-bg);
+    color: var(--error);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    margin: 0 auto var(--sp-sm);
+    position: relative;
+  }
+  .pf__alert::after {
+    content: '';
+    position: absolute; inset: -6px;
+    border: 2px solid var(--error);
+    opacity: 0.16;
+    border-radius: var(--r-full);
+  }
+  .pf__title { font-size: var(--t-headline-size); font-weight: 700; margin: 0 0 4px; }
+  .pf__sub { font-size: var(--t-subhead-size); color: var(--text-secondary); line-height: 1.4; max-width: 280px; margin: 0 auto; word-break: keep-all; }
+
+  /* Reason details — collapsible-ish info */
+  .pf__detail {
+    background: var(--bg-1);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+    margin-bottom: var(--sp-md);
+  }
+  .pf__detail-row {
+    display: flex; justify-content: space-between;
+    padding: 4px 0;
+    font-size: var(--t-caption-size);
+  }
+  .pf__detail-row + .pf__detail-row { border-top: 1px solid var(--border-subtle); }
+  .pf__detail-label { color: var(--text-tertiary); }
+  .pf__detail-value { color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pf__detail-value--err { color: var(--error); font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; }
+
+  /* Helpful steps */
+  .pf__steps {
+    background: var(--info-bg);
+    color: var(--info);
+    padding: var(--sp-sm) var(--sp-md);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-md);
+    font-size: var(--t-caption-size);
+    line-height: 1.5;
+  }
+  .pf__steps-title { font-weight: 700; margin: 0 0 4px; font-size: var(--t-subhead-size); }
+  .pf__steps ul { margin: 0; padding-left: 18px; }
+  .pf__steps li { margin: 2px 0; word-break: keep-all; }
+
+  .pf__foot {
+    display: flex; flex-direction: column; gap: var(--sp-xs);
+  }
+  .pf__support {
+    text-align: center;
+    margin-top: var(--sp-xs);
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+  }
+  .pf__support a { color: var(--accent); font-weight: 600; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="bg-faint"><div class="photo photo--cinematic"></div></div>
+    <div class="scrim"></div>
+
+    <section class="pf" role="alertdialog" aria-labelledby="pf-title">
+      <div class="pf__handle"></div>
+
+      <div class="pf__head">
+        <div class="pf__alert">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9 9 L15 15 M15 9 L9 15"/></svg>
+        </div>
+        <h2 id="pf-title" class="pf__title">결제가 완료되지 않았어요</h2>
+        <p class="pf__sub">코인은 차감되지 않았습니다. 잠시 후 다시 시도하시거나 결제 수단을 확인해주세요.</p>
+      </div>
+
+      <div class="pf__detail">
+        <div class="pf__detail-row">
+          <span class="pf__detail-label">상품</span>
+          <span class="pf__detail-value">550 코인 (Popular)</span>
+        </div>
+        <div class="pf__detail-row">
+          <span class="pf__detail-label">금액</span>
+          <span class="pf__detail-value">₩7,500</span>
+        </div>
+        <div class="pf__detail-row">
+          <span class="pf__detail-label">시각</span>
+          <span class="pf__detail-value">2026-05-06 09:42:18 KST</span>
+        </div>
+        <div class="pf__detail-row">
+          <span class="pf__detail-label">오류</span>
+          <span class="pf__detail-value pf__detail-value--err">SK_ERR_NETWORK_TIMEOUT</span>
+        </div>
+        <div class="pf__detail-row">
+          <span class="pf__detail-label">참조 ID</span>
+          <span class="pf__detail-value pf__detail-value--err">tu_a1b2c3d4</span>
+        </div>
+      </div>
+
+      <div class="pf__steps">
+        <p class="pf__steps-title">먼저 확인해주세요</p>
+        <ul>
+          <li>인터넷 연결이 안정적인지</li>
+          <li>Apple ID 결제 수단이 유효한지 (App Store 설정)</li>
+          <li>구매 한도(가족 공유·청소년)에 걸리지 않았는지</li>
+          <li>이미 결제됐다면 "복원하기"로 코인을 되찾을 수 있습니다</li>
+        </ul>
+      </div>
+
+      <div class="pf__foot">
+        <button class="btn btn--primary btn--lg btn--block">다시 시도</button>
+        <button class="btn btn--secondary btn--lg btn--block">이전 구매 복원</button>
+        <button class="btn btn--ghost btn--lg btn--block">취소</button>
+      </div>
+
+      <p class="pf__support">문제가 계속되면 <a href="#">고객지원에 문의</a>하거나 <br/>참조 ID와 함께 <a href="mailto:support@moodit.app">support@moodit.app</a> 으로 메일</p>
+    </section>
+  </div>
+</div>
+</body>
+</html>

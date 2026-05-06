@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<!-- Audit P0-A · GAPS_AUDIT §3.1 — Maker filter rejection notice + resubmit · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>48 · Filter Rejected — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .rj { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .rj__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  .rj__hero {
+    background: var(--bg-2);
+    border: 1px solid var(--error);
+    border-left: 4px solid var(--error);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    margin-bottom: var(--sp-md);
+    display: flex; gap: var(--sp-sm); align-items: flex-start;
+  }
+  .rj__hero-icon {
+    width: 48px; height: 48px;
+    background: var(--error-bg);
+    color: var(--error);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    flex: 0 0 48px;
+  }
+  .rj__hero-text { flex: 1; }
+  .rj__hero-eyebrow { font-size: 10px; font-weight: 700; color: var(--error); text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 4px; }
+  .rj__hero-title { font-size: var(--t-headline-size); font-weight: 700; margin: 0 0 4px; }
+  .rj__hero-desc { font-size: var(--t-subhead-size); color: var(--text-secondary); line-height: 1.4; margin: 0; word-break: keep-all; }
+
+  /* Filter card preview */
+  .rj__filter {
+    display: flex; gap: var(--sp-sm);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm);
+    margin-bottom: var(--sp-md);
+  }
+  .rj__filter-thumb { width: 60px; height: 75px; border-radius: var(--r-sm); flex: 0 0 60px; overflow: hidden; position: relative; opacity: 0.65; }
+  .rj__filter-thumb .photo { position: absolute; inset: 0; }
+  .rj__filter-info { flex: 1; }
+  .rj__filter-name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .rj__filter-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .rj__filter-status {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 6px;
+    padding: 2px 8px;
+    background: var(--error-bg);
+    color: var(--error);
+    border-radius: var(--r-sm);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+
+  /* Reasons list */
+  .rj__sec-title { font-size: var(--t-callout-size); font-weight: 700; margin: 0 0 var(--sp-xs); }
+  .rj__sec-help { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 0 0 var(--sp-sm); line-height: 1.4; word-break: keep-all; }
+
+  .rj__reasons { display: flex; flex-direction: column; gap: var(--sp-xs); margin-bottom: var(--sp-md); }
+  .rj__reason {
+    display: flex; gap: var(--sp-sm); align-items: flex-start;
+    padding: var(--sp-sm) var(--sp-md);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+  }
+  .rj__reason-num {
+    width: 24px; height: 24px;
+    background: var(--bg-3);
+    color: var(--text-secondary);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    flex: 0 0 24px;
+  }
+  .rj__reason-text { flex: 1; }
+  .rj__reason-title { font-size: var(--t-callout-size); font-weight: 600; margin: 0 0 4px; }
+  .rj__reason-desc { font-size: var(--t-subhead-size); color: var(--text-secondary); line-height: 1.5; word-break: keep-all; margin: 0; }
+
+  /* Moderator note */
+  .rj__note {
+    background: var(--info-bg);
+    border-left: 3px solid var(--info);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+    margin-bottom: var(--sp-md);
+  }
+  .rj__note-label { font-size: 10px; font-weight: 700; color: var(--info); text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 4px; }
+  .rj__note-body { font-size: var(--t-subhead-size); color: var(--text-primary); line-height: 1.5; word-break: keep-all; margin: 0; }
+
+  /* Timeline */
+  .rj__timeline {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: var(--sp-md);
+    margin-bottom: var(--sp-md);
+  }
+  .rj__timeline-row {
+    display: flex; gap: var(--sp-xs);
+    font-size: var(--t-caption-size);
+    color: var(--text-secondary);
+    padding: 4px 0;
+  }
+  .rj__timeline-time { color: var(--text-tertiary); min-width: 70px; flex: 0 0 70px; }
+
+  .rj__appeal {
+    text-align: center;
+    margin-top: var(--sp-sm);
+    font-size: var(--t-caption-size);
+    color: var(--text-secondary);
+  }
+  .rj__appeal a { color: var(--accent); font-weight: 600; text-decoration: underline; }
+
+  .rj__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+    display: flex; gap: var(--sp-xs);
+  }
+  .rj__foot .btn { flex: 1; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="rj">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">검수 결과</span>
+        <button class="topbar__action" aria-label="고객지원">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9 9 a3 3 0 1 1 4 2.5 c-1 .6 -1 1 -1 1.5 M12 17 h.01"/></svg>
+        </button>
+      </header>
+
+      <div class="rj__body">
+        <div class="rj__hero">
+          <div class="rj__hero-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9 9 L15 15 M15 9 L9 15"/></svg>
+          </div>
+          <div class="rj__hero-text">
+            <p class="rj__hero-eyebrow">검수 거부</p>
+            <h1 class="rj__hero-title">아래 사항을 수정하면 재제출할 수 있어요</h1>
+            <p class="rj__hero-desc">콘텐츠 가이드라인에 맞지 않는 부분이 발견되었습니다. 수정 사항은 모두 draft에 반영되어 있어요.</p>
+          </div>
+        </div>
+
+        <div class="rj__filter">
+          <div class="rj__filter-thumb"><div class="photo photo--cinematic photo--vignette"></div></div>
+          <div class="rj__filter-info">
+            <p class="rj__filter-name">Strange Vibe</p>
+            <p class="rj__filter-meta">2일 전 제출 · 2026-05-04</p>
+            <span class="rj__filter-status">REJECTED</span>
+          </div>
+        </div>
+
+        <h2 class="rj__sec-title">거부 사유</h2>
+        <p class="rj__sec-help">검수자가 확인한 항목입니다. 모두 해결 후 재제출하시면 우선 검수됩니다.</p>
+
+        <div class="rj__reasons">
+          <article class="rj__reason">
+            <span class="rj__reason-num">1</span>
+            <div class="rj__reason-text">
+              <p class="rj__reason-title">기존 필터와 LUT 92% 유사</p>
+              <p class="rj__reason-desc">@jisoo.films의 "Sunset 1973"과 색조·대비 곡선이 거의 동일합니다. <a href="07-filter-detail.html" style="color:var(--accent); text-decoration:underline;">원본 비교 →</a></p>
+            </div>
+          </article>
+          <article class="rj__reason">
+            <span class="rj__reason-num">2</span>
+            <div class="rj__reason-text">
+              <p class="rj__reason-title">표지 사진 1장 부족</p>
+              <p class="rj__reason-desc">최소 3장의 비포·애프터 표지가 필요합니다 (현재 2장).</p>
+            </div>
+          </article>
+          <article class="rj__reason">
+            <span class="rj__reason-num">3</span>
+            <div class="rj__reason-text">
+              <p class="rj__reason-title">설명에 외부 링크 포함</p>
+              <p class="rj__reason-desc">설명에 다른 사이트로 유도하는 URL이 있습니다. 본인 메이커 페이지 외부 링크는 허용되지 않습니다.</p>
+            </div>
+          </article>
+        </div>
+
+        <div class="rj__note">
+          <p class="rj__note-label">검수자 메모</p>
+          <p class="rj__note-body">색감 자체는 좋습니다. 새로운 LUT 곡선으로 재작업하시고, 표지를 한 장 더 추가하시면 통과 가능성이 높습니다.</p>
+        </div>
+
+        <h2 class="rj__sec-title">처리 이력</h2>
+        <div class="rj__timeline">
+          <div class="rj__timeline-row"><span class="rj__timeline-time">5월 4일 14:22</span><span>업로드 제출</span></div>
+          <div class="rj__timeline-row"><span class="rj__timeline-time">5월 4일 16:08</span><span>자동 검사 완료 (유사도 92% 플래그)</span></div>
+          <div class="rj__timeline-row"><span class="rj__timeline-time">5월 6일 09:14</span><span>검수자 검토 시작</span></div>
+          <div class="rj__timeline-row"><span class="rj__timeline-time" style="color: var(--error); font-weight: 600;">5월 6일 09:41</span><span style="color: var(--error); font-weight: 600;">거부 통보 — 사유 3건</span></div>
+        </div>
+
+        <p class="rj__appeal">결과에 동의하지 않으시나요? <a href="#">이의 제기 신청 →</a></p>
+      </div>
+
+      <div class="rj__foot">
+        <button class="btn btn--secondary btn--lg">취소</button>
+        <button class="btn btn--primary btn--lg">에디터에서 수정</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

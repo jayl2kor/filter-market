@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<!-- P3-02 · Following feed (followed makers' new filters + photos) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>32 · Following Feed — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .ff { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+
+  .ff__tabs {
+    display: flex; gap: var(--sp-md);
+    padding: 0 var(--sp-md);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .ff__tab {
+    padding: var(--sp-sm) 0;
+    font-size: var(--t-callout-size);
+    font-weight: 500;
+    color: var(--text-tertiary);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .ff__tab--active { color: var(--text-primary); font-weight: 700; border-bottom-color: var(--accent); }
+
+  .ff__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  .ff__post {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    margin-bottom: var(--sp-md);
+    box-shadow: var(--elev-1-shadow);
+  }
+  .ff__post-head {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm) var(--sp-md);
+  }
+  .ff__avatar { width: 36px; height: 36px; border-radius: var(--r-full); flex: 0 0 36px; }
+  .ff__post-info { flex: 1; min-width: 0; }
+  .ff__post-name { font-size: var(--t-subhead-size); font-weight: 600; margin: 0; }
+  .ff__post-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+
+  .ff__post-action {
+    background: var(--bg-1);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: var(--r-full);
+    font-size: var(--t-caption-size);
+    font-weight: 600;
+  }
+  .ff__post-action--accent { background: var(--accent); color: var(--text-inverse); }
+
+  .ff__post-photo {
+    aspect-ratio: 4 / 5;
+    position: relative;
+    background: var(--bg-3);
+  }
+  .ff__post-photo .photo { position: absolute; inset: 0; }
+  .ff__filter-badge {
+    position: absolute; bottom: var(--sp-sm); left: var(--sp-sm);
+    background: rgba(15,15,14,0.62);
+    backdrop-filter: blur(12px);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: var(--r-full);
+    display: flex; align-items: center; gap: 6px;
+    font-size: var(--t-caption-size);
+    font-weight: 600;
+  }
+  .ff__filter-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: var(--r-full);
+  }
+
+  .ff__post-foot {
+    padding: var(--sp-sm) var(--sp-md);
+    display: flex; align-items: center; gap: var(--sp-md);
+  }
+  .ff__post-icon-btn {
+    color: var(--text-secondary);
+    display: flex; align-items: center; gap: 4px;
+    font-size: var(--t-subhead-size);
+  }
+  .ff__post-icon-btn--liked { color: var(--error); }
+
+  .ff__post-text {
+    padding: 0 var(--sp-md) var(--sp-sm);
+    font-size: var(--t-subhead-size);
+    color: var(--text-primary);
+    line-height: 1.4;
+    word-break: keep-all;
+    margin: 0;
+  }
+
+  /* Maker filter publish post (different layout) */
+  .ff__filter-card {
+    background: var(--accent-bg);
+    border: 1px solid var(--accent);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    margin-bottom: var(--sp-md);
+    display: flex; gap: var(--sp-sm); align-items: center;
+  }
+  .ff__filter-thumb {
+    width: 60px; height: 75px;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    flex: 0 0 60px;
+    position: relative;
+  }
+  .ff__filter-thumb .photo { position: absolute; inset: 0; }
+  .ff__filter-card-info { flex: 1; min-width: 0; }
+  .ff__filter-card-eyebrow { font-size: 10px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 2px; }
+  .ff__filter-card-name { font-size: var(--t-headline-size); font-weight: 700; margin: 0; }
+  .ff__filter-card-meta { font-size: var(--t-caption-size); color: var(--text-secondary); margin: 2px 0 0; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="ff">
+      <header class="topbar">
+        <span style="width: 44px;"></span>
+        <span class="topbar__title">팔로잉</span>
+        <button class="topbar__action" aria-label="알림">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 8 a6 6 0 1 1 12 0 v4 l2 4 H4 l2-4 z"/><path d="M9 19 a3 3 0 0 0 6 0"/></svg>
+        </button>
+      </header>
+
+      <nav class="ff__tabs">
+        <button class="ff__tab">트렌딩</button>
+        <button class="ff__tab">For You</button>
+        <button class="ff__tab ff__tab--active">팔로잉</button>
+        <button class="ff__tab">신규</button>
+      </nav>
+
+      <div class="ff__body">
+        <!-- 새 필터 게시 카드 -->
+        <article class="ff__filter-card">
+          <div class="ff__filter-thumb"><div class="photo photo--cinematic"></div></div>
+          <div class="ff__filter-card-info">
+            <p class="ff__filter-card-eyebrow">Alex 새 필터 게시</p>
+            <p class="ff__filter-card-name">Tokyo Night</p>
+            <p class="ff__filter-card-meta">시네마틱 · 1시간 전 · 공개</p>
+          </div>
+          <button class="ff__post-action ff__post-action--accent" style="font-weight: 700;">보기</button>
+        </article>
+
+        <!-- 사용자 게시 (필터 적용 사진) -->
+        <article class="ff__post">
+          <div class="ff__post-head">
+            <div class="ff__avatar" style="background: linear-gradient(135deg, #aec59a, #4a6a3c);"></div>
+            <div class="ff__post-info">
+              <p class="ff__post-name">Alex</p>
+              <p class="ff__post-meta">@alex.grade · 2시간 전</p>
+            </div>
+            <button class="ff__post-action" aria-label="더보기">···</button>
+          </div>
+          <div class="ff__post-photo">
+            <div class="photo photo--cityscape photo--vignette"></div>
+            <span class="ff__filter-badge">Tokyo Night · 88%</span>
+          </div>
+          <div class="ff__post-foot">
+            <button class="ff__post-icon-btn ff__post-icon-btn--liked">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21 s-7-4.5-7-10 a4 4 0 0 1 7 -2.6 a4 4 0 0 1 7 2.6 c0 5.5 -7 10 -7 10 z"/></svg>
+              42
+            </button>
+            <button class="ff__post-icon-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12 a8 8 0 0 1 -8 8 H5 V12 a8 8 0 1 1 16 0 z"/></svg>
+              8
+            </button>
+            <button class="ff__post-icon-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4 L12 16 M7 9 L12 4 L17 9 M5 14 L5 20 L19 20 L19 14"/></svg>
+            </button>
+            <button style="margin-left: auto; color: var(--text-secondary);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4 L19 4 L19 21 L12 17 L5 21 Z"/></svg>
+            </button>
+          </div>
+          <p class="ff__post-text">새 필터 첫 시도. 도쿄 야경에 진짜 찰떡이네요.</p>
+        </article>
+
+        <!-- 사용자 게시 -->
+        <article class="ff__post">
+          <div class="ff__post-head">
+            <div class="ff__avatar" style="background: linear-gradient(135deg, #f6e2e8, #b39ec2);"></div>
+            <div class="ff__post-info">
+              <p class="ff__post-name">Sarah</p>
+              <p class="ff__post-meta">@sarah.lens · 4시간 전</p>
+            </div>
+          </div>
+          <div class="ff__post-photo">
+            <div class="photo photo--pastel photo--vignette"></div>
+            <span class="ff__filter-badge">Cotton Candy · 70%</span>
+          </div>
+          <div class="ff__post-foot">
+            <button class="ff__post-icon-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 21 s-7-4.5-7-10 a4 4 0 0 1 7 -2.6 a4 4 0 0 1 7 2.6 c0 5.5 -7 10 -7 10 z"/></svg>
+              28
+            </button>
+            <button class="ff__post-icon-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12 a8 8 0 0 1 -8 8 H5 V12 a8 8 0 1 1 16 0 z"/></svg>
+              4
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

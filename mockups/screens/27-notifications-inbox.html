@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<!-- P2-06 · Notifications inbox · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>27 · Notifications — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .nf { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .nf__seg {
+    display: flex; gap: var(--sp-xs);
+    padding: var(--sp-sm) var(--sp-md);
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .nf__seg::-webkit-scrollbar { display: none; }
+
+  .nf__list { flex: 1; overflow-y: auto; padding: 0 var(--sp-md) var(--sp-md); }
+  .nf__group-label {
+    padding: var(--sp-md) 0 var(--sp-xs);
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .nf__row {
+    display: flex; gap: var(--sp-sm);
+    padding: var(--sp-sm) 0;
+    align-items: flex-start;
+  }
+  .nf__row + .nf__row { border-top: 1px solid var(--border-subtle); }
+  .nf__row--unread { background: var(--accent-bg); margin: 0 calc(var(--sp-md) * -1); padding-left: var(--sp-md); padding-right: var(--sp-md); border-radius: 0; }
+
+  .nf__avatar {
+    width: 40px; height: 40px;
+    border-radius: var(--r-full);
+    flex: 0 0 40px;
+    position: relative;
+  }
+  .nf__icon-overlay {
+    position: absolute; right: -4px; bottom: -4px;
+    width: 22px; height: 22px;
+    border-radius: var(--r-full);
+    background: var(--bg-2);
+    border: 2px solid var(--bg-1);
+    display: grid; place-items: center;
+  }
+  .nf__icon-overlay--like { color: var(--error); background: var(--error-bg); }
+  .nf__icon-overlay--cmt  { color: var(--info); background: var(--info-bg); }
+  .nf__icon-overlay--dl   { color: var(--success); background: var(--success-bg); }
+  .nf__icon-overlay--sys  { color: var(--accent); background: var(--accent-bg); }
+
+  .nf__body { flex: 1; min-width: 0; }
+  .nf__text { font-size: var(--t-subhead-size); color: var(--text-primary); margin: 0; line-height: 1.4; word-break: keep-all; }
+  .nf__text strong { font-weight: 700; }
+  .nf__time { font-size: var(--t-caption-size); color: var(--text-tertiary); margin-top: 2px; }
+
+  .nf__thumb {
+    width: 40px; height: 50px;
+    border-radius: var(--r-sm);
+    overflow: hidden;
+    flex: 0 0 40px;
+    position: relative;
+  }
+  .nf__thumb .photo { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="nf">
+      <header class="topbar">
+        <span style="width: 44px;"></span>
+        <span class="topbar__title">알림</span>
+        <button class="topbar__action" aria-label="설정">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 8 L12 12 L15 14"/></svg>
+        </button>
+      </header>
+
+      <div class="nf__seg">
+        <span class="chip chip--active">전체</span>
+        <span class="chip">좋아요</span>
+        <span class="chip">댓글</span>
+        <span class="chip">다운로드</span>
+        <span class="chip">시스템</span>
+      </div>
+
+      <div class="nf__list">
+        <p class="nf__group-label">새 알림</p>
+
+        <article class="nf__row nf__row--unread">
+          <div class="nf__avatar" style="background: linear-gradient(135deg, #f3dcc4, #d4a482);">
+            <span class="nf__icon-overlay nf__icon-overlay--like">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21 s-7-4.5-7-10 a4 4 0 0 1 7 -2.6 a4 4 0 0 1 7 2.6 c0 5.5 -7 10 -7 10 z"/></svg>
+            </span>
+          </div>
+          <div class="nf__body">
+            <p class="nf__text"><strong>민지</strong> 외 12명이 <strong>Sunset 1973</strong>에 좋아요를 눌렀습니다</p>
+            <p class="nf__time">방금 전</p>
+          </div>
+          <div class="nf__thumb"><div class="photo photo--vintage"></div></div>
+        </article>
+
+        <article class="nf__row nf__row--unread">
+          <div class="nf__avatar" style="background: linear-gradient(135deg, #aec59a, #4a6a3c);">
+            <span class="nf__icon-overlay nf__icon-overlay--cmt">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12 a8 8 0 0 1 -8 8 H5 V12 a8 8 0 1 1 16 0 z"/></svg>
+            </span>
+          </div>
+          <div class="nf__body">
+            <p class="nf__text"><strong>Alex</strong>가 <strong>Sunset 1973</strong>에 댓글을 남겼습니다 — "Mid-tone에 살짝 마젠타가..."</p>
+            <p class="nf__time">5분 전</p>
+          </div>
+          <div class="nf__thumb"><div class="photo photo--vintage"></div></div>
+        </article>
+
+        <p class="nf__group-label">오늘</p>
+
+        <article class="nf__row">
+          <div class="nf__avatar" style="background: linear-gradient(135deg, #b9d2e8, #4a6a90);">
+            <span class="nf__icon-overlay nf__icon-overlay--dl">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 4 V14 M7 11 L12 16 L17 11"/></svg>
+            </span>
+          </div>
+          <div class="nf__body">
+            <p class="nf__text"><strong>Sunset 1973</strong>이 오늘 <strong>120회</strong> 다운로드되었습니다</p>
+            <p class="nf__time">2시간 전</p>
+          </div>
+          <div class="nf__thumb"><div class="photo photo--vintage"></div></div>
+        </article>
+
+        <article class="nf__row">
+          <div class="nf__avatar" style="background: linear-gradient(135deg, #f6e2e8, #b39ec2);"></div>
+          <div class="nf__body">
+            <p class="nf__text"><strong>Sarah</strong>가 회원님을 팔로우했습니다</p>
+            <p class="nf__time">5시간 전</p>
+          </div>
+          <button class="fl__btn" style="height: 30px; padding: 0 12px; border-radius: var(--r-md); font-size: var(--t-caption-size); font-weight: 600; background: var(--accent); color: var(--text-inverse); flex: 0 0 auto;">팔로우</button>
+        </article>
+
+        <p class="nf__group-label">이번 주</p>
+
+        <article class="nf__row">
+          <div class="nf__avatar" style="background: var(--accent-bg); display: grid; place-items: center; color: var(--accent);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="6"/><circle cx="15" cy="15" r="6"/></svg>
+            <span class="nf__icon-overlay nf__icon-overlay--sys">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12 L10 17 L20 7"/></svg>
+            </span>
+          </div>
+          <div class="nf__body">
+            <p class="nf__text"><strong>Amber Café</strong> 검수가 통과되었습니다 — 마켓에 공개됨</p>
+            <p class="nf__time">2일 전</p>
+          </div>
+        </article>
+
+        <article class="nf__row">
+          <div class="nf__avatar" style="background: linear-gradient(135deg, #e0c39a, #8e6a4a);">
+            <span class="nf__icon-overlay nf__icon-overlay--cmt">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12 a8 8 0 0 1 -8 8 H5 V12 a8 8 0 1 1 16 0 z"/></svg>
+            </span>
+          </div>
+          <div class="nf__body">
+            <p class="nf__text"><strong>유나</strong>가 회원님의 댓글에 답글을 남겼습니다</p>
+            <p class="nf__time">3일 전</p>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

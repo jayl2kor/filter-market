@@ -272,12 +272,14 @@ match /notifications/{uid}/items/{itemId} {
 }
 ```
 
-### 3.9 `entitlements/{uid}/{productId}` — 결제 권한 (Phase 6)
+### 3.9 보유권 (Phase 6) — 코인 모델로 통합됨
+
+> **변경**: 기존 `entitlements/{uid}/{productId}` 컬렉션은 [`CURRENCY_DESIGN.md`](./CURRENCY_DESIGN.md)의 코인 모델 도입과 함께 폐기됨. 필터 보유는 `users/{uid}/ownedFilters/{filterId}` 서브컬렉션으로, Pro 멤버십은 `wallets/{uid}.proUntil` 필드로 표현.
 
 ```javascript
-match /entitlements/{uid}/{productId} {
+match /users/{uid}/ownedFilters/{filterId} {
   allow read: if isOwner(uid);
-  allow write: if false;  // 결제 검증 Cloud Function만
+  allow write: if false;  // /filters/{id}/purchase Cloud Function만
 }
 ```
 
@@ -287,6 +289,52 @@ match /entitlements/{uid}/{productId} {
 match /auditLogs/{logId} {
   allow read: if isAdmin();
   allow write: if false;
+}
+```
+
+### 3.11 `wallets/{uid}` — 사용자 지갑 (Phase 6)
+
+> [`CURRENCY_DESIGN.md`](./CURRENCY_DESIGN.md) §8.2. 모든 잔액 변경은 Cloud Functions 트랜잭션으로만 가능.
+
+```javascript
+match /wallets/{uid} {
+  allow read: if isOwner(uid);
+  allow write: if false;  // 모든 mutate는 서버 트랜잭션 한정
+}
+```
+
+### 3.12 `transactions/{txId}` — 거래 ledger (Phase 6)
+
+```javascript
+match /transactions/{txId} {
+  allow read: if isAuthed() && resource.data.uid == request.auth.uid;
+  allow write: if false;  // append-only via Cloud Functions
+}
+```
+
+### 3.13 `payouts/{payoutId}` — 메이커 출금 요청 (Phase 6)
+
+```javascript
+match /payouts/{payoutId} {
+  allow read: if isAuthed() && resource.data.uid == request.auth.uid;
+  allow write: if false;  // /me/withdraw Cloud Function만
+}
+```
+
+### 3.14 `topupIntents/{intentId}` — IAP 충전 의도 토큰 (Phase 6)
+
+```javascript
+match /topupIntents/{intentId} {
+  allow read, write: if false;  // 클라이언트 직접 접근 차단 — Cloud Function 전용
+}
+```
+
+### 3.15 `config/{doc}` — 공개 설정 (코인 패키지·환율·임계치)
+
+```javascript
+match /config/{doc} {
+  allow read: if true;        // 카탈로그는 공개 캐시
+  allow write: if isAdmin();  // 운영팀 콘솔로만
 }
 ```
 
@@ -455,10 +503,13 @@ firebase emulators:exec --only firestore "npm test"
 - [ ] 모더레이터가 신고 status 변경 → 성공
 - [ ] 모더레이터가 reason 변경 → 거부
 
-#### `entitlements` (Phase 6)
-- [ ] 본인 entitlements read → 성공
-- [ ] 클라이언트 직접 write → 거부
-- [ ] Cloud Function (admin SDK) write → 성공
+#### `ownedFilters` / `wallets` / `transactions` (Phase 6)
+- [ ] 본인 `users/{uid}/ownedFilters` read → 성공
+- [ ] 클라이언트 직접 `ownedFilters` write → 거부
+- [ ] 본인 `wallets/{uid}` read → 성공
+- [ ] 다른 사용자 wallet/transactions read → 거부
+- [ ] 클라이언트 직접 wallet/transactions write → 거부
+- [ ] Cloud Function (admin SDK) purchase/topup/withdraw write → 성공
 
 ### 6.3 테스트 코드 예시 (`@firebase/rules-unit-testing`)
 ```typescript

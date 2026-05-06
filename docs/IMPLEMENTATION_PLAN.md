@@ -50,7 +50,7 @@ GitHub Milestone은 다음 단위로 생성한다.
 | `area:backend` | Cloud Functions, Firestore, R2, API |
 | `area:security` | Firestore Rules, 서명, App Attest, MSL 검증 |
 | `area:moderation` | 신고, SafeSearch, 어드민 큐 |
-| `area:payments` | StoreKit 2, entitlement, Stripe Connect |
+| `area:payments` | StoreKit 2, Coin wallet, Pro subscription, Stripe Connect |
 | `area:design-system` | 색상, 타이포, 공통 컴포넌트 |
 | `type:feature` | 사용자 기능 |
 | `type:infra` | 프로젝트/빌드/CI/배포 인프라 |
@@ -286,16 +286,21 @@ GitHub Milestone은 다음 단위로 생성한다.
 
 ## 11. M6 - Monetization
 
-목표: 유료 필터 구매, 권한 검증, 메이커 정산을 구현한다.
+목표: [`CURRENCY_DESIGN.md`](./CURRENCY_DESIGN.md)의 Coin 모델을 구현한다. 사용자는 StoreKit 2로 Coin을 충전하고, 필터 구매는 서버 트랜잭션으로 Coin을 차감해 보유권을 부여한다. Pro 멤버십은 별도 구독 트랙이며, 메이커는 적립 Coin을 Stripe Connect를 통해 원화로 출금한다.
 
 | Issue | 제목 | Labels | 의존성 | 완료 기준 |
 |---|---|---|---|---|
-| M6-01 | StoreKit 2 product/transaction client | `area:payments`, `priority:p1` | M2-B02 | sandbox 구매 성공 |
-| M6-02 | App Store Server API 영수증 검증 | `area:payments`, `area:backend`, `priority:p1` | M6-01 | signed transaction 검증 |
-| M6-03 | entitlement 모델과 접근 제어 | `area:payments`, `area:backend`, `area:security`, `priority:p1` | M6-02 | 구매자만 premium 다운로드 |
-| M6-04 | 환불/transaction updates 동기화 | `area:payments`, `priority:p1` | M6-03 | 권한 회수 반영 |
-| M6-05 | Stripe Connect onboarding | `area:payments`, `area:backend`, `priority:p1` | M6-03 | 메이커 KYC 링크 생성 |
-| M6-06 | 정산 계산과 대시보드 | `area:payments`, `area:marketplace`, `priority:p1` | M6-05 | 월별 예상/확정 정산 표시 |
+| M6-01 | Coin economy config와 product catalog | `area:payments`, `area:backend`, `priority:p1` | M2-B02 | `/config/economy`가 패키지/환율/임계치를 반환 |
+| M6-02 | StoreKit 2 Coin top-up client | `area:payments`, `priority:p1` | M6-01 | sandbox에서 100/550/1200/3000 C 구매 성공 |
+| M6-03 | `/wallet/topup/init` + `/wallet/topup/finalize` | `area:payments`, `area:backend`, `priority:p1` | M6-02 | signed transaction 검증, replay 방지, 잔액 grant |
+| M6-04 | Wallet/transaction ledger UI | `area:payments`, `area:marketplace`, `priority:p1` | M6-03 | `43`/`45` 화면 데이터 표시 |
+| M6-05 | Coin 기반 필터 구매 API와 잔액 부족 처리 | `area:payments`, `area:marketplace`, `area:backend`, `priority:p1` | M6-04 | `POST /filters/{id}/purchase`, `46` insufficient balance |
+| M6-06 | 보유 필터와 환불 상태 동기화 | `area:payments`, `area:security`, `priority:p1` | M6-05 | `users/{uid}/ownedFilters`, `39` 보유/환불 상태 |
+| M6-07 | Pro 멤버십 StoreKit 구독 | `area:payments`, `priority:p1` | M6-03 | Pro 활성 시 Coin 차감 없이 premium 다운로드 |
+| M6-08 | Stripe Connect onboarding | `area:payments`, `area:backend`, `priority:p1` | M6-04 | 메이커 KYC 링크 생성, `40` 화면 연결 |
+| M6-09 | 세무 정보와 payout profile | `area:payments`, `area:backend`, `priority:p1` | M6-08 | `41` 입력값 저장/검증 |
+| M6-10 | 메이커 출금 신청/내역/대시보드 | `area:payments`, `area:backend`, `area:marketplace`, `priority:p1` | M6-09 | `POST /me/withdraw`, `42`/`47`/`28` 표시 |
+| M6-11 | 환불/transaction updates 동기화 | `area:payments`, `priority:p1` | M6-06 | Apple 환불, Coin 환원, 보유권 회수 반영 |
 
 ---
 

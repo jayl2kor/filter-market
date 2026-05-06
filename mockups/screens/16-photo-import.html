@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<!-- P0-06 · PRD §3.2 F2 (PHPicker import) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>16 · Photo Import — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .picker { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .picker__head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--sp-sm) var(--sp-md);
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .picker__title { font-size: var(--t-headline-size); font-weight: 600; }
+  .picker__chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    padding: 4px 10px;
+    border-radius: var(--r-full);
+    font-size: var(--t-caption-size);
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .picker__sources {
+    display: flex; gap: var(--sp-xs);
+    padding: var(--sp-sm) var(--sp-md);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .picker__sources::-webkit-scrollbar { display: none; }
+
+  .picker__grid {
+    flex: 1; overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    padding: 0 2px;
+  }
+  .picker__cell {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    background: var(--bg-3);
+  }
+  .picker__cell .photo { position: absolute; inset: 0; }
+
+  .picker__cell-check {
+    position: absolute; top: 6px; right: 6px;
+    width: 24px; height: 24px;
+    border-radius: var(--r-full);
+    border: 2px solid #fff;
+    background: rgba(15,15,14,0.16);
+    backdrop-filter: blur(8px);
+    display: grid; place-items: center;
+    color: transparent;
+  }
+  .picker__cell--selected .picker__cell-check {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .picker__cell--selected::after {
+    content: '';
+    position: absolute; inset: 0;
+    border: 3px solid var(--accent);
+    pointer-events: none;
+  }
+  .picker__cell-num {
+    position: absolute; bottom: 6px; right: 6px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: var(--r-sm);
+  }
+
+  .picker__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    background: var(--bg-1);
+    border-top: 1px solid var(--border-subtle);
+  }
+  .picker__count {
+    font-size: var(--t-subhead-size);
+    color: var(--text-secondary);
+    margin-bottom: var(--sp-sm);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="picker">
+      <header class="picker__head">
+        <button class="topbar__action" aria-label="취소">취소</button>
+        <span class="picker__title">사진 가져오기</span>
+        <span class="picker__chip">최근 ▾</span>
+      </header>
+
+      <div class="picker__sources">
+        <span class="chip chip--active">전체</span>
+        <span class="chip">즐겨찾기</span>
+        <span class="chip">셀카</span>
+        <span class="chip">스크린샷</span>
+        <span class="chip">최근 항목</span>
+      </div>
+
+      <div class="picker__grid">
+        <div class="picker__cell"><div class="photo photo--cafe"></div><span class="picker__cell-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span></div>
+        <div class="picker__cell picker__cell--selected"><div class="photo photo--portrait"></div><span class="picker__cell-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span><span class="picker__cell-num">1</span></div>
+        <div class="picker__cell"><div class="photo photo--cityscape"></div><span class="picker__cell-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span></div>
+        <div class="picker__cell picker__cell--selected"><div class="photo photo--nature"></div><span class="picker__cell-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span><span class="picker__cell-num">2</span></div>
+        <div class="picker__cell"><div class="photo photo--moody"></div><span class="picker__cell-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span></div>
+        <div class="picker__cell"><div class="photo photo--warm"></div><span class="picker__cell-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span></div>
+        <div class="picker__cell picker__cell--selected"><div class="photo photo--vintage"></div><span class="picker__cell-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span><span class="picker__cell-num">3</span></div>
+        <div class="picker__cell"><div class="photo photo--bw"></div><span class="picker__cell-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span></div>
+        <div class="picker__cell"><div class="photo photo--cool"></div><span class="picker__cell-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span></div>
+        <div class="picker__cell"><div class="photo photo--pastel"></div><span class="picker__cell-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span></div>
+        <div class="picker__cell"><div class="photo photo--cinematic"></div><span class="picker__cell-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span></div>
+        <div class="picker__cell"><div class="photo photo--mountain"></div><span class="picker__cell-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span></div>
+      </div>
+
+      <div class="picker__foot">
+        <p class="picker__count">3장 선택됨 · 한 번에 최대 10장</p>
+        <button class="btn btn--primary btn--lg btn--block">필터 적용 (3)</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

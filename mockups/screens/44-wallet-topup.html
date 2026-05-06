@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<!-- W-02 · CURRENCY_DESIGN §2.1 — Coin top-up packages · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>44 · Wallet Topup — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .tu { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .tu__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  .tu__balance {
+    background: var(--accent-bg);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+    margin-bottom: var(--sp-md);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: var(--t-callout-size);
+    font-weight: 600;
+  }
+  .tu__balance-amount { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .coin { width: 16px; height: 16px; }
+  .coin--lg { width: 24px; height: 24px; }
+  .coin--xl { width: 36px; height: 36px; }
+
+  .tu__sec-title { font-size: var(--t-callout-size); font-weight: 700; margin: var(--sp-md) 0 var(--sp-sm); }
+
+  .tu__pkgs { display: flex; flex-direction: column; gap: var(--sp-xs); margin-bottom: var(--sp-md); }
+  .tu__pkg {
+    position: relative;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    display: flex; align-items: center; gap: var(--sp-sm);
+  }
+  .tu__pkg--popular {
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-ring);
+    padding: calc(var(--sp-md) - 1px);
+  }
+  .tu__pkg-badge {
+    position: absolute; top: -10px; right: var(--sp-md);
+    background: var(--accent);
+    color: var(--text-inverse);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    padding: 4px 10px;
+    border-radius: var(--r-full);
+  }
+  .tu__pkg-icon {
+    width: 56px; height: 56px;
+    border-radius: var(--r-full);
+    background: linear-gradient(135deg, var(--accent), #A0721E);
+    color: #fff;
+    display: grid; place-items: center;
+    flex: 0 0 56px;
+    box-shadow: var(--elev-1-shadow);
+  }
+  .tu__pkg-info { flex: 1; }
+  .tu__pkg-amount {
+    font-size: var(--t-title-size);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex; align-items: center; gap: 4px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.3px;
+  }
+  .tu__pkg-bonus {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: var(--t-caption-size);
+    font-weight: 700;
+    color: var(--success);
+    margin-left: var(--sp-xs);
+  }
+  .tu__pkg-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 4px 0 0; }
+  .tu__pkg-price-col { text-align: right; }
+  .tu__pkg-price {
+    font-size: var(--t-headline-size);
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .tu__pkg-unit {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+    display: block;
+  }
+
+  .tu__hint {
+    background: var(--info-bg);
+    color: var(--info);
+    padding: var(--sp-sm) var(--sp-md);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-md);
+    font-size: var(--t-caption-size);
+    line-height: 1.4;
+    display: flex; gap: var(--sp-xs);
+  }
+  .tu__hint-icon { width: 16px; height: 16px; flex: 0 0 16px; margin-top: 2px; }
+
+  .tu__legal {
+    text-align: center;
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+    line-height: 1.5;
+  }
+  .tu__legal a { color: var(--text-secondary); text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="tu">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="취소">취소</button>
+        <span class="topbar__title">코인 충전</span>
+        <button class="topbar__action" aria-label="복원">복원</button>
+      </header>
+
+      <div class="tu__body">
+        <div class="tu__balance">
+          <span>현재 잔액</span>
+          <span class="tu__balance-amount">
+            <svg class="coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            1,250
+          </span>
+        </div>
+
+        <h2 class="tu__sec-title">패키지 선택</h2>
+        <div class="tu__pkgs" role="radiogroup" aria-label="코인 패키지">
+          <div class="tu__pkg">
+            <div class="tu__pkg-icon">
+              <svg class="coin coin--xl" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </div>
+            <div class="tu__pkg-info">
+              <p class="tu__pkg-amount"><span>100</span></p>
+              <p class="tu__pkg-meta">Starter · 약 2개 필터</p>
+            </div>
+            <div class="tu__pkg-price-col">
+              <p class="tu__pkg-price">₩1,500</p>
+              <span class="tu__pkg-unit">15원/코인</span>
+            </div>
+          </div>
+
+          <div class="tu__pkg tu__pkg--popular">
+            <span class="tu__pkg-badge">가장 인기</span>
+            <div class="tu__pkg-icon">
+              <svg class="coin coin--xl" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </div>
+            <div class="tu__pkg-info">
+              <p class="tu__pkg-amount">
+                <span>550</span>
+                <span class="tu__pkg-bonus">+50</span>
+              </p>
+              <p class="tu__pkg-meta">Popular · 보너스 +10%</p>
+            </div>
+            <div class="tu__pkg-price-col">
+              <p class="tu__pkg-price">₩7,500</p>
+              <span class="tu__pkg-unit">13.6원/코인</span>
+            </div>
+          </div>
+
+          <div class="tu__pkg">
+            <div class="tu__pkg-icon" style="background: linear-gradient(135deg, #E8B86D, var(--accent));">
+              <svg class="coin coin--xl" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </div>
+            <div class="tu__pkg-info">
+              <p class="tu__pkg-amount">
+                <span>1,200</span>
+                <span class="tu__pkg-bonus">+200</span>
+              </p>
+              <p class="tu__pkg-meta">Best Value · 보너스 +20%</p>
+            </div>
+            <div class="tu__pkg-price-col">
+              <p class="tu__pkg-price">₩15,000</p>
+              <span class="tu__pkg-unit">12.5원/코인</span>
+            </div>
+          </div>
+
+          <div class="tu__pkg">
+            <div class="tu__pkg-icon" style="background: linear-gradient(135deg, #A0721E, #5E4434);">
+              <svg class="coin coin--xl" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="16.5" text-anchor="middle" fill="#fff" font-size="13" font-weight="800" font-family="-apple-system, system-ui, sans-serif" letter-spacing="-0.5">M</text></svg>
+            </div>
+            <div class="tu__pkg-info">
+              <p class="tu__pkg-amount">
+                <span>3,000</span>
+                <span class="tu__pkg-bonus">+700</span>
+              </p>
+              <p class="tu__pkg-meta">Pro Pack · 보너스 +30%</p>
+            </div>
+            <div class="tu__pkg-price-col">
+              <p class="tu__pkg-price">₩34,000</p>
+              <span class="tu__pkg-unit">11.3원/코인</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tu__hint">
+          <svg class="tu__hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 8 V13 M12 17 h.01"/></svg>
+          <span><strong>Apple ID 결제.</strong> 충전한 코인은 moodit 내부에서만 사용 가능하며 환불은 7일 내 미사용분만 가능합니다.</span>
+        </div>
+
+        <p class="tu__legal">계속하면 <a href="#">코인 약관</a>과 <a href="#">환불 정책</a>에 동의한 것으로 간주합니다. 결제는 Apple ID를 통해 처리됩니다.</p>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<!-- P2-08 · PRD US-07 — Detailed report form · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>29 · Report Form — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .rp { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .rp__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  .rp__target {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-md);
+  }
+  .rp__target-thumb {
+    width: 44px; height: 56px;
+    border-radius: var(--r-sm);
+    flex: 0 0 44px;
+    overflow: hidden;
+    position: relative;
+  }
+  .rp__target-thumb .photo { position: absolute; inset: 0; }
+  .rp__target-info { flex: 1; min-width: 0; }
+  .rp__target-name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .rp__target-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+
+  .rp__sec-title { font-size: var(--t-callout-size); font-weight: 700; margin: var(--sp-md) 0 var(--sp-xs); }
+  .rp__sec-help { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 0 0 var(--sp-sm); line-height: 1.4; word-break: keep-all; }
+
+  /* Reason radio group */
+  .rp__reasons {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    margin-bottom: var(--sp-md);
+  }
+  .rp__reason {
+    display: flex; align-items: center; gap: var(--sp-sm);
+    padding: var(--sp-sm) var(--sp-md);
+  }
+  .rp__reason + .rp__reason { border-top: 1px solid var(--border-subtle); }
+  .rp__radio {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border-default);
+    border-radius: var(--r-full);
+    flex: 0 0 18px;
+    display: grid; place-items: center;
+  }
+  .rp__reason--active .rp__radio { border-color: var(--accent); }
+  .rp__reason--active .rp__radio::after { content: ''; width: 8px; height: 8px; background: var(--accent); border-radius: var(--r-full); }
+  .rp__reason-text { flex: 1; }
+  .rp__reason-name { font-size: var(--t-callout-size); font-weight: 500; margin: 0; }
+  .rp__reason-desc { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; line-height: 1.4; word-break: keep-all; }
+
+  /* Comment + attach */
+  .rp__textarea {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    padding: var(--sp-sm) var(--sp-md);
+    font: inherit;
+    font-size: var(--t-body-size);
+    line-height: 1.5;
+    min-height: 100px;
+    resize: none;
+  }
+
+  .rp__attach-row {
+    display: flex; gap: 6px;
+    margin-top: var(--sp-xs);
+  }
+  .rp__attach {
+    width: 56px; height: 56px;
+    background: var(--bg-2);
+    border: 1px dashed var(--border-default);
+    border-radius: var(--r-md);
+    display: grid; place-items: center;
+    color: var(--text-tertiary);
+  }
+  .rp__attach--filled {
+    border: 1px solid var(--border-default);
+    border-style: solid;
+    overflow: hidden;
+    position: relative;
+  }
+  .rp__attach--filled .photo { position: absolute; inset: 0; }
+
+  .rp__legal {
+    background: var(--info-bg);
+    color: var(--info);
+    padding: var(--sp-sm) var(--sp-md);
+    border-radius: var(--r-md);
+    font-size: var(--t-caption-size);
+    line-height: 1.4;
+    word-break: keep-all;
+    margin-top: var(--sp-md);
+  }
+
+  .rp__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="rp">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="취소">취소</button>
+        <span class="topbar__title">신고하기</span>
+        <span style="width: 44px;"></span>
+      </header>
+
+      <div class="rp__body">
+        <div class="rp__target">
+          <div class="rp__target-thumb"><div class="photo photo--moody"></div></div>
+          <div class="rp__target-info">
+            <p class="rp__target-name">Strange Vibe</p>
+            <p class="rp__target-meta">@unknown_user · 2,400 다운로드</p>
+          </div>
+        </div>
+
+        <h2 class="rp__sec-title">신고 사유</h2>
+        <p class="rp__sec-help">moderate 팀이 24시간 내 검토합니다. 신고는 익명으로 처리됩니다.</p>
+
+        <div class="rp__reasons">
+          <label class="rp__reason rp__reason--active">
+            <span class="rp__radio"></span>
+            <div class="rp__reason-text">
+              <p class="rp__reason-name">저작권 침해</p>
+              <p class="rp__reason-desc">제 LUT 또는 작품을 무단으로 사용하고 있습니다.</p>
+            </div>
+          </label>
+          <label class="rp__reason">
+            <span class="rp__radio"></span>
+            <div class="rp__reason-text">
+              <p class="rp__reason-name">부적절한 콘텐츠</p>
+              <p class="rp__reason-desc">선정적·폭력적·차별적 표현을 포함합니다.</p>
+            </div>
+          </label>
+          <label class="rp__reason">
+            <span class="rp__radio"></span>
+            <div class="rp__reason-text">
+              <p class="rp__reason-name">스팸 / 사칭</p>
+              <p class="rp__reason-desc">광고·낚시·다른 사용자 사칭입니다.</p>
+            </div>
+          </label>
+          <label class="rp__reason">
+            <span class="rp__radio"></span>
+            <div class="rp__reason-text">
+              <p class="rp__reason-name">기술적 문제</p>
+              <p class="rp__reason-desc">필터가 작동하지 않거나 앱 충돌을 일으킵니다.</p>
+            </div>
+          </label>
+          <label class="rp__reason">
+            <span class="rp__radio"></span>
+            <div class="rp__reason-text">
+              <p class="rp__reason-name">기타</p>
+              <p class="rp__reason-desc">위에 해당하지 않는 사유</p>
+            </div>
+          </label>
+        </div>
+
+        <h2 class="rp__sec-title">상세 설명</h2>
+        <p class="rp__sec-help">검토에 도움이 될 구체적인 정보를 적어주세요. 어떤 작품과 비슷한지, 어디서 발견했는지 등.</p>
+        <textarea class="rp__textarea" placeholder="여기에 상세 설명을 입력하세요"></textarea>
+
+        <h2 class="rp__sec-title">증빙 자료 (선택)</h2>
+        <p class="rp__sec-help">스크린샷이나 원본 작품을 첨부하면 검토가 빨라집니다 (최대 4장).</p>
+        <div class="rp__attach-row">
+          <button class="rp__attach rp__attach--filled" aria-label="증빙 1"><span class="photo photo--vintage"></span></button>
+          <button class="rp__attach rp__attach--filled" aria-label="증빙 2"><span class="photo photo--cafe"></span></button>
+          <button class="rp__attach" aria-label="추가">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5 V19 M5 12 H19"/></svg>
+          </button>
+        </div>
+
+        <p class="rp__legal">
+          <strong>신고는 진지하게 처리됩니다.</strong> 허위 신고가 반복되면 계정 제한이 적용될 수 있습니다.
+        </p>
+      </div>
+
+      <div class="rp__foot">
+        <button class="btn btn--primary btn--lg btn--block">신고 제출</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

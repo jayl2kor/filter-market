@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<!-- Audit P0-D · GAPS_AUDIT §3.1 — GDPR Art. 20 data download · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>53 · Data Export — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .dx { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .dx__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  .dx__intro {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    margin-bottom: var(--sp-md);
+  }
+  .dx__intro-icon {
+    width: 44px; height: 44px;
+    background: var(--info-bg);
+    color: var(--info);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    margin-bottom: var(--sp-sm);
+  }
+  .dx__intro-title { font-size: var(--t-headline-size); font-weight: 700; margin: 0 0 4px; }
+  .dx__intro-body { font-size: var(--t-subhead-size); color: var(--text-secondary); line-height: 1.5; word-break: keep-all; margin: 0; }
+  .dx__intro-body a { color: var(--accent); text-decoration: underline; }
+
+  .dx__sec-title { font-size: var(--t-callout-size); font-weight: 700; margin: var(--sp-md) 0 var(--sp-xs); }
+  .dx__sec-help { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 0 0 var(--sp-sm); line-height: 1.4; }
+
+  /* Categories */
+  .dx__cats {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    margin-bottom: var(--sp-md);
+  }
+  .dx__cat {
+    display: flex; align-items: flex-start;
+    padding: var(--sp-sm) var(--sp-md);
+    gap: var(--sp-sm);
+  }
+  .dx__cat + .dx__cat { border-top: 1px solid var(--border-subtle); }
+  .dx__cat-check {
+    width: 22px; height: 22px;
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-radius: var(--r-sm);
+    display: grid; place-items: center;
+    flex: 0 0 22px;
+    margin-top: 2px;
+  }
+  .dx__cat-check--off { background: transparent; border: 2px solid var(--border-default); color: transparent; }
+  .dx__cat-info { flex: 1; }
+  .dx__cat-name { font-size: var(--t-callout-size); font-weight: 600; margin: 0; }
+  .dx__cat-desc { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; line-height: 1.4; word-break: keep-all; }
+  .dx__cat-size {
+    font-size: var(--t-caption-size);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    flex: 0 0 auto;
+    margin-top: 2px;
+  }
+
+  /* Format */
+  .dx__formats {
+    display: flex; gap: var(--sp-xs);
+    margin-bottom: var(--sp-md);
+  }
+  .dx__format {
+    flex: 1;
+    padding: var(--sp-sm);
+    background: var(--bg-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--r-md);
+    text-align: center;
+    font-size: var(--t-subhead-size);
+    color: var(--text-secondary);
+  }
+  .dx__format--active {
+    border: 2px solid var(--accent);
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-weight: 700;
+    padding: calc(var(--sp-sm) - 1px);
+  }
+  .dx__format strong { display: block; font-weight: 700; color: inherit; margin-bottom: 2px; }
+  .dx__format small { font-size: 10px; color: var(--text-tertiary); }
+  .dx__format--active small { color: var(--accent); }
+
+  /* Past requests */
+  .dx__history {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    margin-bottom: var(--sp-md);
+  }
+  .dx__hist-row {
+    display: flex; align-items: center;
+    padding: var(--sp-sm) var(--sp-md);
+    gap: var(--sp-sm);
+  }
+  .dx__hist-row + .dx__hist-row { border-top: 1px solid var(--border-subtle); }
+  .dx__hist-icon {
+    width: 32px; height: 32px;
+    background: var(--success-bg);
+    color: var(--success);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    flex: 0 0 32px;
+  }
+  .dx__hist-info { flex: 1; min-width: 0; }
+  .dx__hist-name { font-size: var(--t-subhead-size); font-weight: 600; margin: 0; }
+  .dx__hist-meta { font-size: var(--t-caption-size); color: var(--text-tertiary); margin: 2px 0 0; }
+  .dx__hist-link { color: var(--accent); font-size: var(--t-subhead-size); font-weight: 600; }
+  .dx__hist-link--expired { color: var(--text-tertiary); font-weight: 400; }
+
+  /* Notice */
+  .dx__notice {
+    background: var(--info-bg);
+    color: var(--info);
+    padding: var(--sp-sm) var(--sp-md);
+    border-radius: var(--r-md);
+    font-size: var(--t-caption-size);
+    line-height: 1.5;
+    word-break: keep-all;
+    margin-bottom: var(--sp-md);
+    display: flex; gap: var(--sp-xs);
+  }
+  .dx__notice-icon { width: 14px; height: 14px; flex: 0 0 14px; margin-top: 2px; }
+
+  .dx__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="dx">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">데이터 다운로드</span>
+        <button class="topbar__action" aria-label="도움말">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9 9 a3 3 0 1 1 4 2.5 c-1 .6 -1 1 -1 1.5 M12 17 h.01"/></svg>
+        </button>
+      </header>
+
+      <div class="dx__body">
+        <div class="dx__intro">
+          <div class="dx__intro-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4 V14 M7 11 L12 16 L17 11"/><path d="M5 19 H19"/></svg>
+          </div>
+          <h1 class="dx__intro-title">내 데이터 사본 받기</h1>
+          <p class="dx__intro-body">
+            EU GDPR Art. 20 / 한국 개인정보보호법 제35조에 따라 회원님이 moodit에 저장한 모든 정보를
+            기계 판독 가능한 형태로 받을 권리가 있습니다. 요청 후 <strong>최대 30일 이내</strong> 보안 링크로 안내드립니다.
+            <a href="#">전체 안내 →</a>
+          </p>
+        </div>
+
+        <h2 class="dx__sec-title">포함할 데이터</h2>
+        <p class="dx__sec-help">기본은 전체 선택. 필요한 항목만 선택하면 처리 시간이 단축됩니다.</p>
+
+        <div class="dx__cats">
+          <label class="dx__cat">
+            <span class="dx__cat-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span>
+            <div class="dx__cat-info">
+              <p class="dx__cat-name">계정 정보</p>
+              <p class="dx__cat-desc">프로필 · 핸들 · 이메일 · 가입일 · 인증 메타</p>
+            </div>
+            <span class="dx__cat-size">~24 KB</span>
+          </label>
+          <label class="dx__cat">
+            <span class="dx__cat-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span>
+            <div class="dx__cat-info">
+              <p class="dx__cat-name">활동 기록</p>
+              <p class="dx__cat-desc">검색 / 다운로드 / 좋아요 / 즐겨찾기 / 댓글 / 신고</p>
+            </div>
+            <span class="dx__cat-size">~1.2 MB</span>
+          </label>
+          <label class="dx__cat">
+            <span class="dx__cat-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span>
+            <div class="dx__cat-info">
+              <p class="dx__cat-name">코인 / 결제 내역</p>
+              <p class="dx__cat-desc">충전·구매·적립·출금 ledger (전체 거래)</p>
+            </div>
+            <span class="dx__cat-size">~80 KB</span>
+          </label>
+          <label class="dx__cat">
+            <span class="dx__cat-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg></span>
+            <div class="dx__cat-info">
+              <p class="dx__cat-name">업로드한 필터</p>
+              <p class="dx__cat-desc">.fmpkg 패키지 · 메타 · 통계 (12개)</p>
+            </div>
+            <span class="dx__cat-size">~28 MB</span>
+          </label>
+          <label class="dx__cat">
+            <span class="dx__cat-check dx__cat-check--off">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg>
+            </span>
+            <div class="dx__cat-info">
+              <p class="dx__cat-name">팔로우 그래프</p>
+              <p class="dx__cat-desc">팔로워 · 팔로잉 · 차단 목록 (UID 익명화)</p>
+            </div>
+            <span class="dx__cat-size">~16 KB</span>
+          </label>
+          <label class="dx__cat">
+            <span class="dx__cat-check dx__cat-check--off">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg>
+            </span>
+            <div class="dx__cat-info">
+              <p class="dx__cat-name">기기 / 분석 로그</p>
+              <p class="dx__cat-desc">접속 IP · 디바이스 모델 · 크래시 로그 (90일)</p>
+            </div>
+            <span class="dx__cat-size">~340 KB</span>
+          </label>
+        </div>
+
+        <h2 class="dx__sec-title">파일 형식</h2>
+        <div class="dx__formats">
+          <button class="dx__format dx__format--active"><strong>JSON</strong><small>기계 판독 권장</small></button>
+          <button class="dx__format"><strong>CSV</strong><small>테이블 분리</small></button>
+          <button class="dx__format"><strong>HTML</strong><small>사람이 읽기</small></button>
+        </div>
+
+        <h2 class="dx__sec-title">이전 요청</h2>
+        <div class="dx__history">
+          <div class="dx__hist-row">
+            <span class="dx__hist-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12 L10 17 L20 7"/></svg>
+            </span>
+            <div class="dx__hist-info">
+              <p class="dx__hist-name">전체 데이터 — JSON · 29.6 MB</p>
+              <p class="dx__hist-meta">2026-04-12 요청 · 4월 14일 완료 · <strong>4월 21일 만료</strong></p>
+            </div>
+            <span class="dx__hist-link dx__hist-link--expired">만료</span>
+          </div>
+          <div class="dx__hist-row">
+            <span class="dx__hist-icon" style="background: var(--info-bg); color: var(--info);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="13" r="8"/><path d="M12 8 V13 L15 15"/></svg>
+            </span>
+            <div class="dx__hist-info">
+              <p class="dx__hist-name">계정+활동 — JSON · 처리 중</p>
+              <p class="dx__hist-meta">2026-05-04 요청 · 예상 완료 5월 10일</p>
+            </div>
+            <span class="dx__hist-link">상세 →</span>
+          </div>
+        </div>
+
+        <div class="dx__notice">
+          <svg class="dx__notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="11" width="14" height="10" rx="1.5"/><path d="M8 11 V8 a4 4 0 0 1 8 0 V11"/></svg>
+          <span><strong>보안 링크는 7일간 유효</strong>합니다. 다운로드 URL은 회원님의 이메일과 알림 인박스에 동시에 발송되며, 만료 후 재요청해야 합니다.</span>
+        </div>
+      </div>
+
+      <div class="dx__foot">
+        <button class="btn btn--primary btn--lg btn--block">데이터 사본 요청</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<!-- P6-04 · Stripe Connect onboarding (maker payouts) · Light -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>40 · Payout Onboarding — moodit</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<link rel="stylesheet" href="../shared/components.css" />
+<link rel="stylesheet" href="../shared/phone-frame.css" />
+<style>
+  .pa { position: absolute; inset: 0; background: var(--bg-1); display: flex; flex-direction: column; padding-top: var(--safe-top); }
+  .pa__body { flex: 1; overflow-y: auto; padding: var(--sp-md); }
+
+  .pa__hero {
+    text-align: center;
+    padding: var(--sp-md) 0 var(--sp-xl);
+  }
+  .pa__hero-circle {
+    width: 96px; height: 96px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    margin: 0 auto var(--sp-md);
+  }
+  .pa__hero-title { font-size: var(--t-title-size); font-weight: 700; letter-spacing: -0.2px; margin: 0 0 var(--sp-xs); }
+  .pa__hero-sub { font-size: var(--t-body-size); color: var(--text-secondary); line-height: 1.5; max-width: 320px; margin: 0 auto; word-break: keep-all; }
+
+  /* Earnings preview */
+  .pa__preview {
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    padding: var(--sp-md);
+    margin-bottom: var(--sp-md);
+  }
+  .pa__preview-row { display: flex; justify-content: space-between; padding: 6px 0; }
+  .pa__preview-row + .pa__preview-row { border-top: 1px solid var(--border-subtle); }
+  .pa__preview-label { font-size: var(--t-subhead-size); color: var(--text-secondary); }
+  .pa__preview-value { font-size: var(--t-subhead-size); font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .pa__preview-value--accent { color: var(--accent); font-weight: 700; }
+
+  /* Step cards */
+  .pa__steps { display: flex; flex-direction: column; gap: var(--sp-xs); margin-bottom: var(--sp-md); }
+  .pa__step {
+    display: flex; align-items: flex-start; gap: var(--sp-sm);
+    padding: var(--sp-md);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+  }
+  .pa__step--done { border-color: var(--success); }
+  .pa__step--active { border: 2px solid var(--accent); padding: calc(var(--sp-md) - 1px); box-shadow: 0 0 0 4px var(--accent-ring); }
+
+  .pa__step-num {
+    width: 28px; height: 28px;
+    border-radius: var(--r-full);
+    background: var(--bg-3);
+    display: grid; place-items: center;
+    font-size: var(--t-subhead-size);
+    font-weight: 700;
+    color: var(--text-secondary);
+    flex: 0 0 28px;
+  }
+  .pa__step--done .pa__step-num { background: var(--success); color: var(--text-inverse); }
+  .pa__step--active .pa__step-num { background: var(--accent); color: var(--text-inverse); }
+  .pa__step-info { flex: 1; }
+  .pa__step-title { font-size: var(--t-callout-size); font-weight: 600; margin: 0 0 2px; }
+  .pa__step-desc { font-size: var(--t-caption-size); color: var(--text-secondary); line-height: 1.4; word-break: keep-all; margin: 0; }
+  .pa__step-time { font-size: 10px; color: var(--text-tertiary); margin-top: 4px; }
+
+  .pa__legal {
+    text-align: center;
+    font-size: var(--t-caption-size);
+    color: var(--text-tertiary);
+    line-height: 1.4;
+    padding: 0 var(--sp-md);
+  }
+  .pa__legal a { color: var(--text-secondary); text-decoration: underline; }
+
+  .pa__foot {
+    flex: 0 0 auto;
+    padding: var(--sp-md) var(--sp-md) calc(var(--sp-md) + var(--safe-bottom));
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-1);
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="dynamic-island"></div>
+    <div class="statusbar">
+      <span class="statusbar__time">9:41</span>
+      <span class="statusbar__indicators">
+        <svg viewBox="0 0 18 12"><path d="M1 8 L4 5 L7 8 L10 3 L13 6 L17 2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <span class="statusbar__battery"><span class="statusbar__battery-fill"></span></span>
+      </span>
+    </div>
+
+    <div class="pa">
+      <header class="topbar">
+        <button class="topbar__action" aria-label="뒤로">
+          <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6 L9 12 L15 18"/></svg>
+        </button>
+        <span class="topbar__title">정산 설정</span>
+        <span style="width: 44px;"></span>
+      </header>
+
+      <div class="pa__body">
+        <div class="pa__hero">
+          <div class="pa__hero-circle">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10 H21 M7 14 H10 M13 16 H17"/></svg>
+          </div>
+          <h1 class="pa__hero-title">메이커 정산 시작하기</h1>
+          <p class="pa__hero-sub">필터가 팔리는 즉시 수익이 발생합니다. 7일 단위로 자동 정산됩니다.</p>
+        </div>
+
+        <div class="pa__preview">
+          <div class="pa__preview-row">
+            <span class="pa__preview-label">필터 가격</span>
+            <span class="pa__preview-value">₩1,500</span>
+          </div>
+          <div class="pa__preview-row">
+            <span class="pa__preview-label">Apple App Store 수수료 (30%)</span>
+            <span class="pa__preview-value" style="color: var(--text-tertiary);">−₩450</span>
+          </div>
+          <div class="pa__preview-row">
+            <span class="pa__preview-label">moodit 운영비 (10%)</span>
+            <span class="pa__preview-value" style="color: var(--text-tertiary);">−₩150</span>
+          </div>
+          <div class="pa__preview-row">
+            <span class="pa__preview-label">메이커 수익</span>
+            <span class="pa__preview-value pa__preview-value--accent">₩900 (60%)</span>
+          </div>
+        </div>
+
+        <div class="pa__steps">
+          <div class="pa__step pa__step--done">
+            <span class="pa__step-num">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12 L10 17 L20 7"/></svg>
+            </span>
+            <div class="pa__step-info">
+              <p class="pa__step-title">계정 연결</p>
+              <p class="pa__step-desc">moodit 계정 인증 완료</p>
+            </div>
+          </div>
+
+          <div class="pa__step pa__step--active">
+            <span class="pa__step-num">2</span>
+            <div class="pa__step-info">
+              <p class="pa__step-title">Stripe Connect 인증</p>
+              <p class="pa__step-desc">은행 계좌·신원 확인을 위해 Stripe로 이동합니다. 약 5분 소요.</p>
+              <p class="pa__step-time">현재 단계</p>
+            </div>
+          </div>
+
+          <div class="pa__step">
+            <span class="pa__step-num">3</span>
+            <div class="pa__step-info">
+              <p class="pa__step-title">세금 정보 입력</p>
+              <p class="pa__step-desc">국가별 세무 양식 (한국 사업자번호 / W-9 등). 첫 정산 전까지.</p>
+            </div>
+          </div>
+
+          <div class="pa__step">
+            <span class="pa__step-num">4</span>
+            <div class="pa__step-info">
+              <p class="pa__step-title">필터 유료 전환</p>
+              <p class="pa__step-desc">기존 필터를 유료로 바꾸거나 신규 유료 필터 업로드.</p>
+            </div>
+          </div>
+        </div>
+
+        <p class="pa__legal">계속하면 <a href="#">moodit 메이커 약관</a>과 <a href="#">Stripe 서비스 약관</a>에 동의한 것으로 간주합니다.</p>
+      </div>
+
+      <div class="pa__foot">
+        <button class="btn btn--primary btn--lg btn--block">Stripe로 이동 →</button>
+      </div>
+    </div>
+
+    <div class="home-indicator"></div>
+  </div>
+</div>
+</body>
+</html>
