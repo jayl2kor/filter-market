@@ -143,6 +143,119 @@ struct NotificationPreferences: Equatable {
     var quietEnd = "07:00"
 }
 
+enum EditorParameterSection: String, CaseIterable, Identifiable {
+    case lighting
+    case color
+    case detail
+    case effects
+    case lut
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .lighting: "조명"
+        case .color: "색"
+        case .detail: "디테일"
+        case .effects: "효과"
+        case .lut: "LUT"
+        }
+    }
+
+    var actionID: String {
+        "editor.tab.\(rawValue)"
+    }
+}
+
+enum UploadStep: String, CaseIterable, Identifiable {
+    case cover
+    case tags
+    case submit
+    case pending
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .cover: "표지"
+        case .tags: "정보"
+        case .submit: "제출"
+        case .pending: "검수"
+        }
+    }
+}
+
+enum MakerFilterStatus: String, CaseIterable, Identifiable {
+    case all
+    case live
+    case pending
+    case rejected
+    case draft
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .all: "전체"
+        case .live: "공개"
+        case .pending: "검수중"
+        case .rejected: "반려"
+        case .draft: "초안"
+        }
+    }
+}
+
+struct MakerFilterDraft: Identifiable, Equatable {
+    var id: UUID = UUID()
+    var name: String
+    var summary: String
+    var category: FilterCategory
+    var tags: [String]
+    var parameterValues: [String: Double]
+    var lutFileName: String?
+    var coverCount: Int
+    var beforeAfterEnabled: Bool
+    var tosOriginal: Bool
+    var tosPolicy: Bool
+    var tosCommercial: Bool
+    var status: MakerFilterStatus
+    var updatedAt: Date
+    var submittedAt: Date?
+
+    static let preview = MakerFilterDraft(
+        name: "Amber Cafe",
+        summary: "70년대 필름 카메라 톤. 카페, 실내, 골든아워에 어울리는 부드러운 골드.",
+        category: .vintage,
+        tags: ["카페", "골든아워", "필름", "warm"],
+        parameterValues: [
+            "exposure": 0.12,
+            "contrast": 0.34,
+            "saturation": 0.42,
+            "grain": 0.28,
+            "vignette": 0.18
+        ],
+        lutFileName: "amber_cafe_33.cube",
+        coverCount: 3,
+        beforeAfterEnabled: true,
+        tosOriginal: false,
+        tosPolicy: false,
+        tosCommercial: false,
+        status: .draft,
+        updatedAt: Date(),
+        submittedAt: nil
+    )
+
+    var isReadyForSubmit: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !tags.isEmpty
+            && coverCount > 0
+            && tosOriginal
+            && tosPolicy
+            && tosCommercial
+    }
+}
+
 @MainActor
 final class MooditStore: ObservableObject {
     @Published private(set) var filters: [Filter] = []
@@ -175,6 +288,60 @@ final class MooditStore: ObservableObject {
         )
     ]
     @Published var notificationPreferences = NotificationPreferences()
+    @Published var editorDraft = MakerFilterDraft.preview
+    @Published var uploadStep: UploadStep = .cover
+    @Published var selectedMakerStatus: MakerFilterStatus = .all
+    @Published var makerFilters: [MakerFilterDraft] = [
+        MakerFilterDraft(
+            name: "Seoul Night",
+            summary: "차가운 네온과 깊은 블랙을 살린 야간 도시 필터.",
+            category: .cinematic,
+            tags: ["도시", "야간", "네온"],
+            parameterValues: ["exposure": -0.08, "contrast": 0.5, "saturation": 0.22, "grain": 0.16, "vignette": 0.32],
+            lutFileName: "seoul_night_33.cube",
+            coverCount: 4,
+            beforeAfterEnabled: true,
+            tosOriginal: true,
+            tosPolicy: true,
+            tosCommercial: true,
+            status: .live,
+            updatedAt: Calendar.current.date(byAdding: .day, value: -3, to: Date()) ?? Date(),
+            submittedAt: Calendar.current.date(byAdding: .day, value: -5, to: Date()) ?? Date()
+        ),
+        MakerFilterDraft(
+            name: "Amber Cafe",
+            summary: "따뜻한 카페와 골든아워용 필름 톤.",
+            category: .vintage,
+            tags: ["카페", "필름", "warm"],
+            parameterValues: MakerFilterDraft.preview.parameterValues,
+            lutFileName: "amber_cafe_33.cube",
+            coverCount: 3,
+            beforeAfterEnabled: true,
+            tosOriginal: true,
+            tosPolicy: true,
+            tosCommercial: true,
+            status: .pending,
+            updatedAt: Calendar.current.date(byAdding: .hour, value: -6, to: Date()) ?? Date(),
+            submittedAt: Calendar.current.date(byAdding: .hour, value: -6, to: Date()) ?? Date()
+        ),
+        MakerFilterDraft(
+            name: "Strange Vibe",
+            summary: "강한 색 분리와 대비가 있는 실험적 룩.",
+            category: .mood,
+            tags: ["무드", "실험", "컬러"],
+            parameterValues: ["exposure": 0.04, "contrast": 0.66, "saturation": 0.74, "grain": 0.38, "vignette": 0.2],
+            lutFileName: "strange_vibe_33.cube",
+            coverCount: 2,
+            beforeAfterEnabled: false,
+            tosOriginal: true,
+            tosPolicy: true,
+            tosCommercial: true,
+            status: .rejected,
+            updatedAt: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
+            submittedAt: Calendar.current.date(byAdding: .day, value: -2, to: Date()) ?? Date()
+        ),
+        MakerFilterDraft.preview
+    ]
     /// manifest 로드 실패 시 마지막 에러. UI 는 이 값을 보고 ErrorBanner / FMEmptyState 를 노출.
     @Published private(set) var loadError: Error?
     /// 로드 진행 상태. skeleton vs 에러 vs 빈 상태 분기에 사용.
@@ -285,6 +452,83 @@ final class MooditStore: ObservableObject {
             status: "요청됨"
         )
         exportRequests.insert(request, at: 0)
+    }
+
+    func resetEditorDraft() {
+        editorDraft = MakerFilterDraft.preview
+        uploadStep = .cover
+    }
+
+    func updateEditorParameter(_ key: String, value: Double) {
+        editorDraft.parameterValues[key] = value
+        editorDraft.updatedAt = Date()
+    }
+
+    func setEditorLUT(_ fileName: String) {
+        editorDraft.lutFileName = fileName
+        editorDraft.updatedAt = Date()
+    }
+
+    func saveEditorDraft() {
+        editorDraft.status = .draft
+        editorDraft.updatedAt = Date()
+        upsertMakerFilter(editorDraft)
+    }
+
+    func addUploadCover() {
+        editorDraft.coverCount = min(6, editorDraft.coverCount + 1)
+        editorDraft.updatedAt = Date()
+    }
+
+    func removeUploadCover() {
+        editorDraft.coverCount = max(0, editorDraft.coverCount - 1)
+        editorDraft.updatedAt = Date()
+    }
+
+    func addUploadTag(_ tag: String) {
+        let normalized = tag
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "#", with: "")
+        guard !normalized.isEmpty, !editorDraft.tags.contains(normalized) else { return }
+        editorDraft.tags.append(normalized)
+        editorDraft.updatedAt = Date()
+    }
+
+    func removeUploadTag(_ tag: String) {
+        editorDraft.tags.removeAll { $0 == tag }
+        editorDraft.updatedAt = Date()
+    }
+
+    func setUploadCategory(_ category: FilterCategory) {
+        editorDraft.category = category
+        editorDraft.updatedAt = Date()
+    }
+
+    func submitCurrentDraft() {
+        editorDraft.status = .pending
+        editorDraft.submittedAt = Date()
+        editorDraft.updatedAt = Date()
+        uploadStep = .pending
+        upsertMakerFilter(editorDraft)
+    }
+
+    func startEditing(_ draft: MakerFilterDraft) {
+        editorDraft = draft
+        uploadStep = .cover
+    }
+
+    func markMakerFilterPrivate(_ draft: MakerFilterDraft) {
+        guard let index = makerFilters.firstIndex(where: { $0.id == draft.id }) else { return }
+        makerFilters[index].status = .draft
+        makerFilters[index].updatedAt = Date()
+    }
+
+    private func upsertMakerFilter(_ draft: MakerFilterDraft) {
+        if let index = makerFilters.firstIndex(where: { $0.id == draft.id }) {
+            makerFilters[index] = draft
+        } else {
+            makerFilters.insert(draft, at: 0)
+        }
     }
 
     func filter(matching routeID: String) -> Filter? {

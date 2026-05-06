@@ -1533,45 +1533,927 @@ struct DataExportScreen: View {
 // MARK: - Editor / Upload
 
 struct FilterEditorScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .editor) }
+    @EnvironmentObject private var store: MooditStore
+    @State private var showCancelAlert = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                editorPreview
+                quickStats
+                editorActions
+                parameterPreview
+            }
+            .padding(Sp.md)
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("필터 에디터")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("취소") { showCancelAlert = true }
+                    .accessibilityIdentifier("editor.cancel")
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(value: AppRoute.editorDraft) {
+                    Text("완료")
+                        .fontWeight(.semibold)
+                }
+                .simultaneousGesture(TapGesture().onEnded {
+                    store.saveEditorDraft()
+                })
+                .accessibilityIdentifier("editor.next")
+            }
+        }
+        .alert("편집을 취소할까요?", isPresented: $showCancelAlert) {
+            Button("초안 저장") { store.saveEditorDraft() }
+            Button("버리기", role: .destructive) { store.resetEditorDraft() }
+            Button("계속 편집", role: .cancel) {}
+        } message: {
+            Text("현재 파라미터와 LUT 선택을 초안으로 남길 수 있습니다.")
+        }
+    }
+
+    private var editorPreview: some View {
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: R.lg)
+                .fill(
+                    LinearGradient(
+                        colors: store.editorDraft.category.swatch,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .aspectRatio(4.0 / 5.0, contentMode: .fit)
+                .overlay {
+                    VStack(spacing: Sp.xs) {
+                        Image(systemName: "camera.filters")
+                            .font(.system(size: 42, weight: .semibold))
+                        Text(store.editorDraft.name)
+                            .fmTypography(.titleLarge)
+                    }
+                    .foregroundStyle(.white)
+                    .shadow(radius: 12)
+                }
+
+            Text("PRESS HOLD BEFORE")
+                .fmTypography(.caption)
+                .foregroundStyle(.white)
+                .padding(.horizontal, Sp.sm)
+                .padding(.vertical, Sp.xs)
+                .background(.black.opacity(0.28), in: Capsule())
+                .padding(Sp.md)
+                .accessibilityIdentifier("editor.compare.hold")
+        }
+    }
+
+    private var quickStats: some View {
+        HStack(spacing: Sp.sm) {
+            editorMetric("LUT", value: store.editorDraft.lutFileName ?? "기본")
+            editorMetric("커버", value: "\(store.editorDraft.coverCount)장")
+            editorMetric("태그", value: "\(store.editorDraft.tags.count)개")
+        }
+    }
+
+    private var editorActions: some View {
+        VStack(spacing: Sp.sm) {
+            NavigationLink(value: AppRoute.editorParameters) {
+                routeButton("파라미터 편집", icon: "slider.horizontal.3")
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("editor.params")
+
+            HStack(spacing: Sp.sm) {
+                NavigationLink(value: AppRoute.editorLUT) {
+                    compactRouteButton("LUT", icon: "cube.transparent")
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("editor.lut")
+
+                NavigationLink(value: AppRoute.editorDraft) {
+                    compactRouteButton("초안 저장", icon: "tray.and.arrow.down")
+                }
+                .simultaneousGesture(TapGesture().onEnded {
+                    store.saveEditorDraft()
+                })
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("editor.draft")
+            }
+
+            NavigationLink(value: AppRoute.uploadCover) {
+                routeButton("마켓 공유로 계속", icon: "arrow.right")
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("editor.next")
+        }
+    }
+
+    private var parameterPreview: some View {
+        FMCard {
+            VStack(alignment: .leading, spacing: Sp.sm) {
+                sectionLabel("주요 파라미터")
+                ForEach(["exposure", "contrast", "saturation"], id: \.self) { key in
+                    HStack {
+                        Text(parameterTitle(key))
+                            .fmTypography(.body)
+                            .foregroundStyle(FMColors.Text.primary)
+                        Spacer()
+                        Text("\(Int((store.editorDraft.parameterValues[key] ?? 0) * 100))")
+                            .fmTypography(.headline)
+                            .foregroundStyle(FMColors.Accent.primary)
+                    }
+                    if key != "saturation" {
+                        workflowDivider()
+                    }
+                }
+            }
+        }
+    }
+
+    private func editorMetric(_ title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .fmTypography(.caption)
+                .foregroundStyle(FMColors.Text.tertiary)
+            Text(value)
+                .fmTypography(.headline)
+                .foregroundStyle(FMColors.Text.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Sp.sm)
+        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+    }
 }
 
 struct EditorParametersScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .editorParameters) }
+    @EnvironmentObject private var store: MooditStore
+    @State private var selectedSection: EditorParameterSection = .lighting
+
+    private let parameters = ["exposure", "contrast", "saturation", "grain", "vignette"]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                workflowHeader(
+                    title: "파라미터",
+                    subtitle: "조명, 색, 질감 값을 조정해 필터 룩을 만듭니다.",
+                    symbol: "slider.horizontal.3"
+                )
+                sectionTabs
+                sliders
+                compareCard
+                NavigationLink(value: AppRoute.editorLUT) {
+                    routeButton("계속", icon: "arrow.right")
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("editor.next")
+            }
+            .padding(Sp.md)
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("파라미터")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var sectionTabs: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Sp.xs) {
+                ForEach(EditorParameterSection.allCases) { section in
+                    FMChip(section.title, isSelected: selectedSection == section, size: .sm) {
+                        selectedSection = section
+                    }
+                    .accessibilityIdentifier(section.actionID)
+                }
+            }
+        }
+    }
+
+    private var sliders: some View {
+        FMCard {
+            VStack(spacing: Sp.md) {
+                ForEach(parameters, id: \.self) { key in
+                    VStack(alignment: .leading, spacing: Sp.xs) {
+                        HStack {
+                            Text(parameterTitle(key))
+                                .fmTypography(.body)
+                                .foregroundStyle(FMColors.Text.primary)
+                            Spacer()
+                            Text("\(Int((store.editorDraft.parameterValues[key] ?? 0) * 100))")
+                                .fmTypography(.caption)
+                                .foregroundStyle(FMColors.Text.tertiary)
+                        }
+                        Slider(
+                            value: Binding(
+                                get: { store.editorDraft.parameterValues[key] ?? 0 },
+                                set: { store.updateEditorParameter(key, value: $0) }
+                            ),
+                            in: -1...1
+                        )
+                        .tint(FMColors.Accent.primary)
+                        .accessibilityIdentifier("editor.param.slider.\(key)")
+                    }
+                }
+            }
+            .accessibilityIdentifier("editor.param.slider")
+        }
+    }
+
+    private var compareCard: some View {
+        HStack(spacing: Sp.sm) {
+            Image(systemName: "rectangle.lefthalf.filled")
+                .foregroundStyle(FMColors.Accent.primary)
+            Text("비포 보기는 프리뷰를 길게 눌러 확인합니다.")
+                .fmTypography(.subhead)
+                .foregroundStyle(FMColors.Text.secondary)
+        }
+        .padding(Sp.md)
+        .background(FMColors.Accent.bg, in: RoundedRectangle(cornerRadius: R.md))
+        .accessibilityIdentifier("editor.compare.hold")
+    }
 }
 
 struct EditorLUTImportScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .editorLUT) }
+    @EnvironmentObject private var store: MooditStore
+    @State private var importCount = 0
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                workflowHeader(
+                    title: "LUT 파일 추가",
+                    subtitle: "Cube LUT 파일을 연결하고 검증 상태를 확인합니다.",
+                    symbol: "cube.transparent"
+                )
+                lutCard
+                validationCard
+                NavigationLink(value: AppRoute.editorDraft) {
+                    routeButton("초안 저장 단계로", icon: "arrow.right")
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("editor.next")
+            }
+            .padding(Sp.md)
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("LUT 가져오기")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var lutCard: some View {
+        FMCard {
+            VStack(alignment: .leading, spacing: Sp.md) {
+                HStack {
+                    Image(systemName: "doc.badge.gearshape")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundStyle(FMColors.Accent.primary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(store.editorDraft.lutFileName ?? "LUT 파일 없음")
+                            .fmTypography(.headline)
+                            .foregroundStyle(FMColors.Text.primary)
+                        Text("33x33 Cube · sRGB · 1.2MB")
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Text.secondary)
+                    }
+                    Spacer()
+                }
+
+                HStack(spacing: Sp.sm) {
+                    FMButton("가져오기", icon: "folder", variant: .secondary) {
+                        importCount += 1
+                        store.setEditorLUT("custom_lut_\(importCount + 1).cube")
+                    }
+                    .accessibilityIdentifier("editor.lut.import")
+
+                    FMButton("교체", icon: "arrow.triangle.2.circlepath", variant: .secondary) {
+                        importCount += 1
+                        store.setEditorLUT("amber_replace_\(importCount + 1).cube")
+                    }
+                    .accessibilityIdentifier("editor.lut.replace")
+                }
+            }
+        }
+    }
+
+    private var validationCard: some View {
+        FMCard {
+            VStack(alignment: .leading, spacing: Sp.sm) {
+                sectionLabel("검증")
+                validationRow("파일 형식", value: "Cube LUT", isPassed: store.editorDraft.lutFileName != nil)
+                workflowDivider()
+                validationRow("색공간", value: "sRGB", isPassed: true)
+                workflowDivider()
+                validationRow("앱 호환성", value: "iOS 17+", isPassed: true)
+            }
+        }
+    }
+
+    private func validationRow(_ title: String, value: String, isPassed: Bool) -> some View {
+        HStack {
+            Image(systemName: isPassed ? "checkmark.circle.fill" : "exclamationmark.circle")
+                .foregroundStyle(isPassed ? FMColors.Accent.primary : FMColors.Text.tertiary)
+            Text(title)
+                .fmTypography(.body)
+                .foregroundStyle(FMColors.Text.primary)
+            Spacer()
+            Text(value)
+                .fmTypography(.caption)
+                .foregroundStyle(FMColors.Text.secondary)
+        }
+    }
 }
 
 struct EditorDraftSaveScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .editorDraft) }
+    @EnvironmentObject private var store: MooditStore
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                workflowHeader(
+                    title: "초안 저장",
+                    subtitle: "마켓 공유 전에 이름과 설명을 정리합니다.",
+                    symbol: "tray.and.arrow.down"
+                )
+                draftForm
+                draftSummary
+                actionButtons
+            }
+            .padding(Sp.md)
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("초안 저장")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var draftForm: some View {
+        VStack(spacing: Sp.md) {
+            FMTextField("필터 이름", text: $store.editorDraft.name, placeholder: "Amber Cafe")
+                .accessibilityIdentifier("editor.draft.name")
+            FMTextField(
+                "설명",
+                text: $store.editorDraft.summary,
+                placeholder: "분위기와 추천 사용처",
+                style: .multiline(minHeight: 112)
+            )
+            .accessibilityIdentifier("editor.draft.description")
+        }
+    }
+
+    private var draftSummary: some View {
+        FMCard {
+            VStack(alignment: .leading, spacing: Sp.sm) {
+                sectionLabel("초안 상태")
+                HStack {
+                    Text(store.editorDraft.category.displayTitle)
+                    Spacer()
+                    Text(store.editorDraft.lutFileName ?? "기본 LUT")
+                }
+                .fmTypography(.subhead)
+                .foregroundStyle(FMColors.Text.secondary)
+                workflowDivider()
+                Text(store.editorDraft.tags.map { "#\($0)" }.joined(separator: " "))
+                    .fmTypography(.caption)
+                    .foregroundStyle(FMColors.Text.tertiary)
+            }
+        }
+    }
+
+    private var actionButtons: some View {
+        VStack(spacing: Sp.sm) {
+            NavigationLink(value: AppRoute.myFilters) {
+                routeButton("초안 저장 후 내 필터", icon: "tray")
+            }
+            .simultaneousGesture(TapGesture().onEnded {
+                store.saveEditorDraft()
+            })
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("editor.draft.save")
+
+            NavigationLink(value: AppRoute.uploadCover) {
+                routeButton("바로 마켓 공유", icon: "paperplane")
+            }
+            .simultaneousGesture(TapGesture().onEnded {
+                store.saveEditorDraft()
+            })
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("editor.draft.publish")
+        }
+    }
 }
 
 struct UploadCoverScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .uploadCover) }
+    @EnvironmentObject private var store: MooditStore
+    @State private var showCancelAlert = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                uploadProgress(active: .cover)
+                workflowHeader(
+                    title: "표지 사진 선택",
+                    subtitle: "마켓 카드와 상세 화면에서 보일 샘플 이미지를 고릅니다.",
+                    symbol: "photo.on.rectangle"
+                )
+                coverGrid
+                Toggle("자동 비포/애프터 생성", isOn: $store.editorDraft.beforeAfterEnabled)
+                    .tint(FMColors.Accent.primary)
+                    .padding(Sp.md)
+                    .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+                    .accessibilityIdentifier("upload.cover.ba.toggle")
+                NavigationLink(value: AppRoute.uploadTags) {
+                    routeButton("다음", icon: "arrow.right")
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("upload.next")
+            }
+            .padding(Sp.md)
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("커버 업로드")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("취소") { showCancelAlert = true }
+                    .accessibilityIdentifier("upload.cancel")
+            }
+        }
+        .alert("업로드를 취소할까요?", isPresented: $showCancelAlert) {
+            Button("초안 저장") { store.saveEditorDraft() }
+            Button("취소", role: .cancel) {}
+        }
+    }
+
+    private var coverGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Sp.sm) {
+            ForEach(0..<store.editorDraft.coverCount, id: \.self) { index in
+                coverTile(index: index)
+            }
+            Button {
+                store.addUploadCover()
+            } label: {
+                VStack(spacing: Sp.xs) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 24, weight: .semibold))
+                    Text("사진 추가")
+                        .fmTypography(.caption)
+                }
+                .foregroundStyle(FMColors.Accent.primary)
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1, contentMode: .fit)
+                .background(FMColors.Accent.bg, in: RoundedRectangle(cornerRadius: R.md))
+                .overlay {
+                    RoundedRectangle(cornerRadius: R.md)
+                        .strokeBorder(FMColors.Accent.primary.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [5]))
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("upload.cover.add")
+        }
+    }
+
+    private func coverTile(index: Int) -> some View {
+        ZStack(alignment: .topTrailing) {
+            RoundedRectangle(cornerRadius: R.md)
+                .fill(LinearGradient(colors: store.editorDraft.category.swatch, startPoint: .topLeading, endPoint: .bottomTrailing))
+                .aspectRatio(1, contentMode: .fit)
+            Button {
+                store.removeUploadCover()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 28, height: 28)
+                    .background(.black.opacity(0.35), in: Circle())
+                    .padding(Sp.xs)
+            }
+            .accessibilityIdentifier("upload.cover.remove")
+        }
+    }
 }
 
 struct UploadTagsCategoryScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .uploadTags) }
+    @EnvironmentObject private var store: MooditStore
+    @State private var pendingTag = ""
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                uploadProgress(active: .tags)
+                tagSection
+                categorySection
+                descriptionSection
+                NavigationLink(value: AppRoute.uploadSubmit) {
+                    routeButton("다음", icon: "arrow.right")
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("upload.next")
+            }
+            .padding(Sp.md)
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("태그와 카테고리")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var tagSection: some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            sectionLabel("태그")
+            FMCard {
+                VStack(alignment: .leading, spacing: Sp.sm) {
+                    WorkflowFlowLayout(spacing: Sp.xs) {
+                        ForEach(store.editorDraft.tags, id: \.self) { tag in
+                            Button {
+                                store.removeUploadTag(tag)
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text("#\(tag)")
+                                    Image(systemName: "xmark")
+                                }
+                                .fmTypography(.caption)
+                                .foregroundStyle(FMColors.Accent.primary)
+                                .padding(.horizontal, Sp.xs)
+                                .padding(.vertical, 5)
+                                .background(FMColors.Accent.bg, in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("upload.tag.remove")
+                        }
+                    }
+                    HStack {
+                        TextField("태그 입력", text: $pendingTag)
+                            .textInputAutocapitalization(.never)
+                        Button("추가") {
+                            store.addUploadTag(pendingTag)
+                            pendingTag = ""
+                        }
+                        .disabled(pendingTag.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .accessibilityIdentifier("upload.tag.add")
+                    }
+                    .padding(Sp.sm)
+                    .background(FMColors.Background.bg3, in: RoundedRectangle(cornerRadius: R.md))
+                }
+            }
+        }
+    }
+
+    private var categorySection: some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            sectionLabel("카테고리")
+            WorkflowFlowLayout(spacing: Sp.xs) {
+                ForEach(FilterCategory.allCases, id: \.rawValue) { category in
+                    FMChip(category.displayTitle, isSelected: store.editorDraft.category == category, size: .sm) {
+                        store.setUploadCategory(category)
+                    }
+                    .accessibilityIdentifier("upload.cat.tap.\(category.rawValue)")
+                }
+            }
+            .accessibilityIdentifier("upload.cat.tap")
+        }
+    }
+
+    private var descriptionSection: some View {
+        FMTextField(
+            "설명",
+            text: $store.editorDraft.summary,
+            placeholder: "이 필터의 분위기와 추천 사용처",
+            style: .multiline(minHeight: 112)
+        )
+    }
 }
 
 struct UploadTOSSubmitScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .uploadSubmit) }
+    @EnvironmentObject private var store: MooditStore
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                uploadProgress(active: .submit)
+                workflowHeader(
+                    title: "검토 후 제출",
+                    subtitle: "마켓 공개 전 표시 정보와 정책 동의를 확인합니다.",
+                    symbol: "checkmark.seal"
+                )
+                summaryCard
+                tosCard
+                NavigationLink(value: AppRoute.uploadPending) {
+                    routeButton("검수 제출", icon: "paperplane.fill")
+                }
+                .simultaneousGesture(TapGesture().onEnded {
+                    store.submitCurrentDraft()
+                })
+                .buttonStyle(.plain)
+                .disabled(!store.editorDraft.isReadyForSubmit)
+                .accessibilityIdentifier("upload.submit")
+            }
+            .padding(Sp.md)
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("약관 및 제출")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var summaryCard: some View {
+        FMCard {
+            VStack(alignment: .leading, spacing: Sp.sm) {
+                sectionLabel("제출 요약")
+                summaryRow("이름", value: store.editorDraft.name)
+                workflowDivider()
+                summaryRow("카테고리", value: store.editorDraft.category.displayTitle)
+                workflowDivider()
+                summaryRow("커버", value: "\(store.editorDraft.coverCount)장")
+                workflowDivider()
+                summaryRow("태그", value: store.editorDraft.tags.map { "#\($0)" }.joined(separator: " "))
+            }
+        }
+    }
+
+    private var tosCard: some View {
+        FMCard {
+            VStack(spacing: 0) {
+                Toggle("직접 만들었거나 사용 권한이 있습니다", isOn: $store.editorDraft.tosOriginal)
+                    .tint(FMColors.Accent.primary)
+                workflowDivider()
+                Toggle("마켓 정책과 심사 기준을 확인했습니다", isOn: $store.editorDraft.tosPolicy)
+                    .tint(FMColors.Accent.primary)
+                workflowDivider()
+                Toggle("상업적 배포 권한을 확인했습니다", isOn: $store.editorDraft.tosCommercial)
+                    .tint(FMColors.Accent.primary)
+            }
+            .accessibilityIdentifier("upload.tos.toggle")
+        }
+    }
+
+    private func summaryRow(_ title: String, value: String) -> some View {
+        HStack(alignment: .top) {
+            Text(title)
+                .fmTypography(.subhead)
+                .foregroundStyle(FMColors.Text.secondary)
+            Spacer()
+            Text(value)
+                .fmTypography(.subhead)
+                .foregroundStyle(FMColors.Text.primary)
+                .multilineTextAlignment(.trailing)
+        }
+    }
 }
 
 struct UploadPendingReviewScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .uploadPending) }
+    @EnvironmentObject private var store: MooditStore
+
+    var body: some View {
+        VStack(spacing: Sp.lg) {
+            Spacer()
+            Image(systemName: "hourglass.circle.fill")
+                .font(.system(size: 64, weight: .semibold))
+                .foregroundStyle(FMColors.Accent.primary)
+            VStack(spacing: Sp.xs) {
+                Text("검수 중입니다")
+                    .fmTypography(.titleLarge)
+                    .foregroundStyle(FMColors.Text.primary)
+                Text("제출한 필터는 보통 24시간 안에 검수됩니다. 상태는 내 필터에서 확인할 수 있습니다.")
+                    .fmTypography(.body)
+                    .foregroundStyle(FMColors.Text.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            FMCard {
+                VStack(alignment: .leading, spacing: Sp.sm) {
+                    summaryRow("필터", value: store.editorDraft.name)
+                    workflowDivider()
+                    summaryRow("상태", value: "검수중")
+                    workflowDivider()
+                    summaryRow("제출", value: workflowDateString(store.editorDraft.submittedAt ?? Date()))
+                }
+            }
+            NavigationLink(value: AppRoute.myFilters) {
+                routeButton("내 필터 보기", icon: "rectangle.stack")
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("upload.pending.view_filter")
+            Spacer()
+        }
+        .padding(Sp.md)
+        .background(FMColors.Background.bg1)
+        .navigationTitle("검수 대기")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func summaryRow(_ title: String, value: String) -> some View {
+        HStack {
+            Text(title)
+                .fmTypography(.subhead)
+                .foregroundStyle(FMColors.Text.secondary)
+            Spacer()
+            Text(value)
+                .fmTypography(.subhead)
+                .foregroundStyle(FMColors.Text.primary)
+        }
+    }
 }
 
 // FilterRejectedScreen — `Sources/App/Moderation/FilterRejectedScreen.swift`
 
 struct MyFiltersScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .myFilters) }
+    @EnvironmentObject private var store: MooditStore
+    @State private var selectedDraft: MakerFilterDraft?
+    @State private var showTakedownAlert = false
+
+    private var visibleFilters: [MakerFilterDraft] {
+        store.selectedMakerStatus == .all
+            ? store.makerFilters
+            : store.makerFilters.filter { $0.status == store.selectedMakerStatus }
+    }
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Sp.lg) {
+                    header
+                    statusChips
+                    filterList
+                }
+                .padding(Sp.md)
+                .padding(.bottom, FMLayout.tabBarHeight + 96)
+            }
+            NavigationLink(value: AppRoute.editor) {
+                Image(systemName: "plus")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 60, height: 60)
+                    .background(FMColors.Accent.primary, in: Circle())
+                    .shadow(color: .black.opacity(0.18), radius: 14, x: 0, y: 6)
+            }
+            .simultaneousGesture(TapGesture().onEnded {
+                store.resetEditorDraft()
+            })
+            .accessibilityIdentifier("myfilters.fab.create")
+            .padding(.trailing, Sp.lg)
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.lg)
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("내 필터")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("비공개로 전환할까요?", isPresented: $showTakedownAlert) {
+            Button("전환", role: .destructive) {
+                if let selectedDraft {
+                    store.markMakerFilterPrivate(selectedDraft)
+                }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("마켓 노출이 중지되고 초안 상태로 돌아갑니다.")
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            Text("메이커 필터")
+                .fmTypography(.titleLarge)
+                .foregroundStyle(FMColors.Text.primary)
+            Text("공개, 검수, 반려, 초안을 한 곳에서 관리합니다.")
+                .fmTypography(.body)
+                .foregroundStyle(FMColors.Text.secondary)
+        }
+    }
+
+    private var statusChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Sp.xs) {
+                ForEach(MakerFilterStatus.allCases) { status in
+                    FMChip("\(status.title) \(count(for: status))", isSelected: store.selectedMakerStatus == status, size: .sm) {
+                        store.selectedMakerStatus = status
+                    }
+                    .accessibilityIdentifier("myfilters.status.filter.\(status.rawValue)")
+                }
+            }
+        }
+        .accessibilityIdentifier("myfilters.status.filter")
+    }
+
+    private var filterList: some View {
+        VStack(spacing: Sp.sm) {
+            ForEach(visibleFilters) { draft in
+                makerFilterRow(draft)
+            }
+        }
+    }
+
+    private func makerFilterRow(_ draft: MakerFilterDraft) -> some View {
+        FMCard {
+            VStack(alignment: .leading, spacing: Sp.sm) {
+                HStack(spacing: Sp.sm) {
+                    RoundedRectangle(cornerRadius: R.sm)
+                        .fill(LinearGradient(colors: draft.category.swatch, startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 58, height: 72)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(draft.name)
+                            .fmTypography(.headline)
+                            .foregroundStyle(FMColors.Text.primary)
+                        Text(workflowDateString(draft.updatedAt))
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Text.tertiary)
+                        statusBadge(draft.status)
+                    }
+                    Spacer()
+                }
+
+                HStack(spacing: Sp.sm) {
+                    NavigationLink(value: draft.status == .rejected ? AppRoute.filterRejected(id: draft.name) : AppRoute.editor) {
+                        compactRouteButton(draft.status == .rejected ? "검수 결과" : "수정", icon: draft.status == .rejected ? "doc.text" : "slider.horizontal.3")
+                    }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        store.startEditing(draft)
+                    })
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier(draft.status == .rejected ? "mod.rejected.review" : "myfilters.row.edit")
+
+                    Button {
+                        selectedDraft = draft
+                        showTakedownAlert = true
+                    } label: {
+                        compactRouteButton("비공개", icon: "eye.slash")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("myfilters.row.takedown")
+                }
+            }
+        }
+        .accessibilityIdentifier("myfilters.row.tap")
+    }
+
+    private func statusBadge(_ status: MakerFilterStatus) -> some View {
+        Text(status.title)
+            .fmTypography(.caption)
+            .foregroundStyle(status == .rejected ? FMColors.Semantic.error : FMColors.Accent.primary)
+            .padding(.horizontal, Sp.xs)
+            .padding(.vertical, 3)
+            .background(status == .rejected ? FMColors.Semantic.errorBg : FMColors.Accent.bg, in: Capsule())
+    }
+
+    private func count(for status: MakerFilterStatus) -> Int {
+        status == .all ? store.makerFilters.count : store.makerFilters.filter { $0.status == status }.count
+    }
 }
 
 struct RemixFlowScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .remixFlow) }
+    @EnvironmentObject private var store: MooditStore
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Sp.lg) {
+            workflowHeader(
+                title: "이 필터를 베이스로 새로 만들기",
+                subtitle: "원본 메이커 크레딧을 유지한 채 파라미터와 LUT를 조정합니다.",
+                symbol: "arrow.triangle.branch"
+            )
+            FMCard {
+                VStack(alignment: .leading, spacing: Sp.sm) {
+                    HStack {
+                        Image(systemName: "camera.filters")
+                            .foregroundStyle(FMColors.Accent.primary)
+                        Text("Sunset 1973")
+                            .fmTypography(.headline)
+                            .foregroundStyle(FMColors.Text.primary)
+                        Spacer()
+                        FMTag("Remix OK", style: .accent)
+                    }
+                    workflowDivider()
+                    Text("리믹스는 새 초안으로 저장되며, 원본 필터의 판매 파일은 복사되지 않습니다.")
+                        .fmTypography(.body)
+                        .foregroundStyle(FMColors.Text.secondary)
+                }
+            }
+            Spacer()
+            HStack(spacing: Sp.sm) {
+                FMButton("취소", variant: .secondary, size: .lg) {
+                    dismiss()
+                }
+                .accessibilityIdentifier("editor.remix.cancel")
+
+                NavigationLink(value: AppRoute.editor) {
+                    routeButton("에디터 열기", icon: "slider.horizontal.3")
+                }
+                .simultaneousGesture(TapGesture().onEnded {
+                    store.resetEditorDraft()
+                    store.editorDraft.name = "Sunset 1973 Remix"
+                    store.editorDraft.tags = ["remix", "sunset", "film"]
+                })
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("editor.remix.open_editor")
+            }
+        }
+        .padding(Sp.md)
+        .background(FMColors.Background.bg1)
+        .navigationTitle("리믹스")
+        .navigationBarTitleDisplayMode(.inline)
+    }
 }
 
 // MARK: - Social / Discovery
@@ -1889,6 +2771,26 @@ private func routeButton(_ title: String, icon: String) -> some View {
 }
 
 @MainActor
+private func compactRouteButton(_ title: String, icon: String) -> some View {
+    HStack(spacing: Sp.xs) {
+        Image(systemName: icon)
+        Text(title)
+            .fmTypography(.subhead)
+            .lineLimit(1)
+        Spacer(minLength: 0)
+    }
+    .foregroundStyle(FMColors.Text.primary)
+    .padding(.horizontal, Sp.sm)
+    .frame(maxWidth: .infinity)
+    .frame(height: 44)
+    .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+    .overlay {
+        RoundedRectangle(cornerRadius: R.md)
+            .strokeBorder(FMColors.Border.default, lineWidth: 1)
+    }
+}
+
+@MainActor
 private func sectionLabel(_ title: String) -> some View {
     Text(title)
         .fmTypography(.caption)
@@ -1915,6 +2817,95 @@ private func workflowTimeString(_ date: Date) -> String {
     formatter.locale = Locale(identifier: "ko_KR")
     formatter.dateFormat = "HH:mm"
     return formatter.string(from: date)
+}
+
+private func parameterTitle(_ key: String) -> String {
+    switch key {
+    case "exposure": "노출"
+    case "contrast": "대비"
+    case "saturation": "채도"
+    case "grain": "필름 그레인"
+    case "vignette": "비네트"
+    default: key.capitalized
+    }
+}
+
+@MainActor
+private func uploadProgress(active: UploadStep) -> some View {
+    HStack(spacing: Sp.xs) {
+        ForEach(UploadStep.allCases) { step in
+            VStack(spacing: 4) {
+                Circle()
+                    .fill(uploadStepIndex(step) <= uploadStepIndex(active) ? FMColors.Accent.primary : FMColors.Background.bg3)
+                    .frame(width: 26, height: 26)
+                    .overlay {
+                        Text("\(uploadStepIndex(step) + 1)")
+                            .fmTypography(.caption)
+                            .foregroundStyle(uploadStepIndex(step) <= uploadStepIndex(active) ? .white : FMColors.Text.tertiary)
+                    }
+                Text(step.title)
+                    .fmTypography(.caption)
+                    .foregroundStyle(step == active ? FMColors.Text.primary : FMColors.Text.tertiary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+    .padding(Sp.sm)
+    .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+}
+
+private func uploadStepIndex(_ step: UploadStep) -> Int {
+    switch step {
+    case .cover: 0
+    case .tags: 1
+    case .submit: 2
+    case .pending: 3
+    }
+}
+
+private struct WorkflowFlowLayout: Layout {
+    var spacing: CGFloat = Sp.xs
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? 0
+        var rowWidth: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var totalHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if rowWidth > 0, rowWidth + spacing + size.width > maxWidth {
+                totalHeight += rowHeight + spacing
+                rowWidth = 0
+                rowHeight = 0
+            }
+            rowWidth += (rowWidth > 0 ? spacing : 0) + size.width
+            rowHeight = max(rowHeight, size.height)
+        }
+
+        totalHeight += rowHeight
+        return CGSize(width: maxWidth, height: totalHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+
+            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
 }
 
 private enum PlaceholderPhoto {

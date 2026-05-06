@@ -10,13 +10,13 @@ public enum FMEmptyStateKind: Sendable {
     case emptyDownloads
     case emptyComments(isLoggedIn: Bool)
 
-    var symbol: String {
+    var illustration: FMEmptyStateIllustration.Kind {
         switch self {
-        case .emptyMarket: "camera.fill"
-        case .noSearchResults: "magnifyingglass"
-        case .emptyProfile: "slider.horizontal.3"
-        case .emptyDownloads: "arrow.down.circle"
-        case .emptyComments: "bubble.left.and.bubble.right"
+        case .emptyMarket: .market
+        case .noSearchResults: .search
+        case .emptyProfile: .profile
+        case .emptyDownloads: .downloads
+        case .emptyComments: .comments
         }
     }
 
@@ -110,15 +110,7 @@ public struct FMEmptyState: View {
 
     @ViewBuilder
     private var illustration: some View {
-        ZStack {
-            Circle()
-                .fill(FMColors.Accent.bg)
-                .frame(width: 96, height: 96)
-
-            Image(systemName: kind.symbol)
-                .font(.system(size: 44, weight: .light))
-                .foregroundStyle(FMColors.Accent.primary)
-        }
+        FMEmptyStateIllustration(kind.illustration, size: 96)
     }
 }
 

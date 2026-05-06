@@ -74,18 +74,18 @@
 
 | 목업 | 현재 라우트/코드 | 상태 | 구현 목표 |
 |---|---|---|---|
-| `11-filter-editor.html` | `AppRoute.editor` → `FilterEditorScreen` | `Workflow/Bespoke` | editor shell, preview, parameter tabs, cancel/draft |
-| `11b-editor-parameters.html` | `AppRoute.editorParameters` → `EditorParametersScreen` | `Workflow/Bespoke` | exposure/contrast/saturation/detail sliders |
-| `11c-editor-lut-import.html` | `AppRoute.editorLUT` → `EditorLUTImportScreen` | `Workflow/Bespoke` | Files import, LUT validation, replace/remove |
-| `11d-editor-save-draft.html` | `AppRoute.editorDraft` → `EditorDraftSaveScreen` | `Workflow/Bespoke` | draft naming, local persistence, publish CTA |
+| `11-filter-editor.html` | `AppRoute.editor` → `FilterEditorScreen` | `Bespoke` | editor preview, compare affordance, parameter/LUT/draft/upload routes, cancel alert 완료. 실제 renderer integration 남음 |
+| `11b-editor-parameters.html` | `AppRoute.editorParameters` → `EditorParametersScreen` | `Bespoke` | parameter tabs, sliders, compare hint, draft state mutation 완료. 실제 render preview sync 남음 |
+| `11c-editor-lut-import.html` | `AppRoute.editorLUT` → `EditorLUTImportScreen` | `Bespoke` | LUT import/replace mock, validation card, draft route 완료. 실제 Files importer/parser 남음 |
+| `11d-editor-save-draft.html` | `AppRoute.editorDraft` → `EditorDraftSaveScreen` | `Bespoke` | name/description editing, draft save, publish CTA 완료. 실제 persistence repository 남음 |
 | `12-upload-flow.html` | Covered by upload step routes | `Inline/Partial` | Upload flow container/progress shell |
-| `12b-upload-cover.html` | `AppRoute.uploadCover` → `UploadCoverScreen` | `Workflow/Bespoke` | cover picker, before/after toggle, validation |
-| `12c-upload-tags-category.html` | `AppRoute.uploadTags` → `UploadTagsCategoryScreen` | `Workflow/Bespoke` | tags, category, price/free policy fields |
-| `12d-upload-tos-submit.html` | `AppRoute.uploadSubmit` → `UploadTOSSubmitScreen` | `Workflow/Bespoke` | ToS checklist, policy warning, submit |
-| `12e-upload-pending.html` | `AppRoute.uploadPending` → `UploadPendingReviewScreen` | `Workflow/Bespoke` | pending review status, notification expectations |
-| `48-filter-rejected.html` | `AppRoute.filterRejected` → `FilterRejectedScreen` | `Workflow/Bespoke` | rejection reasons, evidence, edit/appeal |
-| `50-my-filters.html` | `AppRoute.myFilters` → `MyFiltersScreen` | `Workflow/Bespoke` | maker filter list, status filter, row actions |
-| `36-remix-flow.html` | `AppRoute.remixFlow` → `RemixFlowScreen` | `Workflow/Bespoke` | remix policy confirmation, open editor |
+| `12b-upload-cover.html` | `AppRoute.uploadCover` → `UploadCoverScreen` | `Bespoke` | cover count mutation, remove/add, before/after toggle, next route 완료. 실제 picker/asset upload 남음 |
+| `12c-upload-tags-category.html` | `AppRoute.uploadTags` → `UploadTagsCategoryScreen` | `Bespoke` | tag add/remove, category selection, description edit 완료. 가격/무료 정책 필드와 API 남음 |
+| `12d-upload-tos-submit.html` | `AppRoute.uploadSubmit` → `UploadTOSSubmitScreen` | `Bespoke` | summary, ToS checklist, submit-to-pending 완료. 실제 policy validation/upload job 남음 |
+| `12e-upload-pending.html` | `AppRoute.uploadPending` → `UploadPendingReviewScreen` | `Bespoke` | pending receipt, submittedAt, my filters route 완료. 실제 notification/status polling 남음 |
+| `48-filter-rejected.html` | `AppRoute.filterRejected` → `FilterRejectedScreen` | `Bespoke` | rejection reasons, moderator note, edit/appeal UX 존재. 실제 moderation API 남음 |
+| `50-my-filters.html` | `AppRoute.myFilters` → `MyFiltersScreen` | `Bespoke` | maker filter list, status chips, edit/review/takedown actions 완료. 실제 repository/dashboard 연결 남음 |
+| `36-remix-flow.html` | `AppRoute.remixFlow` → `RemixFlowScreen` | `Bespoke` | remix policy confirmation, editor handoff 완료. 원본 filter payload 주입 남음 |
 
 ### 3.4 P3 — Social, Discovery, Notifications
 
@@ -199,6 +199,11 @@
 - editor draft model 이 생긴다.
 - upload step state 가 한 곳에서 유지된다.
 - pending/rejected/my filters 상태가 서로 이동 가능하다.
+
+진행 상태:
+- 완료: `MakerFilterDraft`, `UploadStep`, `MakerFilterStatus` 기반 mock state 추가. editor/upload/my filters/remix 화면이 전용 SwiftUI 화면으로 구현됨.
+- 검증: `./scripts/test.sh` 통과 (2026-05-07).
+- 남은 통합: 실제 LUT/cover picker, renderer preview sync, draft repository, upload job API, moderation API, maker dashboard 연결.
 
 ### Phase D — Social and discovery
 
