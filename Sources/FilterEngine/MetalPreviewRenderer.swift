@@ -24,7 +24,7 @@ public final class MetalPreviewRenderer: NSObject, @unchecked Sendable {
     private var textureCache: CVMetalTextureCache?
     private var pipelineState: MTLRenderPipelineState?
     private var lutTexture: MTLTexture?
-    private var activeFilter: PreviewFilter?
+    private var activeConfiguration: FilterRenderConfiguration?
     private var uniforms = PreviewUniforms(intensity: 0.65, frameAspectRatio: 1, drawableAspectRatio: 1)
 
     private let lock = NSLock()
@@ -59,33 +59,63 @@ public final class MetalPreviewRenderer: NSObject, @unchecked Sendable {
     }
 
     public func setIntensity(_ intensity: Float) {
+        let intensity = FilterIntensity(intensity)
         lock.lock()
-        uniforms.intensity = min(max(intensity, 0), 1)
+        uniforms.intensity = intensity.value
+        if let activeConfiguration {
+            self.activeConfiguration = FilterRenderConfiguration(
+                filter: activeConfiguration.filter,
+                intensity: intensity
+            )
+        }
         lock.unlock()
     }
 
     public func applyFilter(_ filter: PreviewFilter) {
-        guard activeFilter != filter else { return }
+        apply(configuration: FilterRenderConfiguration(filter: filter.renderFilter, intensityValue: currentIntensity()))
+    }
+
+    public func apply(configuration: FilterRenderConfiguration) {
         guard let device else { return }
 
+        lock.lock()
+        let shouldReloadTexture = activeConfiguration?.filter != configuration.filter
+        lock.unlock()
+
         let texture: MTLTexture?
+        if shouldReloadTexture {
+            texture = makeLUTTexture(device: device, filter: configuration.filter)
+            guard texture != nil else { return }
+        } else {
+            texture = nil
+        }
+
+        lock.lock()
+        activeConfiguration = configuration
+        uniforms.intensity = configuration.intensity.value
+        if let texture {
+            lutTexture = texture
+        }
+        lock.unlock()
+    }
+
+    private func currentIntensity() -> Float {
+        lock.lock()
+        defer { lock.unlock() }
+        return uniforms.intensity
+    }
+
+    private func makeLUTTexture(device: MTLDevice, filter: RenderFilter) -> MTLTexture? {
         if let lutResourceBundle, let lutFile = filter.lutFile {
-            texture = (try? LUTTextureFactory.makeLUT(
+            return (try? LUTTextureFactory.makeLUT(
                 device: device,
                 bundle: lutResourceBundle,
                 resourcePath: lutFile,
                 size: filter.lutSize
-            )) ?? LUTTextureFactory.makeLUT(device: device, preset: filter.preset, size: filter.lutSize)
-        } else {
-            texture = LUTTextureFactory.makeLUT(device: device, preset: filter.preset, size: filter.lutSize)
+            )) ?? LUTTextureFactory.makeLUT(device: device, preset: filter.fallbackPreset, size: filter.lutSize)
         }
 
-        guard let texture else { return }
-
-        lock.lock()
-        activeFilter = filter
-        lutTexture = texture
-        lock.unlock()
+        return LUTTextureFactory.makeLUT(device: device, preset: filter.fallbackPreset, size: filter.lutSize)
     }
 
     @MainActor

@@ -8,6 +8,15 @@ public struct PreviewFilter: Equatable, Sendable {
     public let preset: LUTPreset
     public let lutFile: String?
     public let lutSize: Int
+    public var renderFilter: RenderFilter {
+        RenderFilter(
+            id: id,
+            title: title,
+            lutFile: lutFile,
+            lutSize: lutSize,
+            fallbackPreset: preset
+        )
+    }
 
     public init(
         id: UUID,
@@ -23,6 +32,15 @@ public struct PreviewFilter: Equatable, Sendable {
         self.preset = preset
         self.lutFile = lutFile
         self.lutSize = lutSize
+    }
+
+    public init(renderFilter: RenderFilter, category: FilterCategory) {
+        self.id = renderFilter.id
+        self.title = renderFilter.title
+        self.category = category
+        self.preset = renderFilter.fallbackPreset
+        self.lutFile = renderFilter.lutFile
+        self.lutSize = renderFilter.lutSize
     }
 }
 

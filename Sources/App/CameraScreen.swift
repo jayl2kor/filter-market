@@ -209,6 +209,7 @@ private final class CameraPreviewController: ObservableObject {
     let renderer = MetalPreviewRenderer(lutResourceBundle: MarketplaceResources.bundle)
 
     private let cameraSession = CameraSession()
+    private var activeFilter: RenderFilter?
     private var isRunning = false
     private var metricsTask: Task<Void, Never>?
 
@@ -249,21 +250,24 @@ private final class CameraPreviewController: ObservableObject {
 
     func setIntensity(_ intensity: Float) {
         self.intensity = intensity
-        renderer.setIntensity(intensity)
+        if let activeFilter {
+            renderer.apply(configuration: FilterRenderConfiguration(filter: activeFilter, intensityValue: intensity))
+        } else {
+            renderer.setIntensity(intensity)
+        }
     }
 
     func apply(filter: Filter?) {
         guard let filter else { return }
-        renderer.applyFilter(
-            PreviewFilter(
-                id: filter.id,
-                title: filter.title,
-                category: filter.category,
-                preset: LUTPreset.preset(for: filter.category),
-                lutFile: filter.engine.lutFile,
-                lutSize: filter.engine.lutSize ?? 33
-            )
+        let renderFilter = RenderFilter(
+            id: filter.id,
+            title: filter.title,
+            lutFile: filter.engine.lutFile,
+            lutSize: filter.engine.lutSize ?? 33,
+            fallbackPreset: LUTPreset.preset(for: filter.category)
         )
+        activeFilter = renderFilter
+        renderer.apply(configuration: FilterRenderConfiguration(filter: renderFilter, intensityValue: intensity))
     }
 
     private func startMetricsPolling() {
