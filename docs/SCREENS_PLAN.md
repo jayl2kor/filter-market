@@ -21,6 +21,7 @@
 - [`mockups/index.html`](../mockups/index.html)
 - [`mockups/README.md`](../mockups/README.md)
 - [`NAVIGATION.md`](./NAVIGATION.md) — 모든 버튼 액션 + 화면 간 흐름 + SwiftUI 매핑 (개발 에이전트용 단일 진실원)
+- [`SCREEN_IMPLEMENTATION_BACKLOG.md`](./SCREEN_IMPLEMENTATION_BACKLOG.md) — `ProductFlowScreen` 대체 화면을 전용 SwiftUI 화면으로 전환하기 위한 작업 백로그
 
 ---
 
@@ -199,3 +200,4 @@ Coin 모델의 단일 진실원은 [`CURRENCY_DESIGN.md`](./CURRENCY_DESIGN.md)�
 - [`PERMISSIONS_FLOW.md`](./PERMISSIONS_FLOW.md)
 - [`MODAL_PATTERNS.md`](./MODAL_PATTERNS.md)
 - [`EMPTY_STATES.md`](./EMPTY_STATES.md)
+- [`SCREEN_IMPLEMENTATION_BACKLOG.md`](./SCREEN_IMPLEMENTATION_BACKLOG.md)

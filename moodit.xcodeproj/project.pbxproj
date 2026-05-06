@@ -96,6 +96,7 @@
 		ABAAFA308BDF229D59E00A2F /* PhotosPermissionPriming.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA80AEE3D4DD5B9103378940 /* PhotosPermissionPriming.swift */; };
 		ABCC5902D81179EB7B018B09 /* seoul-night.png in Resources */ = {isa = PBXBuildFile; fileRef = 5D87FD05B6A4C0641B8D4EB3 /* seoul-night.png */; };
 		ACFD5FFBFCEDB4E03D732F5E /* MetalPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 212A616007826DB1E7DE92A4 /* MetalPreviewView.swift */; };
+		B148ABD74D88ACC39F803CE3 /* WorkflowScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1152BAA438B340357C6C329F /* WorkflowScreens.swift */; };
 		B1CD12D2367D89250AA4105B /* FilterManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DC99BD5846478274C37F771 /* FilterManifest.swift */; };
 		B36790AE144F28051E6EA6D7 /* Spacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B91AF1E51A3C1C8C4AA180 /* Spacing.swift */; };
 		B762DCBE1C3A26374F239629 /* Models.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 17B1469C92033DB00AD14607 /* Models.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -327,6 +328,7 @@
 		09A76E91096F9C284D84F963 /* PhotoFilterRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoFilterRenderer.swift; sourceTree = "<group>"; };
 		09CE5E216D06FBC248800288 /* PermissionScaffold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionScaffold.swift; sourceTree = "<group>"; };
 		0E2773DDF94E1A12850CA219 /* sunset-vibes.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "sunset-vibes.png"; sourceTree = "<group>"; };
+		1152BAA438B340357C6C329F /* WorkflowScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowScreens.swift; sourceTree = "<group>"; };
 		1550BD6AB2042D987AD08B34 /* Iconography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Iconography.swift; sourceTree = "<group>"; };
 		15C0EF4AFA982EF0A2155BB3 /* LUTResourceResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LUTResourceResolver.swift; sourceTree = "<group>"; };
 		16B91AF1E51A3C1C8C4AA180 /* Spacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spacing.swift; sourceTree = "<group>"; };
@@ -524,6 +526,7 @@
 				309D364AADCB11180774B6FA /* MooditStore.swift */,
 				4A85F65669CA14E88C1B508F /* RootShell.swift */,
 				E8FCFE1455B495581E5BF208 /* SavedScreen.swift */,
+				1152BAA438B340357C6C329F /* WorkflowScreens.swift */,
 				0CEE06F50544FA166805902E /* Camera */,
 				4A3938BC29E90908A2396257 /* Login */,
 				A660DB695F311617AC6E978B /* Marketplace */,
@@ -1343,6 +1346,7 @@
 				F4ED31D71B762AA41C4F8446 /* SavedScreen.swift in Sources */,
 				FB3EB5143F7CB74DDBCC04F2 /* SearchScreen.swift in Sources */,
 				448C5CF709AE9C31DD6415B2 /* SettingsScreen.swift in Sources */,
+				B148ABD74D88ACC39F803CE3 /* WorkflowScreens.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

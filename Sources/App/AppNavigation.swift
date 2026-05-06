@@ -6,10 +6,7 @@ import UIKit
 
 /// SwiftUI route map for `docs/NAVIGATION.md`.
 ///
-/// Every case is a concrete screen target from the navigation document. Some
-/// routes already have a bespoke screen; the remaining routes use
-/// `ProductFlowScreen` so the app can be exercised end-to-end before backend
-/// integration lands.
+/// Every case is a concrete screen target from the navigation document.
 enum AppRoute: Hashable {
     case login
     case search(initialQuery: String? = nil, category: String? = nil)
@@ -93,8 +90,158 @@ extension View {
             case .savedFilters:
                 SavedScreen()
 
-            default:
-                ProductFlowScreen(route: route)
+            case .filterDownload(let id):
+                FilterDownloadProgressScreen(filterID: id)
+
+            case .filterAfterDownload(let id):
+                FilterAfterDownloadScreen(filterID: id)
+
+            case .cameraAspect:
+                CameraAspectPickerScreen()
+
+            case .cameraTimer:
+                CameraTimerCountdownScreen()
+
+            case .photoImport:
+                PhotoImportScreen()
+
+            case .photoEdit:
+                PhotoEditScreen()
+
+            case .builtinFilters:
+                BuiltinFilterLibraryScreen()
+
+            case .editor:
+                FilterEditorScreen()
+
+            case .editorParameters:
+                EditorParametersScreen()
+
+            case .editorLUT:
+                EditorLUTImportScreen()
+
+            case .editorDraft:
+                EditorDraftSaveScreen()
+
+            case .uploadCover:
+                UploadCoverScreen()
+
+            case .uploadTags:
+                UploadTagsCategoryScreen()
+
+            case .uploadSubmit:
+                UploadTOSSubmitScreen()
+
+            case .uploadPending:
+                UploadPendingReviewScreen()
+
+            case .accountDeletion:
+                AccountDeletionScreen()
+
+            case .editProfile:
+                EditProfileScreen()
+
+            case .universalLinkLanding:
+                UniversalLinkLandingScreen()
+
+            case .comments(let filterId):
+                CommentsListScreen(filterID: filterId)
+
+            case .commentCompose(let filterId):
+                CommentComposeScreen(filterID: filterId)
+
+            case .rating(let filterId):
+                RatingFormScreen(filterID: filterId)
+
+            case .followers(let uid):
+                FollowersListScreen(userID: uid)
+
+            case .following(let uid):
+                FollowingListScreen(userID: uid)
+
+            case .notifications:
+                NotificationsInboxScreen()
+
+            case .notificationSettings:
+                NotificationSettingsScreen()
+
+            case .makerDashboard:
+                MakerDashboardScreen()
+
+            case .reportForm:
+                ReportFormScreen()
+
+            case .favoritesCollection:
+                FavoritesCollectionScreen()
+
+            case .forYou:
+                ForYouFeedScreen()
+
+            case .followingFeed:
+                FollowingFeedScreen()
+
+            case .modQueue:
+                ModerationQueueScreen()
+
+            case .modDetail(let id):
+                ModerationDetailScreen(itemID: id)
+
+            case .blockList:
+                BlockListScreen()
+
+            case .remixFlow:
+                RemixFlowScreen()
+
+            case .paywallSingle(let filterId):
+                PaywallSingleScreen(filterID: filterId)
+
+            case .proSubscription:
+                ProSubscriptionScreen()
+
+            case .ordersHistory:
+                OrdersHistoryScreen()
+
+            case .payoutOnboarding:
+                PayoutOnboardingScreen()
+
+            case .payoutTaxInfo:
+                PayoutTaxInfoScreen()
+
+            case .payoutHistory:
+                PayoutHistoryScreen()
+
+            case .wallet:
+                WalletScreen()
+
+            case .walletTopup:
+                WalletTopupScreen()
+
+            case .walletTransactions:
+                WalletTransactionsScreen()
+
+            case .insufficientBalance(let filterId):
+                InsufficientBalanceScreen(filterID: filterId)
+
+            case .earningsWithdraw:
+                EarningsWithdrawScreen()
+
+            case .filterRejected(let id):
+                FilterRejectedScreen(filterID: id)
+
+            case .proStatus:
+                ProStatusScreen()
+
+            case .myFilters:
+                MyFiltersScreen()
+
+            case .paymentFailed:
+                PaymentFailedScreen()
+
+            case .dataExport:
+                DataExportScreen()
+
+            case .refundRequest:
+                RefundRequestScreen()
             }
         }
     }
@@ -102,7 +249,7 @@ extension View {
 
 // MARK: - Route metadata
 
-private struct RouteAction: Identifiable {
+struct RouteAction: Identifiable {
     let id: String
     let label: String
     let systemImage: String
@@ -126,7 +273,7 @@ private struct RouteAction: Identifiable {
     }
 }
 
-private extension AppRoute {
+extension AppRoute {
     var title: String {
         switch self {
         case .login: "로그인"
@@ -572,9 +719,9 @@ private extension AppRoute {
     }
 }
 
-// MARK: - ProductFlowScreen
+// MARK: - ScreenWorkflowScaffold
 
-private struct ProductFlowScreen: View {
+struct ScreenWorkflowScaffold: View {
     let route: AppRoute
 
     @Environment(\.dismiss) private var dismiss
