@@ -65,10 +65,10 @@
 
 | 목업 | 현재 라우트/코드 | 상태 | 구현 목표 |
 |---|---|---|---|
-| `20-account-deletion.html` | `AppRoute.accountDeletion` → `AccountDeletionScreen` | `Workflow/Bespoke` | 재인증, handle 입력, destructive confirmation, logout |
-| `21-edit-profile.html` | `AppRoute.editProfile` → `EditProfileScreen` | `Workflow/Bespoke` | avatar picker, display name, handle check, bio save |
-| `22-universal-link-landing.html` | `AppRoute.universalLinkLanding` → `UniversalLinkLandingScreen` | `Workflow/Bespoke` | deep link parser result, download/apply/detail choices |
-| `53-data-export.html` | `AppRoute.dataExport` → `DataExportScreen` | `Workflow/Bespoke` | export category/format/history/request state |
+| `20-account-deletion.html` | `AppRoute.accountDeletion` → `AccountDeletionScreen` | `Bespoke` | handle 입력 검증, destructive confirmation, 삭제 요청 receipt 완료. 실제 재인증/logout API 남음 |
+| `21-edit-profile.html` | `AppRoute.editProfile` → `EditProfileScreen` | `Bespoke` | avatar variant, 이름/핸들/바이오/링크, 공개 설정, mock save 완료. 실제 avatar picker/API persistence 남음 |
+| `22-universal-link-landing.html` | `AppRoute.universalLinkLanding` → `UniversalLinkLandingScreen` | `Bespoke` | 공유 필터 카드, download/detail route 연결 완료. 실제 deep link payload parser 주입 남음 |
+| `53-data-export.html` | `AppRoute.dataExport` → `DataExportScreen` | `Bespoke` | category/format 선택, request confirmation, history mock state 완료. 실제 export job API 남음 |
 
 ### 3.3 P2 — Editor And Upload
 
@@ -97,7 +97,7 @@
 | `25-followers-list.html` | `AppRoute.followers` → `FollowersListScreen` | `Workflow/Bespoke` | follower list, follow toggles, profile routing |
 | `26-following-list.html` | `AppRoute.following` → `FollowingListScreen` | `Workflow/Bespoke` | following list, unfollow confirmation |
 | `27-notifications-inbox.html` | `AppRoute.notifications` → `NotificationsInboxScreen` | `Workflow/Bespoke` | notification inbox, category chips, item deeplink |
-| `51-notification-settings.html` | `AppRoute.notificationSettings` → `NotificationSettingsScreen` | `Workflow/Bespoke` | category toggles, quiet hours, system settings |
+| `51-notification-settings.html` | `AppRoute.notificationSettings` → `NotificationSettingsScreen` | `Bespoke` | system settings entry, category toggles, quiet hours mock state 완료. 실제 권한 resolver/persistence 남음 |
 | `30-favorites-collection.html` | `AppRoute.favoritesCollection` → `FavoritesCollectionScreen` | `Workflow/Bespoke` | collection list/create/edit |
 | `31-foryou-feed.html` | `AppRoute.forYou` → `ForYouFeedScreen` | `Workflow/Bespoke` | recommendation feed, filter cards, maker taps |
 | `32-following-feed.html` | `AppRoute.followingFeed` → `FollowingFeedScreen` | `Workflow/Bespoke` | following feed, empty state |
@@ -171,6 +171,11 @@
 - 계정 삭제/데이터 내보내기 화면은 destructive/confirmation UX 를 갖는다.
 - 프로필 편집은 local state 저장 또는 mock repository 로 persistence 를 시뮬레이션한다.
 - Universal Link landing 은 route parser 와 연결 가능한 형태를 갖는다.
+
+진행 상태:
+- 완료: `AccountDeletionScreen`, `EditProfileScreen`, `UniversalLinkLandingScreen`, `DataExportScreen`, `NotificationSettingsScreen` 모두 전용 SwiftUI 화면으로 구현됨.
+- 검증: `./scripts/test.sh` 통과 (2026-05-07).
+- 남은 통합: Firebase Auth 재인증/삭제, profile API, universal link payload parser, export job API, notification permission resolver 와 persistence.
 
 ### Phase C — Maker supply flow
 
