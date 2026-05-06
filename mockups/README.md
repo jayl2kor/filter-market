@@ -1,8 +1,22 @@
 # filterMarket — HTML Mockups
 
-> 버전: v1.2 (Light Minimal + 상태/권한/모달/모션 보강) · 작성일: 2026-05-06 · 모드: Light 기본 + Dark 카메라 흐름
+> 버전: v1.3 (5탭 + 중앙 셔터 / 홈 인디케이터 숨김) · 작성일: 2026-05-06 · 모드: Light 기본 + Dark 카메라 흐름
 >
 > iPhone 14 Pro (393×852pt) 프레임 위에 그린 **29개 화면** + 1개 카탈로그. SwiftUI 구현 시 1pt = 1px 매핑.
+
+---
+
+## v1.3 변경 요약 — 내비게이션 패턴 확정
+
+| 항목 | v1.2 | v1.3 |
+|---|---|---|
+| 탭바 구조 | 5탭 평면 | **5탭 + 중앙 셔터** (`마켓 / 검색 / 카메라(셔터) / 저장됨 / 프로필`) |
+| 중앙 셔터 | — | **56×56 원형, accent fill, lift -12px, 골드 글로우 그림자** (`.tab__shutter`) |
+| 탭바 높이 | 49 + safe-bottom 34 = 83 | **49 + 16 = 65** (홈 인디케이터 영역 미사용) |
+| 홈 인디케이터 | 표시 (`.home-indicator--dim`) | **숨김** (`.home-indicator { display: none }`) — 디자인 결정 |
+| 탭바 후 spacer | `screen__bottom-spacer` 표시 | **`.tabbar + .screen__bottom-spacer { display: none }`** — 탭바가 폰 바닥까지 내려옴 |
+
+스펙 상세는 [`../docs/DESIGN_SYSTEM.md`](../docs/DESIGN_SYSTEM.md) §8.5, 토큰은 [`../docs/DESIGN_TOKENS.json`](../docs/DESIGN_TOKENS.json) `layout.tabBarTotalHeight` / `tabbar.shutter` 참조.
 
 ---
 

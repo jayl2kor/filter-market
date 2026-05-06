@@ -1,6 +1,6 @@
 # DesignSystem
 
-filterMarket 의 디자인 토큰과 (앞으로 추가될) 컴포넌트 라이브러리.
+filterMarket 의 디자인 토큰과 컴포넌트 라이브러리.
 단일 진실원: [`docs/DESIGN_TOKENS.json`](../../docs/DESIGN_TOKENS.json) v1.2.0 (라이트/다크 듀얼).
 
 ## 토큰 구조
@@ -43,6 +43,39 @@ withAnimation(reduceMotion ? .fmFast : .fmSpring) {
     isExpanded.toggle()
 }
 ```
+
+## 컴포넌트 (Phase D1)
+
+`Sources/DesignSystem/Components/` 아래에 12 컴포넌트가 들어있다.
+모든 컴포넌트는 `public` API + 하나 이상의 `#Preview` (라이트/다크/Dynamic Type 변형 포함).
+
+| 파일 | 컴포넌트 | 핵심 사용 예 |
+|---|---|---|
+| `FMButton.swift` | `FMButton` (primary/secondary/ghost/destructive × sm/md/lg, loading/disabled) | `FMButton("저장", variant: .primary, size: .lg) { save() }` |
+| `FMCard.swift` | `FMCard` + `.fmCard()` modifier | `FMCard { content }` 또는 `view.fmCard()` |
+| `FMTextField.swift` | `FMTextField` (plain/password/search/multiline + label/helper/error) | `FMTextField("이메일", text: $email)` · `FMTextField.search(text: $q)` |
+| `FMTag.swift` | `FMTag` (정적 라벨) + `FMChip` (인터랙티브 토글) | `FMChip("Cinematic", isSelected: true) { ... }` |
+| `FMSlider.swift` | `FMSlider` (라벨 + 값 표시 + 0/50/100 햅틱 anchor) | `FMSlider(value: $intensity, label: "강도")` |
+| `FMToast.swift` | `FMToast` / `FMBanner` (success/warning/error/info) + `.fmToastOverlay(toast:)` | `toast = FMToastMessage(.success, "저장됐어요")` |
+| `FMSkeleton.swift` | `FMSkeleton` (line/rect/circle, 시머 1.5s, Reduce Motion 정적 fallback) | `FMSkeleton.line(width: 120, height: 14)` |
+| `FMEmptyState.swift` | `FMEmptyState` (5종 — 마켓/검색/프로필/다운로드/댓글) | `FMEmptyState(.emptyMarket) { create() }` |
+| `FMTabBar.swift` | `FMTabBar` (5탭 + 중앙 56pt 셔터, lift -12pt) | `FMTabBar(selection: $tab) { showCamera = true }` |
+| `FMSegmentedControl.swift` | `FMSegmentedControl<Option: Hashable>` (matched geometry 슬라이딩) | `FMSegmentedControl(selection: $sort, options: [...])` |
+| `FMAvatar.swift` | `FMAvatar` (xs/sm/md/lg/xl, image/url/initials/symbol) | `FMAvatar(initials: "유나", size: .md)` |
+| `FMFilterTile.swift` | `FMFilterTile` (4:5 사진 + 그라디언트 + 카테고리 점) | `FMFilterTile(data: tile) { open() }` |
+| `FMTypographyShorthand.swift` | `FMTypography.Style` 정적 alias | `view.fmTypography(.headline)` |
+
+### 가이드라인
+
+- 모든 컴포넌트는 `public init` + `Sendable` 가능한 곳은 `Sendable`.
+- 인터랙티브 컴포넌트엔 `.accessibilityLabel(...)` + 적절한 trait.
+- 햅틱은 컴포넌트 내부에서 직접 호출 (Phase D6 에서 `HapticEngine` wrapper 로 분리 예정).
+- 외부 의존성 X — SwiftUI / Foundation / UIKit 만 사용.
+
+### Preview 한눈에 보기
+
+각 파일을 Xcode 에서 열고 Canvas 를 켜면 Light / Dark / 변형 / 상태 그리드 가 나란히 보인다.
+시뮬레이터 없이도 시각 검증 가능 (Xcode Previews 만 필요).
 
 ## Legacy 토큰 (deprecated)
 

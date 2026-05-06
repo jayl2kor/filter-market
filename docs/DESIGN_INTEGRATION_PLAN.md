@@ -285,7 +285,7 @@ HTML 목업 → SwiftUI 화면. 각 화면당 0.5~1일.
 | Phase | 상태 | 시작일 | 완료일 | 비고 |
 |---|---|---|---|---|
 | D0 | ✅ Done | 2026-05-06 | 2026-05-06 | `Sources/DesignSystem/Tokens/` 8개 파일 + 레거시 `DesignTokens.swift` deprecated alias 유지. Asset Catalog 미채택 — `Color(light:dark:)` 코드 정의로 JSON 과 1:1 정합. |
-| D1 | ⏳ Pending | — | — | — |
+| D1 | ✅ Done | 2026-05-06 | 2026-05-06 | `Sources/DesignSystem/Components/` 12 컴포넌트 (`FMButton`, `FMCard`, `FMTextField`, `FMTag`/`FMChip`, `FMSlider`, `FMToast`/`FMBanner`, `FMSkeleton`, `FMEmptyState`, `FMTabBar`, `FMSegmentedControl`, `FMAvatar`, `FMFilterTile`) + 타이포그래피 단축 alias. Light/Dark + Dynamic Type Preview 포함. |
 | D2 | ⏳ Pending | — | — | — |
 | D3 | ⏳ Pending | — | — | — |
 | D4 | ⏳ Pending | — | — | — |
