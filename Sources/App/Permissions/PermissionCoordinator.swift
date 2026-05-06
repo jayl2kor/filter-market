@@ -16,7 +16,7 @@ import UIKit
 // 권한 체크 로직은 유지되며, 본 타입은 앱 진입 흐름 (priming → request → 결과 분기) 만
 // 책임진다.
 @MainActor
-public final class PermissionCoordinator: ObservableObject {
+public final class PermissionCoordinator: NSObject, ObservableObject {
     /// 권한 종류.
     public enum Permission: String, CaseIterable, Sendable {
         case camera
@@ -36,9 +36,14 @@ public final class PermissionCoordinator: ObservableObject {
     }
 
     private let locationManager: CLLocationManager
+    /// `requestLocation()` 이 만든 AsyncStream 의 continuation.
+    /// `CLLocationManagerDelegate` 콜백으로부터 권한 변경을 yield 한다.
+    private var locationContinuation: AsyncStream<CLAuthorizationStatus>.Continuation?
 
     public init(locationManager: CLLocationManager = CLLocationManager()) {
         self.locationManager = locationManager
+        super.init()
+        self.locationManager.delegate = self
     }
 
     // MARK: - Status
@@ -173,20 +178,21 @@ public final class PermissionCoordinator: ObservableObject {
             return mapLocation(initial)
         }
 
-        // CLLocationManager 는 콜백이 KVO/delegate 기반이라 폴링이 가장 안전한 단순 방식이다.
-        // 시스템 다이얼로그는 `requestWhenInUseAuthorization()` 호출 즉시 표시되며,
-        // 사용자가 응답할 때까지 `authorizationStatus` 가 `.notDetermined` 로 유지된다.
-        locationManager.requestWhenInUseAuthorization()
-
-        // 최대 30초 동안 0.1초 간격 폴링 (사용자 응답 대기). 응답 없으면 notDetermined 유지.
-        let deadline = Date().addingTimeInterval(30)
-        while Date() < deadline {
-            let current = locationManager.authorizationStatus
-            if current != .notDetermined {
-                return mapLocation(current)
-            }
-            try? await Task.sleep(for: .milliseconds(100))
+        // CLLocationManagerDelegate 의 `locationManagerDidChangeAuthorization` 콜백으로부터
+        // 첫 변경을 받자마자 stream 을 finish — main-thread 폴링 없이 정확한 응답 시점에 resume.
+        let stream = AsyncStream<CLAuthorizationStatus> { [weak self] continuation in
+            self?.locationContinuation = continuation
+            self?.locationManager.requestWhenInUseAuthorization()
         }
+
+        for await status in stream where status != .notDetermined {
+            locationContinuation?.finish()
+            locationContinuation = nil
+            return mapLocation(status)
+        }
+
+        // stream 이 yield 없이 끝난 케이스 (정상 흐름에서는 도달하지 않음).
+        locationContinuation = nil
         return mapLocation(locationManager.authorizationStatus)
     }
 
@@ -198,6 +204,16 @@ public final class PermissionCoordinator: ObservableObject {
         case .restricted: .restricted
         @unknown default: .denied
         }
+    }
+}
+
+// MARK: - CLLocationManagerDelegate
+//
+// 위치 권한 변경 콜백을 `requestLocation()` 의 AsyncStream 으로 전달.
+// delegate 메서드는 `nonisolated` 로 선언하고 본 타입의 `@MainActor` 컨텍스트로 hop.
+extension PermissionCoordinator: @preconcurrency CLLocationManagerDelegate {
+    public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        locationContinuation?.yield(manager.authorizationStatus)
     }
 }
 

@@ -17,7 +17,7 @@ struct MarketplaceScreen: View {
 
     /// store.load() 가 끝났을 때 false 가 된다. 로딩 시는 skeleton.
     private var isLoading: Bool {
-        !hasAppeared || store.filters.isEmpty
+        !hasAppeared || (store.isLoading && store.filters.isEmpty)
     }
 
     var body: some View {
@@ -29,7 +29,9 @@ struct MarketplaceScreen: View {
                     greeting
                         .padding(.horizontal, Sp.md)
 
-                    if isLoading {
+                    if let error = store.loadError, store.filters.isEmpty {
+                        errorState(error)
+                    } else if isLoading {
                         loadingState
                     } else {
                         loadedSections
@@ -191,6 +193,44 @@ struct MarketplaceScreen: View {
             }
             .padding(.horizontal, Sp.md)
         }
+    }
+
+    // MARK: - Error
+
+    private func errorState(_ error: Error) -> some View {
+        VStack(alignment: .leading, spacing: Sp.md) {
+            HStack(alignment: .top, spacing: Sp.sm) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: IconSize.md, weight: .semibold))
+                    .foregroundStyle(FMColors.Semantic.error)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("필터를 불러오지 못했어요")
+                        .fmTypography(.headline)
+                        .foregroundStyle(FMColors.Text.primary)
+                    Text(error.localizedDescription)
+                        .fmTypography(.subhead)
+                        .foregroundStyle(FMColors.Text.secondary)
+                        .lineLimit(3)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(Sp.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(FMColors.Semantic.errorBg)
+            .clipShape(RoundedRectangle(cornerRadius: R.lg))
+            .overlay {
+                RoundedRectangle(cornerRadius: R.lg)
+                    .strokeBorder(FMColors.Semantic.error.opacity(0.35), lineWidth: 1)
+            }
+
+            FMButton("다시 시도", variant: .primary, size: .md) {
+                Task { await store.retry() }
+            }
+            .accessibilityIdentifier("market.loadError.retry")
+        }
+        .padding(.horizontal, Sp.md)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("필터 로드 실패")
     }
 
     // MARK: - Loading

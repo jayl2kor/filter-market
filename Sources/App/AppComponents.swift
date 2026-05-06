@@ -54,7 +54,7 @@ struct FilterThumbnail: View {
                 Image(systemName: "camera.filters")
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(.white)
-                    .padding(FMSpacing.medium)
+                    .padding(Sp.sm)
             }
             .overlay {
                 RoundedRectangle(cornerRadius: 8)
@@ -70,11 +70,11 @@ struct FilterRow: View {
     let isDownloaded: Bool
 
     var body: some View {
-        HStack(spacing: FMSpacing.medium) {
+        HStack(spacing: Sp.sm) {
             FilterThumbnail(filter: filter)
                 .frame(width: 64, height: 64)
 
-            VStack(alignment: .leading, spacing: FMSpacing.xSmall) {
+            VStack(alignment: .leading, spacing: Sp.xxs) {
                 Text(filter.title)
                     .font(.headline)
                     .foregroundStyle(.white)
@@ -85,7 +85,7 @@ struct FilterRow: View {
                     .foregroundStyle(.white.opacity(0.62))
                     .lineLimit(1)
 
-                HStack(spacing: FMSpacing.small) {
+                HStack(spacing: Sp.xs) {
                     PillText(filter.category.displayTitle)
                     if isDownloaded {
                         PillText("Downloaded")
@@ -97,12 +97,12 @@ struct FilterRow: View {
 
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(FMColor.accent)
+                    .foregroundStyle(FMColors.Accent.primary)
                     .font(.title3)
             }
         }
-        .padding(FMSpacing.medium)
-        .background(FMColor.surface, in: RoundedRectangle(cornerRadius: 8))
+        .padding(Sp.sm)
+        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -117,8 +117,8 @@ struct PillText: View {
         Text(text)
             .font(.caption2.weight(.semibold))
             .foregroundStyle(.white.opacity(0.78))
-            .padding(.horizontal, FMSpacing.small)
-            .padding(.vertical, FMSpacing.xSmall)
+            .padding(.horizontal, Sp.xs)
+            .padding(.vertical, Sp.xxs)
             .background(.white.opacity(0.08), in: Capsule())
     }
 }
@@ -128,7 +128,7 @@ struct ScreenHeader: View {
     let subtitle: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FMSpacing.xSmall) {
+        VStack(alignment: .leading, spacing: Sp.xxs) {
             Text(title)
                 .font(.largeTitle.weight(.bold))
                 .foregroundStyle(.white)

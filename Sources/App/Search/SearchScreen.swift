@@ -437,14 +437,11 @@ struct SearchScreen: View {
     private var filteredFilters: [FMFilterTileData] {
         guard !query.isEmpty else { return [] }
         let lower = query.lowercased()
-        let matched = MarketplaceMockData.newFilters.filter {
+        // 무결과는 그대로 빈 배열 반환 — `resultsContent` 의 `FMEmptyState(.noSearchResults)` 분기로 이어진다.
+        return MarketplaceMockData.newFilters.filter {
             $0.title.lowercased().contains(lower)
                 || $0.makerName.lowercased().contains(lower)
         }
-        // Vintage / Film / 카페 등 일반 키워드는 일치가 없으면 모든 데이터 노출 — 빈 상태 회피.
-        return matched.isEmpty
-            ? MarketplaceMockData.newFilters
-            : matched
     }
 
     private var filteredMakers: [PopularMaker] {

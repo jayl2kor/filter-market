@@ -23,6 +23,9 @@ struct CameraScreen: View {
     @State private var captureResult: CameraCaptureResult?
     @State private var focusIndicator: CameraFocusIndicator?
     @State private var cameraPermissionState: PermissionCoordinator.Status = .notDetermined
+    /// 셔터 → `controller.capture` 가 nil 을 반환했을 때의 사용자용 에러 메시지.
+    /// `.fmAlert` 의 `isPresented` 와 binding 되며, 닫힐 때 nil 로 리셋된다.
+    @State private var captureError: String?
 
     /// fullScreenCover 로 띄울 때 닫기 버튼을 노출할지 여부.
     /// RootShell 의 셔터 탭에서 띄울 때만 true.
@@ -116,6 +119,17 @@ struct CameraScreen: View {
             CapturePreviewHost(result: result) {
                 captureResult = nil
             }
+        }
+        .fmAlert(
+            "촬영 실패",
+            isPresented: Binding(
+                get: { captureError != nil },
+                set: { presented in if !presented { captureError = nil } }
+            )
+        ) {
+            Button("확인", role: .cancel) { captureError = nil }
+        } message: {
+            Text(captureError ?? "")
         }
     }
 
@@ -636,7 +650,16 @@ struct CameraScreen: View {
             Button {
                 FMHaptic.medium.play()
                 Task {
-                    captureResult = await controller.capture(filter: store.selectedFilter)
+                    let result = await controller.capture(filter: store.selectedFilter)
+                    if let result {
+                        captureResult = result
+                    } else {
+                        // capture 실패 — 사용자에게 알림 + error 햅틱.
+                        FMHaptic.error.play()
+                        captureError = controller.statusMessage.isEmpty
+                            ? "촬영에 실패했어요"
+                            : controller.statusMessage
+                    }
                 }
             } label: {
                 ZStack {
