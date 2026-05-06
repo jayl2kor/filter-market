@@ -131,6 +131,18 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
 
+  CameraTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - Tests/CameraTests
+    dependencies:
+      - target: Camera
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+
   FilterEngineTests:
     type: bundle.unit-test
     platform: iOS
@@ -165,5 +177,6 @@ schemes:
     test:
       targets:
         - ModelsTests
+        - CameraTests
         - FilterEngineTests
         - MarketplaceTests

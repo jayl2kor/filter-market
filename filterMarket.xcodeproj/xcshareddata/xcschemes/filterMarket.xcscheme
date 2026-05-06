@@ -55,6 +55,17 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "B9E84A22DB08582056C49356"
+               BuildableName = "CameraTests.xctest"
+               BlueprintName = "CameraTests"
+               ReferencedContainer = "container:filterMarket.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "ADE403AE73A49F64FE54B4AA"
                BuildableName = "FilterEngineTests.xctest"
                BlueprintName = "FilterEngineTests"

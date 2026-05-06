@@ -337,6 +337,18 @@ private final class CameraPreviewController: ObservableObject {
 
 private struct CaptureResultScreen: View {
     let result: CameraCaptureResult
+    let photoLibrarySaver: any PhotoLibrarySaving
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var saveState = CaptureSaveState.idle
+
+    init(
+        result: CameraCaptureResult,
+        photoLibrarySaver: any PhotoLibrarySaving = PhotoLibrarySaver.live()
+    ) {
+        self.result = result
+        self.photoLibrarySaver = photoLibrarySaver
+    }
 
     var body: some View {
         VStack(spacing: FMSpacing.large) {
@@ -354,15 +366,33 @@ private struct CaptureResultScreen: View {
                 Text(captureSummary)
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.64))
+
+                Text(saveState.message)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(saveState.messageColor)
+                    .frame(minHeight: 18)
             }
 
             HStack(spacing: FMSpacing.medium) {
-                Button("Retake") {}
+                Button("Retake") {
+                    dismiss()
+                }
                     .buttonStyle(.bordered)
 
-                Button("Save") {}
+                Button {
+                    Task {
+                        await savePhoto()
+                    }
+                } label: {
+                    if saveState == .saving {
+                        ProgressView()
+                    } else {
+                        Text(saveState.buttonTitle)
+                    }
+                }
                     .buttonStyle(.borderedProminent)
                     .tint(FMColor.accent)
+                    .disabled(saveState.isSaveDisabled)
             }
         }
         .padding(FMSpacing.large)
@@ -378,5 +408,82 @@ private struct CaptureResultScreen: View {
         let original = formattedByteCount(result.photo.byteCount)
         let filtered = formattedByteCount(result.filteredPhoto.filteredByteCount)
         return "Original \(original) · Filtered \(filtered). PhotoKit saving is next."
+    }
+
+    private func savePhoto() async {
+        guard !saveState.isSaveDisabled else { return }
+
+        saveState = .saving
+        let saveResult = await photoLibrarySaver.savePhoto(data: result.filteredPhoto.filteredData)
+        saveState = CaptureSaveState(result: saveResult)
+    }
+}
+
+private enum CaptureSaveState: Equatable {
+    case idle
+    case saving
+    case saved
+    case permissionDenied
+    case permissionRestricted
+    case permissionNotDetermined
+    case invalidData
+    case failed
+
+    init(result: PhotoLibrarySaveResult) {
+        switch result {
+        case .saved:
+            self = .saved
+        case .permissionDenied:
+            self = .permissionDenied
+        case .permissionRestricted:
+            self = .permissionRestricted
+        case .permissionNotDetermined:
+            self = .permissionNotDetermined
+        case .invalidData:
+            self = .invalidData
+        case .failed:
+            self = .failed
+        }
+    }
+
+    var buttonTitle: String {
+        switch self {
+        case .idle, .permissionDenied, .permissionRestricted, .permissionNotDetermined, .invalidData, .failed:
+            "Save"
+        case .saving:
+            "Saving"
+        case .saved:
+            "Saved"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .idle, .saving:
+            ""
+        case .saved:
+            "Saved to Photos"
+        case .permissionDenied, .permissionRestricted, .permissionNotDetermined:
+            "Photos permission needed"
+        case .invalidData:
+            "Photo data is unavailable"
+        case .failed:
+            "Save failed"
+        }
+    }
+
+    var messageColor: Color {
+        switch self {
+        case .saved:
+            FMColor.accent
+        case .permissionDenied, .permissionRestricted, .permissionNotDetermined, .invalidData, .failed:
+            .red.opacity(0.85)
+        case .idle, .saving:
+            .white.opacity(0.64)
+        }
+    }
+
+    var isSaveDisabled: Bool {
+        self == .saving || self == .saved
     }
 }
