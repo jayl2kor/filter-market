@@ -18,10 +18,12 @@ struct CameraScreen: View {
             MetalPreviewView(renderer: controller.renderer)
                 .ignoresSafeArea()
 
+            aspectGuide
             focusTapLayer
 
             VStack(spacing: FMSpacing.large) {
                 topBar
+                aspectRatioPicker
                 Spacer()
                 filterCarousel
                 intensitySlider
@@ -121,6 +123,54 @@ struct CameraScreen: View {
         .ignoresSafeArea()
     }
 
+    private var aspectGuide: some View {
+        GeometryReader { proxy in
+            let frame = guideFrame(for: proxy.size, aspectRatio: controller.cropAspectRatio)
+
+            ZStack {
+                Color.clear
+
+                Color.black.opacity(0.18)
+                    .frame(width: proxy.size.width, height: max(frame.minY, 0))
+                    .position(x: proxy.size.width / 2, y: max(frame.minY, 0) / 2)
+
+                Color.black.opacity(0.18)
+                    .frame(width: proxy.size.width, height: max(proxy.size.height - frame.maxY, 0))
+                    .position(x: proxy.size.width / 2, y: frame.maxY + max(proxy.size.height - frame.maxY, 0) / 2)
+
+                Color.black.opacity(0.18)
+                    .frame(width: max(frame.minX, 0), height: frame.height)
+                    .position(x: max(frame.minX, 0) / 2, y: frame.midY)
+
+                Color.black.opacity(0.18)
+                    .frame(width: max(proxy.size.width - frame.maxX, 0), height: frame.height)
+                    .position(x: frame.maxX + max(proxy.size.width - frame.maxX, 0) / 2, y: frame.midY)
+
+                RoundedRectangle(cornerRadius: 2)
+                    .stroke(.white.opacity(0.42), lineWidth: 1)
+                    .frame(width: frame.width, height: frame.height)
+                    .position(x: frame.midX, y: frame.midY)
+            }
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+
+    private var aspectRatioPicker: some View {
+        Picker("Aspect Ratio", selection: Binding(
+            get: { controller.cropAspectRatio },
+            set: { controller.setCropAspectRatio($0) }
+        )) {
+            ForEach(PhotoCropAspectRatio.allCases) { aspectRatio in
+                Text(aspectRatio.label)
+                    .tag(aspectRatio)
+            }
+        }
+        .pickerStyle(.segmented)
+        .frame(width: 184)
+        .accessibilityIdentifier("camera.aspectRatio")
+    }
+
     private func handleFocusTap(at location: CGPoint, viewSize: CGSize) {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
@@ -140,6 +190,25 @@ struct CameraScreen: View {
                 }
             }
         }
+    }
+
+    private func guideFrame(for size: CGSize, aspectRatio: PhotoCropAspectRatio) -> CGRect {
+        let targetAspectRatio = aspectRatio.targetAspectRatio(for: size)
+        let currentAspectRatio = size.width / max(size.height, 1)
+
+        let guideSize: CGSize
+        if currentAspectRatio > targetAspectRatio {
+            guideSize = CGSize(width: size.height * targetAspectRatio, height: size.height)
+        } else {
+            guideSize = CGSize(width: size.width, height: size.width / targetAspectRatio)
+        }
+
+        return CGRect(
+            x: (size.width - guideSize.width) / 2,
+            y: (size.height - guideSize.height) / 2,
+            width: guideSize.width,
+            height: guideSize.height
+        )
     }
 
     private var filterCarousel: some View {
@@ -264,6 +333,7 @@ private struct CameraCaptureResult: Identifiable {
     let filter: Filter
     let photo: CapturedPhoto
     let filteredPhoto: FilteredPhoto
+    let cropAspectRatio: PhotoCropAspectRatio
 }
 
 private struct CameraFocusIndicator: Identifiable, Equatable {
@@ -294,6 +364,7 @@ private final class CameraPreviewController: ObservableObject {
     @Published private(set) var isCapturing = false
     @Published private(set) var isSwitchingCamera = false
     @Published private(set) var cameraPosition = CameraPosition.back
+    @Published private(set) var cropAspectRatio = PhotoCropAspectRatio.fourThree
 
     let renderer = MetalPreviewRenderer(lutResourceBundle: MarketplaceResources.bundle)
 
@@ -366,9 +437,18 @@ private final class CameraPreviewController: ObservableObject {
                 intensityValue: intensity
             )
             let photo = try await cameraSession.capturePhoto()
-            let filteredPhoto = try photoFilterRenderer.apply(to: photo.data, configuration: configuration)
+            let filteredPhoto = try photoFilterRenderer.apply(
+                to: photo.data,
+                configuration: configuration,
+                cropAspectRatio: cropAspectRatio
+            )
             statusMessage = "Filtered photo captured"
-            return CameraCaptureResult(filter: filter, photo: photo, filteredPhoto: filteredPhoto)
+            return CameraCaptureResult(
+                filter: filter,
+                photo: photo,
+                filteredPhoto: filteredPhoto,
+                cropAspectRatio: cropAspectRatio
+            )
         } catch {
             statusMessage = "Capture failed"
             return nil
@@ -404,6 +484,11 @@ private final class CameraPreviewController: ObservableObject {
         } catch {
             statusMessage = "Focus failed"
         }
+    }
+
+    func setCropAspectRatio(_ cropAspectRatio: PhotoCropAspectRatio) {
+        self.cropAspectRatio = cropAspectRatio
+        statusMessage = "\(cropAspectRatio.label) frame"
     }
 
     private func makeRenderFilter(from filter: Filter) -> RenderFilter {
@@ -509,7 +594,7 @@ private struct CaptureResultScreen: View {
     private var captureSummary: String {
         let original = formattedByteCount(result.photo.byteCount)
         let filtered = formattedByteCount(result.filteredPhoto.filteredByteCount)
-        return "Original \(original) · Filtered \(filtered). Ready to save."
+        return "\(result.cropAspectRatio.label) · Original \(original) · Filtered \(filtered)"
     }
 
     private func savePhoto() async {

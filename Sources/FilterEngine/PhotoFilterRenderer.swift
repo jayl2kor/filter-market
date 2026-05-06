@@ -30,6 +30,44 @@ public struct FilteredPhoto: Equatable, Sendable {
     }
 }
 
+public enum PhotoCropAspectRatio: String, CaseIterable, Hashable, Identifiable, Sendable {
+    case square
+    case fourThree
+    case sixteenNine
+
+    public var id: String {
+        rawValue
+    }
+
+    public var label: String {
+        switch self {
+        case .square:
+            "1:1"
+        case .fourThree:
+            "4:3"
+        case .sixteenNine:
+            "16:9"
+        }
+    }
+
+    public func targetAspectRatio(for size: CGSize) -> CGFloat {
+        let landscapeAspectRatio: CGFloat = switch self {
+        case .square:
+            1
+        case .fourThree:
+            4.0 / 3.0
+        case .sixteenNine:
+            16.0 / 9.0
+        }
+
+        guard self != .square, size.height > size.width else {
+            return landscapeAspectRatio
+        }
+
+        return 1 / landscapeAspectRatio
+    }
+}
+
 public enum PhotoFilterRendererError: Error, Equatable, Sendable {
     case invalidImageData
     case cannotReadPixels
@@ -51,7 +89,8 @@ public final class PhotoFilterRenderer {
 
     public func apply(
         to originalData: Data,
-        configuration: FilterRenderConfiguration
+        configuration: FilterRenderConfiguration,
+        cropAspectRatio: PhotoCropAspectRatio? = nil
     ) throws -> FilteredPhoto {
         guard !originalData.isEmpty else {
             throw PhotoFilterRendererError.invalidImageData
@@ -69,7 +108,8 @@ public final class PhotoFilterRenderer {
 
         pixelBuffer.apply(lut: lut, intensity: configuration.intensity)
         let filteredImage = try pixelBuffer.makeImage()
-        let filteredData = try encodeJPEG(filteredImage)
+        let outputImage = try crop(filteredImage, aspectRatio: cropAspectRatio)
+        let filteredData = try encodeJPEG(outputImage)
 
         return FilteredPhoto(
             originalData: originalData,
@@ -118,6 +158,36 @@ public final class PhotoFilterRenderer {
         }
 
         return data as Data
+    }
+
+    private func crop(_ image: CGImage, aspectRatio: PhotoCropAspectRatio?) throws -> CGImage {
+        guard let aspectRatio else {
+            return image
+        }
+
+        let imageSize = CGSize(width: image.width, height: image.height)
+        let targetAspectRatio = aspectRatio.targetAspectRatio(for: imageSize)
+        let currentAspectRatio = CGFloat(image.width) / CGFloat(max(image.height, 1))
+
+        let cropSize: CGSize
+        if currentAspectRatio > targetAspectRatio {
+            cropSize = CGSize(width: CGFloat(image.height) * targetAspectRatio, height: CGFloat(image.height))
+        } else {
+            cropSize = CGSize(width: CGFloat(image.width), height: CGFloat(image.width) / targetAspectRatio)
+        }
+
+        let cropRect = CGRect(
+            x: (CGFloat(image.width) - cropSize.width) / 2,
+            y: (CGFloat(image.height) - cropSize.height) / 2,
+            width: cropSize.width,
+            height: cropSize.height
+        ).integral
+
+        guard let croppedImage = image.cropping(to: cropRect) else {
+            throw PhotoFilterRendererError.cannotCreateImage
+        }
+
+        return croppedImage
     }
 }
 

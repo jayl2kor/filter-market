@@ -52,6 +52,32 @@ final class PhotoFilterRendererTests: XCTestCase {
         XCTAssertColor(outputColor, matches: inputColor, accuracy: 0.04)
     }
 
+    func testSquareCropProducesSquareJPEG() throws {
+        let inputData = try makeSolidPNG(color: TestColor(red: 0.3, green: 0.4, blue: 0.5), width: 12, height: 8)
+        let renderer = PhotoFilterRenderer(jpegCompressionQuality: 1)
+
+        let output = try renderer.apply(
+            to: inputData,
+            configuration: makeConfiguration(preset: .identity),
+            cropAspectRatio: .square
+        )
+        let outputSize = try decodeImageSize(from: output.filteredData)
+
+        XCTAssertEqual(outputSize.width, 8)
+        XCTAssertEqual(outputSize.height, 8)
+    }
+
+    func testAspectRatioUsesPortraitOrientationWhenHeightIsGreaterThanWidth() {
+        XCTAssertEqual(
+            PhotoCropAspectRatio.fourThree.targetAspectRatio(for: CGSize(width: 300, height: 400)),
+            3.0 / 4.0
+        )
+        XCTAssertEqual(
+            PhotoCropAspectRatio.sixteenNine.targetAspectRatio(for: CGSize(width: 900, height: 1600)),
+            9.0 / 16.0
+        )
+    }
+
     private func makeConfiguration(
         preset: LUTPreset = .identity,
         intensity: FilterIntensity = .full
@@ -143,6 +169,17 @@ final class PhotoFilterRendererTests: XCTestCase {
             green: Float(pixels[offset + 1]) / 255,
             blue: Float(pixels[offset + 2]) / 255
         )
+    }
+
+    private func decodeImageSize(from data: Data) throws -> CGSize {
+        guard
+            let source = CGImageSourceCreateWithData(data as CFData, nil),
+            let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        else {
+            throw TestImageError.cannotDecodeImage
+        }
+
+        return CGSize(width: image.width, height: image.height)
     }
 
     private func encode(image: CGImage, type: UTType) throws -> Data {
