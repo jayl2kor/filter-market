@@ -1,4 +1,4 @@
-# filterMarket — 권한 요청 플로우
+# moodit — 권한 요청 플로우
 
 > 버전: v1.2 · 작성일: 2026-05-06
 > `mockups/screens/permissions/` 8개 화면과 1:1 매핑.
@@ -8,7 +8,7 @@
 
 ## 개요
 
-filterMarket 은 4가지 시스템 권한이 필요하다:
+moodit 은 4가지 시스템 권한이 필요하다:
 
 | 권한 | 필수 여부 | 요청 시점 |
 |---|---|---|
@@ -57,13 +57,13 @@ filterMarket 은 4가지 시스템 권한이 필요하다:
 |---|---|---|
 | 헤드라인 | 필터를 입혀 촬영하기 | Shoot with Live Filters |
 | 본문 | 라이브 프리뷰에서 필터를 적용해 사진을 찍으려면 카메라 접근이 필요해요. | Camera access is needed to apply filters in real time while shooting. |
-| Info.plist 문구 | filterMarket이 라이브 필터를 적용한 사진 촬영에 카메라를 사용합니다. | filterMarket uses the camera to take photos with live filters applied. |
+| Info.plist 문구 | moodit이 라이브 필터를 적용한 사진 촬영에 카메라를 사용합니다. | moodit uses the camera to take photos with live filters applied. |
 
 ### iOS Info.plist
 
 ```xml
 <key>NSCameraUsageDescription</key>
-<string>filterMarket이 라이브 필터를 적용한 사진 촬영에 카메라를 사용합니다.</string>
+<string>moodit이 라이브 필터를 적용한 사진 촬영에 카메라를 사용합니다.</string>
 ```
 
 ### 거부 시 Fallback (`camera-denied.html`)
@@ -72,10 +72,10 @@ iOS는 시스템 다이얼로그를 한 번 거부하면 앱에서 재호출할 
 반드시 **설정 앱으로 안내**해야 한다.
 
 - **헤드라인**: 카메라 접근이 꺼져 있어요
-- **본문**: 설정 앱에서 filterMarket의 카메라 접근을 켜주세요.
+- **본문**: 설정 앱에서 moodit의 카메라 접근을 켜주세요.
 - **단계 안내**:
   1. **설정** 앱 열기
-  2. **filterMarket** 항목으로 이동
+  2. **moodit** 항목으로 이동
   3. **카메라** 토글 켜기
 - **CTA Primary**: 설정 열기
 - **CTA Ghost**: 나중에 (카메라 없이 마켓만 사용)
@@ -127,13 +127,13 @@ Button("설정 열기") {
                     → 거부 → [거부 안내 화면: photos-denied.html]
 ```
 
-> **iOS 14+ Add-Only 권한**: `PHAuthorizationStatus.limited` 또는 `.addOnly` 상태에서 저장만 가능. filterMarket 의 "저장" 기능은 `.addOnly` 만으로 충분하므로 Full Access 를 강요하지 않는다.
+> **iOS 14+ Add-Only 권한**: `PHAuthorizationStatus.limited` 또는 `.addOnly` 상태에서 저장만 가능. moodit 의 "저장" 기능은 `.addOnly` 만으로 충분하므로 Full Access 를 강요하지 않는다.
 
 ### Priming 화면 (`photos-priming.html`)
 
 - **일러스트**: 사진 프레임 아이콘 (`photo.on.rectangle`), 골드
 - **헤드라인**: 사진 앱에 저장하기
-- **본문**: 촬영한 사진을 사진 앱에 저장하려면 접근 권한이 필요해요. filterMarket 은 저장 기능에만 사용하며, 기존 사진을 읽거나 수정하지 않아요.
+- **본문**: 촬영한 사진을 사진 앱에 저장하려면 접근 권한이 필요해요. moodit 은 저장 기능에만 사용하며, 기존 사진을 읽거나 수정하지 않아요.
 - **CTA Primary**: 허용
 - **CTA Ghost**: 나중에 (저장하지 않고 계속)
 
@@ -143,24 +143,24 @@ Button("설정 열기") {
 |---|---|---|
 | 헤드라인 | 사진 앱에 저장하기 | Save to Photos |
 | 본문 | 촬영한 사진을 사진 앱에 저장하려면 접근이 필요해요. 저장 기능에만 사용해요. | We need access to save your photo to the Photos app. We only add photos, never read or modify existing ones. |
-| Info.plist 문구 | filterMarket이 촬영한 사진을 사진 앱에 저장합니다. 기존 사진에는 접근하지 않습니다. | filterMarket saves captured photos to your Photos library. Existing photos are never accessed. |
+| Info.plist 문구 | moodit이 촬영한 사진을 사진 앱에 저장합니다. 기존 사진에는 접근하지 않습니다. | moodit saves captured photos to your Photos library. Existing photos are never accessed. |
 
 ### iOS Info.plist
 
 ```xml
 <key>NSPhotoLibraryAddUsageDescription</key>
-<string>filterMarket이 촬영한 사진을 사진 앱에 저장합니다. 기존 사진에는 접근하지 않습니다.</string>
+<string>moodit이 촬영한 사진을 사진 앱에 저장합니다. 기존 사진에는 접근하지 않습니다.</string>
 
 <!-- 갤러리 읽기(업로드)가 필요한 경우 추가 -->
 <key>NSPhotoLibraryUsageDescription</key>
-<string>filterMarket이 필터 업로드를 위해 사진 앱의 이미지를 읽습니다.</string>
+<string>moodit이 필터 업로드를 위해 사진 앱의 이미지를 읽습니다.</string>
 ```
 
 ### 거부 시 Fallback (`photos-denied.html`)
 
 - **헤드라인**: 사진 저장이 꺼져 있어요
-- **본문**: 설정 앱에서 filterMarket 의 사진 접근을 켜주세요.
-- **단계 안내**: 설정 → filterMarket → 사진 → "추가만" 또는 "모든 사진" 선택
+- **본문**: 설정 앱에서 moodit 의 사진 접근을 켜주세요.
+- **단계 안내**: 설정 → moodit → 사진 → "추가만" 또는 "모든 사진" 선택
 - **CTA Primary**: 설정 열기
 - **CTA Ghost**: 나중에 (저장 없이 계속)
 
@@ -227,7 +227,7 @@ func savePhoto(_ image: UIImage) async {
 |---|---|---|
 | 헤드라인 | 놓치지 말아야 할 소식 | Stay in the Loop |
 | 본문 | 팔로우한 메이커의 신규 필터와 댓글 답글을 알려드려요. | Get notified about new filters from makers you follow and replies to your comments. |
-| Info.plist 문구 | filterMarket이 신규 필터 출시, 댓글 답글, 구매 업데이트 알림을 보냅니다. | filterMarket sends notifications for new filter releases, comment replies, and purchase updates. |
+| Info.plist 문구 | moodit이 신규 필터 출시, 댓글 답글, 구매 업데이트 알림을 보냅니다. | moodit sends notifications for new filter releases, comment replies, and purchase updates. |
 
 ### iOS Info.plist
 
@@ -285,7 +285,7 @@ func requestNotificationPermission() async -> Bool {
 
 - **일러스트**: 위치 핀 아이콘 (`location.circle`), 골드
 - **헤드라인**: 사진에 장소를 담기
-- **본문**: 촬영한 사진에 위치 정보를 추가할 수 있어요. 위치는 사진 파일에만 저장되며 filterMarket 서버로 전송되지 않아요.
+- **본문**: 촬영한 사진에 위치 정보를 추가할 수 있어요. 위치는 사진 파일에만 저장되며 moodit 서버로 전송되지 않아요.
 - **CTA Primary**: 허용
 - **CTA Ghost**: 위치 없이 저장
 - **힌트**: 위치 정보는 EXIF 형식으로 사진 파일에만 저장됩니다.
@@ -296,13 +296,13 @@ func requestNotificationPermission() async -> Bool {
 |---|---|---|
 | 헤드라인 | 사진에 장소를 담기 | Tag the Place You Shot |
 | 본문 | 촬영한 사진에 위치 정보를 추가할 수 있어요. 위치는 사진 파일에만 저장되며 서버로 전송되지 않아요. | Add location info to your photo as EXIF data. It's stored in the photo file only — never sent to our servers. |
-| Info.plist 문구 | filterMarket이 촬영한 사진에 위치 태그(EXIF)를 추가합니다. 위치는 사진 파일에만 저장되며 수집되지 않습니다. | filterMarket adds location tags (EXIF) to photos you take. Location is stored in the photo file only, never collected. |
+| Info.plist 문구 | moodit이 촬영한 사진에 위치 태그(EXIF)를 추가합니다. 위치는 사진 파일에만 저장되며 수집되지 않습니다. | moodit adds location tags (EXIF) to photos you take. Location is stored in the photo file only, never collected. |
 
 ### iOS Info.plist
 
 ```xml
 <key>NSLocationWhenInUseUsageDescription</key>
-<string>filterMarket이 촬영한 사진에 위치 태그(EXIF)를 추가합니다. 위치는 사진 파일에만 저장되며 수집되지 않습니다.</string>
+<string>moodit이 촬영한 사진에 위치 태그(EXIF)를 추가합니다. 위치는 사진 파일에만 저장되며 수집되지 않습니다.</string>
 ```
 
 ### 거부 시 Fallback (`location-denied.html`)

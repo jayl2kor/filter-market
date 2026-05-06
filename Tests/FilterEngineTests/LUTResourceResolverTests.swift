@@ -47,7 +47,7 @@ final class LUTResourceResolverTests: XCTestCase {
 
     private func makeTemporaryDirectory() throws -> URL {
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("filtermarket-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("moodit-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         addTeardownBlock {
             try? FileManager.default.removeItem(at: url)

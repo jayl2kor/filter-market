@@ -5,10 +5,10 @@ import SwiftUI
 // Phase D6 — `MODAL_PATTERNS.md` M-02 Action Sheet 의 표준 wrapper.
 //
 // 사진 액션 / 신고 옵션 등 1차원 액션 시트.
-// 시스템 `confirmationDialog` 위에 filterMarket 표준 호출 형태(제목 + actions + message) 를 제공한다.
+// 시스템 `confirmationDialog` 위에 moodit 표준 호출 형태(제목 + actions + message) 를 제공한다.
 
 public extension View {
-    /// filterMarket 표준 action sheet.
+    /// moodit 표준 action sheet.
     ///
     /// - Parameters:
     ///   - title: 시트 상단 제목 (회색 소형 텍스트로 표시).

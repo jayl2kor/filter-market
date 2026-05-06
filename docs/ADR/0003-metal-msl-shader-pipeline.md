@@ -32,7 +32,7 @@
 
 ## 2. Decision
 
-**filterMarket 셰이더 파이프라인의 1차 언어로 MSL(Metal Shading Language)을 채택한다. 보조용으로 Core Image를 비핫패스(썸네일 생성, 정적 합성)에 사용한다. GLSL ES / OpenGL ES는 사용하지 않는다.**
+**moodit 셰이더 파이프라인의 1차 언어로 MSL(Metal Shading Language)을 채택한다. 보조용으로 Core Image를 비핫패스(썸네일 생성, 정적 합성)에 사용한다. GLSL ES / OpenGL ES는 사용하지 않는다.**
 
 핵심 결정:
 - **셰이더 소스**: `.metal` 파일 (Xcode 빌드 시 자동 컴파일 → `.metallib`)

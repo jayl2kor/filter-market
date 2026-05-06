@@ -4,11 +4,11 @@ import SwiftUI
 //
 // Phase D6 — `MODAL_PATTERNS.md` M-03 Confirmation Alert 의 표준 wrapper.
 //
-// SwiftUI `.alert` 위에 filterMarket 표준 호출 형태를 얹는다.
+// SwiftUI `.alert` 위에 moodit 표준 호출 형태를 얹는다.
 // 가장 자주 등장하는 destructive 확인 패턴을 위한 단축 API 도 제공.
 
 public extension View {
-    /// filterMarket 표준 alert wrapper.
+    /// moodit 표준 alert wrapper.
     ///
     /// 일반 / 정보성 alert. 파괴적 액션 단축 API 는 `fmDestructiveAlert` 참조.
     ///

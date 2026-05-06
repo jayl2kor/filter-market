@@ -1,4 +1,4 @@
-# filterMarket - 외부 계정 / 서비스 셋업 체크리스트
+# moodit - 외부 계정 / 서비스 셋업 체크리스트
 
 > 버전: v1.0 · 작성일: 2026-05-06
 >
@@ -19,7 +19,7 @@
 | P0 | App Store Connect 앱 레코드 | Phase 1 | TestFlight |
 | P1 | Sentry / Crashlytics 결정 | Phase 1 | 모니터링 |
 | P1 | PostHog | Phase 1 | 분석 |
-| P2 | 도메인 (filtermarket.app) | Phase 1 | Universal Link |
+| P2 | 도메인 (moodit.app) | Phase 1 | Universal Link |
 | P2 | APNs Auth Key | Phase 3 | 푸시 |
 | P3 | Algolia | Phase 4 | 검색 고도화 |
 | P3 | Stripe Connect | Phase 6 | 정산 |
@@ -56,7 +56,7 @@
 
 ### 3.1 Bundle ID 등록
 - **URL**: https://developer.apple.com/account/resources/identifiers
-- **Bundle ID 명명**: `com.filtermarket.ios` (env 분기는 `com.filtermarket.ios.dev`, `.staging`)
+- **Bundle ID 명명**: `com.moodit.ios` (env 분기는 `com.moodit.ios.dev`, `.staging`)
 - 활성화할 Capabilities:
   - Sign in with Apple (필수)
   - Push Notifications (Phase 3)
@@ -65,7 +65,7 @@
   - In-App Purchase (Phase 6)
 
 ### 3.2 인증서 / 프로비저닝 프로파일
-- Fastlane match 사용 권장 — 별도 git 저장소(`filtermarket-certificates`)에 암호화 저장
+- Fastlane match 사용 권장 — 별도 git 저장소(`moodit-certificates`)에 암호화 저장
 - 종류: Development, Distribution (App Store), Distribution (Ad Hoc — TestFlight 미사용 시)
 
 ### 3.3 비용 / 소요
@@ -80,17 +80,17 @@
 - **URL**: https://appstoreconnect.apple.com → My Apps → "+"
 - 입력:
   - Platform: iOS
-  - Name: filterMarket
+  - Name: moodit
   - Primary Language: English
   - Bundle ID: 사전 등록한 것 선택
-  - SKU: 자유, 예: `filtermarket-ios-001`
+  - SKU: 자유, 예: `moodit-ios-001`
 
 ### 4.2 메타데이터 (사전 작성)
 - **카테고리**: Photo & Video (Primary), Social Networking (Secondary)
 - **Age Rating**: 12+ 또는 17+ (UGC 노출 수준 결정 후)
 - **Pricing**: Free (Phase 6 전까지)
 - **App Privacy**: Photos, Camera, User Content, Identifiers, Diagnostics, Usage Data — 정확히 신고
-- **Support URL**, **Marketing URL**: filtermarket.app 또는 임시 GitHub Pages
+- **Support URL**, **Marketing URL**: moodit.app 또는 임시 GitHub Pages
 
 ### 4.3 비용 / 소요
 - 비용: 무료 (Apple Developer 포함)
@@ -102,11 +102,11 @@
 
 ### 5.1 생성
 - **URL**: Identifiers → "+" → Services IDs
-- Identifier: `com.filtermarket.signin`
-- Description: "filterMarket Sign in with Apple"
+- Identifier: `com.moodit.signin`
+- Description: "moodit Sign in with Apple"
 - Configure:
-  - Domain: `filtermarket-{env}.firebaseapp.com` (3개 환경 + verified)
-  - Return URL: `https://filtermarket-{env}.firebaseapp.com/__/auth/handler`
+  - Domain: `moodit-{env}.firebaseapp.com` (3개 환경 + verified)
+  - Return URL: `https://moodit-{env}.firebaseapp.com/__/auth/handler`
 
 ### 5.2 Key 생성 (Phase 3 backend 직접 검증 시)
 - Keys → "+" → "Sign in with Apple" 활성화
@@ -128,12 +128,12 @@
 ### 6.2 OAuth 2.0 Client ID
 - APIs & Services → Credentials → CREATE CREDENTIALS → OAuth client ID
 - Application type: **iOS**
-- Bundle ID: `com.filtermarket.ios`
+- Bundle ID: `com.moodit.ios`
 - Reversed Client ID 복사 → Info.plist `CFBundleURLTypes` URL Scheme 등록
 
 ### 6.3 OAuth Consent Screen
 - User Type: External
-- App name, Logo, Support email, Authorized domains (`filtermarket.app`)
+- App name, Logo, Support email, Authorized domains (`moodit.app`)
 - Scopes: `email`, `profile`, `openid` (기본)
 - Phase 1: Testing 모드(테스트 사용자 100명) → Phase 2 출시 후 Production 게시 (검토 1~2주)
 
@@ -148,9 +148,9 @@
 ### 7.1 프로젝트 생성
 - **URL**: https://console.firebase.google.com → "Add project"
 - 3개 생성:
-  - `filtermarket-dev`
-  - `filtermarket-staging`
-  - `filtermarket-prod`
+  - `moodit-dev`
+  - `moodit-staging`
+  - `moodit-prod`
 - Region 선택: **asia-northeast3 (서울)** — 한국 사용자 지연 최소화
 
 ### 7.2 활성화할 서비스
@@ -197,9 +197,9 @@
 ### 8.3 버킷 생성
 | 이름 | 용도 |
 |---|---|
-| `filtermarket-prod` | 프로덕션 |
-| `filtermarket-staging` | 스테이징 |
-| `filtermarket-dev` | 개발 |
+| `moodit-prod` | 프로덕션 |
+| `moodit-staging` | 스테이징 |
+| `moodit-dev` | 개발 |
 
 ### 8.4 API 토큰
 - Account → R2 → "Manage R2 API Tokens"
@@ -213,7 +213,7 @@
 - 시크릿은 GCP Secret Manager 또는 Xcode Cloud Environment Variables에 저장 — 절대 git 금지
 
 ### 8.5 CDN 연결 (Public bucket)
-- R2 버킷 → Settings → "Connect Domain" → `cdn.filtermarket.app`
+- R2 버킷 → Settings → "Connect Domain" → `cdn.moodit.app`
 - DNS는 Cloudflare에서 관리 (CNAME `cdn` → `<bucket>.r2.dev` 또는 자동)
 - Cache Rules: 30일 TTL, versioned URL 패턴
 
@@ -267,7 +267,7 @@
 
 ### 11.1 발급 (Phase 3)
 - Apple Developer Console → Keys → "+"
-- Key Name: `APNs filterMarket`
+- Key Name: `APNs moodit`
 - Services: APNs 활성
 - 다운로드 .p8 (1회)
 - Key ID + Team ID 기록
@@ -281,20 +281,20 @@
 ## 12. 도메인 (선택)
 
 ### 12.1 등록
-- **filtermarket.app** 또는 .io (.app은 HTTPS 강제 — 보안 우호)
+- **moodit.app** 또는 .io (.app은 HTTPS 강제 — 보안 우호)
 - 등록 (예: Cloudflare Registrar, Namecheap)
 - 비용: 약 $20~30/yr
 
 ### 12.2 DNS
 - Cloudflare에서 관리 (CDN/방어 통합)
 - 필요한 레코드:
-  - `cdn.filtermarket.app` → R2 bucket
-  - `api.filtermarket.app` → Cloud Functions 또는 Cloud Run
-  - `app.filtermarket.app` → Hosting (어드민) 또는 마케팅 페이지
+  - `cdn.moodit.app` → R2 bucket
+  - `api.moodit.app` → Cloud Functions 또는 Cloud Run
+  - `app.moodit.app` → Hosting (어드민) 또는 마케팅 페이지
   - `_well-known/apple-app-site-association` → Universal Link
 
 ### 12.3 Universal Link / Associated Domains
-- App Capabilities에서 `applinks:filtermarket.app` 추가
+- App Capabilities에서 `applinks:moodit.app` 추가
 - AASA 파일을 Hosting 또는 R2에서 서빙
 
 ---
@@ -340,7 +340,7 @@
 ## Phase 0 (사전 ~ 1주차)
 - [ ] Apple Developer Program 가입 완료
 - [ ] D-U-N-S 발급 (조직)
-- [ ] Bundle ID 등록 (com.filtermarket.ios + .dev/.staging)
+- [ ] Bundle ID 등록 (com.moodit.ios + .dev/.staging)
 - [ ] Capabilities: Sign in with Apple, Push, Associated Domains
 - [ ] Fastlane match 인증서 git repo 셋업
 - [ ] Firebase 프로젝트 3개 + iOS 앱 추가 + plist 다운로드
@@ -359,7 +359,7 @@
 ## Phase 3
 - [ ] APNs Auth Key + Firebase 등록
 - [ ] Universal Link / Associated Domains + AASA 파일
-- [ ] 도메인 등록 (filtermarket.app)
+- [ ] 도메인 등록 (moodit.app)
 
 ## Phase 4
 - [ ] Algolia 가입 + index 셋업

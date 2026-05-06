@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Moodit Symbol — "Twin Lens"
+  Two circles drawn from the "oo" in moodit. The outlined ring suggests the
+  observing eye (viewer); the filled disc the captured frame (maker).
+  Single accent: gold (#B8853A light / #E8B86D dark via currentColor).
+  Use this when only the mark is needed (favicons, watch face, social avatar
+  inside a colored container).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32" role="img" aria-label="Moodit">
+  <circle cx="16" cy="16" r="11" fill="none" stroke="#B8853A" stroke-width="2.5"/>
+  <circle cx="48" cy="16" r="11" fill="#B8853A"/>
+</svg>

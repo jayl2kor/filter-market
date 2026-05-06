@@ -1,6 +1,6 @@
 # DesignSystem
 
-filterMarket 의 디자인 토큰과 컴포넌트 라이브러리.
+moodit 의 디자인 토큰과 컴포넌트 라이브러리.
 단일 진실원: [`docs/DESIGN_TOKENS.json`](../../docs/DESIGN_TOKENS.json) v1.2.0 (라이트/다크 듀얼).
 
 ## 토큰 구조

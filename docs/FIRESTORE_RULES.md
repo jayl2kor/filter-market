@@ -1,4 +1,4 @@
-# filterMarket - Firestore Security Rules 초안
+# moodit - Firestore Security Rules 초안
 
 > 버전: v1.0 · 작성일: 2026-05-06
 >
@@ -465,7 +465,7 @@ firebase emulators:exec --only firestore "npm test"
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 
 const env = await initializeTestEnvironment({
-  projectId: 'filtermarket-test',
+  projectId: 'moodit-test',
   firestore: { rules: fs.readFileSync('firestore.rules', 'utf8') },
 });
 
@@ -491,7 +491,7 @@ await assertSucceeds(moderator.firestore().doc('filters/f1').update({
 
 ### 7.1 룰 배포
 ```bash
-firebase deploy --only firestore:rules --project filtermarket-prod
+firebase deploy --only firestore:rules --project moodit-prod
 ```
 
 - 배포는 ADR(또는 PR) 승인 + 모더레이터/PM 검토 필수

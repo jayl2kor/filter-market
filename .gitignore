@@ -16,6 +16,7 @@ build/
 .env.local
 .env.*.local
 GoogleService-Info.plist
+!Sources/App/Resources/Firebase/GoogleService-Info.plist
 !Sources/App/Resources/Firebase/**/GoogleService-Info.plist
 
 # Tools

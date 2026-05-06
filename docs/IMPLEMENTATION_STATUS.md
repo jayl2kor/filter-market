@@ -1,4 +1,4 @@
-# filterMarket - Implementation Status
+# moodit - Implementation Status
 
 > 마지막 업데이트: 2026-05-06 18:32 KST · 기준 커밋/브랜치: 로컬 작업 상태 · 상태: Phase 0 실기기 검증 대기 / 촬영 비율 전환 코드 경로 구현 완료
 >
@@ -64,7 +64,7 @@
 | 파일 | 내용 |
 |---|---|
 | [project.yml](../project.yml) | XcodeGen 프로젝트 정의 |
-| [filterMarket.xcodeproj](../filterMarket.xcodeproj/project.pbxproj) | 생성된 Xcode 프로젝트 |
+| [moodit.xcodeproj](../moodit.xcodeproj/project.pbxproj) | 생성된 Xcode 프로젝트 |
 | [.gitignore](../.gitignore) | Xcode/SwiftPM/secret 제외 |
 | [.swiftlint.yml](../.swiftlint.yml) | SwiftLint 룰 초안 |
 | [.swiftformat](../.swiftformat) | SwiftFormat 설정 |
@@ -88,7 +88,7 @@
 
 | 모듈 | 주요 파일 | 현재 상태 |
 |---|---|---|
-| `App` | [FilterMarketApp.swift](../Sources/App/FilterMarketApp.swift), [RootShell.swift](../Sources/App/RootShell.swift), [CameraScreen.swift](../Sources/App/CameraScreen.swift), [FilterLibraryScreen.swift](../Sources/App/FilterLibraryScreen.swift), [MarketplaceScreen.swift](../Sources/App/MarketplaceScreen.swift), [ProfileScreen.swift](../Sources/App/ProfileScreen.swift), [FilterMarketStore.swift](../Sources/App/FilterMarketStore.swift), [AppComponents.swift](../Sources/App/AppComponents.swift), [Info.plist](../Sources/App/Info.plist) | 앱 엔트리, 탭 shell, 카메라/필터/마켓/프로필 mock 화면 |
+| `App` | [MooditApp.swift](../Sources/App/MooditApp.swift), [RootShell.swift](../Sources/App/RootShell.swift), [CameraScreen.swift](../Sources/App/CameraScreen.swift), [FilterLibraryScreen.swift](../Sources/App/FilterLibraryScreen.swift), [MarketplaceScreen.swift](../Sources/App/MarketplaceScreen.swift), [ProfileScreen.swift](../Sources/App/ProfileScreen.swift), [MooditStore.swift](../Sources/App/MooditStore.swift), [AppComponents.swift](../Sources/App/AppComponents.swift), [Info.plist](../Sources/App/Info.plist) | 앱 엔트리, 탭 shell, 카메라/필터/마켓/프로필 mock 화면 |
 | `Camera` | [CameraSession.swift](../Sources/Camera/CameraSession.swift), [PhotoLibrarySaver.swift](../Sources/Camera/PhotoLibrarySaver.swift) | 권한 요청, 전/후면 camera session 전환, 탭 focus/exposure point 적용, video frame callback, `AVCapturePhotoOutput` photo data capture, PhotoKit add-only 저장 service |
 | `FilterEngine` | [MetalPreviewRenderer.swift](../Sources/FilterEngine/MetalPreviewRenderer.swift), [MetalPreviewView.swift](../Sources/FilterEngine/MetalPreviewView.swift), [PhotoFilterRenderer.swift](../Sources/FilterEngine/PhotoFilterRenderer.swift), [RenderFilter.swift](../Sources/FilterEngine/RenderFilter.swift), [PreviewFilter.swift](../Sources/FilterEngine/PreviewFilter.swift), [ShaderSources.swift](../Sources/FilterEngine/ShaderSources.swift), [LUTSampler.swift](../Sources/FilterEngine/LUTSampler.swift), [LUTImageDecoder.swift](../Sources/FilterEngine/LUTImageDecoder.swift), [LUTResourceResolver.swift](../Sources/FilterEngine/LUTResourceResolver.swift), [LUTTextureFactory.swift](../Sources/FilterEngine/LUTTextureFactory.swift), [RenderMetrics.swift](../Sources/FilterEngine/RenderMetrics.swift), [PreviewUniforms.swift](../Sources/FilterEngine/PreviewUniforms.swift) | Metal preview renderer, CPU photo renderer, capture crop aspect ratio, 공용 filter render config, Y/CbCr texture conversion, procedural LUT fallback, PNG LUT decoder, resource resolver, 3D LUT texture, intensity uniform, render metrics, LUT sampler |
 | `Models` | [FilterModels.swift](../Sources/Models/FilterModels.swift), [FilterManifest.swift](../Sources/Models/FilterManifest.swift), [JSONCoding.swift](../Sources/Models/JSONCoding.swift) | 필터/manifest Codable 모델 |

@@ -9,7 +9,7 @@ import SwiftUI
 /// Phase D3 — `mockups/screens/07-filter-detail.html` 와 정합.
 /// 비포/애프터 슬라이더 + 메이커 정보 + 통계 + 설명/태그 + 샘플 그리드 + 댓글 + 하단 CTA.
 struct FilterDetailScreen: View {
-    @EnvironmentObject private var store: FilterMarketStore
+    @EnvironmentObject private var store: MooditStore
     @Environment(\.dismiss) private var dismiss
 
     private let filter: Filter?
@@ -557,7 +557,7 @@ struct FilterDetailScreen: View {
 #Preview("FilterDetailScreen — Free") {
     NavigationStack {
         FilterDetailScreen(mock: FilterDetailMock.preview)
-            .environmentObject(FilterMarketStore())
+            .environmentObject(MooditStore())
     }
 }
 
@@ -584,14 +584,14 @@ struct FilterDetailScreen: View {
             )
             return m
         }())
-        .environmentObject(FilterMarketStore())
+        .environmentObject(MooditStore())
     }
 }
 
 #Preview("FilterDetailScreen — Dark") {
     NavigationStack {
         FilterDetailScreen(mock: FilterDetailMock.preview)
-            .environmentObject(FilterMarketStore())
+            .environmentObject(MooditStore())
     }
     .preferredColorScheme(.dark)
 }

@@ -1,4 +1,4 @@
-# filterMarket - Swift 코딩 컨벤션
+# moodit - Swift 코딩 컨벤션
 
 > 버전: v1.0 · 작성일: 2026-05-06
 >

@@ -7,7 +7,7 @@ import SwiftUI
 /// 마켓 / 검색 / 셔터(카메라) / 저장됨 / 프로필 5개 탭.
 /// 셔터 탭은 selection 으로 사용되지 않고 `.fullScreenCover` 로 카메라를 띄움.
 struct RootShell: View {
-    @StateObject private var store = FilterMarketStore()
+    @StateObject private var store = MooditStore()
 
     @State private var selectedTab: FMTab = .market
     @State private var isCameraPresented = false

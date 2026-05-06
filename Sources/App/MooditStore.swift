@@ -3,7 +3,7 @@ import Marketplace
 import Models
 
 @MainActor
-final class FilterMarketStore: ObservableObject {
+final class MooditStore: ObservableObject {
     @Published private(set) var filters: [Filter] = []
     @Published private(set) var downloadedFilterIDs: Set<Filter.ID> = []
     @Published var selectedFilterID: Filter.ID?

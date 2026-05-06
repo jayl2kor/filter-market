@@ -54,7 +54,7 @@ struct LoginScreen: View {
             logo
                 .accessibilityHidden(true)
 
-            Text("filterMarket")
+            Text("moodit")
                 .fmTypography(.display)
                 .foregroundStyle(FMColors.Text.primary)
                 .multilineTextAlignment(.center)

@@ -1,19 +1,19 @@
-# filterMarket - API Specification (REST + Firestore)
+# moodit - API Specification (REST + Firestore)
 
 > 버전: v1.0 · 작성일: 2026-05-06
 >
 > 이 문서는 [SYSTEM_DESIGN.md](./SYSTEM_DESIGN.md) §8의 API 개요를 정식 스펙으로 확장한다. MVP 백엔드는 Firebase 기반(Auth + Firestore + Cloud Functions). Phase 4 이후 Cloud Run + Vapor/Ktor 분리 옵션은 [TECH_STACK.md](./TECH_STACK.md) §4 참조.
 >
 > Base URL (예시):
-> - dev: `https://us-central1-filtermarket-dev.cloudfunctions.net`
-> - staging: `https://asia-northeast3-filtermarket-staging.cloudfunctions.net`
-> - prod: `https://api.filtermarket.app`
+> - dev: `https://us-central1-moodit-dev.cloudfunctions.net`
+> - staging: `https://asia-northeast3-moodit-staging.cloudfunctions.net`
+> - prod: `https://api.moodit.app`
 
 ---
 
 ## 1. API 분류
 
-filterMarket은 두 가지 호출 경로를 사용한다.
+moodit은 두 가지 호출 경로를 사용한다.
 
 | 경로 | 사용처 | 인증 |
 |---|---|---|
@@ -227,7 +227,7 @@ Authorization: Bearer <id-token>
   "data": {
     "filterId": "01900b14-7b1c-7c1e-a4f4-9b2c1d2e3f4a",
     "uploadUrl": "https://<r2>.r2.cloudflarestorage.com/...?X-Amz-Signature=...",
-    "uploadHeaders": { "Content-Type": "application/x-filtermarket-package" },
+    "uploadHeaders": { "Content-Type": "application/x-moodit-package" },
     "expiresAt": "2026-05-06T09:15:00Z"
   },
   "error": null
@@ -320,8 +320,8 @@ Idempotency-Key: <client-generated-uuid>
     "engine": { "type": "lut+params", "minAppVersion": "1.0.0", "minIOSVersion": "17.0" },
     "metrics": { "downloads": 1234, "likes": 88, "ratingAvg": 4.6, "ratingCount": 42 },
     "urls": {
-      "fmpkg": "https://cdn.filtermarket.app/filters/01900b/v1.0.0/filter.fmpkg?sig=...&exp=...",
-      "thumb": "https://cdn.filtermarket.app/filters/01900b/v1.0.0/preview/thumb.jpg",
+      "fmpkg": "https://cdn.moodit.app/filters/01900b/v1.0.0/filter.fmpkg?sig=...&exp=...",
+      "thumb": "https://cdn.moodit.app/filters/01900b/v1.0.0/preview/thumb.jpg",
       "before": "...",
       "after": "..."
     }

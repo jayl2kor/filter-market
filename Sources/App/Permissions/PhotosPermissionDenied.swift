@@ -28,7 +28,7 @@ public struct PhotosPermissionDenied: View {
                 PermissionStepsCard(
                     steps: [
                         .init(text: .permissionStep("설정 앱 열기", emphasised: ["설정"])),
-                        .init(text: .permissionStep("filterMarket 선택", emphasised: ["filterMarket"])),
+                        .init(text: .permissionStep("moodit 선택", emphasised: ["moodit"])),
                         .init(text: .permissionStep("사진 → \"전체 사진\" 또는 \"선택된 사진\"", emphasised: ["사진"]))
                     ]
                 )

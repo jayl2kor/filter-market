@@ -9,7 +9,7 @@ import SwiftUI
 /// Phase D3 — `mockups/screens/06-marketplace-home.html` 와 정합.
 /// 검색 헤더 + 인사 + 트렌딩 캐러셀 + 카테고리 칩 + 신규 그리드 + 큐레이션.
 struct MarketplaceScreen: View {
-    @EnvironmentObject private var store: FilterMarketStore
+    @EnvironmentObject private var store: MooditStore
 
     @State private var searchQuery: String = ""
     @State private var selectedCategory: String = "전체"
@@ -453,7 +453,7 @@ private struct CollectionCard: View {
 #Preview("MarketplaceScreen — Loaded") {
     MarketplaceScreen()
         .environmentObject({
-            let store = FilterMarketStore()
+            let store = MooditStore()
             // Preview 에서는 즉시 mock 채우기 위해 selectedFilterID 만 설정.
             return store
         }())
@@ -461,6 +461,6 @@ private struct CollectionCard: View {
 
 #Preview("MarketplaceScreen — Dark") {
     MarketplaceScreen()
-        .environmentObject(FilterMarketStore())
+        .environmentObject(MooditStore())
         .preferredColorScheme(.dark)
 }

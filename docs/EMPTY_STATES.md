@@ -1,4 +1,4 @@
-# filterMarket — 빈 상태 명세
+# moodit — 빈 상태 명세
 
 > 버전: v1.2 · 작성일: 2026-05-06
 > `mockups/screens/states-catalog.html` §1 Empty States 와 1:1 매핑.

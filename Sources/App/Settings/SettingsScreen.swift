@@ -418,7 +418,7 @@ struct SettingsScreen: View {
     // MARK: - Footer
 
     private var footerNote: some View {
-        Text("filterMarket © 2026 · 서울에서 만들었습니다")
+        Text("moodit © 2026 · 서울에서 만들었습니다")
             .fmTypography(.footnote)
             .foregroundStyle(FMColors.Text.tertiary)
             .frame(maxWidth: .infinity)

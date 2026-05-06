@@ -10,7 +10,7 @@ import UIKit
 /// 페이지별 일러스트로 확장). 라이트 모드 풀스크린, 상단 60% 일러스트 + 헤드라인 + 서브텍스트
 /// + 하단 인디케이터/스킵/넥스트.
 ///
-/// 실제 통합은 `FilterMarketApp` 의 `@AppStorage("hasOnboarded")` 분기와 연결되며,
+/// 실제 통합은 `MooditApp` 의 `@AppStorage("hasOnboarded")` 분기와 연결되며,
 /// 본 화면은 시각·내비게이션만 제공한다.
 struct OnboardingScreen: View {
     @State private var currentPage: Int = 0
@@ -171,7 +171,7 @@ private struct OnboardingPage: Identifiable {
 
     static let all: [OnboardingPage] = [
         OnboardingPage(
-            eyebrow: "filterMarket · 01",
+            eyebrow: "moodit · 01",
             symbol: "camera.aperture",
             symbolAccent: "sparkles",
             titlePrimary: "카메라에 필터를 입혀",
@@ -180,7 +180,7 @@ private struct OnboardingPage: Identifiable {
             tint: FMColors.Category.cinematic
         ),
         OnboardingPage(
-            eyebrow: "filterMarket · 02",
+            eyebrow: "moodit · 02",
             symbol: "square.grid.3x3.fill",
             symbolAccent: "magnifyingglass",
             titlePrimary: "수천 개의 필터,",
@@ -189,7 +189,7 @@ private struct OnboardingPage: Identifiable {
             tint: FMColors.Category.travel
         ),
         OnboardingPage(
-            eyebrow: "filterMarket · 03",
+            eyebrow: "moodit · 03",
             symbol: "slider.horizontal.below.square.filled.and.square",
             symbolAccent: "paintpalette.fill",
             titlePrimary: "직접 만든 필터로",
@@ -198,7 +198,7 @@ private struct OnboardingPage: Identifiable {
             tint: FMColors.Category.pastel
         ),
         OnboardingPage(
-            eyebrow: "filterMarket · 04",
+            eyebrow: "moodit · 04",
             symbol: "sparkles",
             symbolAccent: "star.fill",
             titlePrimary: "준비가 끝났어요",

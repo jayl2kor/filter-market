@@ -25,7 +25,7 @@ enum ProfileSection: Hashable, CaseIterable {
 /// Phase D3 — `mockups/screens/09-profile.html` 와 정합.
 /// 헤더 + 아바타/닉네임/소개 + 통계 3분할 + 액션 + 세그먼트 + 3열 그리드.
 struct ProfileScreen: View {
-    @EnvironmentObject private var store: FilterMarketStore
+    @EnvironmentObject private var store: MooditStore
 
     private let user: ProfileUser
     @State private var selectedSection: ProfileSection = .myFilters
@@ -347,27 +347,27 @@ struct ProfileScreen: View {
 
 #Preview("ProfileScreen — Light") {
     ProfileScreen()
-        .environmentObject(FilterMarketStore())
+        .environmentObject(MooditStore())
 }
 
 #Preview("ProfileScreen — Empty myFilters") {
     ProfileScreen(user: .empty)
-        .environmentObject(FilterMarketStore())
+        .environmentObject(MooditStore())
 }
 
 #Preview("ProfileScreen — Other user") {
     ProfileScreen(user: .other)
-        .environmentObject(FilterMarketStore())
+        .environmentObject(MooditStore())
 }
 
 #Preview("ProfileScreen — Dark") {
     ProfileScreen()
-        .environmentObject(FilterMarketStore())
+        .environmentObject(MooditStore())
         .preferredColorScheme(.dark)
 }
 
 #Preview("ProfileScreen — XXXLarge") {
     ProfileScreen()
-        .environmentObject(FilterMarketStore())
+        .environmentObject(MooditStore())
         .dynamicTypeSize(.xxxLarge)
 }

@@ -1,4 +1,4 @@
-# filterMarket — 디자인 시스템
+# moodit — 디자인 시스템
 
 > 버전: v1.1 · 작성일: 2026-05-06 · 모드: Light Minimal (default) + Dark (카메라 흐름 한정)
 >

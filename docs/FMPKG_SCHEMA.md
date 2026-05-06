@@ -1,4 +1,4 @@
-# filterMarket - .fmpkg 필터 패키지 정식 스펙
+# moodit - .fmpkg 필터 패키지 정식 스펙
 
 > 버전: v1.0 (Schema Version 1) · 작성일: 2026-05-06
 >
@@ -19,7 +19,7 @@
 
 ## 2. 컨테이너 구조
 
-`.fmpkg`는 **ZIP 컨테이너** (deflate, 비밀번호 없음). MIME: `application/x-filtermarket-package`.
+`.fmpkg`는 **ZIP 컨테이너** (deflate, 비밀번호 없음). MIME: `application/x-moodit-package`.
 
 ### 2.1 표준 디렉토리 트리
 
@@ -57,8 +57,8 @@ my_filter.fmpkg/
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://filtermarket.app/schemas/fmpkg/v1/manifest.json",
-  "title": "filterMarket Filter Manifest v1",
+  "$id": "https://moodit.app/schemas/fmpkg/v1/manifest.json",
+  "title": "moodit Filter Manifest v1",
   "type": "object",
   "required": ["schemaVersion", "id", "version", "title", "author", "engine", "createdAt", "checksum"],
   "additionalProperties": false,

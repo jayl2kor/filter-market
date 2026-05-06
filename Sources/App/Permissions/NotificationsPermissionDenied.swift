@@ -29,7 +29,7 @@ public struct NotificationsPermissionDenied: View {
                 PermissionStepsCard(
                     steps: [
                         .init(text: .permissionStep("설정 → 알림", emphasised: ["설정", "알림"])),
-                        .init(text: .permissionStep("filterMarket 선택", emphasised: ["filterMarket"])),
+                        .init(text: .permissionStep("moodit 선택", emphasised: ["moodit"])),
                         .init(text: .permissionStep("알림 허용 켜기", emphasised: ["알림 허용"]))
                     ]
                 )

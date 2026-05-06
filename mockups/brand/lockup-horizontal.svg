@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Moodit Lockup — horizontal. Symbol left, wordmark right.
+  Default lockup for headers, business cards, navigation bars.
+  Clear space = 1x symbol height (32px in viewBox units) on all sides.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 120" role="img" aria-label="Moodit">
+  <!-- Symbol — twin lens, vertically centered -->
+  <g transform="translate(40, 44)">
+    <circle cx="16" cy="16" r="14" fill="none" stroke="#B8853A" stroke-width="3"/>
+    <circle cx="56" cy="16" r="14" fill="#B8853A"/>
+  </g>
+  <!-- Wordmark — baseline aligned with symbol vertical center -->
+  <text x="156" y="78"
+        font-family="-apple-system, 'SF Pro Display', 'Pretendard Variable', 'Apple SD Gothic Neo', system-ui, sans-serif"
+        font-size="56" font-weight="700" letter-spacing="-3"
+        fill="#0F0F0E">moodit</text>
+</svg>

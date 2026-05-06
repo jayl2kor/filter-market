@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "3A85846032AD2DE88F8FED1F"
-               BuildableName = "filterMarket.app"
-               BlueprintName = "filterMarket"
-               ReferencedContainer = "container:filterMarket.xcodeproj">
+               BlueprintIdentifier = "E3D4A108F30A949DB222474E"
+               BuildableName = "moodit.app"
+               BlueprintName = "moodit"
+               ReferencedContainer = "container:moodit.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "3A85846032AD2DE88F8FED1F"
-            BuildableName = "filterMarket.app"
-            BlueprintName = "filterMarket"
-            ReferencedContainer = "container:filterMarket.xcodeproj">
+            BlueprintIdentifier = "E3D4A108F30A949DB222474E"
+            BuildableName = "moodit.app"
+            BlueprintName = "moodit"
+            ReferencedContainer = "container:moodit.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -44,10 +44,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F53B208A6EEFEEBDAE6FA098"
+               BlueprintIdentifier = "689B1C4EB8655E3F2EA50BAC"
                BuildableName = "ModelsTests.xctest"
                BlueprintName = "ModelsTests"
-               ReferencedContainer = "container:filterMarket.xcodeproj">
+               ReferencedContainer = "container:moodit.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -55,10 +55,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "B9E84A22DB08582056C49356"
+               BlueprintIdentifier = "88D6AD039A8EEEE6219CC0DE"
                BuildableName = "CameraTests.xctest"
                BlueprintName = "CameraTests"
-               ReferencedContainer = "container:filterMarket.xcodeproj">
+               ReferencedContainer = "container:moodit.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -66,10 +66,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "ADE403AE73A49F64FE54B4AA"
+               BlueprintIdentifier = "5F48D345013357180B4A85BD"
                BuildableName = "FilterEngineTests.xctest"
                BlueprintName = "FilterEngineTests"
-               ReferencedContainer = "container:filterMarket.xcodeproj">
+               ReferencedContainer = "container:moodit.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -77,10 +77,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "E3630B81DE847B634F2478EE"
+               BlueprintIdentifier = "49D8181E3DFCAAEBCB5D1DA7"
                BuildableName = "MarketplaceTests.xctest"
                BlueprintName = "MarketplaceTests"
-               ReferencedContainer = "container:filterMarket.xcodeproj">
+               ReferencedContainer = "container:moodit.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -101,10 +101,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "3A85846032AD2DE88F8FED1F"
-            BuildableName = "filterMarket.app"
-            BlueprintName = "filterMarket"
-            ReferencedContainer = "container:filterMarket.xcodeproj">
+            BlueprintIdentifier = "E3D4A108F30A949DB222474E"
+            BuildableName = "moodit.app"
+            BlueprintName = "moodit"
+            ReferencedContainer = "container:moodit.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -118,10 +118,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "3A85846032AD2DE88F8FED1F"
-            BuildableName = "filterMarket.app"
-            BlueprintName = "filterMarket"
-            ReferencedContainer = "container:filterMarket.xcodeproj">
+            BlueprintIdentifier = "E3D4A108F30A949DB222474E"
+            BuildableName = "moodit.app"
+            BlueprintName = "moodit"
+            ReferencedContainer = "container:moodit.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

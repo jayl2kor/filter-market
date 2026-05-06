@@ -1,4 +1,4 @@
-# filterMarket — 모달 패턴 가이드
+# moodit — 모달 패턴 가이드
 
 > 버전: v1.2 · 작성일: 2026-05-06
 > `mockups/screens/modals/` 4개 화면과 1:1 매핑.
@@ -8,7 +8,7 @@
 
 ## 개요
 
-filterMarket 에서 사용하는 4종 모달 패턴:
+moodit 에서 사용하는 4종 모달 패턴:
 
 | 패턴 | SwiftUI API | 용도 |
 |---|---|---|
@@ -240,7 +240,7 @@ iOS `.confirmationDialog` 는 하단 그룹 버튼으로 표시된다.
 
 ### 구조
 
-iOS 시스템 `UIActivityViewController`. filterMarket 커스텀 UI 없음.
+iOS 시스템 `UIActivityViewController`. moodit 커스텀 UI 없음.
 
 ### 명세
 

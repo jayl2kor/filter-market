@@ -7,8 +7,8 @@ DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-.build/DerivedData}"
 xcodegen generate
 
 xcodebuild \
-  -project filterMarket.xcodeproj \
-  -scheme filterMarket \
+  -project moodit.xcodeproj \
+  -scheme moodit \
   -destination 'generic/platform=iOS' \
   -derivedDataPath "$DERIVED_DATA_PATH" \
   -toolchain "$TOOLCHAIN_ID" \

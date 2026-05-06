@@ -27,7 +27,7 @@ public final class PermissionCoordinator: ObservableObject {
 
     /// 단순화된 권한 상태.
     /// - Note: PHAuthorizationStatus.limited 는 사진 한정으로 `.authorized` 로 매핑한다.
-    ///         (filterMarket 의 add-only 저장에는 충분.)
+    ///         (moodit 의 add-only 저장에는 충분.)
     public enum Status: Equatable, Sendable {
         case notDetermined
         case authorized

@@ -1,4 +1,4 @@
-# filterMarket
+# moodit
 
 iOS-native camera filter marketplace. Current implementation status: Phase 0 bootstrap and Camera + Metal preview PoC foundation.
 
@@ -6,7 +6,7 @@ iOS-native camera filter marketplace. Current implementation status: Phase 0 boo
 
 ```bash
 xcodegen generate
-open filterMarket.xcodeproj
+open moodit.xcodeproj
 ```
 
 ## Build

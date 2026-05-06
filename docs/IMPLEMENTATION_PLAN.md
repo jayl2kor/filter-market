@@ -1,4 +1,4 @@
-# filterMarket - Implementation Plan
+# moodit - Implementation Plan
 
 > 버전: v1.1 · 작성일: 2026-05-06 · 상태: Active
 >

@@ -1,4 +1,4 @@
-# filterMarket - Task List & Phased Roadmap
+# moodit - Task List & Phased Roadmap
 
 > 버전: v1.1 (Draft, iOS native pivot) · 작성일: 2026-05-06
 >
@@ -297,7 +297,7 @@
 
 ```mermaid
 gantt
-    title filterMarket Roadmap (iOS native)
+    title moodit Roadmap (iOS native)
     dateFormat YYYY-MM-DD
     section Phase 0
     Setup & Swift+Metal PoC :p0, 2026-05-08, 7d

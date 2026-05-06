@@ -17,7 +17,7 @@ struct CameraScreen: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @EnvironmentObject private var store: FilterMarketStore
+    @EnvironmentObject private var store: MooditStore
     @StateObject private var controller = CameraPreviewController()
     @StateObject private var permissionCoordinator = PermissionCoordinator()
     @State private var captureResult: CameraCaptureResult?

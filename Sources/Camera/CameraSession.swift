@@ -78,7 +78,7 @@ public final class CameraSession: NSObject, @unchecked Sendable {
     public var onFrame: FrameHandler?
 
     private let captureSession = AVCaptureSession()
-    private let sessionQueue = DispatchQueue(label: "app.filtermarket.camera.session", qos: .userInitiated)
+    private let sessionQueue = DispatchQueue(label: "app.moodit.camera.session", qos: .userInitiated)
     private let videoOutput = AVCaptureVideoDataOutput()
     private let photoOutput = AVCapturePhotoOutput()
     private var videoInput: AVCaptureDeviceInput?

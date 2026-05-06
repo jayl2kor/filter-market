@@ -1,4 +1,4 @@
-# filterMarket - System Architecture
+# moodit - System Architecture
 
 > 버전: v1.1 (Draft, iOS native pivot) · 작성일: 2026-05-06
 
@@ -26,7 +26,7 @@ graph TB
     Maker[필터 메이커<br/>iOS - 향후 데스크탑]
     Admin[모더레이터/관리자<br/>Web Admin]
 
-    App[filterMarket iOS App<br/>Swift / SwiftUI / Metal]
+    App[moodit iOS App<br/>Swift / SwiftUI / Metal]
 
     Auth[Firebase Auth<br/>+ Sign in with Apple/Google]
     API[Backend API<br/>Cloud Functions / Cloud Run]

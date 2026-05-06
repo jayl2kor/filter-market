@@ -27,7 +27,7 @@ final class FilterManifestTests: XCTestCase {
         }
         """
 
-        let manifest = try FilterMarketJSON.decoder.decode(FilterManifest.self, from: Data(json.utf8))
+        let manifest = try MooditJSON.decoder.decode(FilterManifest.self, from: Data(json.utf8))
 
         XCTAssertEqual(manifest.schemaVersion, 1)
         XCTAssertEqual(manifest.title, "Sunset Vibes")

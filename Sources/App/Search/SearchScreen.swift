@@ -547,17 +547,17 @@ private struct FlowLayout: Layout {
 
 #Preview("SearchScreen — Browsing") {
     SearchScreen()
-        .environmentObject(FilterMarketStore())
+        .environmentObject(MooditStore())
 }
 
 #Preview("SearchScreen — Dark") {
     SearchScreen()
-        .environmentObject(FilterMarketStore())
+        .environmentObject(MooditStore())
         .preferredColorScheme(.dark)
 }
 
 #Preview("SearchScreen — XXXLarge") {
     SearchScreen()
-        .environmentObject(FilterMarketStore())
+        .environmentObject(MooditStore())
         .dynamicTypeSize(.xxxLarge)
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-public enum FilterMarketJSON {
+public enum MooditJSON {
     public static let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601

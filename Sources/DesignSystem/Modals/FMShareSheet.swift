@@ -41,7 +41,7 @@ public struct FMShareSheet: UIViewControllerRepresentable {
 // MARK: - View extension
 
 public extension View {
-    /// filterMarket 표준 share sheet.
+    /// moodit 표준 share sheet.
     ///
     /// 시트 내부에 시스템 `UIActivityViewController` 를 띄운다.
     /// iOS 17+ 에서 `presentationDetents([.medium, .large])` 로 부드럽게 표시.
@@ -67,7 +67,7 @@ public extension View {
 
 // MARK: - FMShareLinkButton (ShareLink 표준화)
 
-/// `ShareLink` 위에 filterMarket 표준 라벨/아이콘을 얹은 헬퍼 (URL 전용 단축).
+/// `ShareLink` 위에 moodit 표준 라벨/아이콘을 얹은 헬퍼 (URL 전용 단축).
 ///
 /// 단순 URL 공유는 본 컴포넌트가 `UIActivityViewController` 보다 더 가볍다.
 /// 이미지 + URL 복합 공유는 `FMShareSheet` / `.fmShareSheet(...)` 사용.
@@ -98,7 +98,7 @@ public struct FMShareLinkButton: View {
 
 #Preview("FMShareLinkButton") {
     VStack(spacing: Sp.md) {
-        if let url = URL(string: "https://filtermarket.app") {
+        if let url = URL(string: "https://moodit.app") {
             FMShareLinkButton(url: url)
         }
     }

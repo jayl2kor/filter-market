@@ -1,4 +1,4 @@
-# filterMarket - Risk Register & Mitigation
+# moodit - Risk Register & Mitigation
 
 > 버전: v1.1 (Draft, iOS native pivot) · 작성일: 2026-05-06
 >

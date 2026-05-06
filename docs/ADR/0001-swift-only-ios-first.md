@@ -2,7 +2,7 @@
 
 > Status: Accepted
 > Date: 2026-05-06
-> Authors: filterMarket Founders
+> Authors: moodit Founders
 > Reviewers: iOS Lead, Backend Lead, PM
 
 ---
@@ -10,7 +10,7 @@
 ## 1. Context
 
 ### 1.1 이전 가설
-filterMarket의 초기 검토에서는 다음 두 가지 클라이언트 옵션을 비교했다.
+moodit의 초기 검토에서는 다음 두 가지 클라이언트 옵션을 비교했다.
 
 - **Compose Multiplatform (KMP)**: iOS + Android 동시 출시, UI 일부 공유
 - **iOS 네이티브 단독 (Swift + SwiftUI + Metal)**: iOS 우선 출시 후 Android 의사결정
@@ -33,7 +33,7 @@ filterMarket의 초기 검토에서는 다음 두 가지 클라이언트 옵션�
 
 ## 2. Decision
 
-**filterMarket v1.0은 iOS 네이티브 단일 스택(Swift 5.10+ / SwiftUI + UIKit + AVFoundation + Metal)으로 출시한다. Android 진출은 Phase 4(시장 검증 후)에 별도 ADR로 결정한다.**
+**moodit v1.0은 iOS 네이티브 단일 스택(Swift 5.10+ / SwiftUI + UIKit + AVFoundation + Metal)으로 출시한다. Android 진출은 Phase 4(시장 검증 후)에 별도 ADR로 결정한다.**
 
 - **클라이언트 언어**: Swift 5.10+, Swift 6 strict concurrency 단계적 적용
 - **UI 프레임워크**: SwiftUI 메인 + UIKit 보완(`UIViewRepresentable`로 카메라 프리뷰 등)

@@ -25,8 +25,8 @@
 
 Xcode에서 실행할 때:
 
-1. `filterMarket.xcodeproj`를 연다.
-2. scheme을 `filterMarket`으로 선택한다.
+1. `moodit.xcodeproj`를 연다.
+2. scheme을 `moodit`으로 선택한다.
 3. 실기기 iPhone을 destination으로 선택한다.
 4. Signing Team을 로컬 Apple Developer Team으로 지정한다.
 5. Run으로 설치/실행한다.

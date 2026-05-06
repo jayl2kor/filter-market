@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Moodit App Icon — Tinted variant (1024x1024). iOS 18+ Tinted slot.
+  Apple's Tinted icon spec: monochrome on transparent or single-color bg;
+  the system applies user-chosen tint at runtime. Mark drawn in white
+  (system inverts as needed for the chosen tint).
+
+  Export 1024x1024 PNG via:
+    rsvg-convert -w 1024 -h 1024 app-icon-tinted.svg -o app-icon-tinted.png
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Moodit App Icon Tinted">
+  <rect width="1024" height="1024" fill="#000000"/>
+  <circle cx="384" cy="512" r="180" fill="none" stroke="#FFFFFF" stroke-width="36"/>
+  <circle cx="640" cy="512" r="180" fill="#FFFFFF"/>
+</svg>

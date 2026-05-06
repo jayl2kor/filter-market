@@ -22,14 +22,14 @@ public struct CameraPermissionDenied: View {
             illustrationSymbol: "camera.fill",
             illustrationVariant: .denied,
             title: "카메라 접근이 꺼져 있어요",
-            body: "설정 앱에서 filterMarket 의 카메라 접근을 켜주세요.",
+            body: "설정 앱에서 moodit 의 카메라 접근을 켜주세요.",
             onClose: onDismiss,
             closeAccessibilityLabel: "뒤로",
             topExtras: {
                 PermissionStepsCard(
                     steps: [
                         .init(text: .permissionStep("설정 앱 열기", emphasised: ["설정"])),
-                        .init(text: .permissionStep("filterMarket 항목으로 이동", emphasised: ["filterMarket"])),
+                        .init(text: .permissionStep("moodit 항목으로 이동", emphasised: ["moodit"])),
                         .init(text: .permissionStep("카메라 토글 켜기", emphasised: ["카메라"]))
                     ]
                 )

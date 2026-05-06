@@ -1,7 +1,7 @@
 {
   "$schema": "https://design-tokens.github.io/community-group/format/",
   "meta": {
-    "name": "filterMarket Design Tokens",
+    "name": "moodit Design Tokens",
     "version": "1.2.0",
     "platform": "iOS",
     "mode": "light-default-with-dark-camera",

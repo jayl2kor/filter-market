@@ -1,4 +1,4 @@
-# filterMarket — HTML Mockups
+# moodit — HTML Mockups
 
 > 버전: v1.3 (5탭 + 중앙 셔터 / 홈 인디케이터 숨김) · 작성일: 2026-05-06 · 모드: Light 기본 + Dark 카메라 흐름
 >
@@ -23,7 +23,7 @@
 ## 어떻게 보나요
 
 ```
-open /Users/user/workspace/applications/filterMarket/mockups/index.html
+open /Users/user/workspace/applications/moodit/mockups/index.html
 ```
 
 또는 단순히 `mockups/index.html` 파일을 더블클릭. 외부 폰트·이미지·CDN 호출 없음 — 오프라인에서도 동작합니다.

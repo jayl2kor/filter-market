@@ -1,4 +1,4 @@
-/* filterMarket — 시스템 폰트 스택
+/* moodit — 시스템 폰트 스택
    외부 폰트 호출 금지. iOS 시뮬레이션을 위해 SF Pro 우선, 한글은 Apple SD Gothic Neo로 폴백. */
 
 :root {

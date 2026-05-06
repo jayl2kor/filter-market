@@ -1,4 +1,4 @@
-# filterMarket - 테스트 전략
+# moodit - 테스트 전략
 
 > 버전: v1.0 · 작성일: 2026-05-06
 >
@@ -115,7 +115,7 @@ firebase emulators:start --only auth,firestore,functions --import .firebase-data
 
 - `firestore.rules`는 emulator에 자동 로드
 - 테스트 셋업: `setUp` 에서 `clearFirestoreData(...)` 후 시드
-- 모든 테스트는 격리된 프로젝트 ID 사용 (`filtermarket-test-${UUID}`)
+- 모든 테스트는 격리된 프로젝트 ID 사용 (`moodit-test-${UUID}`)
 
 ```swift
 final class FilterUploadIntegrationTests: XCTestCase {
@@ -331,7 +331,7 @@ workflows:
 | 실 사용자 데이터 | 절대 테스트 사용 금지 |
 | 시드 데이터 | `Tests/Fixtures/` (.json + .png 등 실제 자산 미러링) |
 | 인증 | Emulator의 `signIn(withCustomToken:)`로 임의 uid + Custom Claims |
-| 시크릿 | 테스트 전용 키 (격리된 Firebase 프로젝트 `filtermarket-test`) |
+| 시크릿 | 테스트 전용 키 (격리된 Firebase 프로젝트 `moodit-test`) |
 | 네트워크 | OHHTTPStubs / URLProtocol 모킹 |
 
 ---

@@ -1,4 +1,4 @@
-# filterMarket - 메이커 셰이더(MSL) 보안 정책
+# moodit - 메이커 셰이더(MSL) 보안 정책
 
 > 버전: v1.0 · 작성일: 2026-05-06
 >
@@ -92,7 +92,7 @@ float2, float3, float4, float2x2, float3x3, float4x4,
 make_float2, make_float3, make_float4, transpose
 ```
 
-#### 색상 변환 (서버 헬퍼 헤더 `<filtermarket/colors.h>`)
+#### 색상 변환 (서버 헬퍼 헤더 `<moodit/colors.h>`)
 ```
 rgb_to_hsv, hsv_to_rgb, rgb_to_yuv, yuv_to_rgb, srgb_to_linear, linear_to_srgb,
 luminance_bt709, apply_lut3d
@@ -127,7 +127,7 @@ texture3d<float>::sample, sampler  (constructor 인자 제한)
 | 함수 본문 라인 수 | ≤ 200 |
 | 표현식 트리 깊이 | ≤ 24 |
 | 매크로 사용 | 금지 (전처리 후 검증) |
-| `#include` | `<metal_stdlib>`, `<simd/simd.h>`, `<filtermarket/*>`만 |
+| `#include` | `<metal_stdlib>`, `<simd/simd.h>`, `<moodit/*>`만 |
 | 전역 상수 | `constexpr` 또는 `constant` only, ≤ 16KB |
 
 ### 3.4 파서 / 검증 도구
@@ -313,9 +313,9 @@ commandBuffer.addCompletedHandler { buffer in
 
 > `gather`, `compare`, `sample_compare`, `write` 모두 금지.
 
-### 8.4 색상 변환 (filtermarket 헬퍼)
+### 8.4 색상 변환 (moodit 헬퍼)
 ```metal
-// <filtermarket/colors.h>
+// <moodit/colors.h>
 inline float luminance_bt709(float3 rgb);
 inline float3 rgb_to_hsv(float3 rgb);
 inline float3 hsv_to_rgb(float3 hsv);
@@ -326,7 +326,7 @@ inline float3 linear_to_srgb(float3 lin);
 inline float3 apply_lut3d(texture3d<float> lut, sampler s, float3 rgb, float intensity);
 ```
 
-이 헬퍼들은 서버에서 미리 빌드되어 `<filtermarket/colors.h>`로 제공된다. 메이커는 이 함수들을 통해 표준화된 색상 처리를 수행할 수 있다.
+이 헬퍼들은 서버에서 미리 빌드되어 `<moodit/colors.h>`로 제공된다. 메이커는 이 함수들을 통해 표준화된 색상 처리를 수행할 수 있다.
 
 ---
 

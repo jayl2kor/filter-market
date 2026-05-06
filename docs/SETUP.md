@@ -1,4 +1,4 @@
-# filterMarket - 개발 환경 셋업 가이드
+# moodit - 개발 환경 셋업 가이드
 
 > 버전: v1.0 · 작성일: 2026-05-06
 >
@@ -89,7 +89,7 @@ brew install cloudflared           # R2 토큰 검증용 (선택)
 
 ### 4.2 App Store Connect 앱 레코드
 - https://appstoreconnect.apple.com → My Apps → "+" → New App
-- Bundle ID: `com.filtermarket.ios` (Apple Developer 콘솔 Identifiers에서 사전 등록)
+- Bundle ID: `com.moodit.ios` (Apple Developer 콘솔 Identifiers에서 사전 등록)
 - Capabilities 활성화:
   - **Sign in with Apple**
   - **Push Notifications** (Phase 3)
@@ -98,21 +98,21 @@ brew install cloudflared           # R2 토큰 검증용 (선택)
 
 ### 4.3 Apple Sign in Service ID
 - Identifiers → Services IDs → 신규
-  - Identifier: `com.filtermarket.signin`
-  - Return URL: `https://filtermarket-{env}.firebaseapp.com/__/auth/handler`
+  - Identifier: `com.moodit.signin`
+  - Return URL: `https://moodit-{env}.firebaseapp.com/__/auth/handler`
 
 ### 4.4 Firebase 콘솔
 - https://console.firebase.google.com → 프로젝트 신규 (3개)
-  - `filtermarket-dev`
-  - `filtermarket-staging`
-  - `filtermarket-prod`
+  - `moodit-dev`
+  - `moodit-staging`
+  - `moodit-prod`
 - 각 프로젝트 → 앱 추가 (iOS) → Bundle ID 입력 → `GoogleService-Info.plist` 다운로드
 - 활성화할 서비스: Authentication (Apple/Google providers), Firestore (asia-northeast3), Cloud Functions (Node 20), Cloud Messaging
 - 다운로드한 plist 위치: `Sources/App/Resources/Firebase/{env}/GoogleService-Info.plist` (env별 폴더 분리, 빌드 컨피그로 선택)
 
 ### 4.5 Cloudflare R2
 - https://dash.cloudflare.com → R2
-- 버킷 생성: `filtermarket-prod`, `filtermarket-staging`, `filtermarket-dev`
+- 버킷 생성: `moodit-prod`, `moodit-staging`, `moodit-dev`
 - API 토큰 발급: Account → R2 → "Manage R2 API Tokens" → Object Read/Write
 - 토큰은 시크릿 매니저에 저장 (로컬은 `.env.local`에 임시 보관, 절대 커밋 금지)
 
@@ -136,11 +136,11 @@ brew install cloudflared           # R2 토큰 검증용 (선택)
 
 ```text
 # Configurations/Debug.xcconfig
-FIREBASE_PROJECT_ID = filtermarket-dev
-R2_BUCKET = filtermarket-dev
+FIREBASE_PROJECT_ID = moodit-dev
+R2_BUCKET = moodit-dev
 R2_ENDPOINT = https://<account-id>.r2.cloudflarestorage.com
 GOOGLE_OAUTH_CLIENT_ID = 1234567890-abcdef.apps.googleusercontent.com
-APPLE_SIGN_IN_SERVICE_ID = com.filtermarket.signin
+APPLE_SIGN_IN_SERVICE_ID = com.moodit.signin
 
 // 시크릿: Xcode Cloud Environment Variables로 주입
 // 로컬은 별도 Configurations/Debug.local.xcconfig (gitignore)
@@ -190,8 +190,8 @@ fastlane/report.xml
 
 ```bash
 # 1. 클론
-gh repo clone <org>/filterMarket
-cd filterMarket
+gh repo clone <org>/moodit
+cd moodit
 
 # 2. 부트스트랩 (스크립트 또는 수동)
 ./scripts/bootstrap.sh
@@ -201,10 +201,10 @@ cd filterMarket
 #   - Firebase plist 위치 검증
 
 # 3. Xcode로 열기
-open filterMarket.xcworkspace
+open moodit.xcworkspace
 
 # 4. 스킴 / 컨피그 선택
-#   - Scheme: filterMarket-Debug
+#   - Scheme: moodit-Debug
 #   - Destination: iPhone 15 Pro (Simulator)
 
 # 5. 빌드 + 실행 (Cmd+R)
@@ -212,8 +212,8 @@ open filterMarket.xcworkspace
 
 CLI 빌드(시뮬레이터):
 ```bash
-xcodebuild -workspace filterMarket.xcworkspace \
-  -scheme filterMarket-Debug \
+xcodebuild -workspace moodit.xcworkspace \
+  -scheme moodit-Debug \
   -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=17.5' \
   build | xcbeautify
 ```
@@ -221,8 +221,8 @@ xcodebuild -workspace filterMarket.xcworkspace \
 테스트 실행:
 ```bash
 xcodebuild test \
-  -workspace filterMarket.xcworkspace \
-  -scheme filterMarket-Debug \
+  -workspace moodit.xcworkspace \
+  -scheme moodit-Debug \
   -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=17.5' \
   | xcbeautify
 ```

@@ -29,7 +29,7 @@ public struct LocationPermissionDenied: View {
             topExtras: {
                 PermissionStepsCard(
                     steps: [
-                        .init(text: .permissionStep("설정 → filterMarket", emphasised: ["설정", "filterMarket"])),
+                        .init(text: .permissionStep("설정 → moodit", emphasised: ["설정", "moodit"])),
                         .init(text: .permissionStep("위치 선택", emphasised: ["위치"])),
                         .init(text: .permissionStep("\"앱을 사용하는 동안\" 선택", emphasised: ["\"앱을 사용하는 동안\""]))
                     ]

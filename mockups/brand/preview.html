@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>Moodit — Brand Assets</title>
+<link rel="stylesheet" href="../shared/fonts.css" />
+<link rel="stylesheet" href="../shared/tokens.css" />
+<style>
+  body {
+    background: var(--bg-1);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Pretendard Variable", "Apple SD Gothic Neo", sans-serif;
+    margin: 0;
+    padding: 64px 32px;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    margin: 0 0 8px;
+  }
+
+  .subtitle {
+    color: var(--text-secondary);
+    margin: 0 0 48px;
+    font-size: 15px;
+  }
+
+  h2 {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin: 48px 0 16px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .swatch {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    background: var(--bg-2);
+  }
+
+  .swatch__canvas {
+    aspect-ratio: 1 / 1;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+  }
+
+  .swatch__canvas--wide { aspect-ratio: 16 / 9; }
+  .swatch__canvas--tall { aspect-ratio: 3 / 4; }
+
+  .swatch__canvas--light { background: var(--bg-1); }
+  .swatch__canvas--paper { background: var(--bg-0); }
+  .swatch__canvas--dark  { background: #000; }
+  .swatch__canvas--gold  { background: var(--accent); }
+
+  .swatch__canvas svg { max-width: 70%; max-height: 70%; height: auto; }
+  .swatch__canvas--icon svg { max-width: 100%; max-height: 100%; }
+
+  .swatch__label {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .swatch__label code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+  }
+
+  .icon-tile {
+    aspect-ratio: 1 / 1;
+    border-radius: 22.37%;       /* iOS squircle approximation */
+    overflow: hidden;
+    box-shadow:
+      0 2px 6px rgba(15,15,14,0.08),
+      0 8px 24px rgba(15,15,14,0.06);
+  }
+
+  .icon-tile svg { width: 100%; height: 100%; display: block; }
+
+  .icon-grid__caption {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 8px;
+  }
+
+  .scale-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 32px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+  }
+
+  .scale-row svg { color: var(--accent); flex-shrink: 0; height: auto; }
+  .scale-row svg:nth-child(1) { width: 16px; }
+  .scale-row svg:nth-child(2) { width: 24px; }
+  .scale-row svg:nth-child(3) { width: 40px; }
+  .scale-row svg:nth-child(4) { width: 80px; }
+  .scale-row svg:nth-child(5) { width: 160px; }
+
+  .clear-space {
+    position: relative;
+    display: inline-block;
+    padding: 32px;
+  }
+  .clear-space::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px dashed var(--border-default);
+    border-radius: 4px;
+    pointer-events: none;
+  }
+  .clear-space svg { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Moodit — Brand Assets</h1>
+  <p class="subtitle">v0.1 · 2026-05-06 · 컨셉 “Twin Lens” — moodit의 oo에서 추출한 두 개의 원. 외곽 = 보는 눈, 채움 = 담는 눈.</p>
+
+  <h2>1. Symbol</h2>
+  <div class="grid">
+    <div class="swatch">
+      <div class="swatch__canvas swatch__canvas--paper">
+        <object data="symbol.svg" type="image/svg+xml" aria-label="Moodit symbol on paper"></object>
+      </div>
+      <div class="swatch__label">Symbol on bg/0 <code>#FAFAF7</code></div>
+    </div>
+
+    <div class="swatch">
+      <div class="swatch__canvas swatch__canvas--light">
+        <object data="symbol.svg" type="image/svg+xml" aria-label="Moodit symbol on bg/1"></object>
+      </div>
+      <div class="swatch__label">Symbol on bg/1 <code>#F5F4EF</code></div>
+    </div>
+
+    <div class="swatch">
+      <div class="swatch__canvas swatch__canvas--dark" style="color: var(--accent-soft);">
+        <object data="symbol-mono.svg" type="image/svg+xml" aria-label="Moodit symbol mono on dark"></object>
+      </div>
+      <div class="swatch__label">Mono symbol (currentColor) on dark</div>
+    </div>
+  </div>
+
+  <h2>2. Wordmark</h2>
+  <div class="grid">
+    <div class="swatch">
+      <div class="swatch__canvas swatch__canvas--wide swatch__canvas--paper">
+        <object data="wordmark.svg" type="image/svg+xml" aria-label="Moodit wordmark"></object>
+      </div>
+      <div class="swatch__label">Wordmark · text/primary</div>
+    </div>
+
+    <div class="swatch">
+      <div class="swatch__canvas swatch__canvas--wide swatch__canvas--gold">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 90" role="img" aria-label="Moodit on gold">
+          <text x="180" y="62" text-anchor="middle"
+                font-family="-apple-system, 'SF Pro Display', 'Pretendard Variable', system-ui, sans-serif"
+                font-size="56" font-weight="700" letter-spacing="-3" fill="#FFFFFF">moodit</text>
+        </svg>
+      </div>
+      <div class="swatch__label">Wordmark · text/inverse on accent</div>
+    </div>
+  </div>
+
+  <h2>3. Lockup</h2>
+  <div class="grid">
+    <div class="swatch">
+      <div class="swatch__canvas swatch__canvas--wide swatch__canvas--paper">
+        <object data="lockup-horizontal.svg" type="image/svg+xml" aria-label="Moodit horizontal lockup"></object>
+      </div>
+      <div class="swatch__label">Horizontal lockup</div>
+    </div>
+
+    <div class="swatch">
+      <div class="swatch__canvas swatch__canvas--tall swatch__canvas--paper">
+        <object data="lockup-vertical.svg" type="image/svg+xml" aria-label="Moodit vertical lockup"></object>
+      </div>
+      <div class="swatch__label">Vertical lockup</div>
+    </div>
+  </div>
+
+  <h2>4. App Icon</h2>
+  <div class="icon-grid">
+    <div>
+      <div class="icon-tile">
+        <object data="app-icon-light.svg" type="image/svg+xml" aria-label="App icon light"></object>
+      </div>
+      <div class="icon-grid__caption">Light · iOS default</div>
+    </div>
+    <div>
+      <div class="icon-tile">
+        <object data="app-icon-dark.svg" type="image/svg+xml" aria-label="App icon dark"></object>
+      </div>
+      <div class="icon-grid__caption">Dark · iOS 18+</div>
+    </div>
+    <div>
+      <div class="icon-tile">
+        <object data="app-icon-tinted.svg" type="image/svg+xml" aria-label="App icon tinted"></object>
+      </div>
+      <div class="icon-grid__caption">Tinted · iOS 18+ user color</div>
+    </div>
+  </div>
+
+  <h2>5. Scale Test (16/24/40/80/160px)</h2>
+  <div class="scale-row">
+    <object data="symbol-mono.svg" type="image/svg+xml" aria-label="16px"></object>
+    <object data="symbol-mono.svg" type="image/svg+xml" aria-label="24px"></object>
+    <object data="symbol-mono.svg" type="image/svg+xml" aria-label="40px"></object>
+    <object data="symbol-mono.svg" type="image/svg+xml" aria-label="80px"></object>
+    <object data="symbol-mono.svg" type="image/svg+xml" aria-label="160px"></object>
+  </div>
+
+  <h2>6. Clear Space (1× symbol height)</h2>
+  <div class="clear-space">
+    <object data="lockup-horizontal.svg" type="image/svg+xml" aria-label="Clear space demo" style="width: 320px; height: 80px;"></object>
+  </div>
+
+</div>
+</body>
+</html>

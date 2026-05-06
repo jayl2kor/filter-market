@@ -7,7 +7,7 @@ import UIKit
 // 화면 단의 `UIImpactFeedbackGenerator(style:)` 등 직접 호출을 본 wrapper 로 대체한다.
 // 항상 메인 스레드에서 실행한다 (`@MainActor`).
 
-/// filterMarket 앱 전체에서 사용하는 햅틱 종류.
+/// moodit 앱 전체에서 사용하는 햅틱 종류.
 ///
 /// 의미 단위로 정의되어 있으며 — 어떤 `UIFeedbackGenerator` 를 쓸지는 본 enum 내부에서
 /// 결정한다. 호출부는 **무엇이 일어났는지** 만 표현한다.

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Moodit Symbol — monochrome (currentColor) variant.
+  For single-color contexts: nav icons, dark-mode embeds, foiled print.
+  Inherits color from CSS `color` property on the parent.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32" role="img" aria-label="Moodit">
+  <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/>
+  <circle cx="48" cy="16" r="11" fill="currentColor"/>
+</svg>

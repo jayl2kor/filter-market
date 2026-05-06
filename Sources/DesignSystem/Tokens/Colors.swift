@@ -32,7 +32,7 @@ private extension UIColor {
 
 // MARK: - FMColors namespace
 
-/// filterMarket 디자인 토큰 컬러.
+/// moodit 디자인 토큰 컬러.
 /// JSON v1.2.0 — `docs/DESIGN_TOKENS.json` 의 `modes.light` / `modes.dark` 와 1:1 정합.
 public enum FMColors {
     // MARK: Background

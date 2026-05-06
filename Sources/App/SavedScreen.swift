@@ -10,7 +10,7 @@ import SwiftUI
 /// - 정렬 (최신/이름/카테고리)
 /// - swipe to delete
 struct SavedScreen: View {
-    @EnvironmentObject private var store: FilterMarketStore
+    @EnvironmentObject private var store: MooditStore
 
     private let columns = [
         GridItem(.flexible(), spacing: Sp.sm),
@@ -61,11 +61,11 @@ struct SavedScreen: View {
 
 #Preview("SavedScreen — Light") {
     SavedScreen()
-        .environmentObject(FilterMarketStore())
+        .environmentObject(MooditStore())
 }
 
 #Preview("SavedScreen — Dark") {
     SavedScreen()
-        .environmentObject(FilterMarketStore())
+        .environmentObject(MooditStore())
         .preferredColorScheme(.dark)
 }

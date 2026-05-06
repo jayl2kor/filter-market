@@ -1,4 +1,4 @@
-# filterMarket - Technology Stack & Decisions
+# moodit - Technology Stack & Decisions
 
 > 버전: v1.1 (Draft, iOS native pivot) · 작성일: 2026-05-06
 >
@@ -203,7 +203,7 @@
 - Worker로 edge 인증/리사이징 가능
 
 ### 7.2 캐시 키 설계
-- `https://cdn.filtermarket.app/filters/{filterId}/v{version}/filter.fmpkg`
+- `https://cdn.moodit.app/filters/{filterId}/v{version}/filter.fmpkg`
 - `version` 변경 시 자연 무효화
 
 ---

@@ -4,7 +4,7 @@ import SwiftUI
 //
 // Phase D6 — `MOTION_SPEC.md` §2.2 Modal Sheet + `MODAL_PATTERNS.md` M-01 의 표준 wrapper.
 //
-// SwiftUI 표준 `.sheet` 위에 filterMarket 표준 detent / drag indicator / corner radius 를 적용한다.
+// SwiftUI 표준 `.sheet` 위에 moodit 표준 detent / drag indicator / corner radius 를 적용한다.
 // iOS 17+ 에서 `presentationCornerRadius`, `presentationBackground` 사용.
 
 /// Bottom sheet 가 사용할 수 있는 detent 종류.
@@ -27,7 +27,7 @@ public enum FMBottomSheetDetent: Sendable, Hashable {
 // MARK: - View extension
 
 public extension View {
-    /// filterMarket 표준 bottom sheet.
+    /// moodit 표준 bottom sheet.
     ///
     /// - Parameters:
     ///   - isPresented: 표시 상태 binding.

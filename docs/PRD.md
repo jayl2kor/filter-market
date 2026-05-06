@@ -1,4 +1,4 @@
-# filterMarket - Product Requirements Document (PRD)
+# moodit - Product Requirements Document (PRD)
 
 > 버전: v1.1 (Draft, iOS native pivot) · 작성일: 2026-05-06 · 상태: Planning
 
@@ -8,7 +8,7 @@
 
 **"누구나 자신만의 카메라 필터를 만들고, 거래하고, 공유하는 글로벌 마켓플레이스 — iOS부터."**
 
-filterMarket은 단순한 사진 보정 앱이 아니다. **창작자(필터 메이커)와 소비자(촬영자)를 연결하는 양면 마켓플레이스(two-sided marketplace)** 로, VSCO/Snapchat의 표현력을 PicsArt의 커뮤니티성과 결합한다. 사용자는:
+moodit은 단순한 사진 보정 앱이 아니다. **창작자(필터 메이커)와 소비자(촬영자)를 연결하는 양면 마켓플레이스(two-sided marketplace)** 로, VSCO/Snapchat의 표현력을 PicsArt의 커뮤니티성과 결합한다. 사용자는:
 
 1. 카메라 라이브 프리뷰에 Metal 기반 GPU 셰이더 필터를 실시간으로 적용해 촬영하고,
 2. 노드/파라미터 기반 에디터로 필터를 직접 제작하며,
@@ -18,7 +18,7 @@ filterMarket은 단순한 사진 보정 앱이 아니다. **창작자(필터 메
 
 ### 1.1 차별화 포인트
 
-| 경쟁 제품 | 한계 | filterMarket의 답 |
+| 경쟁 제품 | 한계 | moodit의 답 |
 |---|---|---|
 | VSCO | 필터는 공식 큐레이션만, 사용자 제작 불가 | UGC 필터 마켓플레이스 |
 | Snapchat Lens Studio | 데스크탑 전용 + AR 중심, 카메라 컬러그레이딩에 특화 안됨 | 모바일 온디바이스 필터 에디터 |
@@ -45,17 +45,17 @@ filterMarket은 단순한 사진 보정 앱이 아니다. **창작자(필터 메
 - iPhone 14 Pro 사용, 인스타그램 팔로워 8천 명, 일상/카페 사진 업로드
 - VSCO 유료 구독 중, 매번 같은 프리셋에 식상함
 - **Pain Point**: 차별화된 분위기를 원하지만 본인이 만들 도구가 없음
-- **filterMarket 가치**: 다른 크리에이터가 만든 독특한 필터를 발견하고, 좋아한 필터의 변형(remix)을 시도
+- **moodit 가치**: 다른 크리에이터가 만든 독특한 필터를 발견하고, 좋아한 필터의 변형(remix)을 시도
 
 #### 페르소나 B: "필터 메이커 — Alex (29, 남성, 디자이너)"
 - iPhone 15 Pro + iPad 사용, 컬러그레이딩 취미, Lightroom 프리셋 판매 경험 있음
 - **Pain Point**: 프리셋은 정적이고 GPU 셰이더는 표현력이 좋지만 판매 채널이 없음
-- **filterMarket 가치**: 자신이 만든 MSL 기반 셰이더 필터를 마켓에 올려 수익화 + 브랜딩
+- **moodit 가치**: 자신이 만든 MSL 기반 셰이더 필터를 마켓에 올려 수익화 + 브랜딩
 
 #### 페르소나 C: "캐주얼 사용자 — 민준 (17, 남성, 학생)"
 - iPhone 13 사용, 친구들과 셀카·스냅 위주
 - **Pain Point**: 너무 많은 보정 앱 → 매번 다른 앱 전환 피곤
-- **filterMarket 가치**: 친구가 만든 재미있는 필터를 다운로드해 즉시 사용
+- **moodit 가치**: 친구가 만든 재미있는 필터를 다운로드해 즉시 사용
 
 ### 2.3 2차 타겟
 
@@ -200,7 +200,7 @@ US-10 [촬영자] 오프라인에서도 다운로드한 필터로 촬영할 수 
 
 ## 7. 경쟁 분석 (Competitive Landscape)
 
-| 제품 | 강점 | 약점 | filterMarket 대응 |
+| 제품 | 강점 | 약점 | moodit 대응 |
 |---|---|---|---|
 | **VSCO** | 큐레이션 품질, 브랜드 | UGC 필터 없음, 거래 부재 | 사용자 제작 + 거래 |
 | **Snapchat / Lens Studio** | AR/얼굴 필터 압도적, Lens Studio 강력 | 데스크탑 도구 한정, 컬러그레이딩 약함 | 모바일 온디바이스 LUT/MSL 셰이더 에디터 |

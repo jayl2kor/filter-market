@@ -1,8 +1,8 @@
-# filterMarket
+# moodit
 
 > **누구나 자신만의 카메라 필터를 만들고, 거래하고, 공유하는 글로벌 마켓플레이스 (iOS native)**
 
-filterMarket은 GPU 셰이더 기반 라이브 카메라 필터, 모바일 친화 필터 에디터, 그리고 양면 마켓플레이스(메이커-촬영자)를 결합한 **iOS 네이티브** 어플리케이션입니다.
+moodit은 GPU 셰이더 기반 라이브 카메라 필터, 모바일 친화 필터 에디터, 그리고 양면 마켓플레이스(메이커-촬영자)를 결합한 **iOS 네이티브** 어플리케이션입니다.
 
 ---
 
@@ -20,7 +20,7 @@ filterMarket은 GPU 셰이더 기반 라이브 카메라 필터, 모바일 친�
 ## 디렉토리 구조
 
 ```
-filterMarket/
+moodit/
 ├── docs/                       # 설계 / 운영 문서
 │   ├── README.md               # 본 문서 (인덱스)
 │   ├── PRD.md                  # 제품 요구사항
@@ -46,8 +46,8 @@ filterMarket/
 │       ├── 0001-swift-only-ios-first.md
 │       ├── 0002-firebase-mvp-backend.md
 │       └── 0003-metal-msl-shader-pipeline.md
-├── filterMarket.xcodeproj/     # Xcode 프로젝트
-├── filterMarket.xcworkspace/   # SPM/외부 의존성 워크스페이스
+├── moodit.xcodeproj/     # Xcode 프로젝트
+├── moodit.xcworkspace/   # SPM/외부 의존성 워크스페이스
 ├── Sources/
 │   ├── App/                    # 앱 엔트리, DI, 라우팅
 │   ├── Camera/                 # AVCaptureSession, 프리뷰, 셔터
@@ -187,4 +187,4 @@ filterMarket/
 
 ## 컨텍스트
 
-이전 세션에서 trvlog 프로젝트의 카메라 필터 + 템플릿 마켓플레이스 + Firebase 로그인 논의가 있었으며, 본 filterMarket은 그 아이디어를 본격적인 독립 어플리케이션으로 분리·구체화한 결과입니다. 초기에는 크로스플랫폼(Compose Multiplatform)을 검토했으나, **iOS 네이티브 단독 출시로 전략을 재정렬**하여 카메라/Metal 표현력과 출시 속도를 우선합니다.
+이전 세션에서 trvlog 프로젝트의 카메라 필터 + 템플릿 마켓플레이스 + Firebase 로그인 논의가 있었으며, 본 moodit은 그 아이디어를 본격적인 독립 어플리케이션으로 분리·구체화한 결과입니다. 초기에는 크로스플랫폼(Compose Multiplatform)을 검토했으나, **iOS 네이티브 단독 출시로 전략을 재정렬**하여 카메라/Metal 표현력과 출시 속도를 우선합니다.
