@@ -198,13 +198,17 @@ struct CameraScreen: View {
 
             Button {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Task {
+                    await controller.switchCamera()
+                }
             } label: {
-                Image(systemName: "arrow.triangle.2.circlepath.camera")
+                Image(systemName: controller.cameraPosition == .back ? "camera.rotate.fill" : "camera.fill")
                     .font(.title3)
                     .frame(width: 48, height: 48)
                     .background(.black.opacity(0.45), in: Circle())
             }
             .foregroundStyle(.white)
+            .disabled(controller.isSwitchingCamera || controller.isCapturing)
             .accessibilityIdentifier("camera.flip")
         }
     }
@@ -223,6 +227,8 @@ private final class CameraPreviewController: ObservableObject {
     @Published private(set) var metricsText = "0 FPS · GPU 0.00ms · CPU 0.00ms"
     @Published private(set) var intensity: Float = 0.65
     @Published private(set) var isCapturing = false
+    @Published private(set) var isSwitchingCamera = false
+    @Published private(set) var cameraPosition = CameraPosition.back
 
     let renderer = MetalPreviewRenderer(lutResourceBundle: MarketplaceResources.bundle)
 
@@ -301,6 +307,21 @@ private final class CameraPreviewController: ObservableObject {
         } catch {
             statusMessage = "Capture failed"
             return nil
+        }
+    }
+
+    func switchCamera() async {
+        guard !isSwitchingCamera, !isCapturing else { return }
+
+        isSwitchingCamera = true
+        defer { isSwitchingCamera = false }
+
+        do {
+            let position = try await cameraSession.switchCamera()
+            cameraPosition = position
+            statusMessage = position == .front ? "Front camera" : "Back camera"
+        } catch {
+            statusMessage = "Camera switch failed"
         }
     }
 
@@ -407,7 +428,7 @@ private struct CaptureResultScreen: View {
     private var captureSummary: String {
         let original = formattedByteCount(result.photo.byteCount)
         let filtered = formattedByteCount(result.filteredPhoto.filteredByteCount)
-        return "Original \(original) · Filtered \(filtered). PhotoKit saving is next."
+        return "Original \(original) · Filtered \(filtered). Ready to save."
     }
 
     private func savePhoto() async {

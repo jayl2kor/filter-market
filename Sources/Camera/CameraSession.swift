@@ -10,6 +10,29 @@ public enum CameraSessionError: Error, Sendable {
     case sessionUnavailable
 }
 
+public enum CameraPosition: Equatable, Sendable {
+    case back
+    case front
+
+    public var toggled: CameraPosition {
+        switch self {
+        case .back:
+            .front
+        case .front:
+            .back
+        }
+    }
+
+    var captureDevicePosition: AVCaptureDevice.Position {
+        switch self {
+        case .back:
+            .back
+        case .front:
+            .front
+        }
+    }
+}
+
 public struct CapturedPhoto: Equatable, Sendable {
     public let data: Data
     public let capturedAt: Date
@@ -33,7 +56,9 @@ public final class CameraSession: NSObject, @unchecked Sendable {
     private let sessionQueue = DispatchQueue(label: "app.filtermarket.camera.session", qos: .userInitiated)
     private let videoOutput = AVCaptureVideoDataOutput()
     private let photoOutput = AVCapturePhotoOutput()
+    private var videoInput: AVCaptureDeviceInput?
     private var photoCaptureDelegates: [Int64: PhotoCaptureDelegate] = [:]
+    private var currentPosition = CameraPosition.back
     private var isConfigured = false
 
     public override init() {
@@ -76,6 +101,30 @@ public final class CameraSession: NSObject, @unchecked Sendable {
         sessionQueue.async { [weak self] in
             guard let self, captureSession.isRunning else { return }
             captureSession.stopRunning()
+        }
+    }
+
+    public func switchCamera() async throws -> CameraPosition {
+        guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else {
+            throw CameraSessionError.permissionDenied
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            sessionQueue.async { [weak self] in
+                guard let self else {
+                    continuation.resume(throwing: CameraSessionError.sessionUnavailable)
+                    return
+                }
+
+                do {
+                    try configureIfNeeded()
+                    let nextPosition = currentPosition.toggled
+                    try replaceCameraInput(position: nextPosition)
+                    continuation.resume(returning: currentPosition)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
         }
     }
 
@@ -125,15 +174,7 @@ public final class CameraSession: NSObject, @unchecked Sendable {
             captureSession.commitConfiguration()
         }
 
-        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
-            throw CameraSessionError.noVideoDevice
-        }
-
-        let input = try AVCaptureDeviceInput(device: camera)
-        guard captureSession.canAddInput(input) else {
-            throw CameraSessionError.cannotAddInput
-        }
-        captureSession.addInput(input)
+        try addCameraInput(position: currentPosition)
 
         videoOutput.alwaysDiscardsLateVideoFrames = true
         videoOutput.videoSettings = [
@@ -146,20 +187,79 @@ public final class CameraSession: NSObject, @unchecked Sendable {
         }
         captureSession.addOutput(videoOutput)
 
-        if let connection = videoOutput.connection(with: .video), connection.isVideoRotationAngleSupported(90) {
-            connection.videoRotationAngle = 90
-        }
-
         guard captureSession.canAddOutput(photoOutput) else {
             throw CameraSessionError.cannotAddOutput
         }
         captureSession.addOutput(photoOutput)
 
-        if let connection = photoOutput.connection(with: .video), connection.isVideoRotationAngleSupported(90) {
+        updateVideoConnections()
+        isConfigured = true
+    }
+
+    private func replaceCameraInput(position: CameraPosition) throws {
+        let previousInput = videoInput
+        let previousPosition = currentPosition
+
+        captureSession.beginConfiguration()
+        defer {
+            captureSession.commitConfiguration()
+        }
+
+        if let previousInput {
+            captureSession.removeInput(previousInput)
+        }
+
+        do {
+            try addCameraInput(position: position)
+            updateVideoConnections()
+        } catch {
+            if let previousInput, captureSession.canAddInput(previousInput) {
+                captureSession.addInput(previousInput)
+                videoInput = previousInput
+                currentPosition = previousPosition
+                updateVideoConnections()
+            }
+            throw error
+        }
+    }
+
+    private func addCameraInput(position: CameraPosition) throws {
+        guard
+            let camera = AVCaptureDevice.default(
+                .builtInWideAngleCamera,
+                for: .video,
+                position: position.captureDevicePosition
+            )
+        else {
+            throw CameraSessionError.noVideoDevice
+        }
+
+        let input = try AVCaptureDeviceInput(device: camera)
+        guard captureSession.canAddInput(input) else {
+            throw CameraSessionError.cannotAddInput
+        }
+
+        captureSession.addInput(input)
+        videoInput = input
+        currentPosition = position
+    }
+
+    private func updateVideoConnections() {
+        updateVideoConnection(videoOutput.connection(with: .video))
+        updateVideoConnection(photoOutput.connection(with: .video))
+    }
+
+    private func updateVideoConnection(_ connection: AVCaptureConnection?) {
+        guard let connection else { return }
+
+        if connection.isVideoRotationAngleSupported(90) {
             connection.videoRotationAngle = 90
         }
 
-        isConfigured = true
+        if connection.isVideoMirroringSupported {
+            connection.automaticallyAdjustsVideoMirroring = false
+            connection.isVideoMirrored = currentPosition == .front
+        }
     }
 }
 
