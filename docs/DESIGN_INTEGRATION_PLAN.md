@@ -286,7 +286,7 @@ HTML 목업 → SwiftUI 화면. 각 화면당 0.5~1일.
 |---|---|---|---|---|
 | D0 | ✅ Done | 2026-05-06 | 2026-05-06 | `Sources/DesignSystem/Tokens/` 8개 파일 + 레거시 `DesignTokens.swift` deprecated alias 유지. Asset Catalog 미채택 — `Color(light:dark:)` 코드 정의로 JSON 과 1:1 정합. |
 | D1 | ✅ Done | 2026-05-06 | 2026-05-06 | `Sources/DesignSystem/Components/` 12 컴포넌트 (`FMButton`, `FMCard`, `FMTextField`, `FMTag`/`FMChip`, `FMSlider`, `FMToast`/`FMBanner`, `FMSkeleton`, `FMEmptyState`, `FMTabBar`, `FMSegmentedControl`, `FMAvatar`, `FMFilterTile`) + 타이포그래피 단축 alias. Light/Dark + Dynamic Type Preview 포함. |
-| D2 | ⏳ Pending | — | — | — |
+| D2 | ✅ Done | 2026-05-06 | 2026-05-06 | `RootShell` 5탭 + 중앙 셔터 ZStack 셸 (`FMTabBar` 적용). `SearchScreen` / `SavedScreen` placeholder 신규. `FilterLibraryScreen` 제거. `CameraScreen` `.fullScreenCover` 진입 + 닫기 버튼 + 다크 강제. 진입 화면 마켓으로 변경. |
 | D3 | ⏳ Pending | — | — | — |
 | D4 | ⏳ Pending | — | — | — |
 | D5 | ⏳ Pending | — | — | — |

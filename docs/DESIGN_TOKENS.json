@@ -292,11 +292,27 @@
   },
   "layout": {
     "screenPadding": { "value": 16 },
-    "tabBarHeight": { "value": 49 },
+    "tabBarHeight": { "value": 49, "description": "탭바 base 높이 (라벨/아이콘 영역)" },
+    "tabBarPaddingBottom": { "value": 16, "description": "탭바 하단 여백 (라벨이 라운드 코너에 닿지 않게)" },
+    "tabBarTotalHeight": { "value": 65, "description": "탭바 시각 총 높이 (49 + 16). 홈 인디케이터 영역을 사용하지 않음" },
     "topBarHeight": { "value": 44 },
     "minTapTarget": { "value": 44 },
     "safeAreaTop": { "value": 59, "description": "iPhone 14 Pro 다이내믹 아일랜드 영역" },
-    "safeAreaBottom": { "value": 34, "description": "홈 인디케이터 영역" }
+    "safeAreaBottom": { "value": 34, "description": "iOS 시스템 홈 인디케이터 영역(예약). 디자인상 그라버는 표시하지 않으며(.home-indicator hidden), 탭바가 그 자리까지 내려오는 패턴." }
+  },
+  "tabbar": {
+    "tabs": ["market", "search", "shutter", "saved", "profile"],
+    "shutter": {
+      "size": { "value": 56, "unit": "px" },
+      "iconSize": { "value": 28, "unit": "px" },
+      "iconStroke": { "value": 1.8 },
+      "lift": { "value": -12, "unit": "px", "description": "탭바 위로 떠오름" },
+      "fillLight": { "value": "#B8853A" },
+      "fillDark": { "value": "#E8B86D" },
+      "shadow": { "value": "0 6px 16px rgba(184,133,58,0.34), 0 1px 3px rgba(0,0,0,0.08)", "description": "골드 글로우 + soft drop" },
+      "pressedScale": { "value": 0.96 },
+      "label": { "value": null, "description": "라벨 없음 — 셔터만 표시" }
+    }
   },
   "themeRouting": {
     "default": "light",

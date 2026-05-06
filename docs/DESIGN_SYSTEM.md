@@ -298,12 +298,79 @@ extension Font {
 | 메타 | Caption (11/13, 500), `rgba(255,255,255,0.78)` |
 | 좌상단 배지 | `rgba(255,255,255,0.92)` 블러, `accent` 텍스트, 10px |
 
-### 8.5 NavBar (TabBar — 5탭)
+### 8.5 NavBar (TabBar — 5탭 + 중앙 셔터)
 
-- 높이 49 + 안전영역 34
-- 배경: `rgba(255,255,255,0.85)` + backdrop-blur 24
-- 상단 1px `border/subtle`
-- 활성 색: `accent`, 비활성: `text/tertiary`
+**구조**: 5개 그리드 컬럼 — `마켓 / 검색 / 카메라(셔터) / 저장됨 / 프로필`. 가운데 컬럼은 라벨 없이 원형 셔터 버튼만 띄운다.
+
+| 항목 | 값 |
+|---|---|
+| 전체 높이 | **65 (49 base + 16 padding-bottom)** — 홈 인디케이터 영역을 사용하지 않음 |
+| 배경 | `rgba(255,255,255,0.85)` + `backdrop-filter: blur(24px)` |
+| 상단 보더 | 1px `border/subtle` |
+| 활성 탭 색 | `accent` |
+| 비활성 탭 색 | `text/tertiary` |
+| 라벨 | 10px / 500 / letter-spacing 0.2px |
+| 아이콘 | 24×24, stroke 1.5 |
+| 인접 spacer | 탭바 직후의 `screen__bottom-spacer`는 자동 숨김 (`.tabbar + .screen__bottom-spacer { display: none; }`) — 탭바가 폰 바닥까지 내려옴 |
+
+> **결정 (v1.3)**: 홈 인디케이터(시스템 grabber)는 디자인상 표시하지 않는다. CSS는 `.home-indicator { display: none }` 으로 마커는 유지하되 시각적으로 숨김 처리. SwiftUI에서는 `.persistentSystemOverlays(.hidden)` 또는 `.statusBarHidden(false)`와 무관하게 디자인 의도는 "그라버 미표시" 임을 일관되게 적용.
+
+**중앙 셔터 (`.tab--shutter` / `.tab__shutter`)**
+
+| 속성 | 값 |
+|---|---|
+| 크기 | 56 × 56 |
+| 모양 | 원형 (`radius: full`) |
+| 채움 | `accent` (`#B8853A` light / `#E8B86D` dark) |
+| 아이콘 색 | `text/inverse` (#FFFFFF) |
+| 아이콘 크기 | 28 × 28, stroke 1.8 |
+| 리프트 | `transform: translateY(-12px)` — 탭바 위로 살짝 떠오름 |
+| 그림자 | `0 6px 16px rgba(184,133,58,0.34), 0 1px 3px rgba(0,0,0,0.08)` (골드 글로우 + soft drop) |
+| 탭 다운 | `scale(0.96)` 유지하며 lift 보존, 그림자 약화 |
+| 라벨 | 없음 (셔터만 표시) |
+| 동작 | 탭 시 `.fullScreenCover(CameraScreen)` 또는 카메라 모드 트리거 |
+
+> **이유**: 카메라가 핵심 액션이므로 일반 탭 4개와 시각적으로 분리. 다른 4탭은 `NavigationStack`을 유지하며, 셔터만 모달로 카메라를 띄우는 패턴.
+
+**SwiftUI 매핑**
+
+```swift
+struct FMTabBar: View {
+    @Binding var selection: TabItem
+    var onShutterTap: () -> Void
+
+    var body: some View {
+        HStack(spacing: 0) {
+            tab(.market)
+            tab(.search)
+            shutter()
+            tab(.saved)
+            tab(.profile)
+        }
+        .frame(height: 49)
+        .padding(.bottom, Sp.md)              // 16
+        .background(.ultraThinMaterial)        // rgba(255,255,255,0.85) + blur(24)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Color.borderSubtle).frame(height: 1)
+        }
+    }
+
+    private func shutter() -> some View {
+        Button(action: onShutterTap) {
+            Image(systemName: "camera.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Color.textInverse)
+                .frame(width: 56, height: 56)
+                .background(Color.accent, in: .circle)
+                .shadow(color: Color.accent.opacity(0.34), radius: 16, x: 0, y: 6)
+                .shadow(color: .black.opacity(0.08), radius: 3, x: 0, y: 1)
+                .offset(y: -12)
+        }
+        .buttonStyle(ShutterPressStyle())      // scale(0.96) on press
+        .frame(maxWidth: .infinity)
+    }
+}
+```
 
 ### 8.6 TopBar
 

@@ -8,10 +8,19 @@ import UIKit
 
 struct CameraScreen: View {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: FilterMarketStore
     @StateObject private var controller = CameraPreviewController()
     @State private var captureResult: CameraCaptureResult?
     @State private var focusIndicator: CameraFocusIndicator?
+
+    /// fullScreenCover 로 띄울 때 닫기 버튼을 노출할지 여부.
+    /// RootShell 의 셔터 탭에서 띄울 때만 true.
+    private let isPresentedAsCover: Bool
+
+    init(isPresentedAsCover: Bool = false) {
+        self.isPresentedAsCover = isPresentedAsCover
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -34,6 +43,7 @@ struct CameraScreen: View {
             .padding(.bottom, FMSpacing.xLarge)
         }
         .background(FMColor.background)
+        .preferredColorScheme(.dark)
         .task {
             controller.apply(filter: store.selectedFilter)
             if scenePhase == .active {
@@ -66,6 +76,21 @@ struct CameraScreen: View {
 
     private var topBar: some View {
         HStack(alignment: .top) {
+            if isPresentedAsCover {
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(width: 38, height: 38)
+                        .background(.black.opacity(0.5), in: Circle())
+                }
+                .foregroundStyle(.white)
+                .accessibilityIdentifier("camera.dismiss")
+                .accessibilityLabel("카메라 닫기")
+            }
+
             VStack(alignment: .leading, spacing: FMSpacing.small) {
                 Text(controller.statusMessage)
                     .font(.footnote.weight(.semibold))
