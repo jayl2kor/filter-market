@@ -46,6 +46,9 @@ struct SettingsScreen: View {
     @State private var showLogoutAlert = false
     @State private var showDeleteAccountAlert = false
 
+    // 인증 상태 (placeholder — 후속 Phase 에서 Firebase Auth 통합)
+    @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Sp.lg) {
@@ -174,7 +177,10 @@ struct SettingsScreen: View {
             destructiveTitle: "로그아웃",
             isPresented: $showLogoutAlert
         ) {
-            // 후속 Phase 에서 실제 세션 종료 처리.
+            // 인증 상태 클리어 — Profile 탭이 guest 상태로 자동 전환.
+            // 후속 Phase 에서 Firebase Auth 세션 종료 + 토큰 폐기 추가.
+            isAuthenticated = false
+            dismiss()
         }
         .fmDestructiveAlert(
             "계정을 삭제하시겠어요?",

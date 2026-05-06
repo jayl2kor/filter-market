@@ -20,6 +20,7 @@
 탐색 진입점:
 - [`mockups/index.html`](../mockups/index.html)
 - [`mockups/README.md`](../mockups/README.md)
+- [`NAVIGATION.md`](./NAVIGATION.md) — 모든 버튼 액션 + 화면 간 흐름 + SwiftUI 매핑 (개발 에이전트용 단일 진실원)
 
 ---
 
