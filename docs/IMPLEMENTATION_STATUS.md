@@ -1,6 +1,6 @@
 # filterMarket - Implementation Status
 
-> 마지막 업데이트: 2026-05-06 15:40 KST · 기준 커밋/브랜치: 로컬 작업 상태 · 상태: Phase 0 실기기 검증 대기
+> 마지막 업데이트: 2026-05-06 16:25 KST · 기준 커밋/브랜치: 로컬 작업 상태 · 상태: Phase 0 실기기 검증 대기 / UI shell 진행 중
 >
 > 이 문서는 실제 구현 진행 상황, 검증 결과, 남은 작업, 다음 Phase 진입 조건을 기록한다. 전체 이슈 분해는 [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)를 기준으로 한다.
 
@@ -23,6 +23,9 @@
 - SwiftUI `scenePhase` 기반 capture start/stop lifecycle 추가
 - frame/view aspect ratio 기반 preview aspect-fill sampling 추가
 - M0 실기기 검증 체크리스트 문서 추가
+- 탭 기반 앱 shell 추가 (`Camera`, `Filters`, `Market`, `Profile`)
+- 카메라 화면 컨트롤 UI 재구성: filter carousel, intensity slider, shutter/action buttons
+- mock filter catalog와 library/market/detail/profile placeholder 화면 추가
 - `.metal` 빌드 타임 컴파일을 위한 Metal Toolchain 설치 및 스크립트화
 - 필터/manifest 도메인 모델 추가
 - LUT sampler와 기본 단위 테스트 추가
@@ -67,7 +70,7 @@
 
 | 모듈 | 주요 파일 | 현재 상태 |
 |---|---|---|
-| `App` | [FilterMarketApp.swift](../Sources/App/FilterMarketApp.swift), [Info.plist](../Sources/App/Info.plist) | 앱 엔트리와 카메라 preview 화면 초안 |
+| `App` | [FilterMarketApp.swift](../Sources/App/FilterMarketApp.swift), [RootShell.swift](../Sources/App/RootShell.swift), [CameraScreen.swift](../Sources/App/CameraScreen.swift), [FilterLibraryScreen.swift](../Sources/App/FilterLibraryScreen.swift), [MarketplaceScreen.swift](../Sources/App/MarketplaceScreen.swift), [ProfileScreen.swift](../Sources/App/ProfileScreen.swift), [FilterMarketStore.swift](../Sources/App/FilterMarketStore.swift), [AppComponents.swift](../Sources/App/AppComponents.swift), [Info.plist](../Sources/App/Info.plist) | 앱 엔트리, 탭 shell, 카메라/필터/마켓/프로필 mock 화면 |
 | `Camera` | [CameraSession.swift](../Sources/Camera/CameraSession.swift) | 권한 요청, back camera session, video frame callback |
 | `FilterEngine` | [MetalPreviewRenderer.swift](../Sources/FilterEngine/MetalPreviewRenderer.swift), [MetalPreviewView.swift](../Sources/FilterEngine/MetalPreviewView.swift), [ShaderSources.swift](../Sources/FilterEngine/ShaderSources.swift), [LUTSampler.swift](../Sources/FilterEngine/LUTSampler.swift), [LUTTextureFactory.swift](../Sources/FilterEngine/LUTTextureFactory.swift), [RenderMetrics.swift](../Sources/FilterEngine/RenderMetrics.swift), [PreviewUniforms.swift](../Sources/FilterEngine/PreviewUniforms.swift) | Metal preview renderer, Y/CbCr texture conversion, 3D LUT texture, intensity uniform, render metrics, LUT sampler |
 | `Models` | [FilterModels.swift](../Sources/Models/FilterModels.swift), [FilterManifest.swift](../Sources/Models/FilterManifest.swift), [JSONCoding.swift](../Sources/Models/JSONCoding.swift) | 필터/manifest Codable 모델 |
@@ -125,7 +128,7 @@ Toolchain Identifier: com.apple.dt.toolchain.Metal.32023.864
 ```
 
 최근 검증:
-- 2026-05-06 15:39 KST
+- 2026-05-06 16:24 KST
 
 중요 확인:
 - [Shaders/BasicYUVShaders.metal](../Shaders/BasicYUVShaders.metal)이 Xcode `CompileMetalFile` 단계에서 컴파일됨
@@ -147,12 +150,22 @@ Toolchain Identifier: com.apple.dt.toolchain.Metal.32023.864
 ```
 
 최근 검증:
-- 2026-05-06 15:40 KST
+- 2026-05-06 16:25 KST
 
 테스트 결과:
 - `ModelsTests.FilterManifestTests`: 1개 통과
 - `FilterEngineTests.LUTSamplerTests`: 3개 통과
 - 총 4개 테스트, 0 failures
+
+### Simulator UI Smoke
+
+검증 내용:
+- `iPhone 17` Simulator에 앱 설치/실행
+- Camera 탭 초기 화면 렌더링 확인
+- filter carousel, intensity slider, shutter/action buttons, bottom tabs 표시 확인
+
+주의:
+- iOS Simulator는 실제 카메라 프레임을 제공하지 않으므로 preview/FPS는 `0 FPS`로 표시된다.
 
 주의:
 - 현재 환경에서는 sandbox 권한에 따라 CoreSimulatorService 접근 문제가 발생할 수 있다.
@@ -177,6 +190,9 @@ Toolchain Identifier: com.apple.dt.toolchain.Metal.32023.864
 | M0-C01 | iPhone 실기기 preview smoke test | Not Started | [M0_DEVICE_VALIDATION.md](./M0_DEVICE_VALIDATION.md) 기준으로 진행 |
 | M0-C02 | M0 성능 측정 결과 기록 | Not Started | 실기기 측정값 필요 |
 | M0-C03 | preview orientation/crop 보정 | Partial | aspect-fill sampling 추가, 실기기 확인 필요 |
+| UI-01 | App navigation shell 구성 | Done | `Camera`, `Filters`, `Market`, `Profile` 탭 추가 |
+| UI-02 | Camera controls UI 정리 | Partial | simulator 렌더링 확인, 실기기 preview 위 배치 확인 필요 |
+| UI-03 | Filter carousel 구현 | Partial | mock catalog 선택 UI 추가, 실제 LUT switching은 후속 |
 
 ---
 
