@@ -126,24 +126,9 @@
   border-radius: 1px;
 }
 
-/* 홈 인디케이터 — 라이트는 차콜, 다크는 흰색 */
-.home-indicator {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 134px;
-  height: 5px;
-  background: var(--text-primary);
-  border-radius: var(--r-full);
-  z-index: 100;
-  opacity: 0.55;
-}
-
-[data-theme="dark"] .home-indicator { opacity: 0.9; }
-
-.home-indicator--dim { opacity: 0.3; }
-[data-theme="dark"] .home-indicator--dim { opacity: 0.4; }
+/* 홈 인디케이터 — 디자인 결정으로 비표시. HTML 마커는 유지하되 시각적으로 숨김. */
+.home-indicator { display: none; }
+.home-indicator--dim { display: none; }
 
 /* 콘텐츠 영역 */
 .screen {
