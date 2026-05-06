@@ -1,0 +1,1361 @@
+import DesignSystem
+import Foundation
+import SwiftUI
+
+// MARK: - Comments
+
+struct CommentsListScreen: View {
+    @AppStorage("isAuthenticated") private var isAuthenticated = false
+
+    let filterID: String
+    @State private var comments = SocialComment.mock
+    @State private var likedIDs: Set<UUID> = Set(SocialComment.mock.filter(\.isLiked).map(\.id))
+
+    var body: some View {
+        VStack(spacing: 0) {
+            filterMiniCard
+            list
+            composeBar
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("댓글 \(comments.reduce(0) { $0 + 1 + $1.replies.count })")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(value: AppRoute.rating(filterId: filterID)) {
+                    Image(systemName: "star")
+                }
+                .accessibilityLabel("평점 등록")
+            }
+        }
+    }
+
+    private var filterMiniCard: some View {
+        NavigationLink(value: AppRoute.filterDetail(id: filterID)) {
+            HStack(spacing: Sp.sm) {
+                FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filterID, category: nil))
+                    .frame(width: 36, height: 36)
+                    .clipShape(RoundedRectangle(cornerRadius: R.sm))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(filterID)
+                        .fmTypography(.callout)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Text.primary)
+                    Text("@jisoo.films · ★ 4.9 · ↓ \(formattedDownloadCount(6_200))")
+                        .fmTypography(.caption)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                }
+
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(FMColors.Text.tertiary)
+            }
+            .padding(.horizontal, Sp.md)
+            .padding(.vertical, Sp.sm)
+            .background(FMColors.Background.bg2)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("social.comments.filter")
+    }
+
+    private var list: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(comments) { comment in
+                    commentRow(comment, isReply: false)
+                    ForEach(comment.replies) { reply in
+                        commentRow(reply, isReply: true)
+                            .padding(.leading, 44)
+                    }
+                }
+            }
+            .padding(.horizontal, Sp.md)
+            .padding(.bottom, Sp.lg)
+        }
+    }
+
+    private var composeBar: some View {
+        HStack(spacing: Sp.sm) {
+            avatar(initials: "HB", colors: [Color(hex: 0xB9D2E8), Color(hex: 0x4A6A90)], size: 32)
+
+            NavigationLink(value: isAuthenticated ? AppRoute.commentCompose(filterId: filterID) : AppRoute.login) {
+                Text(isAuthenticated ? "댓글 추가..." : "로그인하고 댓글 남기기")
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Text.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Sp.sm)
+                    .frame(height: 40)
+                    .background(FMColors.Background.bg2, in: Capsule())
+                    .overlay {
+                        Capsule().strokeBorder(FMColors.Border.default, lineWidth: 1)
+                    }
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("social.comments.compose")
+
+            NavigationLink(value: isAuthenticated ? AppRoute.commentCompose(filterId: filterID) : AppRoute.login) {
+                Image(systemName: "paperplane.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(FMColors.Text.inverse)
+                    .frame(width: 36, height: 36)
+                    .background(FMColors.Accent.primary, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("댓글 보내기")
+        }
+        .padding(.horizontal, Sp.md)
+        .padding(.top, Sp.sm)
+        .padding(.bottom, Sp.sm)
+        .background(FMColors.Background.bg1)
+        .overlay(alignment: .top) {
+            Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
+        }
+    }
+
+    private func commentRow(_ comment: SocialComment, isReply: Bool) -> some View {
+        HStack(alignment: .top, spacing: Sp.sm) {
+            NavigationLink(value: AppRoute.otherProfile(uid: comment.handle)) {
+                avatar(initials: comment.initials, colors: comment.avatarColors, size: isReply ? 28 : 36)
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(comment.name)
+                        .fmTypography(.subhead)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Text.primary)
+                    Text(comment.handle)
+                        .fmTypography(.caption)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                    Spacer()
+                    Text(comment.time)
+                        .fmTypography(.caption)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                }
+
+                Text(comment.body)
+                    .fmTypography(.body)
+                    .foregroundStyle(FMColors.Text.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: Sp.md) {
+                    Button {
+                        toggleLike(comment)
+                    } label: {
+                        Label("\(comment.likeCount + (likedIDs.contains(comment.id) && !comment.isLiked ? 1 : 0))", systemImage: likedIDs.contains(comment.id) ? "heart.fill" : "heart")
+                    }
+                    .foregroundStyle(likedIDs.contains(comment.id) ? FMColors.Accent.primary : FMColors.Text.tertiary)
+                    .accessibilityIdentifier(isReply ? "social.comment.reply.like" : "social.comment.like")
+
+                    NavigationLink(value: isAuthenticated ? AppRoute.commentCompose(filterId: filterID) : AppRoute.login) {
+                        Text("답글")
+                    }
+                    .foregroundStyle(FMColors.Text.tertiary)
+
+                    Button("···") {}
+                        .foregroundStyle(FMColors.Text.tertiary)
+                }
+                .fmTypography(.caption)
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, Sp.sm)
+        .overlay(alignment: .bottom) {
+            if !isReply {
+                Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier(isReply ? "social.comment.reply.row" : "social.comment.row")
+    }
+
+    private func toggleLike(_ comment: SocialComment) {
+        FMHaptic.selection.play()
+        if likedIDs.contains(comment.id) {
+            likedIDs.remove(comment.id)
+        } else {
+            likedIDs.insert(comment.id)
+        }
+    }
+}
+
+struct CommentComposeScreen: View {
+    @AppStorage("isAuthenticated") private var isAuthenticated = false
+    @Environment(\.dismiss) private var dismiss
+
+    let filterID: String
+    @State private var text = "이 필터 너무 좋아요! @jiso"
+    @State private var selectedMention: UUID?
+
+    private let mentions = SocialUser.mentionSuggestions
+    private let limit = 280
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if isAuthenticated {
+                editor
+                toolbar
+            } else {
+                loginGate
+            }
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("새 댓글")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("취소") { dismiss() }
+                    .foregroundStyle(FMColors.Text.secondary)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("게시") {
+                    FMHaptic.success.play()
+                    dismiss()
+                }
+                .fontWeight(.bold)
+                .foregroundStyle(canPost ? FMColors.Accent.primary : FMColors.Text.tertiary)
+                .disabled(!canPost)
+                .accessibilityIdentifier("social.compose.send")
+            }
+        }
+    }
+
+    private var canPost: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && text.count <= limit
+    }
+
+    private var editor: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.md) {
+                HStack(spacing: Sp.xs) {
+                    avatar(initials: "HB", colors: [Color(hex: 0xB9D2E8), Color(hex: 0x4A6A90)], size: 32)
+                    Text("한별")
+                        .fmTypography(.subhead)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Text.primary)
+                    Text("@hanbyul.cam · ↩ \(filterID)에 답글")
+                        .fmTypography(.caption)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                }
+
+                TextEditor(text: $text)
+                    .font(.system(size: 17))
+                    .foregroundStyle(FMColors.Text.primary)
+                    .scrollContentBackground(.hidden)
+                    .frame(minHeight: 180)
+                    .accessibilityIdentifier("social.compose.input")
+
+                if text.contains("@") {
+                    mentionBox
+                }
+            }
+            .padding(Sp.md)
+        }
+    }
+
+    private var mentionBox: some View {
+        VStack(spacing: 0) {
+            ForEach(mentions) { user in
+                Button {
+                    selectedMention = user.id
+                    text = text.replacingOccurrences(of: "@jiso", with: user.handle + " ")
+                    FMHaptic.selection.play()
+                } label: {
+                    HStack(spacing: Sp.sm) {
+                        avatar(initials: user.initials, colors: user.avatarColors, size: 28)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(user.name)
+                                .fmTypography(.subhead)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(FMColors.Text.primary)
+                            Text(user.handle + (user.badge.map { " · \($0)" } ?? ""))
+                                .fmTypography(.caption)
+                                .foregroundStyle(FMColors.Text.tertiary)
+                        }
+                        Spacer()
+                        if let badge = user.badge {
+                            Text(badge)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(FMColors.Accent.primary)
+                                .padding(.horizontal, Sp.xs)
+                                .padding(.vertical, 3)
+                                .background(FMColors.Accent.bg, in: Capsule())
+                        }
+                    }
+                    .padding(.horizontal, Sp.md)
+                    .padding(.vertical, Sp.xs)
+                    .background(selectedMention == user.id ? FMColors.Accent.bg : Color.clear)
+                }
+                .buttonStyle(.plain)
+
+                if user.id != mentions.last?.id {
+                    Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
+                }
+            }
+        }
+        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+        .overlay {
+            RoundedRectangle(cornerRadius: R.md).strokeBorder(FMColors.Border.default, lineWidth: 1)
+        }
+        .accessibilityIdentifier("social.compose.mentions")
+    }
+
+    private var toolbar: some View {
+        HStack(spacing: Sp.md) {
+            iconButton("at", label: "@멘션")
+            iconButton("photo", label: "이미지 첨부")
+            iconButton("face.smiling", label: "이모지")
+            Spacer()
+            Text("\(text.count) / \(limit)")
+                .fmTypography(.caption)
+                .foregroundStyle(text.count > limit ? FMColors.Semantic.warning : FMColors.Text.tertiary)
+        }
+        .padding(.horizontal, Sp.md)
+        .padding(.vertical, Sp.sm)
+        .background(FMColors.Background.bg1)
+        .overlay(alignment: .top) {
+            Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
+        }
+    }
+
+    private var loginGate: some View {
+        VStack(spacing: Sp.md) {
+            FMEmptyState(.emptyComments(isLoggedIn: false))
+            NavigationLink(value: AppRoute.login) {
+                FMButton("로그인하고 댓글 쓰기", icon: "person.crop.circle", variant: .primary, size: .lg) {}
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(Sp.md)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Rating
+
+struct RatingFormScreen: View {
+    @AppStorage("isAuthenticated") private var isAuthenticated = false
+    @Environment(\.dismiss) private var dismiss
+
+    let filterID: String
+    @State private var rating = 5
+    @State private var selectedTags: Set<String> = ["자연스러움", "강도 조절 좋음"]
+    @State private var comment = "필름 카페 사진에 정말 잘 어울려요. 강도 80%가 베스트."
+
+    private let tags = ["자연스러움", "강도 조절 좋음", "카페 잘 어울림", "셀카 좋음", "여행", "실내 광원"]
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filterID, category: nil))
+                .opacity(0.28)
+                .ignoresSafeArea()
+            Color.black.opacity(0.34).ignoresSafeArea()
+
+            if isAuthenticated {
+                sheet
+            } else {
+                loginSheet
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var sheet: some View {
+        VStack(spacing: Sp.md) {
+            Capsule()
+                .fill(FMColors.Background.bg3)
+                .frame(width: 36, height: 4)
+
+            VStack(spacing: 4) {
+                Text("평점 남기기")
+                    .fmTypography(.headline)
+                    .foregroundStyle(FMColors.Text.primary)
+                Text("\(filterID) — @jisoo.films")
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Text.secondary)
+            }
+
+            HStack(spacing: Sp.xs) {
+                ForEach(1...5, id: \.self) { value in
+                    Button {
+                        rating = value
+                        FMHaptic.selection.play()
+                    } label: {
+                        Image(systemName: value <= rating ? "star.fill" : "star")
+                            .font(.system(size: 34, weight: .semibold))
+                            .foregroundStyle(value <= rating ? FMColors.Accent.primary : FMColors.Text.tertiary)
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("social.rating.star.\(value)")
+                }
+            }
+
+            Text(ratingLabel)
+                .fmTypography(.headline)
+                .fontWeight(.bold)
+                .foregroundStyle(FMColors.Accent.primary)
+
+            FlowLayout(spacing: 6) {
+                ForEach(tags, id: \.self) { tag in
+                    FMChip(tag, isSelected: selectedTags.contains(tag), size: .sm) {
+                        if selectedTags.contains(tag) {
+                            selectedTags.remove(tag)
+                        } else {
+                            selectedTags.insert(tag)
+                        }
+                    }
+                }
+            }
+
+            TextEditor(text: $comment)
+                .font(.body)
+                .scrollContentBackground(.hidden)
+                .frame(minHeight: 88)
+                .padding(Sp.xs)
+                .background(FMColors.Background.bg1, in: RoundedRectangle(cornerRadius: R.md))
+                .overlay {
+                    RoundedRectangle(cornerRadius: R.md).strokeBorder(FMColors.Border.default, lineWidth: 1)
+                }
+                .accessibilityIdentifier("social.rating.comment")
+
+            HStack(spacing: Sp.xs) {
+                FMButton("건너뛰기", variant: .secondary, size: .lg) {
+                    dismiss()
+                }
+                FMButton("평점 등록", variant: .primary, size: .lg) {
+                    FMHaptic.success.play()
+                    dismiss()
+                }
+                .accessibilityIdentifier("social.rating.submit")
+            }
+        }
+        .padding(.horizontal, Sp.md)
+        .padding(.top, 8)
+        .padding(.bottom, Sp.md)
+        .background(FMColors.Surface.raised)
+        .clipShape(UnevenRoundedRectangle(topLeadingRadius: R.xl, topTrailingRadius: R.xl))
+    }
+
+    private var loginSheet: some View {
+        VStack(spacing: Sp.md) {
+            Capsule()
+                .fill(FMColors.Background.bg3)
+                .frame(width: 36, height: 4)
+            FMEmptyState(.emptyComments(isLoggedIn: false))
+            NavigationLink(value: AppRoute.login) {
+                FMButton("로그인하고 평점 남기기", icon: "star", variant: .primary, size: .lg) {}
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(Sp.md)
+        .background(FMColors.Surface.raised)
+        .clipShape(UnevenRoundedRectangle(topLeadingRadius: R.xl, topTrailingRadius: R.xl))
+    }
+
+    private var ratingLabel: String {
+        switch rating {
+        case 1: "아쉬워요"
+        case 2: "조금 아쉬워요"
+        case 3: "괜찮아요"
+        case 4: "좋아요"
+        default: "최고예요!"
+        }
+    }
+}
+
+// MARK: - Follow Lists
+
+struct FollowersListScreen: View {
+    let userID: String
+    @State private var query = ""
+    @State private var users = SocialUser.followers
+
+    var body: some View {
+        FollowListScreen(
+            mode: .followers,
+            userID: userID,
+            query: $query,
+            users: $users
+        )
+    }
+}
+
+struct FollowingListScreen: View {
+    let userID: String
+    @State private var query = ""
+    @State private var users = SocialUser.following
+
+    var body: some View {
+        FollowListScreen(
+            mode: .following,
+            userID: userID,
+            query: $query,
+            users: $users
+        )
+    }
+}
+
+private struct FollowListScreen: View {
+    enum Mode {
+        case followers
+        case following
+    }
+
+    let mode: Mode
+    let userID: String
+    @Binding var query: String
+    @Binding var users: [SocialUser]
+
+    private var filteredUsers: [SocialUser] {
+        let normalized = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !normalized.isEmpty else { return users }
+        return users.filter {
+            $0.name.lowercased().contains(normalized) || $0.handle.lowercased().contains(normalized)
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            segment
+            searchField
+            list
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle(userID == "me" ? "@me" : "@jisoo.films")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var segment: some View {
+        HStack(spacing: 0) {
+            segmentLink(title: "팔로워 2,418", route: .followers(uid: userID), isActive: mode == .followers)
+            segmentLink(title: "팔로잉 86", route: .following(uid: userID), isActive: mode == .following)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
+        }
+    }
+
+    private func segmentLink(title: String, route: AppRoute, isActive: Bool) -> some View {
+        NavigationLink(value: route) {
+            Text(title)
+                .fmTypography(.callout)
+                .fontWeight(isActive ? .semibold : .medium)
+                .foregroundStyle(isActive ? FMColors.Text.primary : FMColors.Text.secondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Sp.sm)
+                .overlay(alignment: .bottom) {
+                    Rectangle()
+                        .fill(isActive ? FMColors.Accent.primary : Color.clear)
+                        .frame(height: 2)
+                }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var searchField: some View {
+        HStack(spacing: Sp.xs) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(FMColors.Text.tertiary)
+            TextField(mode == .followers ? "팔로워 검색" : "팔로잉 검색", text: $query)
+                .textInputAutocapitalization(.never)
+                .accessibilityIdentifier(mode == .followers ? "social.followers.search" : "social.following.search")
+        }
+        .padding(.horizontal, Sp.sm)
+        .frame(height: 44)
+        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+        .overlay {
+            RoundedRectangle(cornerRadius: R.md).strokeBorder(FMColors.Border.default, lineWidth: 1)
+        }
+        .padding(.horizontal, Sp.md)
+        .padding(.top, Sp.sm)
+    }
+
+    private var list: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                if mode == .following {
+                    groupLabel("최근 활동 있음")
+                    ForEach(filteredUsers.filter { $0.newFilterCount > 0 }) { user in
+                        userRow(user)
+                    }
+                    groupLabel("전체")
+                }
+
+                ForEach(mode == .following ? filteredUsers.filter { $0.newFilterCount == 0 } : filteredUsers) { user in
+                    userRow(user)
+                }
+            }
+            .padding(.horizontal, Sp.md)
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+    }
+
+    private func userRow(_ user: SocialUser) -> some View {
+        HStack(spacing: Sp.sm) {
+            NavigationLink(value: AppRoute.otherProfile(uid: user.handle)) {
+                ZStack(alignment: .bottomTrailing) {
+                    avatar(initials: user.initials, colors: user.avatarColors, size: 44)
+                    if user.newFilterCount > 0 {
+                        Text("\(user.newFilterCount)")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 16, height: 16)
+                            .background(FMColors.Accent.primary, in: Circle())
+                            .overlay {
+                                Circle().strokeBorder(FMColors.Background.bg1, lineWidth: 2)
+                            }
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(user.name)
+                        .fmTypography(.callout)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Text.primary)
+                    if user.newFilterCount > 0 {
+                        Text("새 필터 \(user.newFilterCount)")
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Accent.primary)
+                    }
+                }
+                Text(user.meta)
+                    .fmTypography(.caption)
+                    .foregroundStyle(FMColors.Text.tertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            followButton(user)
+        }
+        .padding(.vertical, Sp.sm)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
+        }
+        .accessibilityIdentifier("social.user.row")
+    }
+
+    private func followButton(_ user: SocialUser) -> some View {
+        Button {
+            guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
+            users[index].relationship = users[index].relationship.toggled
+            FMHaptic.selection.play()
+        } label: {
+            Text(user.relationship.label)
+                .fmTypography(.subhead)
+                .fontWeight(.semibold)
+                .foregroundStyle(user.relationship.foreground)
+                .padding(.horizontal, Sp.md)
+                .frame(height: 32)
+                .background(user.relationship.background, in: RoundedRectangle(cornerRadius: R.md))
+                .overlay {
+                    RoundedRectangle(cornerRadius: R.md)
+                        .strokeBorder(user.relationship.border, lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("social.follow.toggle")
+    }
+
+    private func groupLabel(_ text: String) -> some View {
+        Text(text)
+            .fmTypography(.caption)
+            .fontWeight(.bold)
+            .tracking(0.4)
+            .foregroundStyle(FMColors.Text.tertiary)
+            .padding(.top, Sp.sm)
+            .padding(.bottom, Sp.xs)
+    }
+}
+
+// MARK: - Discovery Feeds
+
+struct ForYouFeedScreen: View {
+    @State private var followedMakerIDs: Set<UUID> = []
+    @State private var savedHero = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                discoveryHeader(active: .forYou)
+                reasonChip
+                heroCard
+                railSection
+                makerSpotlight
+            }
+            .padding(.horizontal, Sp.md)
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("발견")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(value: AppRoute.search(initialQuery: nil, category: nil)) {
+                    Image(systemName: "magnifyingglass")
+                }
+                .accessibilityLabel("검색")
+            }
+        }
+    }
+
+    private var reasonChip: some View {
+        Label("좋아한 빈티지 톤과 비슷", systemImage: "sparkles")
+            .fmTypography(.caption)
+            .fontWeight(.semibold)
+            .foregroundStyle(FMColors.Accent.primary)
+            .padding(.horizontal, Sp.sm)
+            .padding(.vertical, 5)
+            .background(FMColors.Accent.bg, in: Capsule())
+    }
+
+    private var heroCard: some View {
+        ZStack(alignment: .bottomLeading) {
+            FMFilterCoverArt(motif: .vintage)
+            LinearGradient(colors: [.clear, Color.black.opacity(0.85)], startPoint: .center, endPoint: .bottom)
+            VStack(alignment: .leading, spacing: Sp.sm) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Amber Café")
+                        .fmTypography(.titleLarge)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+                    Text("@jisoo.films · ★ 4.8 · ↓ \(formattedDownloadCount(6_200))")
+                        .fmTypography(.subhead)
+                        .foregroundStyle(.white.opacity(0.78))
+                }
+                HStack(spacing: Sp.xs) {
+                    NavigationLink(value: AppRoute.filterDetail(id: "Amber Café")) {
+                        Text("카메라로 적용")
+                            .fmTypography(.callout)
+                            .fontWeight(.bold)
+                            .foregroundStyle(FMColors.Accent.primary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .background(Color.white.opacity(0.94), in: RoundedRectangle(cornerRadius: R.md))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("social.foryou.hero.apply")
+
+                    Button {
+                        savedHero.toggle()
+                        FMHaptic.selection.play()
+                    } label: {
+                        Image(systemName: savedHero ? "bookmark.fill" : "bookmark")
+                            .frame(width: 40, height: 40)
+                            .background(Color.white.opacity(0.20), in: RoundedRectangle(cornerRadius: R.md))
+                    }
+                    .accessibilityIdentifier("social.foryou.hero.save")
+
+                    Button {} label: {
+                        Image(systemName: "ellipsis")
+                            .frame(width: 40, height: 40)
+                            .background(Color.white.opacity(0.20), in: RoundedRectangle(cornerRadius: R.md))
+                    }
+                }
+                .foregroundStyle(.white)
+            }
+            .padding(Sp.md)
+        }
+        .aspectRatio(4.0 / 5.0, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: R.lg))
+        .shadow(color: Color.black.opacity(0.12), radius: 8, y: 4)
+    }
+
+    private var railSection: some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            HStack {
+                Text("Sunset 1973을 좋아한 사람들이 본 필터")
+                    .fmTypography(.headline)
+                    .foregroundStyle(FMColors.Text.primary)
+                Spacer()
+                NavigationLink("모두 보기", value: AppRoute.search(initialQuery: "vintage", category: nil))
+                    .fmTypography(.caption)
+                    .foregroundStyle(FMColors.Text.tertiary)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Sp.sm) {
+                    ForEach(SocialFeedItem.recommendations) { item in
+                        NavigationLink(value: AppRoute.filterDetail(id: item.title)) {
+                            VStack(alignment: .leading, spacing: 0) {
+                                FMFilterCoverArt(motif: item.motif)
+                                    .aspectRatio(4.0 / 5.0, contentMode: .fit)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.title)
+                                        .fmTypography(.caption)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(FMColors.Text.primary)
+                                    Text("\(item.author) · ↓ \(formattedDownloadCount(item.downloadCount))")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(FMColors.Text.tertiary)
+                                }
+                                .padding(8)
+                            }
+                            .frame(width: 130)
+                            .background(FMColors.Background.bg2)
+                            .clipShape(RoundedRectangle(cornerRadius: R.md))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private var makerSpotlight: some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            Text("새로 떠오르는 메이커")
+                .fmTypography(.headline)
+                .foregroundStyle(FMColors.Text.primary)
+            ForEach(SocialUser.spotlight) { user in
+                HStack(spacing: Sp.sm) {
+                    avatar(initials: user.initials, colors: user.avatarColors, size: 48)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(user.name + " · " + user.role)
+                            .fmTypography(.callout)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(FMColors.Text.primary)
+                        Text(user.meta)
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Text.tertiary)
+                    }
+                    Spacer()
+                    Button {
+                        toggleFollow(user.id)
+                    } label: {
+                        Text(followedMakerIDs.contains(user.id) ? "팔로잉" : "팔로우")
+                            .fmTypography(.subhead)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(followedMakerIDs.contains(user.id) ? FMColors.Text.primary : FMColors.Text.inverse)
+                            .padding(.horizontal, Sp.md)
+                            .frame(height: 32)
+                            .background(followedMakerIDs.contains(user.id) ? FMColors.Background.bg1 : FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
+                    }
+                    .accessibilityIdentifier("social.foryou.maker.follow")
+                }
+                .padding(Sp.sm)
+                .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.lg))
+                .overlay {
+                    RoundedRectangle(cornerRadius: R.lg).strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+                }
+            }
+        }
+    }
+
+    private func toggleFollow(_ id: UUID) {
+        if followedMakerIDs.contains(id) {
+            followedMakerIDs.remove(id)
+        } else {
+            followedMakerIDs.insert(id)
+        }
+        FMHaptic.selection.play()
+    }
+}
+
+struct FollowingFeedScreen: View {
+    @State private var likedPostIDs: Set<UUID> = [SocialPost.mock[0].id]
+    @State private var savedPostIDs: Set<UUID> = []
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.md) {
+                discoveryHeader(active: .following)
+                newFilterCard
+                ForEach(SocialPost.mock) { post in
+                    postCard(post)
+                }
+            }
+            .padding(.horizontal, Sp.md)
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("팔로잉")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(value: AppRoute.notifications) {
+                    Image(systemName: "bell")
+                }
+                .accessibilityLabel("알림")
+            }
+        }
+    }
+
+    private var newFilterCard: some View {
+        NavigationLink(value: AppRoute.filterDetail(id: "Tokyo Night")) {
+            HStack(spacing: Sp.sm) {
+                FMFilterCoverArt(motif: .cinematic)
+                    .frame(width: 60, height: 75)
+                    .clipShape(RoundedRectangle(cornerRadius: R.md))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Alex 새 필터 게시")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(0.4)
+                        .foregroundStyle(FMColors.Accent.primary)
+                    Text("Tokyo Night")
+                        .fmTypography(.headline)
+                        .foregroundStyle(FMColors.Text.primary)
+                    Text("시네마틱 · 1시간 전 · ↓ \(formattedDownloadCount(0))")
+                        .fmTypography(.caption)
+                        .foregroundStyle(FMColors.Text.secondary)
+                }
+                Spacer()
+                Text("보기")
+                    .fmTypography(.subhead)
+                    .fontWeight(.bold)
+                    .foregroundStyle(FMColors.Text.inverse)
+                    .padding(.horizontal, Sp.md)
+                    .frame(height: 32)
+                    .background(FMColors.Accent.primary, in: Capsule())
+            }
+            .padding(Sp.md)
+            .background(FMColors.Accent.bg, in: RoundedRectangle(cornerRadius: R.lg))
+            .overlay {
+                RoundedRectangle(cornerRadius: R.lg).strokeBorder(FMColors.Accent.primary, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("social.following.newFilter")
+    }
+
+    private func postCard(_ post: SocialPost) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: Sp.sm) {
+                avatar(initials: post.initials, colors: post.avatarColors, size: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(post.author)
+                        .fmTypography(.subhead)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Text.primary)
+                    Text(post.handle + " · " + post.time)
+                        .fmTypography(.caption)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                }
+                Spacer()
+                Button {} label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundStyle(FMColors.Text.secondary)
+                }
+            }
+            .padding(Sp.md)
+
+            ZStack(alignment: .bottomLeading) {
+                FMFilterCoverArt(motif: post.motif)
+                Text("\(post.filterName) · \(post.intensity)% · ↓ \(formattedDownloadCount(post.downloadCount))")
+                    .fmTypography(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, Sp.sm)
+                    .padding(.vertical, 6)
+                    .background(Color.black.opacity(0.62), in: Capsule())
+                    .padding(Sp.sm)
+            }
+            .aspectRatio(4.0 / 5.0, contentMode: .fit)
+
+            HStack(spacing: Sp.md) {
+                Button {
+                    toggle(&likedPostIDs, id: post.id)
+                } label: {
+                    Label("\(post.likeCount + (likedPostIDs.contains(post.id) && !post.isLiked ? 1 : 0))", systemImage: likedPostIDs.contains(post.id) ? "heart.fill" : "heart")
+                }
+                .foregroundStyle(likedPostIDs.contains(post.id) ? FMColors.Semantic.error : FMColors.Text.secondary)
+                .accessibilityIdentifier("social.following.post.like")
+
+                NavigationLink(value: AppRoute.comments(filterId: post.filterName)) {
+                    Label("\(post.commentCount)", systemImage: "bubble.left")
+                }
+                .accessibilityIdentifier("social.following.post.comments")
+
+                Button {} label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+
+                Spacer()
+                Button {
+                    toggle(&savedPostIDs, id: post.id)
+                } label: {
+                    Image(systemName: savedPostIDs.contains(post.id) ? "bookmark.fill" : "bookmark")
+                }
+                .accessibilityIdentifier("social.following.post.save")
+            }
+            .fmTypography(.subhead)
+            .foregroundStyle(FMColors.Text.secondary)
+            .padding(.horizontal, Sp.md)
+            .padding(.vertical, Sp.sm)
+
+            if let caption = post.caption {
+                Text(caption)
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Text.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Sp.md)
+                    .padding(.bottom, Sp.sm)
+            }
+        }
+        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.lg))
+        .overlay {
+            RoundedRectangle(cornerRadius: R.lg).strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+        }
+    }
+
+    private func toggle(_ set: inout Set<UUID>, id: UUID) {
+        if set.contains(id) {
+            set.remove(id)
+        } else {
+            set.insert(id)
+        }
+        FMHaptic.selection.play()
+    }
+}
+
+// MARK: - Shared Views
+
+private enum DiscoveryTab {
+    case trending
+    case forYou
+    case following
+    case newest
+}
+
+@MainActor
+private func discoveryHeader(active: DiscoveryTab) -> some View {
+    HStack(spacing: Sp.md) {
+        discoveryTab("트렌딩", route: .forYou, isActive: active == .trending)
+        discoveryTab("For You", route: .forYou, isActive: active == .forYou)
+        discoveryTab("팔로잉", route: .followingFeed, isActive: active == .following)
+        discoveryTab("신규", route: .search(initialQuery: nil, category: "신규"), isActive: active == .newest)
+    }
+    .padding(.top, Sp.sm)
+    .overlay(alignment: .bottom) {
+        Rectangle().fill(FMColors.Border.subtle).frame(height: 1).offset(y: Sp.sm)
+    }
+}
+
+@MainActor
+private func discoveryTab(_ title: String, route: AppRoute, isActive: Bool) -> some View {
+    NavigationLink(value: route) {
+        Text(title)
+            .fmTypography(.callout)
+            .fontWeight(isActive ? .bold : .medium)
+            .foregroundStyle(isActive ? FMColors.Text.primary : FMColors.Text.tertiary)
+            .padding(.vertical, Sp.sm)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(isActive ? FMColors.Accent.primary : Color.clear)
+                    .frame(height: 2)
+            }
+    }
+    .buttonStyle(.plain)
+}
+
+@MainActor
+private func iconButton(_ systemImage: String, label: String) -> some View {
+    Button {} label: {
+        Image(systemName: systemImage)
+            .font(.system(size: 18, weight: .medium))
+            .foregroundStyle(FMColors.Text.secondary)
+            .frame(width: 36, height: 36)
+    }
+    .accessibilityLabel(label)
+}
+
+@MainActor
+private func avatar(initials: String, colors: [Color], size: CGFloat) -> some View {
+    ZStack {
+        LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+        Text(initials)
+            .font(.system(size: max(9, size * 0.28), weight: .bold))
+            .foregroundStyle(.white)
+    }
+    .frame(width: size, height: size)
+    .clipShape(Circle())
+}
+
+private struct FlowLayout: Layout {
+    var spacing: CGFloat = Sp.xs
+    var lineSpacing: CGFloat = Sp.xs
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? 0
+        var rowWidth: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var totalHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if rowWidth > 0, rowWidth + spacing + size.width > maxWidth {
+                totalHeight += rowHeight + lineSpacing
+                rowWidth = 0
+                rowHeight = 0
+            }
+            rowWidth += (rowWidth > 0 ? spacing : 0) + size.width
+            rowHeight = max(rowHeight, size.height)
+        }
+
+        totalHeight += rowHeight
+        return CGSize(width: maxWidth, height: totalHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += rowHeight + lineSpacing
+                rowHeight = 0
+            }
+            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
+// MARK: - Shared Models
+
+private struct SocialComment: Identifiable {
+    let id = UUID()
+    let name: String
+    let handle: String
+    let initials: String
+    let avatarColors: [Color]
+    let time: String
+    let body: String
+    let likeCount: Int
+    let isLiked: Bool
+    var replies: [SocialComment] = []
+
+    nonisolated(unsafe) static let mock: [SocialComment] = [
+        SocialComment(
+            name: "민지",
+            handle: "@minji.lab",
+            initials: "MJ",
+            avatarColors: [Color(hex: 0xF3DCC4), Color(hex: 0xD4A482)],
+            time: "2시간",
+            body: "카페 사진에 진짜 잘 어울려요. 강도 80%가 베스트네요.",
+            likeCount: 24,
+            isLiked: true,
+            replies: [
+                SocialComment(
+                    name: "jisoo",
+                    handle: "@jisoo.films · 메이커",
+                    initials: "JS",
+                    avatarColors: [Color(hex: 0xE0C39A), Color(hex: 0x8E6A4A)],
+                    time: "1시간",
+                    body: "@minji.lab 감사합니다! 아침 햇빛에서도 한번 써보세요.",
+                    likeCount: 8,
+                    isLiked: false
+                )
+            ]
+        ),
+        SocialComment(
+            name: "Alex",
+            handle: "@alex.grade",
+            initials: "AL",
+            avatarColors: [Color(hex: 0xAEC59A), Color(hex: 0x4A6A3C)],
+            time: "5시간",
+            body: "Mid-tone에 살짝 마젠타가 도는 느낌이 좋네요. 어떤 LUT 사이즈로 만드셨어요? 33³ 인가요?",
+            likeCount: 12,
+            isLiked: false
+        ),
+        SocialComment(
+            name: "유나",
+            handle: "@yuna.diary",
+            initials: "YN",
+            avatarColors: [Color(hex: 0xAAB5CB), Color(hex: 0x3A4560)],
+            time: "어제",
+            body: "제 셀카에는 강도 60%가 자연스러웠어요. 추천!",
+            likeCount: 6,
+            isLiked: false
+        ),
+        SocialComment(
+            name: "Emma",
+            handle: "@emma.travel",
+            initials: "EM",
+            avatarColors: [Color(hex: 0xCBD4E0), Color(hex: 0xC79A72)],
+            time: "2일",
+            body: "유럽 여행 사진들에 진짜 다 잘 맞네요. 다른 비슷한 톤도 있나요?",
+            likeCount: 4,
+            isLiked: false
+        )
+    ]
+}
+
+private struct SocialUser: Identifiable {
+    var id = UUID()
+    let name: String
+    let handle: String
+    let initials: String
+    let avatarColors: [Color]
+    let filterCount: Int
+    let role: String
+    let badge: String?
+    let newFilterCount: Int
+    var relationship: FollowRelationship
+
+    var meta: String {
+        if role.isEmpty {
+            return "\(handle) · 필터 \(filterCount)"
+        }
+        return "\(handle) · \(role)"
+    }
+
+    static let followers: [SocialUser] = [
+        .init(name: "민지", handle: "@minji.lab", initials: "MJ", avatarColors: [Color(hex: 0xF3DCC4), Color(hex: 0xD4A482)], filterCount: 8, role: "", badge: nil, newFilterCount: 0, relationship: .mutual),
+        .init(name: "Alex", handle: "@alex.grade", initials: "AL", avatarColors: [Color(hex: 0xAEC59A), Color(hex: 0x4A6A3C)], filterCount: 24, role: "시네마틱 메이커", badge: nil, newFilterCount: 3, relationship: .following),
+        .init(name: "유나", handle: "@yuna.diary", initials: "YN", avatarColors: [Color(hex: 0xE0C39A), Color(hex: 0x8E6A4A)], filterCount: 6, role: "", badge: nil, newFilterCount: 0, relationship: .notFollowing),
+        .init(name: "Emma", handle: "@emma.travel", initials: "EM", avatarColors: [Color(hex: 0xAAB5CB), Color(hex: 0x3A4560)], filterCount: 12, role: "", badge: nil, newFilterCount: 0, relationship: .notFollowing),
+        .init(name: "Sarah", handle: "@sarah.lens", initials: "SR", avatarColors: [Color(hex: 0xF6E2E8), Color(hex: 0xB39EC2)], filterCount: 18, role: "파스텔 메이커", badge: nil, newFilterCount: 2, relationship: .mutual),
+        .init(name: "한별", handle: "@hanbyul.cam", initials: "HB", avatarColors: [Color(hex: 0xB9D2E8), Color(hex: 0x4A6A90)], filterCount: 3, role: "", badge: nil, newFilterCount: 0, relationship: .notFollowing)
+    ]
+
+    static let following: [SocialUser] = [
+        .init(name: "Alex", handle: "@alex.grade", initials: "AL", avatarColors: [Color(hex: 0xAEC59A), Color(hex: 0x4A6A3C)], filterCount: 24, role: "시네마틱 메이커", badge: nil, newFilterCount: 3, relationship: .following),
+        .init(name: "Studio Haru", handle: "@studio.haru", initials: "SH", avatarColors: [Color(hex: 0xCBD4E0), Color(hex: 0xC79A72)], filterCount: 67, role: "", badge: nil, newFilterCount: 1, relationship: .following),
+        .init(name: "민지", handle: "@minji.lab", initials: "MJ", avatarColors: [Color(hex: 0xF3DCC4), Color(hex: 0xD4A482)], filterCount: 8, role: "", badge: nil, newFilterCount: 0, relationship: .following),
+        .init(name: "Sarah", handle: "@sarah.lens", initials: "SR", avatarColors: [Color(hex: 0xF6E2E8), Color(hex: 0xB39EC2)], filterCount: 18, role: "파스텔 메이커", badge: nil, newFilterCount: 0, relationship: .following),
+        .init(name: "Kihyeon", handle: "@kihyeon", initials: "KH", avatarColors: [Color(hex: 0xE09A78), Color(hex: 0x4A4060)], filterCount: 5, role: "", badge: nil, newFilterCount: 0, relationship: .following)
+    ]
+
+    static let mentionSuggestions: [SocialUser] = [
+        .init(name: "정지수", handle: "@jisoo.films", initials: "JS", avatarColors: [Color(hex: 0xE0C39A), Color(hex: 0x8E6A4A)], filterCount: 24, role: "", badge: "메이커", newFilterCount: 0, relationship: .following),
+        .init(name: "jisook", handle: "@jisook.daily", initials: "JD", avatarColors: [Color(hex: 0xF6E2E8), Color(hex: 0xB39EC2)], filterCount: 2, role: "", badge: nil, newFilterCount: 0, relationship: .notFollowing),
+        .init(name: "jisoo_studio", handle: "@jisoo.studio", initials: "JS", avatarColors: [Color(hex: 0xAEC59A), Color(hex: 0x4A6A3C)], filterCount: 9, role: "", badge: nil, newFilterCount: 0, relationship: .notFollowing)
+    ]
+
+    static let spotlight: [SocialUser] = [
+        .init(name: "Alex", handle: "@alex.grade", initials: "AL", avatarColors: [Color(hex: 0xAEC59A), Color(hex: 0x4A6A3C)], filterCount: 24, role: "시네마틱 메이커", badge: nil, newFilterCount: 3, relationship: .notFollowing),
+        .init(name: "Sarah", handle: "@sarah.lens", initials: "SR", avatarColors: [Color(hex: 0xF6E2E8), Color(hex: 0xB39EC2)], filterCount: 18, role: "파스텔 메이커", badge: nil, newFilterCount: 2, relationship: .notFollowing)
+    ]
+}
+
+private enum FollowRelationship: Hashable {
+    case notFollowing
+    case following
+    case mutual
+
+    var label: String {
+        switch self {
+        case .notFollowing: "팔로우"
+        case .following: "팔로잉"
+        case .mutual: "맞팔"
+        }
+    }
+
+    var toggled: FollowRelationship {
+        switch self {
+        case .notFollowing: .following
+        case .following, .mutual: .notFollowing
+        }
+    }
+
+    var foreground: Color {
+        switch self {
+        case .notFollowing: FMColors.Text.inverse
+        case .following: FMColors.Text.primary
+        case .mutual: FMColors.Text.secondary
+        }
+    }
+
+    var background: Color {
+        switch self {
+        case .notFollowing: FMColors.Accent.primary
+        case .following, .mutual: FMColors.Background.bg2
+        }
+    }
+
+    var border: Color {
+        switch self {
+        case .notFollowing: FMColors.Accent.primary
+        case .following, .mutual: FMColors.Border.default
+        }
+    }
+}
+
+private func formattedDownloadCount(_ count: Int) -> String {
+    switch count {
+    case ..<1_000:
+        return "\(count)"
+    case 1_000..<10_000:
+        return String(format: "%.1fK", Double(count) / 1_000.0)
+    default:
+        return "\(count / 1_000)K"
+    }
+}
+
+private struct SocialFeedItem: Identifiable {
+    let id = UUID()
+    let title: String
+    let author: String
+    let downloadCount: Int
+    let motif: FMFilterCoverArt.Motif
+
+    static let recommendations: [SocialFeedItem] = [
+        .init(title: "Honey Hour", author: "@hellofilms", downloadCount: 3_420, motif: .vintage),
+        .init(title: "Brown Sugar", author: "@minji.lab", downloadCount: 2_180, motif: .food),
+        .init(title: "Old Polaroid", author: "@studio.haru", downloadCount: 8_760, motif: .vintage),
+        .init(title: "Hokkaido", author: "@yuna.diary", downloadCount: 1_090, motif: .travel)
+    ]
+}
+
+private struct SocialPost: Identifiable {
+    let id = UUID()
+    let author: String
+    let handle: String
+    let initials: String
+    let avatarColors: [Color]
+    let time: String
+    let filterName: String
+    let intensity: Int
+    let motif: FMFilterCoverArt.Motif
+    let downloadCount: Int
+    let likeCount: Int
+    let commentCount: Int
+    let isLiked: Bool
+    let caption: String?
+
+    static let mock: [SocialPost] = [
+        .init(
+            author: "Alex",
+            handle: "@alex.grade",
+            initials: "AL",
+            avatarColors: [Color(hex: 0xAEC59A), Color(hex: 0x4A6A3C)],
+            time: "2시간 전",
+            filterName: "Tokyo Night",
+            intensity: 88,
+            motif: .cinematic,
+            downloadCount: 128,
+            likeCount: 42,
+            commentCount: 8,
+            isLiked: true,
+            caption: "새 필터 첫 시도. 도쿄 야경에 진짜 찰떡이네요."
+        ),
+        .init(
+            author: "Sarah",
+            handle: "@sarah.lens",
+            initials: "SR",
+            avatarColors: [Color(hex: 0xF6E2E8), Color(hex: 0xB39EC2)],
+            time: "4시간 전",
+            filterName: "Cotton Candy",
+            intensity: 70,
+            motif: .pastel,
+            downloadCount: 2_430,
+            likeCount: 28,
+            commentCount: 4,
+            isLiked: false,
+            caption: nil
+        )
+    ]
+}

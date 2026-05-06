@@ -73,6 +73,13 @@ private enum UITestLaunchRoute: String {
     case builtinFilters
     case filterDownload
     case filterAfterDownload
+    case comments
+    case commentCompose
+    case rating
+    case followers
+    case following
+    case forYou
+    case followingFeed
 
     static var current: UITestLaunchRoute? {
         let arguments = ProcessInfo.processInfo.arguments
@@ -120,6 +127,20 @@ private struct UITestLaunchHost: View {
             FilterDownloadProgressScreen(filterID: "Sunset 1973")
         case .filterAfterDownload:
             FilterAfterDownloadScreen(filterID: "Sunset 1973")
+        case .comments:
+            CommentsListScreen(filterID: "Sunset 1973")
+        case .commentCompose:
+            CommentComposeScreen(filterID: "Sunset 1973")
+        case .rating:
+            RatingFormScreen(filterID: "Sunset 1973")
+        case .followers:
+            FollowersListScreen(userID: "me")
+        case .following:
+            FollowingListScreen(userID: "me")
+        case .forYou:
+            ForYouFeedScreen()
+        case .followingFeed:
+            FollowingFeedScreen()
         }
     }
 }

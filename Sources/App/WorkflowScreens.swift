@@ -568,6 +568,8 @@ struct PhotoImportScreen: View {
     @State private var loadError: String?
 
     var body: some View {
+        let hasSelectedImage = selectedImage != nil
+
         ScrollView {
             VStack(alignment: .leading, spacing: Sp.lg) {
                 workflowHeader(
@@ -581,7 +583,7 @@ struct PhotoImportScreen: View {
                 PhotosPicker(selection: $selectedItem, matching: .images) {
                     HStack(spacing: Sp.xs) {
                         Image(systemName: "photo.badge.plus")
-                        Text(selectedImage == nil ? "사진 선택" : "다른 사진 선택")
+                        Text(hasSelectedImage ? "다른 사진 선택" : "사진 선택")
                             .font(.headline.weight(.semibold))
                     }
                     .foregroundStyle(.white)
@@ -591,7 +593,7 @@ struct PhotoImportScreen: View {
                 }
                 .accessibilityIdentifier("photo.import.cell.tap")
 
-                if selectedImage != nil {
+                if hasSelectedImage {
                     NavigationLink(value: AppRoute.photoEdit) {
                         routeButton("필터 적용", icon: "wand.and.stars")
                     }
@@ -2459,31 +2461,6 @@ struct RemixFlowScreen: View {
 
 // MARK: - Social / Discovery
 
-struct CommentsListScreen: View {
-    let filterID: String
-    var body: some View { ScreenWorkflowScaffold(route: .comments(filterId: filterID)) }
-}
-
-struct CommentComposeScreen: View {
-    let filterID: String
-    var body: some View { ScreenWorkflowScaffold(route: .commentCompose(filterId: filterID)) }
-}
-
-struct RatingFormScreen: View {
-    let filterID: String
-    var body: some View { ScreenWorkflowScaffold(route: .rating(filterId: filterID)) }
-}
-
-struct FollowersListScreen: View {
-    let userID: String
-    var body: some View { ScreenWorkflowScaffold(route: .followers(uid: userID)) }
-}
-
-struct FollowingListScreen: View {
-    let userID: String
-    var body: some View { ScreenWorkflowScaffold(route: .following(uid: userID)) }
-}
-
 // NotificationsInboxScreen — `Sources/App/Notifications/NotificationsInboxScreen.swift`
 
 struct NotificationSettingsScreen: View {
@@ -2635,14 +2612,6 @@ struct NotificationSettingsScreen: View {
 }
 
 // FavoritesCollectionScreen — `Sources/App/Collections/FavoritesCollectionScreen.swift`
-
-struct ForYouFeedScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .forYou) }
-}
-
-struct FollowingFeedScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .followingFeed) }
-}
 
 // MARK: - Safety / Moderation
 

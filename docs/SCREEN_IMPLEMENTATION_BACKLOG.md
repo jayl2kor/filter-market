@@ -225,6 +225,13 @@
 - 팔로우 버튼 state 가 프로필/목록/피드에서 일관되게 표시된다.
 - 알림 row 는 item-specific route 로 이동한다.
 
+진행 상태:
+- 진행 중: `CommentsListScreen`, `CommentComposeScreen`, `RatingFormScreen`, `FollowersListScreen`, `FollowingListScreen`, `ForYouFeedScreen`, `FollowingFeedScreen` placeholder 를 전용 SwiftUI 화면으로 교체.
+- 추가 반영: 댓글 상단 필터 카드, For You hero/추천 rail, Following feed 새 필터/포스트 배지에 다운로드 횟수 표시를 추가.
+- 검증: `AppUITests/PhaseDE2ETests` 4개 시나리오 통과 (2026-05-07).
+- 기존 완료: `NotificationsInboxScreen`, `FavoritesCollectionScreen` 전용 화면 유지.
+- 남은 통합: 실제 social repository/API, 서버 기반 follow state, 댓글/평점 persistence, recommendation feed backend.
+
 ### Phase E — Safety/moderation
 
 목표: UGC 앱 운영에 필요한 신고, 차단, 검수 플로우를 완성한다.

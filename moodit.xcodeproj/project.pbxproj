@@ -120,6 +120,7 @@
 		CDEEDD266FF8B06A64980582 /* Motion.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6D9F616164FEE0F2EE122C /* Motion.swift */; };
 		CE8FCD474203F1D5225486A2 /* DesignSystem.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 886115293C35066B5217D494 /* DesignSystem.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CFA2539D68B2EA422AFF203B /* Radius.swift in Sources */ = {isa = PBXBuildFile; fileRef = 570D327A92B40713FAFE85FC /* Radius.swift */; };
+		D0EA17DBE0352ACC8D76E23C /* PhaseDE2ETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2AB334B67D4E8AF48CFE47A /* PhaseDE2ETests.swift */; };
 		D267FDC11F9F16881CEF35B1 /* BundleSeedFilterRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E5F269AC1C173AAB921B71 /* BundleSeedFilterRepositoryTests.swift */; };
 		D5F8E539ED41B749DB429143 /* LUTImageDecoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E45266C41076985883D752E /* LUTImageDecoderTests.swift */; };
 		D974EA94EDAD668D4D7E898D /* airy-trip.png in Resources */ = {isa = PBXBuildFile; fileRef = 8489CF9949CCC9BD5465DD36 /* airy-trip.png */; };
@@ -140,6 +141,7 @@
 		F4ED31D71B762AA41C4F8446 /* SavedScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8FCFE1455B495581E5BF208 /* SavedScreen.swift */; };
 		F4EEF3B0930E09ED0FC965BE /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = B42C16A81608E7BEF05EBD6A /* Colors.swift */; };
 		F709FD30059266D0102FB2A4 /* LoginScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77A90862BDFD5B192658FF9D /* LoginScreen.swift */; };
+		F931661DCDD3BB86DC13E4E8 /* SocialDiscoveryScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57362E59A625C00857A531DD /* SocialDiscoveryScreens.swift */; };
 		F95F458D04B29B44227F86EC /* CapturePreviewScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE15FDD0D63491F42DC3EB6B /* CapturePreviewScreen.swift */; };
 		F96C512F79990F1B3E0E98E2 /* Models.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 17B1469C92033DB00AD14607 /* Models.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		FB3EB5143F7CB74DDBCC04F2 /* SearchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B7EE3D08FC1F1519F5C9369 /* SearchScreen.swift */; };
@@ -386,6 +388,7 @@
 		51BABF7665EEE2454036ED73 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
 		55E4166718CCDBCEA85DADDC /* Storage.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Storage.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		570D327A92B40713FAFE85FC /* Radius.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Radius.swift; sourceTree = "<group>"; };
+		57362E59A625C00857A531DD /* SocialDiscoveryScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialDiscoveryScreens.swift; sourceTree = "<group>"; };
 		59AB06DE2603F58013A0F1E1 /* AppUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A6BDD2E150830E8B307445A /* CameraScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraScreen.swift; sourceTree = "<group>"; };
 		5B95877146902AAE4EAF654C /* FMTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMTabBar.swift; sourceTree = "<group>"; };
@@ -428,6 +431,7 @@
 		BAC3535D39FAFA83B2824DEE /* MarketplaceTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MarketplaceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BDF21144BA3731FF0820005E /* BasicYUVShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = BasicYUVShaders.metal; sourceTree = "<group>"; };
 		C206A2EEFDD812773224DCCA /* OnboardingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingScreen.swift; sourceTree = "<group>"; };
+		C2AB334B67D4E8AF48CFE47A /* PhaseDE2ETests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhaseDE2ETests.swift; sourceTree = "<group>"; };
 		C3E5F269AC1C173AAB921B71 /* BundleSeedFilterRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleSeedFilterRepositoryTests.swift; sourceTree = "<group>"; };
 		C6766587713A1D4A74464579 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C912278BBD0D3FA2CC0AB6F4 /* MarketplaceMockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketplaceMockData.swift; sourceTree = "<group>"; };
@@ -567,6 +571,7 @@
 				D7E649234BE27293DAF823BB /* Resources */,
 				DF303A4507D1D48D500EDF23 /* Search */,
 				D28F39C7EE1EC8EFE2A3CA82 /* Settings */,
+				5580F4D39556F5E52F97A24D /* Social */,
 			);
 			name = App;
 			path = Sources/App;
@@ -714,10 +719,19 @@
 			path = Components;
 			sourceTree = "<group>";
 		};
+		5580F4D39556F5E52F97A24D /* Social */ = {
+			isa = PBXGroup;
+			children = (
+				57362E59A625C00857A531DD /* SocialDiscoveryScreens.swift */,
+			);
+			path = Social;
+			sourceTree = "<group>";
+		};
 		68D5426F6F337972001F0DEF /* AppUITests */ = {
 			isa = PBXGroup;
 			children = (
 				031240A7C4FF22A39D812901 /* PhaseAE2ETests.swift */,
+				C2AB334B67D4E8AF48CFE47A /* PhaseDE2ETests.swift */,
 			);
 			name = AppUITests;
 			path = Tests/AppUITests;
@@ -1455,6 +1469,7 @@
 				F4ED31D71B762AA41C4F8446 /* SavedScreen.swift in Sources */,
 				FB3EB5143F7CB74DDBCC04F2 /* SearchScreen.swift in Sources */,
 				448C5CF709AE9C31DD6415B2 /* SettingsScreen.swift in Sources */,
+				F931661DCDD3BB86DC13E4E8 /* SocialDiscoveryScreens.swift in Sources */,
 				B148ABD74D88ACC39F803CE3 /* WorkflowScreens.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1538,6 +1553,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				90AF110E28F18A7A8128FE77 /* PhaseAE2ETests.swift in Sources */,
+				D0EA17DBE0352ACC8D76E23C /* PhaseDE2ETests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
