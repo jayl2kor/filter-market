@@ -67,6 +67,22 @@ final class PhotoFilterRendererTests: XCTestCase {
         XCTAssertEqual(outputSize.height, 8)
     }
 
+    func testExifOrientationIsAppliedBeforeRendering() throws {
+        let inputData = try makeSolidJPEGWithOrientation(
+            color: TestColor(red: 0.3, green: 0.4, blue: 0.5),
+            width: 12,
+            height: 8,
+            orientation: 6
+        )
+        let renderer = PhotoFilterRenderer(jpegCompressionQuality: 1)
+
+        let output = try renderer.apply(to: inputData, configuration: makeConfiguration(preset: .identity))
+        let outputSize = try decodeImageSize(from: output.filteredData)
+
+        XCTAssertEqual(outputSize.width, 8)
+        XCTAssertEqual(outputSize.height, 12)
+    }
+
     func testAspectRatioUsesPortraitOrientationWhenHeightIsGreaterThanWidth() {
         XCTAssertEqual(
             PhotoCropAspectRatio.fourThree.targetAspectRatio(for: CGSize(width: 300, height: 400)),
@@ -132,6 +148,56 @@ final class PhotoFilterRendererTests: XCTestCase {
         return try encode(image: image, type: UTType.png)
     }
 
+    private func makeSolidJPEGWithOrientation(
+        color: TestColor,
+        width: Int,
+        height: Int,
+        orientation: Int
+    ) throws -> Data {
+        let imageData = try makeSolidImageData(color: color, width: width, height: height)
+        guard let provider = CGDataProvider(data: imageData as CFData) else {
+            throw TestImageError.cannotCreateProvider
+        }
+
+        let bitmapInfo = CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+        guard
+            let image = CGImage(
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bitsPerPixel: 32,
+                bytesPerRow: width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGBitmapInfo(rawValue: bitmapInfo),
+                provider: provider,
+                decode: nil,
+                shouldInterpolate: false,
+                intent: .defaultIntent
+            )
+        else {
+            throw TestImageError.cannotCreateImage
+        }
+
+        let properties = [
+            kCGImagePropertyOrientation: orientation
+        ] as CFDictionary
+        return try encode(image: image, type: UTType.jpeg, properties: properties)
+    }
+
+    private func makeSolidImageData(color: TestColor, width: Int, height: Int) -> Data {
+        let bytesPerPixel = 4
+        let bytesPerRow = width * bytesPerPixel
+        var pixels = [UInt8](repeating: 255, count: height * bytesPerRow)
+
+        for offset in stride(from: 0, to: pixels.count, by: bytesPerPixel) {
+            pixels[offset] = color.redByte
+            pixels[offset + 1] = color.greenByte
+            pixels[offset + 2] = color.blueByte
+        }
+
+        return Data(pixels)
+    }
+
     private func decodeCenterPixel(from data: Data) throws -> TestColor {
         guard
             let source = CGImageSourceCreateWithData(data as CFData, nil),
@@ -182,7 +248,7 @@ final class PhotoFilterRendererTests: XCTestCase {
         return CGSize(width: image.width, height: image.height)
     }
 
-    private func encode(image: CGImage, type: UTType) throws -> Data {
+    private func encode(image: CGImage, type: UTType, properties: CFDictionary? = nil) throws -> Data {
         let encodedData = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(
             encodedData,
@@ -193,7 +259,7 @@ final class PhotoFilterRendererTests: XCTestCase {
             throw TestImageError.cannotCreateDestination
         }
 
-        CGImageDestinationAddImage(destination, image, nil)
+        CGImageDestinationAddImage(destination, image, properties)
         guard CGImageDestinationFinalize(destination) else {
             throw TestImageError.cannotFinalize
         }

@@ -2,14 +2,29 @@ import FirebaseCore
 import SwiftUI
 import UIKit
 
-/// Firebase 부트스트랩 — `FirebaseApp.configure()`는 SDK 가이드대로 앱 첫 진입에서 한 번만 호출.
+/// Firebase 부트스트랩. 앱 첫 진입에서 한 번만 구성하고, 로컬 plist 누락 시 즉시 크래시하지 않는다.
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        FirebaseApp.configure()
+        configureFirebaseIfAvailable()
         return true
+    }
+
+    private func configureFirebaseIfAvailable() {
+        guard FirebaseApp.app() == nil else { return }
+        guard
+            let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+            let options = FirebaseOptions(contentsOfFile: path)
+        else {
+            #if DEBUG
+            print("Missing GoogleService-Info.plist. Firebase-backed features are disabled.")
+            #endif
+            return
+        }
+
+        FirebaseApp.configure(options: options)
     }
 }
 

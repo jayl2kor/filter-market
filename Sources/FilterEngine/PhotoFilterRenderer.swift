@@ -1,4 +1,5 @@
 @preconcurrency import CoreGraphics
+@preconcurrency import CoreImage
 import Foundation
 @preconcurrency import ImageIO
 import UniformTypeIdentifiers
@@ -78,6 +79,7 @@ public enum PhotoFilterRendererError: Error, Equatable, Sendable {
 public final class PhotoFilterRenderer {
     private let lutResourceBundle: Bundle?
     private let jpegCompressionQuality: CGFloat
+    private let ciContext = CIContext()
 
     public init(
         lutResourceBundle: Bundle? = nil,
@@ -103,7 +105,8 @@ public final class PhotoFilterRenderer {
             throw PhotoFilterRendererError.invalidImageData
         }
 
-        var pixelBuffer = try PixelBuffer(image: sourceImage)
+        let normalizedImage = try normalizeOrientation(sourceImage, source: source)
+        var pixelBuffer = try PixelBuffer(image: normalizedImage)
         let lut = makeLUT(for: configuration.filter)
 
         pixelBuffer.apply(lut: lut, intensity: configuration.intensity)
@@ -158,6 +161,27 @@ public final class PhotoFilterRenderer {
         }
 
         return data as Data
+    }
+
+    private func normalizeOrientation(_ image: CGImage, source: CGImageSource) throws -> CGImage {
+        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        let orientation = properties?[kCGImagePropertyOrientation] as? UInt32 ?? 1
+        guard orientation != 1 else {
+            return image
+        }
+
+        let orientedImage = CIImage(cgImage: image).oriented(forExifOrientation: Int32(orientation))
+        let extent = orientedImage.extent.integral
+        let translatedImage = orientedImage.transformed(
+            by: CGAffineTransform(translationX: -extent.origin.x, y: -extent.origin.y)
+        )
+        let outputRect = CGRect(origin: .zero, size: extent.size)
+
+        guard let normalizedImage = ciContext.createCGImage(translatedImage, from: outputRect) else {
+            throw PhotoFilterRendererError.cannotCreateImage
+        }
+
+        return normalizedImage
     }
 
     private func crop(_ image: CGImage, aspectRatio: PhotoCropAspectRatio?) throws -> CGImage {

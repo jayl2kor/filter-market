@@ -72,8 +72,7 @@ struct CameraScreen: View {
                     .ignoresSafeArea()
 
                 aspectGuide
-                focusTapLayer
-                swipeGestureLayer(width: proxy.size.width)
+                focusAndSwipeLayer(size: proxy.size)
 
                 VStack(spacing: 0) {
                     topBar
@@ -247,17 +246,6 @@ struct CameraScreen: View {
 
     // MARK: - Swipe layer (필터 전환)
 
-    private func swipeGestureLayer(width: CGFloat) -> some View {
-        Color.clear
-            .contentShape(Rectangle())
-            // 셔터/하단 컨트롤은 빼고, 화면 위쪽 60% 영역만 스와이프 처리.
-            .frame(maxWidth: .infinity)
-            .frame(maxHeight: .infinity, alignment: .top)
-            .padding(.bottom, 240)
-            .gesture(filterSwipeGesture(width: width))
-            .allowsHitTesting(width > 0)
-    }
-
     private func filterSwipeGesture(width: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 12)
             .onEnded { drag in
@@ -346,16 +334,17 @@ struct CameraScreen: View {
 
     // MARK: - Focus tap
 
-    private var focusTapLayer: some View {
+    private func focusAndSwipeLayer(size: CGSize) -> some View {
         GeometryReader { proxy in
             Color.clear
                 .contentShape(Rectangle())
-                .gesture(
+                .simultaneousGesture(
                     SpatialTapGesture()
                         .onEnded { value in
                             handleFocusTap(at: value.location, viewSize: proxy.size)
                         }
                 )
+                .simultaneousGesture(filterSwipeGesture(width: size.width))
                 .overlay {
                     if let focusIndicator {
                         FocusReticle()
@@ -443,14 +432,19 @@ struct CameraScreen: View {
 
     private func handleFocusTap(at location: CGPoint, viewSize: CGSize) {
         FMHaptic.light.play()
+        let activeFrame = guideFrame(for: viewSize, aspectRatio: controller.cropAspectRatio)
+        let indicatorLocation = CGPoint(
+            x: min(max(location.x, activeFrame.minX), activeFrame.maxX),
+            y: min(max(location.y, activeFrame.minY), activeFrame.maxY)
+        )
 
-        let indicator = CameraFocusIndicator(location: location)
+        let indicator = CameraFocusIndicator(location: indicatorLocation)
         withAnimation(.fmFast) {
             focusIndicator = indicator
         }
 
         Task {
-            await controller.focusAndExpose(at: location, in: viewSize)
+            await controller.focusAndExpose(at: indicatorLocation, activeFrame: activeFrame)
             try? await Task.sleep(for: .milliseconds(850))
 
             await MainActor.run {
@@ -852,7 +846,7 @@ private final class CameraPreviewController: ObservableObject {
         }
 
         do {
-            try cameraSession.start()
+            try await cameraSession.start()
             isRunning = true
             statusMessage = renderer.isAvailable ? "Live Metal preview" : "Metal unavailable"
             startMetricsPolling()
@@ -932,13 +926,13 @@ private final class CameraPreviewController: ObservableObject {
         }
     }
 
-    func focusAndExpose(at location: CGPoint, in viewSize: CGSize) async {
+    func focusAndExpose(at location: CGPoint, activeFrame: CGRect) async {
         guard !isCapturing else { return }
 
         do {
             let point = CameraFocusPoint(
                 viewLocation: location,
-                viewSize: viewSize,
+                activeFrame: activeFrame,
                 isMirrored: cameraPosition == .front
             )
             try await cameraSession.focusAndExpose(at: point)
