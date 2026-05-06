@@ -22,3 +22,8 @@ GoogleService-Info.plist
 fastlane/report.xml
 *.log
 .omc/
+.claude/
+
+# macOS
+.DS_Store
+**/.DS_Store
