@@ -58,12 +58,18 @@ public enum FMTab: Hashable, CaseIterable, Sendable {
 /// `DESIGN_SYSTEM.md` §8.5 — 49 + 16 padding-bottom = 65pt.
 /// 중앙 셔터는 56pt 원형, lift -12px, 골드 fill.
 public struct FMTabBar: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @Binding private var selection: FMTab
     private let onShutter: () -> Void
 
     public init(selection: Binding<FMTab>, onShutter: @escaping () -> Void) {
         self._selection = selection
         self.onShutter = onShutter
+    }
+
+    private var usesIconOnlyLayout: Bool {
+        dynamicTypeSize >= .xxxLarge
     }
 
     public var body: some View {
@@ -95,8 +101,12 @@ public struct FMTabBar: View {
                 Image(systemName: isActive ? tab.systemImageFilled : tab.systemImage)
                     .font(.system(size: 22, weight: isActive ? .semibold : .regular))
                     .frame(width: 24, height: 24)
-                Text(tab.label)
-                    .font(.system(size: 10, weight: isActive ? .semibold : .medium))
+                if !usesIconOnlyLayout {
+                    Text(tab.label)
+                        .font(.caption2.weight(isActive ? .semibold : .medium))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
             }
             .foregroundStyle(isActive ? FMColors.Accent.primary : FMColors.Text.tertiary)
             .frame(maxWidth: .infinity)
@@ -125,9 +135,13 @@ public struct FMTabBar: View {
                     x: 0,
                     y: 2
                 )
-                Text(FMTab.shutter.label)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(FMColors.Text.tertiary)
+                if !usesIconOnlyLayout {
+                    Text(FMTab.shutter.label)
+                        .font(.caption2.weight(.medium))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                }
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())

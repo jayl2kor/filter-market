@@ -250,7 +250,7 @@ struct CameraScreen: View {
                 .font(.system(size: 12, weight: .semibold))
                 .tracking(0.3)
                 .foregroundStyle(FMColors.Text.inverse)
-                .frame(minWidth: 38, minHeight: 40)
+                .frame(minWidth: 44, minHeight: 44)
                 .padding(.horizontal, Sp.xs)
                 .background(.ultraThinMaterial.opacity(0.7), in: Capsule())
                 .overlay {
@@ -281,7 +281,7 @@ struct CameraScreen: View {
             Text(store.cameraTimerOption.label)
                 .font(.system(size: 12, weight: .semibold).monospacedDigit())
                 .foregroundStyle(FMColors.Text.inverse)
-                .frame(minWidth: 38, minHeight: 40)
+                .frame(minWidth: 44, minHeight: 44)
                 .padding(.horizontal, Sp.xs)
                 .background(.ultraThinMaterial.opacity(0.7), in: Capsule())
                 .overlay {
@@ -323,7 +323,7 @@ struct CameraScreen: View {
             Image(systemName: store.cameraFlashMode.systemImage)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(FMColors.Text.inverse)
-                .frame(width: 40, height: 40)
+                .frame(width: 44, height: 44)
                 .background(.ultraThinMaterial.opacity(0.7), in: Circle())
                 .overlay {
                     Circle()
@@ -344,7 +344,7 @@ struct CameraScreen: View {
             Image(systemName: systemName)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(FMColors.Text.inverse)
-                .frame(width: 40, height: 40)
+                .frame(width: 44, height: 44)
                 .background(.ultraThinMaterial.opacity(0.7), in: Circle())
                 .overlay {
                     Circle()
@@ -494,21 +494,13 @@ struct CameraScreen: View {
 
                 if store.cameraGridEnabled {
                     ZStack {
-                        Rectangle()
-                            .fill(Color.white.opacity(0.16))
-                            .frame(width: 1, height: frame.height)
+                        cameraGridLine(width: 0.7, height: frame.height)
                             .position(x: frame.minX + frame.width / 3, y: frame.midY)
-                        Rectangle()
-                            .fill(Color.white.opacity(0.16))
-                            .frame(width: 1, height: frame.height)
+                        cameraGridLine(width: 0.7, height: frame.height)
                             .position(x: frame.minX + 2 * frame.width / 3, y: frame.midY)
-                        Rectangle()
-                            .fill(Color.white.opacity(0.16))
-                            .frame(width: frame.width, height: 1)
+                        cameraGridLine(width: frame.width, height: 0.7)
                             .position(x: frame.midX, y: frame.minY + frame.height / 3)
-                        Rectangle()
-                            .fill(Color.white.opacity(0.16))
-                            .frame(width: frame.width, height: 1)
+                        cameraGridLine(width: frame.width, height: 0.7)
                             .position(x: frame.midX, y: frame.minY + 2 * frame.height / 3)
                     }
                 }
@@ -521,6 +513,13 @@ struct CameraScreen: View {
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
+    }
+
+    private func cameraGridLine(width: CGFloat, height: CGFloat) -> some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.55))
+            .frame(width: width, height: height)
+            .shadow(color: Color.black.opacity(0.45), radius: 0.5)
     }
 
     private func guideFrame(for size: CGSize, aspectRatio: PhotoCropAspectRatio) -> CGRect {
@@ -589,7 +588,7 @@ struct CameraScreen: View {
                 HStack(spacing: 6) {
                     Image(systemName: "camera.filters")
                         .font(.system(size: 10, weight: .semibold))
-                    Text("FILTER · \(Int((controller.intensity * 100).rounded()))%")
+                    Text("FILTER")
                         .font(.system(size: 11, weight: .semibold).monospacedDigit())
                         .tracking(0.4)
                 }
@@ -604,7 +603,6 @@ struct CameraScreen: View {
 
                 Text(filter.title)
                     .font(.system(size: 17, weight: .bold))
-                    .tracking(-0.2)
                     .foregroundStyle(FMColors.Text.inverse)
                     .lineLimit(1)
 
@@ -622,11 +620,12 @@ struct CameraScreen: View {
 
     private var intensitySlider: some View {
         HStack(spacing: Sp.sm) {
-            Text("강도")
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(0.4)
-                .foregroundStyle(FMColors.Text.inverse.opacity(0.7))
-                .frame(width: 36, alignment: .leading)
+            Label("강도", systemImage: "slider.horizontal.3")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(FMColors.Text.inverse.opacity(0.92))
+                .labelStyle(.iconOnly)
+                .frame(width: 32, alignment: .leading)
+                .accessibilityLabel("강도")
 
             FMSlider(
                 value: Binding(
@@ -700,13 +699,13 @@ struct CameraScreen: View {
                     )
 
                 Text(filter.title)
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(0.2)
+                    .font(.system(size: 11, weight: .bold))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .foregroundStyle(
                         isActive
                             ? FMColors.Accent.primary
-                            : FMColors.Text.inverse.opacity(0.62)
+                            : FMColors.Text.inverse.opacity(0.84)
                     )
                     .frame(width: 72)
             }
@@ -800,15 +799,25 @@ struct CameraScreen: View {
                     Text(preset == 1.0 ? "1x" : String(format: "%.1fx", preset))
                         .font(.system(size: 12, weight: .semibold).monospacedDigit())
                         .foregroundStyle(store.cameraZoomPreset == preset ? .black : FMColors.Text.inverse)
-                        .frame(width: 44, height: 30)
+                        .frame(width: 48, height: 32)
                         .background(
                             store.cameraZoomPreset == preset
                                 ? FMColors.Accent.primary
-                                : Color.white.opacity(0.12),
+                                : Color.black.opacity(0.46),
                             in: Capsule()
                         )
+                        .overlay {
+                            Capsule()
+                                .strokeBorder(
+                                    store.cameraZoomPreset == preset
+                                        ? FMColors.Accent.primary.opacity(0.9)
+                                        : Color.white.opacity(0.32),
+                                    lineWidth: store.cameraZoomPreset == preset ? 1.5 : 1
+                                )
+                        }
                 }
                 .buttonStyle(.plain)
+                .frame(minWidth: 44, minHeight: 44)
                 .accessibilityIdentifier("camera.zoom.\(preset)")
             }
         }
