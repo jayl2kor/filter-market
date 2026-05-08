@@ -574,18 +574,6 @@ struct CameraScreen: View {
         }
         .padding(.top, Sp.md)
         .padding(.bottom, Sp.md)
-        .background(
-            LinearGradient(
-                stops: [
-                    .init(color: Color.clear, location: 0.0),
-                    .init(color: Color.black.opacity(0.65), location: 0.35),
-                    .init(color: Color.black.opacity(0.92), location: 1.0)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea(edges: .bottom)
-        )
     }
 
     @ViewBuilder
