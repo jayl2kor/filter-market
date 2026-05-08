@@ -174,6 +174,7 @@
 		E0FFFE79F17B7B66FFD349EF /* RenderFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 763DA429056589220CA7912F /* RenderFilter.swift */; };
 		E233B808B5B3F134056D3975 /* ZIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2233C0FC397BE13A3325599D /* ZIndex.swift */; };
 		E5A927C13962D039D99E6E41 /* FMSkeleton.swift in Sources */ = {isa = PBXBuildFile; fileRef = D351682BABF67206F22ADF96 /* FMSkeleton.swift */; };
+		E6D2BFA4DD7EE9BB33680684 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 0A5DB0EB12B56E44312FF657 /* PrivacyInfo.xcprivacy */; };
 		E8A31C3B002307DB7CDFD205 /* LUTResourceResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15C0EF4AFA982EF0A2155BB3 /* LUTResourceResolver.swift */; };
 		E8BFE84D11FAE481A059286C /* Iconography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1550BD6AB2042D987AD08B34 /* Iconography.swift */; };
 		E98DC16C587768B614C82841 /* FilterPackageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8DDEF7AD0737D739AB0875 /* FilterPackageTests.swift */; };
@@ -406,6 +407,7 @@
 		0907DD1BC10838B77A85A20C /* CameraSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraSession.swift; sourceTree = "<group>"; };
 		09A76E91096F9C284D84F963 /* PhotoFilterRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoFilterRenderer.swift; sourceTree = "<group>"; };
 		09CE5E216D06FBC248800288 /* PermissionScaffold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionScaffold.swift; sourceTree = "<group>"; };
+		0A5DB0EB12B56E44312FF657 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		0C02D9ED1D6B811A8A0E35B9 /* FMFilterCoverArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMFilterCoverArt.swift; sourceTree = "<group>"; };
 		0E2773DDF94E1A12850CA219 /* sunset-vibes.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "sunset-vibes.png"; sourceTree = "<group>"; };
 		103F2FF5A434AB306BE21D50 /* FilterRepositoryDefaultImplTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterRepositoryDefaultImplTests.swift; sourceTree = "<group>"; };
@@ -1069,6 +1071,7 @@
 				A5351CED6F1DF3CD977446C4 /* Assets.xcassets */,
 				BFDEF708AF07F7B0C9463F9B /* GoogleService-Info.plist */,
 				D538DB7A267537F3AFE4FF8E /* Localizable.xcstrings */,
+				0A5DB0EB12B56E44312FF657 /* PrivacyInfo.xcprivacy */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -1533,6 +1536,7 @@
 				9E741D7E42757E5EC2821E84 /* Assets.xcassets in Resources */,
 				79E17671285BFC380C5C20A4 /* GoogleService-Info.plist in Resources */,
 				8D3788730E5D91162F0804DD /* Localizable.xcstrings in Resources */,
+				E6D2BFA4DD7EE9BB33680684 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
