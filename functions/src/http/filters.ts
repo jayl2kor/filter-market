@@ -324,6 +324,7 @@ export interface FilterDetailResponse {
   filter: {
     id: string;
     title: string;
+    description: string;
     version: string;
     category: string;
     status: string;
@@ -424,6 +425,7 @@ export async function applyGetFilterDetail(
     filter: {
       id: filterId,
       title: (data.title as string) ?? "",
+      description: (data.description as string) ?? "",
       version: (data.version as string) ?? "1.0.0",
       category: (data.category as string) ?? "cinematic",
       status: (data.status as string) ?? "approved",

@@ -1029,6 +1029,7 @@ extension FilterDetailMock {
         }
 
         return FilterDetailMock(
+            sourceID: id,
             displayTitle: tile.title,
             makerHandle: tile.makerName,
             makerInitials: String(tile.makerName.replacingOccurrences(of: "@", with: "").prefix(2)).uppercased(),
@@ -1049,6 +1050,7 @@ extension FilterDetailMock {
         )
         #else
         FilterDetailMock(
+            sourceID: id.isEmpty ? nil : id,
             displayTitle: id.isEmpty ? "필터" : id,
             makerHandle: "@maker",
             makerInitials: "M",

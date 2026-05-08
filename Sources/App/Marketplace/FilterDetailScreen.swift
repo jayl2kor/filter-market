@@ -1,6 +1,7 @@
 import DesignSystem
 import FilterEngine
 import Models
+import OSLog
 import SwiftUI
 import UIKit
 
@@ -532,7 +533,7 @@ struct FilterDetailScreen: View {
             .accessibilityValue(isLiked ? "on" : "off")
 
             if downloadState == .ready {
-                NavigationLink(value: mock.isPaid ? AppRoute.paywallSingle(filterId: mock.displayTitle) : AppRoute.filterDownload(id: mock.displayTitle)) {
+                NavigationLink(value: mock.isPaid ? AppRoute.paywallSingle(filterId: filterRouteID) : AppRoute.filterDownload(id: filterRouteID)) {
                     HStack(spacing: Sp.xs) {
                         Image(systemName: ctaIcon ?? "arrow.right")
                             .font(.system(size: IconSize.sm, weight: .semibold))
@@ -592,9 +593,20 @@ struct FilterDetailScreen: View {
 
     private func sectionRoute(for title: String) -> AppRoute {
         if title == "리뷰" {
-            return .reviews(filterId: mock.displayTitle)
+            return .reviews(filterId: filterRouteID)
         }
         return .search(initialQuery: mock.displayTitle, category: nil)
+    }
+
+    private var filterRouteID: String {
+        if let sourceID = mock.sourceID?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !sourceID.isEmpty {
+            return sourceID
+        }
+        if let filter {
+            return filter.id.uuidString
+        }
+        return mock.displayTitle
     }
 
     private var ctaTitle: String {
@@ -836,6 +848,7 @@ private func sampleBadge(_ title: String) -> some View {
 
 private actor SampleReferenceRenderCache {
     static let shared = SampleReferenceRenderCache()
+    private static let logger = Logger(subsystem: "moodit", category: "SampleReferenceRenderCache")
 
     private var memory: [String: Data] = [:]
 
@@ -853,11 +866,15 @@ private actor SampleReferenceRenderCache {
     func store(_ data: Data, for key: String) {
         memory[key] = data
         guard let url = fileURL(for: key) else { return }
-        try? FileManager.default.createDirectory(
-            at: url.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-        try? data.write(to: url, options: [.atomic])
+        do {
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try data.write(to: url, options: [.atomic])
+        } catch {
+            Self.logger.error("Failed to store rendered sample cache: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private func fileURL(for key: String) -> URL? {

@@ -53,6 +53,7 @@ describe("applyGetFilterDetail", () => {
     const firestore = makeFakeFirestore({
       "filters/abc-123": {
         title: "Sunset Vibes",
+        description: "Warm cinematic filter for sunset scenes.",
         version: "1.0.0",
         category: "cinematic",
         status: "approved",
@@ -102,6 +103,7 @@ describe("applyGetFilterDetail", () => {
     assert.equal(presignedKey, "filters/u-1/abc-123.fmpkg");
     assert.equal(result.filter.id, "abc-123");
     assert.equal(result.filter.title, "Sunset Vibes");
+    assert.equal(result.filter.description, "Warm cinematic filter for sunset scenes.");
     assert.equal(result.filter.status, "approved");
     assert.equal(result.filter.useCount, 42);
     assert.equal(result.filter.coverURL, "https://cdn.test/cover.jpg");

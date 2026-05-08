@@ -180,6 +180,7 @@ enum MarketplaceMockData {
 
 /// 상세 화면 mock — `Filter` 도메인 모델만으로는 부족한 표시 정보(다운로드/리뷰/태그/샘플/댓글)를 보강.
 struct FilterDetailMock: Sendable {
+    let sourceID: String?
     let displayTitle: String
     let makerHandle: String
     let makerInitials: String
@@ -197,6 +198,46 @@ struct FilterDetailMock: Sendable {
     let categoryHint: Color
     let isPaid: Bool
     let priceLabel: String?
+
+    init(
+        sourceID: String? = nil,
+        displayTitle: String,
+        makerHandle: String,
+        makerInitials: String,
+        categoryLabel: String,
+        downloadCount: Int,
+        rating: Double,
+        reviewCount: Int,
+        likeCount: Int,
+        description: String,
+        tags: [String],
+        coverURL: URL?,
+        signatureSampleURL: URL?,
+        filterCategory: FilterCategory,
+        reviews: [Review],
+        categoryHint: Color,
+        isPaid: Bool,
+        priceLabel: String?
+    ) {
+        self.sourceID = sourceID
+        self.displayTitle = displayTitle
+        self.makerHandle = makerHandle
+        self.makerInitials = makerInitials
+        self.categoryLabel = categoryLabel
+        self.downloadCount = downloadCount
+        self.rating = rating
+        self.reviewCount = reviewCount
+        self.likeCount = likeCount
+        self.description = description
+        self.tags = tags
+        self.coverURL = coverURL
+        self.signatureSampleURL = signatureSampleURL
+        self.filterCategory = filterCategory
+        self.reviews = reviews
+        self.categoryHint = categoryHint
+        self.isPaid = isPaid
+        self.priceLabel = priceLabel
+    }
 
     struct Review: Identifiable, Sendable {
         let id = UUID()
@@ -263,6 +304,7 @@ extension FilterDetailMock {
     /// 도메인 `Filter` 와 결합하기 전, mock 매핑.
     static func mock(for filter: Filter) -> FilterDetailMock {
         FilterDetailMock(
+            sourceID: filter.id.uuidString,
             displayTitle: filter.title,
             makerHandle: "@" + filter.author.displayName.lowercased(),
             makerInitials: String(filter.author.displayName.prefix(2)).uppercased(),

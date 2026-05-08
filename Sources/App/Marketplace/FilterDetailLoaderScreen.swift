@@ -135,6 +135,7 @@ struct FilterDetailLoaderScreen: View {
 struct FilterDetailResponse {
     let id: String
     let title: String
+    let description: String
     let category: String
     let status: String
     let useCount: Int
@@ -175,6 +176,7 @@ struct FilterDetailResponse {
 
         self.id = id
         self.title = title
+        self.description = (filterDict["description"] as? String) ?? ""
         self.category = (filterDict["category"] as? String) ?? "cinematic"
         self.status = (filterDict["status"] as? String) ?? "approved"
         self.useCount = (filterDict["useCount"] as? Int) ?? 0
@@ -219,7 +221,10 @@ struct FilterDetailResponse {
     /// 그대로 재사용하기 위한 어댑터.
     func toMock() -> FilterDetailMock {
         let initials = String(authorDisplayName.prefix(2)).uppercased()
+        let filterCategory = FilterCategory(rawValue: category) ?? .cinematic
+        let displayDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
         return FilterDetailMock(
+            sourceID: id,
             displayTitle: title,
             makerHandle: "@\(authorDisplayName)",
             makerInitials: initials,
@@ -228,11 +233,11 @@ struct FilterDetailResponse {
             rating: ratingAvg ?? 0,
             reviewCount: reviewCount,
             likeCount: likeCount,
-            description: "Cloud Function `getFilterDetail` 응답을 기반으로 표시되는 실제 필터입니다.",
+            description: displayDescription.isEmpty ? "필터 설명이 아직 없습니다." : displayDescription,
             tags: tags.map { $0.hasPrefix("#") ? $0 : "#\($0)" },
             coverURL: coverURL,
             signatureSampleURL: signatureSampleURL,
-            filterCategory: FilterCategory(rawValue: category) ?? .cinematic,
+            filterCategory: filterCategory,
             reviews: reviews.map { review in
                 FilterDetailMock.Review(
                     initials: String(review.authorDisplayName.prefix(2)).uppercased(),
@@ -244,7 +249,7 @@ struct FilterDetailResponse {
                     isVerifiedDownload: review.isVerifiedDownload
                 )
             },
-            categoryHint: FMColors.Category.cinematic,
+            categoryHint: filterCategory.swatch.first ?? FMColors.Category.cinematic,
             isPaid: priceCoins > 0,
             priceLabel: priceCoins > 0 ? "\(priceCoins) 코인" : nil
         )
