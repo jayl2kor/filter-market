@@ -74,14 +74,14 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 
 | Screen ID | Route / Entry | SwiftUI | 상태 | Required actions |
 |---|---|---|---|---|
-| `reviews.list` | `AppRoute.reviews(filterId:)` | `ReviewsListScreen` | Implemented, NeedsFirebaseQA | `social.reviews.filter`, `social.reviews.compose`, `social.rating.open`, `social.review.author`, `social.review.helpful` (Firestore edge + counter transaction), `social.review.more`, `social.review.more.report`, `social.review.more.block`, `social.review.more.copy` |
+| `reviews.list` | `AppRoute.reviews(filterId:)` | `ReviewsListScreen` | Implemented, NeedsFirebaseQA | `social.reviews.filter`, `social.reviews.compose`, `social.rating.open`, `social.review.author`, `social.review.helpful` (Firestore edge + counter transaction), `social.review.more`, `social.review.more.report`, `social.review.more.block` (writes root `blocks/{actorUid}_{targetUid}` and hides blocked author reviews), `social.review.more.copy` |
 | `reviews.compose` | `AppRoute.reviewCompose(filterId:)` | `ReviewComposeScreen` | Implemented, NeedsE2E | `social.compose.input`, `social.compose.send`, `social.review.makerReply`, `social.compose.insertMention`, `social.compose.attachImage`, `social.compose.removeImage`, `social.compose.emojiToggle`, `social.compose.emoji.*` |
 | `reviews.rating` | `AppRoute.rating(filterId:)` | `RatingFormScreen` | Implemented, NeedsE2E | `social.rating.star`, `social.rating.star.*`, `social.rating.body`, `social.rating.submit` |
 | `social.followers` | `AppRoute.followers(uid:)` | `FollowersListScreen` | Implemented, NeedsFirebaseQA | `social.user.row`, `social.user.tap`, `social.follow.toggle`, empty state |
 | `social.following` | `AppRoute.following(uid:)` | `FollowingListScreen` | Implemented, NeedsFirebaseQA | `social.user.row`, `social.user.tap`, `social.follow.toggle`, empty state |
 | `social.forYou` | `AppRoute.forYou` | `ForYouFeedScreen` | Implemented, NeedsFirebaseQA | `market.tile.tap` (UUID route), `market.maker.tap`, `social.foryou.hero.apply` (UUID route), `social.foryou.hero.save` (`MooditStore.toggleFavorite`), `social.foryou.maker.follow`, `social.foryou.empty` |
 | `social.followingFeed` | `AppRoute.followingFeed` | `FollowingFeedScreen` | Implemented, NeedsFirebaseQA | `market.tile.tap` (UUID route), `profile.following`, `social.following.newFilter` (latest followed filter), `social.following.post.like` (`feedActions`), `social.following.post.reviews`, `social.following.post.save` (`favorites`), `social.following.post.more`, `social.following.post.hide` |
-| `social.blockList` | `AppRoute.blockList` | `BlockListScreen` | Partial | `social.block.tab`, `social.block.toggle`, `blocklist.empty` |
+| `social.blockList` | `AppRoute.blockList` | `BlockListScreen` | Implemented, NeedsFirebaseQA | root `blocks` listener filtered by `actorUid`, `social.block.toggle`, `blocklist.retry`, `blocklist.empty` |
 | `social.report` | `AppRoute.reportForm` | `ReportFormScreen` | Partial | `report.filterId`, `report.reason`, `report.detail`, `report.submit` |
 
 ### 4.4 Camera / Photo

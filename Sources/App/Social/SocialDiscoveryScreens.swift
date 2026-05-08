@@ -14,12 +14,16 @@ struct ReviewsListScreen: View {
     let filterID: String
     // (#37) 프로덕션은 Firestore /filters/{filterID}/reviews listener (.task에서 attach).
     // UI 테스트 (-ui-testing): 기존 mock 데이터로 fallback.
+    @State private var rawReviews: [SocialReview] = isUITesting ? SocialReview.mock : []
     @State private var reviews: [SocialReview] = isUITesting ? SocialReview.mock : []
     @State private var helpfulIDs: Set<String> = isUITesting ? Set(SocialReview.mock.filter(\.isHelpful).map(\.id)) : []
+    @State private var blockedAuthorUIDs: Set<String> = []
     @State private var moreMenuReview: SocialReview?
     @State private var reviewsListener: ListenerRegistration?
     @State private var helpfulListener: ListenerRegistration?
+    @State private var blocksListener: ListenerRegistration?
     @State private var filterSummary = ReviewFilterSummary()
+    @State private var blockStatusMessage: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -53,9 +57,7 @@ struct ReviewsListScreen: View {
             .accessibilityIdentifier("social.review.more.report")
 
             Button("작성자 차단", role: .destructive) {
-                // Mock: remove all reviews from the same handle.
-                reviews.removeAll { $0.handle == review.handle }
-                FMHaptic.warning.play()
+                Task { await blockAuthor(review) }
             }
             .accessibilityIdentifier("social.review.more.block")
 
@@ -75,6 +77,7 @@ struct ReviewsListScreen: View {
             applyLocalFilterSummary()
             attachReviewsListener()
             attachHelpfulListener()
+            attachBlocksListener()
             await loadFilterSummary()
         }
         .onDisappear {
@@ -82,6 +85,19 @@ struct ReviewsListScreen: View {
             reviewsListener = nil
             helpfulListener?.remove()
             helpfulListener = nil
+            blocksListener?.remove()
+            blocksListener = nil
+        }
+        .alert(
+            "작성자 차단",
+            isPresented: Binding(
+                get: { blockStatusMessage != nil },
+                set: { if !$0 { blockStatusMessage = nil } }
+            )
+        ) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(blockStatusMessage ?? "")
         }
     }
 
@@ -112,6 +128,7 @@ struct ReviewsListScreen: View {
                     else { timeStr = "\(Int(interval / 86400))일" }
                     return SocialReview(
                         id: doc.documentID,
+                        authorUid: authorUid,
                         name: authorName,
                         handle: "@\(authorUid.prefix(8))",
                         initials: initials,
@@ -126,7 +143,8 @@ struct ReviewsListScreen: View {
                     )
                 }
                 Task { @MainActor in
-                    self.reviews = decoded
+                    self.rawReviews = decoded
+                    self.applyBlockedReviewFilter()
                 }
             }
     }
@@ -199,6 +217,33 @@ struct ReviewsListScreen: View {
                     self.helpfulIDs = ids
                 }
             }
+    }
+
+    private func attachBlocksListener() {
+        blocksListener?.remove()
+        guard let uid = Auth.auth().currentUser?.uid else {
+            blockedAuthorUIDs = []
+            applyBlockedReviewFilter()
+            return
+        }
+        blocksListener = Firestore.firestore()
+            .collection("blocks")
+            .whereField("actorUid", isEqualTo: uid)
+            .limit(to: 200)
+            .addSnapshotListener { snapshot, error in
+                Task { @MainActor in
+                    if let error {
+                        blockStatusMessage = "차단 목록을 불러오지 못했어요: \(error.localizedDescription)"
+                        return
+                    }
+                    blockedAuthorUIDs = Set((snapshot?.documents ?? []).compactMap { $0.data()["targetUid"] as? String })
+                    applyBlockedReviewFilter()
+                }
+            }
+    }
+
+    private func applyBlockedReviewFilter() {
+        reviews = rawReviews.filter { !blockedAuthorUIDs.contains($0.authorUid) }
     }
 
     private var filterMiniCard: some View {
@@ -338,7 +383,7 @@ struct ReviewsListScreen: View {
 
     private func reviewRow(_ review: SocialReview) -> some View {
         HStack(alignment: .top, spacing: Sp.sm) {
-            NavigationLink(value: AppRoute.otherProfile(uid: review.handle)) {
+            NavigationLink(value: AppRoute.otherProfile(uid: review.authorUid)) {
                 avatar(initials: review.initials, colors: review.avatarColors, size: 36)
             }
             .buttonStyle(.plain)
@@ -508,6 +553,40 @@ struct ReviewsListScreen: View {
             }
             .map(String.init)
             .joined()
+    }
+
+    @MainActor
+    private func blockAuthor(_ review: SocialReview) async {
+        FMHaptic.warning.play()
+        guard let uid = Auth.auth().currentUser?.uid else {
+            blockStatusMessage = "로그인 후 작성자를 차단할 수 있어요."
+            return
+        }
+        guard uid != review.authorUid, review.authorUid != "unknown" else {
+            blockStatusMessage = "이 작성자는 차단할 수 없어요."
+            return
+        }
+
+        rawReviews.removeAll { $0.authorUid == review.authorUid }
+        applyBlockedReviewFilter()
+
+        do {
+            try await Firestore.firestore()
+                .collection("blocks").document("\(uid)_\(review.authorUid)")
+                .setData([
+                    "actorUid": uid,
+                    "targetUid": review.authorUid,
+                    "targetHandle": review.handle,
+                    "targetDisplayName": review.name,
+                    "createdAt": FieldValue.serverTimestamp()
+                ], merge: true)
+            blockStatusMessage = "\(review.handle) 작성자를 차단했어요."
+            FMHaptic.success.play()
+        } catch {
+            blockStatusMessage = "작성자를 차단하지 못했어요: \(error.localizedDescription)"
+            FMHaptic.warning.play()
+            attachReviewsListener()
+        }
     }
 }
 
@@ -2096,6 +2175,7 @@ private struct ReviewFilterSummary {
 
 private struct SocialReview: Identifiable {
     let id: String
+    let authorUid: String
     let name: String
     let handle: String
     let initials: String
@@ -2111,6 +2191,7 @@ private struct SocialReview: Identifiable {
     static let mock: [SocialReview] = [
         SocialReview(
             id: UUID().uuidString,
+            authorUid: "minji.lab",
             name: "민지",
             handle: "@minji.lab",
             initials: "MJ",
@@ -2131,6 +2212,7 @@ private struct SocialReview: Identifiable {
         ),
         SocialReview(
             id: UUID().uuidString,
+            authorUid: "alex.grade",
             name: "Alex",
             handle: "@alex.grade",
             initials: "AL",
@@ -2145,6 +2227,7 @@ private struct SocialReview: Identifiable {
         ),
         SocialReview(
             id: UUID().uuidString,
+            authorUid: "yuna.diary",
             name: "유나",
             handle: "@yuna.diary",
             initials: "YN",
@@ -2159,6 +2242,7 @@ private struct SocialReview: Identifiable {
         ),
         SocialReview(
             id: UUID().uuidString,
+            authorUid: "emma.travel",
             name: "Emma",
             handle: "@emma.travel",
             initials: "EM",

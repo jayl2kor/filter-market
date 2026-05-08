@@ -157,7 +157,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 6.1.8 | "리뷰 추가..." (`social.reviews.compose`) | Auth-gated → AppRoute.reviewCompose |  |
 | 6.1.9 | paper plane 버튼 | 동일 → reviewCompose |  |
 | 6.1.10 | ★ Rating (toolbar) | Auth-gated → AppRoute.rating |  |
-| 6.1.11 | ··· more (`social.review.more`) | ConfirmationDialog: 신고 / 작성자 차단 / 텍스트 복사 / 취소 |  |
+| 6.1.11 | ··· more (`social.review.more`) | ConfirmationDialog: 신고 / 작성자 차단 / 텍스트 복사 / 취소. `social.review.more.block`는 root `blocks/{actorUid}_{targetUid}` write 후 같은 authorUid 리뷰를 숨김 |  |
 | 6.1.12 | (게스트) "로그인하고 리뷰 남기기" empty state | → AppRoute.login |  |
 | 6.1.13 | 화면 이탈 | Firestore reviews listener 정리, 재진입 시 중복 listener 없이 최신 목록 attach |  |
 
@@ -488,8 +488,8 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 13.3.4b | `.modDetail` | 되돌리기 (`modDetail.undo`) | 승인/거부 후 5초 내 `undoModerationDecision` callable, 상태 `pending_review` 복구 |  |
 | 13.3.4c | `.modDetail` | 거부 button (`modDetail.reject`) | 1~2000자 사유로 `rejectFilter` callable, 중복 호출 disabled, 5초 후 큐로 복귀 |  |
 | 13.3.5 | `.modDetail` | 게시 중단 | confirmation → takedown |  |
-| 13.3.6 | `.blockList` | 세그먼트 (차단/뮤트) | 리스트 변경 |  |
-| 13.3.7 | `.blockList` | 차단 해제 | row 제거 |  |
+| 13.3.6 | `.blockList` | root `blocks` listener | `actorUid == currentUser.uid` 차단 목록 실시간 표시, 실패 시 `blocklist.retry` 노출 |  |
+| 13.3.7 | `.blockList` | `social.block.toggle` | root `blocks/{actorUid}_{targetUid}` delete 후 row 제거 |  |
 | 13.3.8 | `.reportForm` | 사유 picker | NSFW/저작권/스팸/폭력/기타 |  |
 | 13.3.9 | `.reportForm` | 제출 | mock + dismiss |  |
 | 13.3.10 | `.filterRejected(id:)` | 고객지원 (?) | mailto:support@moodit.app |  |

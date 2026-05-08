@@ -3862,72 +3862,153 @@ private enum ModerationAction {
 }
 
 struct BlockListScreen: View {
-    @State private var blockedHandles: [String] = []
+    @State private var blockedUsers: [BlockedUserEntry] = []
+    @State private var listener: ListenerRegistration?
+    @State private var loadError: String?
     @State private var isLoading = false
 
     var body: some View {
-        Group {
-            if blockedHandles.isEmpty {
+        VStack(spacing: 0) {
+            if let loadError {
+                VStack(alignment: .leading, spacing: Sp.sm) {
+                    Text(loadError)
+                        .font(Font.fmCaption)
+                        .foregroundStyle(FMColors.Semantic.error)
+                    Button("다시 시도") { attachListener() }
+                        .font(Font.fmCaption)
+                        .foregroundStyle(FMColors.Accent.primary)
+                        .accessibilityIdentifier("blocklist.retry")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(Sp.md)
+            }
+
+            if isLoading {
+                ProgressView()
+                    .padding(.top, Sp.lg)
+            } else if blockedUsers.isEmpty {
                 FMEmptyState(.emptyMarket)
                     .padding(.horizontal, Sp.md)
                     .accessibilityIdentifier("blocklist.empty")
             } else {
                 List {
-                    ForEach(blockedHandles, id: \.self) { handle in
+                    ForEach(blockedUsers) { user in
                         HStack {
                             Image(systemName: "person.crop.circle.badge.xmark")
                                 .foregroundStyle(FMColors.Semantic.error)
-                            Text(handle).font(Font.fmBody)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(user.displayName).font(Font.fmBody)
+                                Text(user.subtitle).font(Font.fmCaption)
+                                    .foregroundStyle(FMColors.Text.tertiary)
+                            }
                             Spacer()
-                            Button("차단 해제") { unblock(handle) }
+                            Button("차단 해제") { unblock(user) }
                                 .font(Font.fmCaption)
                                 .foregroundStyle(FMColors.Accent.primary)
+                                .accessibilityIdentifier("social.block.toggle")
                         }
                     }
                 }
                 .listStyle(.plain)
             }
+            Spacer(minLength: 0)
         }
         .background(FMColors.Background.bg1.ignoresSafeArea())
         .navigationTitle("차단 목록")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
-    }
-
-    private func load() async {
-        // /users/{uid}/blocks 리스너 wiring은 별도 작업 — 현재는 빈 상태에서 시작.
-        #if DEBUG
-        guard !isUITesting else { return }
-        #endif
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        isLoading = true
-        defer { isLoading = false }
-        do {
-            let snapshot = try await Firestore.firestore()
-                .collection("users").document(uid)
-                .collection("blocks")
-                .limit(to: 200)
-                .getDocuments()
-            blockedHandles = snapshot.documents.map { $0.documentID }
-        } catch {
-            blockedHandles = []
+        .onAppear { attachListener() }
+        .onDisappear {
+            listener?.remove()
+            listener = nil
         }
     }
 
-    private func unblock(_ handle: String) {
+    private func attachListener() {
         #if DEBUG
         guard !isUITesting else {
-            blockedHandles.removeAll { $0 == handle }
+            blockedUsers = []
+            loadError = nil
+            isLoading = false
+            return
+        }
+        #endif
+        listener?.remove()
+        guard let uid = Auth.auth().currentUser?.uid else {
+            blockedUsers = []
+            loadError = "로그인 후 차단 목록을 볼 수 있어요."
+            return
+        }
+        isLoading = true
+        loadError = nil
+        listener = Firestore.firestore()
+            .collection("blocks")
+            .whereField("actorUid", isEqualTo: uid)
+            .limit(to: 200)
+            .addSnapshotListener { snapshot, error in
+                Task { @MainActor in
+                    isLoading = false
+                    if let error {
+                        loadError = "차단 목록을 불러오지 못했어요: \(error.localizedDescription)"
+                        return
+                    }
+                    loadError = nil
+                    blockedUsers = (snapshot?.documents ?? [])
+                        .compactMap(BlockedUserEntry.init(document:))
+                        .sorted { $0.displayName < $1.displayName }
+                }
+            }
+    }
+
+    private func unblock(_ user: BlockedUserEntry) {
+        #if DEBUG
+        guard !isUITesting else {
+            blockedUsers.removeAll { $0.id == user.id }
             return
         }
         #endif
         guard let uid = Auth.auth().currentUser?.uid else { return }
         Task {
-            try? await Firestore.firestore()
-                .collection("users").document(uid)
-                .collection("blocks").document(handle)
-                .delete()
-            blockedHandles.removeAll { $0 == handle }
+            do {
+                try await Firestore.firestore()
+                    .collection("blocks").document("\(uid)_\(user.targetUid)")
+                    .delete()
+            } catch {
+                await MainActor.run {
+                    loadError = "차단 해제에 실패했어요: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+}
+
+private struct BlockedUserEntry: Identifiable {
+    let id: String
+    let targetUid: String
+    let handle: String?
+    let displayName: String
+
+    var subtitle: String {
+        handle ?? targetUid
+    }
+
+    init?(document: QueryDocumentSnapshot) {
+        let data = document.data()
+        guard let targetUid = data["targetUid"] as? String, !targetUid.isEmpty else {
+            return nil
+        }
+        self.id = document.documentID
+        self.targetUid = targetUid
+        let rawHandle = (data["targetHandle"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let rawHandle, !rawHandle.isEmpty {
+            self.handle = rawHandle.hasPrefix("@") ? rawHandle : "@\(rawHandle)"
+        } else {
+            self.handle = nil
+        }
+        if let rawName = (data["targetDisplayName"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !rawName.isEmpty {
+            self.displayName = rawName
+        } else {
+            self.displayName = self.handle ?? String(targetUid.prefix(8))
         }
     }
 }
