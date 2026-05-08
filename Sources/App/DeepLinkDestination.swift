@@ -22,8 +22,8 @@ struct DeepLinkDestination: View {
             ReviewsListScreen(filterID: filterId)
         case .reviewCompose(let filterId):
             ReviewComposeScreen(filterID: filterId)
-        case .otherProfile:
-            ProfileScreen(user: .other)
+        case .otherProfile(let uid):
+            ProfileScreen(otherUid: uid)
         case .notifications:
             NotificationsInboxScreen()
         case .search(let initialQuery, let category):

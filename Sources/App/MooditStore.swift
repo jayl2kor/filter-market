@@ -1,5 +1,6 @@
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseFunctions
 import Foundation
 import FilterEngine
 import Marketplace
@@ -57,11 +58,23 @@ struct EditableProfile: Equatable {
     var photoSharingAllowed: Bool
     var avatarVariant: Int
 
+    /// Preview / Xcode SwiftUI Preview 전용 — 실제 앱에서는 사용하지 않음.
     static let preview = EditableProfile(
         displayName: "강지수",
         handle: "jisoo.films",
         bio: "필름 카메라와 햇빛을 좋아합니다. 카페·여행·일상 위주로 필터를 만들어요.",
         website: "https://jisoo.films",
+        makerPageVisible: true,
+        photoSharingAllowed: false,
+        avatarVariant: 0
+    )
+
+    /// 비로그인 / 로딩 중 placeholder. 실제 displayName/handle 은 Firebase Auth + Firestore 에서 채워짐.
+    static let empty = EditableProfile(
+        displayName: "",
+        handle: "",
+        bio: "",
+        website: "",
         makerPageVisible: true,
         photoSharingAllowed: false,
         avatarVariant: 0
@@ -273,80 +286,22 @@ final class MooditStore: ObservableObject {
     @Published var cameraFlashMode: CameraFlashMode = .off
     @Published var cameraZoomPreset: Double = 1.0
     @Published var importedPhotoData: Data?
-    @Published var editableProfile = EditableProfile.preview
+    @Published var editableProfile = EditableProfile.empty
     @Published var lastProfileSavedAt: Date?
     @Published var accountDeletionRequestedAt: Date?
     @Published var selectedExportCategories: Set<DataExportCategory> = Set(DataExportCategory.allCases)
     @Published var selectedExportFormat: DataExportFormat = .json
-    @Published var exportRequests: [DataExportRequest] = [
-        DataExportRequest(
-            categories: Set(DataExportCategory.allCases),
-            format: .json,
-            requestedAt: Calendar.current.date(byAdding: .day, value: -9, to: Date()) ?? Date(),
-            status: "만료"
-        ),
-        DataExportRequest(
-            categories: [.account, .profile, .activity],
-            format: .json,
-            requestedAt: Calendar.current.date(byAdding: .hour, value: -7, to: Date()) ?? Date(),
-            status: "처리 중"
-        )
-    ]
+    /// 데이터 내보내기 요청 이력 — 진짜 데이터는 Firestore /users/{uid}/exportRequests에서 들어와야 함.
+    /// (이전: 2개 하드코딩 mock 잔재 — 사용자가 요청한 적 없는 export 이력이 노출되는 문제 해결)
+    @Published var exportRequests: [DataExportRequest] = []
     @Published var notificationPreferences = NotificationPreferences()
     @Published var editorDraft = MakerFilterDraft.preview
     @Published var uploadStep: UploadStep = .cover
     @Published var selectedMakerStatus: MakerFilterStatus = .all
-    @Published var makerFilters: [MakerFilterDraft] = [
-        MakerFilterDraft(
-            name: "Seoul Night",
-            summary: "차가운 네온과 깊은 블랙을 살린 야간 도시 필터.",
-            category: .cinematic,
-            tags: ["도시", "야간", "네온"],
-            parameterValues: ["exposure": -0.08, "contrast": 0.5, "saturation": 0.22, "grain": 0.16, "vignette": 0.32],
-            lutFileName: "seoul_night_33.cube",
-            coverCount: 4,
-            beforeAfterEnabled: true,
-            tosOriginal: true,
-            tosPolicy: true,
-            tosCommercial: true,
-            status: .live,
-            updatedAt: Calendar.current.date(byAdding: .day, value: -3, to: Date()) ?? Date(),
-            submittedAt: Calendar.current.date(byAdding: .day, value: -5, to: Date()) ?? Date()
-        ),
-        MakerFilterDraft(
-            name: "Amber Cafe",
-            summary: "따뜻한 카페와 골든아워용 필름 톤.",
-            category: .vintage,
-            tags: ["카페", "필름", "warm"],
-            parameterValues: MakerFilterDraft.preview.parameterValues,
-            lutFileName: "amber_cafe_33.cube",
-            coverCount: 3,
-            beforeAfterEnabled: true,
-            tosOriginal: true,
-            tosPolicy: true,
-            tosCommercial: true,
-            status: .pending,
-            updatedAt: Calendar.current.date(byAdding: .hour, value: -6, to: Date()) ?? Date(),
-            submittedAt: Calendar.current.date(byAdding: .hour, value: -6, to: Date()) ?? Date()
-        ),
-        MakerFilterDraft(
-            name: "Strange Vibe",
-            summary: "강한 색 분리와 대비가 있는 실험적 룩.",
-            category: .mood,
-            tags: ["무드", "실험", "컬러"],
-            parameterValues: ["exposure": 0.04, "contrast": 0.66, "saturation": 0.74, "grain": 0.38, "vignette": 0.2],
-            lutFileName: "strange_vibe_33.cube",
-            coverCount: 2,
-            beforeAfterEnabled: false,
-            tosOriginal: true,
-            tosPolicy: true,
-            tosCommercial: true,
-            status: .rejected,
-            updatedAt: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
-            submittedAt: Calendar.current.date(byAdding: .day, value: -2, to: Date()) ?? Date()
-        ),
-        MakerFilterDraft.preview
-    ]
+    /// 메이커 본인의 드래프트/검수/공개 필터 — 진짜 데이터는 Firestore /filters where authorUid==uid에서 들어옴.
+    /// 사용자가 처음 진입하면 빈 배열 → FMEmptyState 노출. 이후 createDraft / submitDraft 흐름으로 채워짐.
+    /// (이전: 4개 하드코딩 mock 잔재 — 사용자 본인이 만들지 않은 필터가 노출되는 문제 해결)
+    @Published var makerFilters: [MakerFilterDraft] = []
     /// manifest 로드 실패 시 마지막 에러. UI 는 이 값을 보고 ErrorBanner / FMEmptyState 를 노출.
     @Published private(set) var loadError: Error?
     /// 로드 진행 상태. skeleton vs 에러 vs 빈 상태 분기에 사용.
@@ -363,6 +318,7 @@ final class MooditStore: ObservableObject {
 
     private var walletListener: ListenerRegistration?
     private var proStatusListener: ListenerRegistration?
+    private var userDocListener: ListenerRegistration?
     private var authStateHandle: AuthStateDidChangeListenerHandle?
     /// Universal Link / push tap에서 도착한 라우트. RootShell이 관찰해 표시한다.
     /// 한 번 처리되면 nil로 리셋한다.
@@ -394,15 +350,30 @@ final class MooditStore: ObservableObject {
     private func attachWalletListeners(uid: String?) {
         walletListener?.remove()
         proStatusListener?.remove()
+        userDocListener?.remove()
         walletListener = nil
         proStatusListener = nil
+        userDocListener = nil
 
         guard let uid else {
             coinBalance = 0
             isProActive = false
+            editableProfile = .empty
             return
         }
         let db = Firestore.firestore()
+        // Auth.currentUser의 displayName/email 즉시 사용해 editableProfile 부분 채움.
+        if let authUser = Auth.auth().currentUser {
+            editableProfile = EditableProfile(
+                displayName: authUser.displayName ?? authUser.email?.split(separator: "@").first.map(String.init) ?? "",
+                handle: authUser.email?.split(separator: "@").first.map(String.init) ?? String(authUser.uid.prefix(8)),
+                bio: editableProfile.bio,
+                website: editableProfile.website,
+                makerPageVisible: editableProfile.makerPageVisible,
+                photoSharingAllowed: editableProfile.photoSharingAllowed,
+                avatarVariant: editableProfile.avatarVariant
+            )
+        }
         walletListener = db.collection("users").document(uid)
             .collection("wallet").document("balance")
             .addSnapshotListener { [weak self] snapshot, _ in
@@ -416,6 +387,20 @@ final class MooditStore: ObservableObject {
                 guard let self else { return }
                 let active = (snapshot?.data()?["active"] as? Bool) ?? false
                 self.isProActive = active
+            }
+        userDocListener = db.collection("users").document(uid)
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self else { return }
+                guard let data = snapshot?.data() else { return }
+                self.editableProfile = EditableProfile(
+                    displayName: (data["displayName"] as? String) ?? self.editableProfile.displayName,
+                    handle: (data["handle"] as? String) ?? self.editableProfile.handle,
+                    bio: (data["bio"] as? String) ?? self.editableProfile.bio,
+                    website: (data["website"] as? String) ?? self.editableProfile.website,
+                    makerPageVisible: (data["makerPageVisible"] as? Bool) ?? self.editableProfile.makerPageVisible,
+                    photoSharingAllowed: (data["photoSharingAllowed"] as? Bool) ?? self.editableProfile.photoSharingAllowed,
+                    avatarVariant: (data["avatarVariant"] as? Int) ?? self.editableProfile.avatarVariant
+                )
             }
     }
 
@@ -509,6 +494,28 @@ final class MooditStore: ObservableObject {
     func saveProfile(_ profile: EditableProfile) {
         editableProfile = profile
         lastProfileSavedAt = Date()
+        // Firestore /users/{uid} 영속화 — Cloud Function updateProfile callable로 위임 (서버 측 검증 + 일관 schema).
+        // 핸들 변경은 별도 setHandle callable로 분리 (uniqueness check + reservation 보호).
+        Task.detached { [profile] in
+            let region = "asia-northeast3"
+            do {
+                let updateCallable = Functions.functions(region: region).httpsCallable("updateProfile")
+                _ = try await updateCallable.call([
+                    "displayName": profile.displayName,
+                    "bio": profile.bio,
+                    "website": profile.website,
+                    "makerPageVisible": profile.makerPageVisible,
+                    "photoSharingAllowed": profile.photoSharingAllowed,
+                    "avatarVariant": profile.avatarVariant
+                ] as [String: Any])
+                if !profile.handle.isEmpty {
+                    let handleCallable = Functions.functions(region: region).httpsCallable("setHandle")
+                    _ = try await handleCallable.call(["handle": profile.handle])
+                }
+            } catch {
+                // 실패해도 로컬 store는 갱신된 상태 유지 — 다음 진입 시 Firestore listener가 정정.
+            }
+        }
     }
 
     func markAccountDeletionRequested() {

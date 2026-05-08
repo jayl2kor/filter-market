@@ -95,8 +95,8 @@ extension View {
             case .settings:
                 SettingsScreen()
 
-            case .otherProfile:
-                ProfileScreen(user: .other)
+            case .otherProfile(let uid):
+                ProfileScreen(otherUid: uid)
 
             case .savedFilters:
                 SavedScreen()

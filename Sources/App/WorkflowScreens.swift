@@ -1097,7 +1097,9 @@ struct AccountDeletionScreen: View {
 struct EditProfileScreen: View {
     @EnvironmentObject private var store: MooditStore
     @Environment(\.dismiss) private var dismiss
-    @State private var draft = EditableProfile.preview
+    /// 빈 상태에서 시작해 .onAppear에서 store.editableProfile (Firebase Auth + Firestore 합성)로 초기화.
+    /// (이전: EditableProfile.preview = 강지수 — 사용자 본인 데이터로 자동 채워지도록 수정)
+    @State private var draft = EditableProfile.empty
     @State private var handleStatus: HandleStatus = .available
 
     private enum HandleStatus {

@@ -6,7 +6,9 @@ import SwiftUI
 /// 컬렉션 그리드 (2열) + 4-사진 모자이크 커버 + 새 컬렉션 만들기 + 편집 모드.
 /// 첫 카드는 "전체 즐겨찾기" 자동 컬렉션 (accent.bg 배경).
 struct FavoritesCollectionScreen: View {
-    @State private var collections: [FilterCollection] = FilterCollection.mock
+    // 프로덕션은 /users/{uid}/collections Firestore listener (별도 작업)에서 채워짐.
+    // UI 테스트(-ui-testing): 기존 mock fallback.
+    @State private var collections: [FilterCollection] = isUITesting ? FilterCollection.mock : []
     @State private var isEditing = false
     @State private var showingCreate = false
     @State private var newName = ""

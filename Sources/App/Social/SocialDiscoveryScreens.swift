@@ -1057,7 +1057,10 @@ struct ForYouFeedScreen: View {
 }
 
 struct FollowingFeedScreen: View {
-    @State private var likedPostIDs: Set<UUID> = [SocialPost.mock[0].id]
+    // 프로덕션은 /users/{uid}/feed Firestore listener (별도 작업)에서 채워짐.
+    // UI 테스트(-ui-testing): 기존 mock fallback.
+    @State private var posts: [SocialPost] = isUITesting ? SocialPost.mock : []
+    @State private var likedPostIDs: Set<UUID> = []
     @State private var savedPostIDs: Set<UUID> = []
 
     var body: some View {
@@ -1065,8 +1068,14 @@ struct FollowingFeedScreen: View {
             VStack(alignment: .leading, spacing: Sp.md) {
                 discoveryHeader(active: .following)
                 newFilterCard
-                ForEach(SocialPost.mock) { post in
-                    postCard(post)
+                if posts.isEmpty {
+                    FMEmptyState(.emptyMarket)
+                        .padding(.vertical, Sp.lg)
+                        .accessibilityIdentifier("social.following.empty")
+                } else {
+                    ForEach(posts) { post in
+                        postCard(post)
+                    }
                 }
             }
             .padding(.horizontal, Sp.md)

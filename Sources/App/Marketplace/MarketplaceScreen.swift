@@ -204,27 +204,27 @@ struct MarketplaceScreen: View {
         }
     }
 
-    // Curated collections
+    // Curated collections — Firestore /collections 백엔드 미구현 시 UI 테스트에서만 mock 노출.
+    // 프로덕션은 빈 목록일 때 섹션 자체를 숨김.
+    @ViewBuilder
     private var collectionsSection: some View {
-        VStack(alignment: .leading, spacing: Sp.sm) {
-            sectionHeader(title: "큐레이션 컬렉션", more: "전체 →")
-                .padding(.horizontal, Sp.md)
+        let entries = isUITesting ? MarketplaceMockData.collections : []
+        if !entries.isEmpty {
+            VStack(alignment: .leading, spacing: Sp.sm) {
+                sectionHeader(title: "큐레이션 컬렉션", more: "전체 →")
+                    .padding(.horizontal, Sp.md)
 
-            VStack(spacing: Sp.sm) {
-                ForEach(MarketplaceMockData.collections) { collection in
-                    // Route each collection to a category-filtered search so the
-                    // user lands on the curation's content. Until we wire a real
-                    // /collections backend, "category = collection.title" is the
-                    // contract: SearchScreen treats the value as a tag/category
-                    // filter via initialCategory.
-                    NavigationLink(value: AppRoute.search(initialQuery: nil, category: collection.title)) {
-                        CollectionCard(entry: collection)
+                VStack(spacing: Sp.sm) {
+                    ForEach(entries) { collection in
+                        NavigationLink(value: AppRoute.search(initialQuery: nil, category: collection.title)) {
+                            CollectionCard(entry: collection)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("market.collection.\(collection.title)")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("market.collection.\(collection.title)")
                 }
+                .padding(.horizontal, Sp.md)
             }
-            .padding(.horizontal, Sp.md)
         }
     }
 

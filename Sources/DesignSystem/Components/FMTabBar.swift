@@ -75,13 +75,13 @@ public struct FMTabBar: View {
             tabButton(.profile)
         }
         .frame(height: FMLayout.tabBarHeight)
-        .padding(.bottom, Sp.md)
-        .background(FMColors.Background.bg2.opacity(0.85))
-        .background(.ultraThinMaterial)
+        .padding(.top, 6)
+        .padding(.bottom, 8)
+        .background(FMColors.Background.bg2)
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(FMColors.Border.subtle)
-                .frame(height: 1)
+                .frame(height: 0.5)
         }
     }
 
@@ -91,17 +91,15 @@ public struct FMTabBar: View {
         Button {
             selection = tab
         } label: {
-            VStack(spacing: 2) {
+            VStack(spacing: 4) {
                 Image(systemName: isActive ? tab.systemImageFilled : tab.systemImage)
-                    .font(.system(size: IconSize.lg, weight: .regular))
-                    .frame(width: IconSize.lg, height: IconSize.lg)
+                    .font(.system(size: 22, weight: isActive ? .semibold : .regular))
+                    .frame(width: 24, height: 24)
                 Text(tab.label)
-                    .font(.system(size: 10, weight: .medium))
-                    .tracking(0.2)
+                    .font(.system(size: 10, weight: isActive ? .semibold : .medium))
             }
             .foregroundStyle(isActive ? FMColors.Accent.primary : FMColors.Text.tertiary)
             .frame(maxWidth: .infinity)
-            .frame(height: FMLayout.tabBarHeight)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -112,27 +110,29 @@ public struct FMTabBar: View {
 
     private var shutterButton: some View {
         Button(action: onShutter) {
-            Image(systemName: "camera.fill")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(FMColors.Text.inverse)
-                .frame(width: 56, height: 56)
-                .background(FMColors.Accent.primary, in: Circle())
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .fill(FMColors.Accent.primary)
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(FMColors.Text.inverse)
+                }
                 .shadow(
-                    color: FMColors.Accent.primary.opacity(0.34),
-                    radius: 16,
+                    color: FMColors.Accent.primary.opacity(0.18),
+                    radius: 6,
                     x: 0,
-                    y: 6
+                    y: 2
                 )
-                .shadow(
-                    color: Color.black.opacity(0.08),
-                    radius: 3,
-                    x: 0,
-                    y: 1
-                )
-                .offset(y: -12)
+                Text(FMTab.shutter.label)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(FMColors.Text.tertiary)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
         }
         .buttonStyle(ShutterPressStyle())
-        .frame(maxWidth: .infinity)
         .accessibilityLabel(FMTab.shutter.accessibilityLabel)
         .accessibilityIdentifier("tab.\(FMTab.shutter.identifier)")
     }

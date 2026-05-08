@@ -1,4 +1,5 @@
 import DesignSystem
+import FirebaseFirestore
 import Models
 import SwiftUI
 
@@ -32,15 +33,70 @@ struct ProfileScreen: View {
     /// 로그인 여부 — placeholder 인증 상태. 실제 Firebase Auth 통합 전까지 단순 플래그.
     @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
 
-    private let user: ProfileUser
+    /// 명시적으로 전달된 사용자 (e.g. `.other`). nil이면 본인 — Auth + Firestore에서 동적 조립.
+    private let injectedUser: ProfileUser?
+    /// 다른 사용자 프로필 진입 시 uid. nil이면 본인 프로필.
+    private let otherUid: String?
     @State private var selectedSection: ProfileSection = .myFilters
     @State private var hasAppeared = false
     @State private var navigateToSettings = false
     @State private var navigateToLogin = false
     @State private var shareSheetPayload: SharePayload?
+    @State private var fetchedOtherUser: ProfileUser?
 
     init(user: ProfileUser? = nil) {
-        self.user = user ?? .preview
+        self.injectedUser = user
+        self.otherUid = nil
+    }
+
+    init(otherUid: String) {
+        self.injectedUser = nil
+        self.otherUid = otherUid
+    }
+
+    /// 화면에 표시할 사용자 — 우선순위: 외부 주입 > otherUid 로드 결과 > store.currentUserProfile (본인) > placeholder.
+    private var user: ProfileUser {
+        if let injectedUser { return injectedUser }
+        if otherUid != nil, let other = fetchedOtherUser { return other }
+        if otherUid == nil, let mine = profileStore.currentUserProfile { return mine }
+        // 로드 전 placeholder.
+        return ProfileUser(
+            displayName: otherUid != nil ? "..." : "사용자",
+            handle: otherUid.map { "@" + String($0.prefix(8)) } ?? "@user",
+            bio: "",
+            avatarInitials: "··",
+            filterCount: 0,
+            followerCount: 0,
+            followingCount: 0,
+            isOwnProfile: otherUid == nil
+        )
+    }
+
+    private func loadOtherProfile() async {
+        guard let uid = otherUid else { return }
+        do {
+            let snap = try await Firestore.firestore().collection("users").document(uid).getDocument()
+            guard let data = snap.data() else { return }
+            let displayName = (data["displayName"] as? String) ?? "사용자"
+            let handle = (data["handle"] as? String) ?? "@" + String(uid.prefix(8))
+            let bio = (data["bio"] as? String) ?? ""
+            let initials = String(displayName.prefix(2)).uppercased()
+            let followerCount = (data["followerCount"] as? Int) ?? 0
+            let followingCount = (data["followingCount"] as? Int) ?? 0
+            let filterCount = (data["filterCount"] as? Int) ?? 0
+            fetchedOtherUser = ProfileUser(
+                displayName: displayName,
+                handle: handle,
+                bio: bio,
+                avatarInitials: initials,
+                filterCount: filterCount,
+                followerCount: followerCount,
+                followingCount: followingCount,
+                isOwnProfile: false
+            )
+        } catch {
+            // 로드 실패 — placeholder 유지.
+        }
     }
 
     /// 시뮬레이션: 첫 진입 시 짧은 로딩 후 그리드 표시.
@@ -180,6 +236,7 @@ struct ProfileScreen: View {
         }
         .task {
             profileStore.start()
+            await loadOtherProfile()
             try? await Task.sleep(nanoseconds: 250_000_000)
             hasAppeared = true
         }
