@@ -71,6 +71,7 @@ final class P0CoreActionTests: XCTestCase {
 
         assertExists("profile.settings", timeout: 6)
         assertExists("profile.edit.open")
+        assertExists("profile.shortcut.create")
         assertExists("profile.shortcut.wallet")
         assertExists("profile.shortcut.myFilters")
         assertExists("profile.shortcut.dashboard")
@@ -79,6 +80,23 @@ final class P0CoreActionTests: XCTestCase {
         assertExists("wallet.balance", timeout: 4)
         assertExists("wallet.action.코인 충전")
         assertExists("wallet.action.거래 내역")
+    }
+
+    func testProfileCreateFilterEntrypoint() {
+        launch(route: "profile", isAuthenticated: true)
+
+        tap("profile.shortcut.create", timeout: 6)
+        assertExists("editor.params", timeout: 4)
+        assertExists("editor.lut")
+        assertExists("editor.next")
+    }
+
+    func testMakerDashboardCreateEntrypoint() {
+        launch(route: "makerDashboard", isAuthenticated: true)
+
+        assertExists("dashboard.create", timeout: 6)
+        tap("dashboard.create")
+        assertExists("editor.params", timeout: 4)
     }
 
     func testProfileEditEntrypoint() {

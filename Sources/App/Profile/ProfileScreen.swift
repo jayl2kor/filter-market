@@ -395,6 +395,7 @@ struct ProfileScreen: View {
 
     private var profileShortcuts: some View {
         HStack(spacing: Sp.xs) {
+            shortcutLink("새 필터", icon: "plus.app", route: .editor)
             shortcutLink("지갑", icon: "creditcard", route: .wallet)
             shortcutLink("내 필터", icon: "rectangle.stack", route: .myFilters)
             shortcutLink("대시보드", icon: "chart.bar", route: .makerDashboard)
@@ -575,6 +576,8 @@ struct ProfileScreen: View {
 
     private func shortcutIdentifier(for route: AppRoute) -> String {
         switch route {
+        case .editor:
+            return "create"
         case .wallet:
             return "wallet"
         case .myFilters:

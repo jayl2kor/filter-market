@@ -4338,6 +4338,18 @@ struct MakerDashboardScreen: View {
         .background(FMColors.Background.bg1.ignoresSafeArea())
         .navigationTitle("메이커 대시보드")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(value: AppRoute.editor) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(FMColors.Text.primary)
+                        .frame(width: 32, height: 32)
+                }
+                .accessibilityLabel("필터 만들기")
+                .accessibilityIdentifier("dashboard.create")
+            }
+        }
         .task { profileStore.start() }
     }
 
