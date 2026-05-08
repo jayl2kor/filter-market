@@ -37,11 +37,13 @@ enum Telemetry {
 
     /// 분석 이벤트 발행. parameters는 Firebase Analytics 규약을 따름 (key, value 모두 직렬화 가능).
     static func log(_ event: Event, parameters: [String: Any]? = nil) {
+        guard !isUITesting else { return }
         Analytics.logEvent(event.rawValue, parameters: parameters)
     }
 
     /// Crashlytics에 user identifier 등록 — 인증된 uid 또는 nil(로그아웃).
     static func setUserId(_ uid: String?) {
+        guard !isUITesting else { return }
         Crashlytics.crashlytics().setUserID(uid ?? "")
         if let uid {
             Analytics.setUserID(uid)
@@ -52,6 +54,7 @@ enum Telemetry {
 
     /// 비치명적 오류 기록. 사용자 화면에 표시되지 않은 백그라운드 오류 추적용.
     static func record(error: Error, context: [String: String] = [:]) {
+        guard !isUITesting else { return }
         let crashlytics = Crashlytics.crashlytics()
         for (key, value) in context {
             crashlytics.setCustomValue(value, forKey: key)

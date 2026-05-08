@@ -26,6 +26,15 @@ final class ProfileSelfStore: ObservableObject {
 
     func start() {
         guard authHandle == nil else { return }
+        #if DEBUG
+        if isUITesting {
+            currentUserProfile = .preview
+            myFilters = []
+            savedFilterIDs = []
+            captureIDs = []
+            return
+        }
+        #endif
         authHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self else { return }
             self.attach(authUser: user)

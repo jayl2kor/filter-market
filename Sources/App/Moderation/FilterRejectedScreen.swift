@@ -98,6 +98,7 @@ struct FilterRejectedScreen: View {
             RoundedRectangle(cornerRadius: R.lg)
                 .strokeBorder(FMColors.Semantic.error.opacity(0.5), lineWidth: 1)
         }
+        .accessibilityIdentifier("mod.rejected.review")
     }
 
     // MARK: - Filter card
@@ -147,6 +148,7 @@ struct FilterRejectedScreen: View {
             RoundedRectangle(cornerRadius: R.md)
                 .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
         }
+        .accessibilityIdentifier("mod.rejected.detail")
     }
 
     // MARK: - Reasons

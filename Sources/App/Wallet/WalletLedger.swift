@@ -52,6 +52,9 @@ final class WalletLedgerStore: ObservableObject {
     func start() {
         // (#47) NotificationsInboxStore와 동일 패턴 — auth state 변경 시 listener 자동 재attach.
         guard authHandle == nil else { return }
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
         authHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self else { return }
             self.listener?.remove()

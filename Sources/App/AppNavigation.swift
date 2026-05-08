@@ -502,7 +502,8 @@ extension AppRoute {
         case .accountDeletion:
             [
                 .init("auth.delete.confirm.input", "핸들 확인 입력", systemImage: "keyboard"),
-                .init("auth.delete.submit", "계정 영구 삭제", systemImage: "trash")
+                .init("auth.delete.submit", "계정 영구 삭제", systemImage: "trash"),
+                .init("auth.delete.cancel", "취소", systemImage: "xmark")
             ]
 
         case .editProfile:
@@ -566,9 +567,10 @@ extension AppRoute {
 
         case .reportForm:
             [
-                .init("social.report.reason.set", "신고 사유 선택", systemImage: "list.bullet.circle"),
-                .init("social.report.attach.add", "스크린샷 첨부", systemImage: "paperclip"),
-                .init("social.report.submit", "신고 제출", systemImage: "paperplane.fill")
+                .init("report.filterId", "필터 ID 입력", systemImage: "number"),
+                .init("report.reason", "신고 사유 선택", systemImage: "list.bullet.circle"),
+                .init("report.detail", "상세 설명 입력", systemImage: "square.and.pencil"),
+                .init("report.submit", "신고 제출", systemImage: "paperplane.fill")
             ]
 
         case .favoritesCollection:
@@ -598,8 +600,9 @@ extension AppRoute {
 
         case .modDetail(let id):
             [
-                .init("mod.detail.approve", "승인", systemImage: "checkmark.seal"),
-                .init("mod.detail.reject", "거부", systemImage: "xmark.seal", target: .filterRejected(id: id)),
+                .init("modDetail.approve", "승인", systemImage: "checkmark.seal"),
+                .init("modDetail.reason", "거부 사유", systemImage: "square.and.pencil"),
+                .init("modDetail.reject", "거부", systemImage: "xmark.seal", target: .filterRejected(id: id)),
                 .init("mod.detail.takedown", "Takedown", systemImage: "trash")
             ]
 
@@ -624,7 +627,8 @@ extension AppRoute {
         case .proSubscription:
             [
                 .init("pro.plan.toggle", "월간/연간 전환", systemImage: "arrow.left.arrow.right"),
-                .init("pro.subscribe", "7일 무료 체험 시작", systemImage: "sparkles"),
+                .init("pro.subscribe.\(IAPProductIDs.proMonthly)", "월간 Pro 시작", systemImage: "sparkles"),
+                .init("pro.subscribe.\(IAPProductIDs.proYearly)", "연간 Pro 시작", systemImage: "sparkles"),
                 .init("pro.invoice", "영수증", systemImage: "doc.text", target: .refundRequest)
             ]
 
@@ -651,8 +655,10 @@ extension AppRoute {
 
         case .walletTopup:
             [
-                .init("wallet.topup.package.select.300", "300 C 충전", systemImage: "creditcard"),
-                .init("wallet.topup.package.select.900", "900 C 충전", systemImage: "creditcard.fill"),
+                .init("wallet.topup.package.\(IAPProductIDs.coins100)", "100 C 충전", systemImage: "creditcard"),
+                .init("wallet.topup.package.\(IAPProductIDs.coins550)", "550 C 충전", systemImage: "creditcard.fill"),
+                .init("wallet.topup.package.\(IAPProductIDs.coins1200)", "1200 C 충전", systemImage: "creditcard.fill"),
+                .init("wallet.topup.package.\(IAPProductIDs.coins3000)", "3000 C 충전", systemImage: "creditcard.fill"),
                 .init("wallet.topup.restore", "이전 구매 복원", systemImage: "arrow.clockwise"),
                 .init("wallet.topup.failed_demo", "결제 실패 화면 보기", systemImage: "exclamationmark.triangle", target: .paymentFailed)
             ]
@@ -666,14 +672,14 @@ extension AppRoute {
 
         case .insufficientBalance:
             [
-                .init("wallet.insufficient.topup", "충전 화면으로", systemImage: "plus.circle", target: .walletTopup),
+                .init("insufficient.topup", "충전 화면으로", systemImage: "plus.circle", target: .walletTopup),
                 .init("wallet.insufficient.cancel", "취소", systemImage: "xmark")
             ]
 
         case .paymentFailed:
             [
                 .init("wallet.topup.retry", "다시 시도", systemImage: "arrow.clockwise", target: .walletTopup),
-                .init("wallet.topup.restore", "이전 구매 복원", systemImage: "clock.arrow.circlepath"),
+                .init("payment.failed.restore", "이전 구매 복원", systemImage: "clock.arrow.circlepath"),
                 .init("wallet.topup.support", "고객지원", systemImage: "envelope", externalURL: URL(string: "mailto:support@moodit.app")!)
             ]
 
@@ -724,8 +730,9 @@ extension AppRoute {
 
         case .refundRequest:
             [
-                .init("wallet.refund.apple", "Apple 환불 페이지 열기", systemImage: "safari", externalURL: URL(string: "https://reportaproblem.apple.com")!),
-                .init("wallet.refund.moodit_form", "moodit 사유 작성", systemImage: "square.and.pencil")
+                .init("refund.orderId", "주문 ID 입력", systemImage: "number"),
+                .init("refund.reason", "환불 사유 입력", systemImage: "square.and.pencil"),
+                .init("refund.submit", "환불 요청 제출", systemImage: "paperplane.fill")
             ]
 
         case .builtinFilters:

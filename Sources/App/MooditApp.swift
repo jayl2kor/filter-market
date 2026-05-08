@@ -1,4 +1,6 @@
+import FirebaseAnalytics
 import FirebaseCore
+import FirebaseCrashlytics
 import GoogleSignIn
 import SwiftUI
 import UIKit
@@ -10,7 +12,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         configureFirebaseIfAvailable()
+        #if DEBUG
+        if !isUITesting {
+            PushRegistration.shared.bootstrap(application: application)
+        }
+        #else
         PushRegistration.shared.bootstrap(application: application)
+        #endif
         return true
     }
 
@@ -46,6 +54,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     }
 
     private func configureFirebaseIfAvailable() {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
         guard FirebaseApp.app() == nil else { return }
         guard
             let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
@@ -58,6 +69,16 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         }
 
         FirebaseApp.configure(options: options)
+        configureTelemetryForCurrentProcess()
+    }
+
+    private func configureTelemetryForCurrentProcess() {
+        #if DEBUG
+        if isUITesting {
+            Analytics.setAnalyticsCollectionEnabled(false)
+            Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(false)
+        }
+        #endif
     }
 }
 
@@ -68,6 +89,12 @@ struct MooditApp: App {
     /// 첫 실행 여부. `OnboardingScreen` 종료 시 true 로 갱신.
     /// Phase D5 권한 흐름 통합 시 권한 priming 흐름과 함께 재정비될 수 있다.
     @AppStorage("hasOnboarded") private var hasOnboarded: Bool = false
+
+    init() {
+        #if DEBUG
+        UITestingLaunchOverrides.applyIfNeeded()
+        #endif
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -98,9 +125,38 @@ struct MooditApp: App {
 
 #if DEBUG
 private enum UITestLaunchRoute: String {
+    case login
+    case emailLogin
+    case search
+    case filterDetail
+    case profile
+    case otherProfile
+    case settings
+    case editProfile
+    case savedFilters
+    case wallet
+    case walletTopup
+    case walletTransactions
+    case insufficientBalance
+    case paymentFailed
+    case refundRequest
+    case ordersHistory
+    case proSubscription
+    case proStatus
+    case dataExport
+    case helpCenter
     case camera
+    case capturePreview
     case cameraAspect
     case cameraTimer
+    case cameraPermissionPriming
+    case cameraPermissionDenied
+    case photosPermissionPriming
+    case photosPermissionDenied
+    case notificationsPermissionPriming
+    case notificationsPermissionDenied
+    case locationPermissionPriming
+    case locationPermissionDenied
     case photoImport
     case photoEdit
     case builtinFilters
@@ -113,6 +169,32 @@ private enum UITestLaunchRoute: String {
     case following
     case forYou
     case followingFeed
+    case notifications
+    case notificationSettings
+    case editor
+    case editorParameters
+    case editorLUT
+    case editorDraft
+    case uploadCover
+    case uploadTags
+    case uploadSubmit
+    case uploadPending
+    case accountDeletion
+    case universalLinkLanding
+    case makerDashboard
+    case reportForm
+    case favoritesCollection
+    case modQueue
+    case modDetail
+    case blockList
+    case remixFlow
+    case paywallSingle
+    case payoutOnboarding
+    case payoutTaxInfo
+    case payoutHistory
+    case earningsWithdraw
+    case filterRejected
+    case myFilters
 
     static var current: UITestLaunchRoute? {
         let arguments = ProcessInfo.processInfo.arguments
@@ -144,12 +226,74 @@ private struct UITestLaunchHost: View {
     @ViewBuilder
     private var content: some View {
         switch route {
+        case .login:
+            LoginScreen()
+        case .emailLogin:
+            EmailLoginScreen()
+        case .search:
+            SearchScreen(initialQuery: nil, initialCategory: nil)
+        case .filterDetail:
+            FilterDetailScreen(mock: FilterDetailMock.mock(forRouteID: "Sunset 1973"))
+        case .profile:
+            ProfileScreen()
+        case .otherProfile:
+            ProfileScreen(otherUid: "review-author")
+        case .settings:
+            SettingsScreen()
+        case .editProfile:
+            EditProfileScreen()
+        case .savedFilters:
+            SavedScreen()
+        case .wallet:
+            WalletScreen()
+        case .walletTopup:
+            WalletTopupScreen()
+        case .walletTransactions:
+            WalletTransactionsScreen()
+        case .insufficientBalance:
+            InsufficientBalanceScreen(filterID: "Sunset 1973")
+        case .paymentFailed:
+            PaymentFailedScreen()
+        case .refundRequest:
+            RefundRequestScreen()
+        case .ordersHistory:
+            OrdersHistoryScreen()
+        case .proSubscription:
+            ProSubscriptionScreen()
+        case .proStatus:
+            ProStatusScreen()
+        case .dataExport:
+            DataExportScreen()
+        case .helpCenter:
+            HelpCenterScreen()
         case .camera:
             CameraScreen(isPresentedAsCover: false)
+        case .capturePreview:
+            CapturePreviewScreen(
+                filterName: "Sunset 1973",
+                aspectRatio: "4:3",
+                intensityPercent: 72
+            )
         case .cameraAspect:
             CameraAspectPickerScreen()
         case .cameraTimer:
             CameraTimerCountdownScreen()
+        case .cameraPermissionPriming:
+            CameraPermissionPriming(onAllow: {}, onSkip: {}, onClose: {})
+        case .cameraPermissionDenied:
+            CameraPermissionDenied(onOpenSettings: {}, onDismiss: {})
+        case .photosPermissionPriming:
+            PhotosPermissionPriming(onAllow: {}, onSkip: {}, onClose: {})
+        case .photosPermissionDenied:
+            PhotosPermissionDenied(onOpenSettings: {}, onDismiss: {})
+        case .notificationsPermissionPriming:
+            NotificationsPermissionPriming(onAllow: {}, onSkip: {}, onClose: {})
+        case .notificationsPermissionDenied:
+            NotificationsPermissionDenied(onOpenSettings: {}, onDismiss: {})
+        case .locationPermissionPriming:
+            LocationPermissionPriming(onAllow: {}, onSkip: {}, onClose: {})
+        case .locationPermissionDenied:
+            LocationPermissionDenied(onOpenSettings: {}, onDismiss: {})
         case .photoImport:
             PhotoImportScreen()
         case .photoEdit:
@@ -174,6 +318,58 @@ private struct UITestLaunchHost: View {
             ForYouFeedScreen()
         case .followingFeed:
             FollowingFeedScreen()
+        case .notifications:
+            NotificationsInboxScreen()
+        case .notificationSettings:
+            NotificationSettingsScreen()
+        case .editor:
+            FilterEditorScreen()
+        case .editorParameters:
+            EditorParametersScreen()
+        case .editorLUT:
+            EditorLUTImportScreen()
+        case .editorDraft:
+            EditorDraftSaveScreen()
+        case .uploadCover:
+            UploadCoverScreen()
+        case .uploadTags:
+            UploadTagsCategoryScreen()
+        case .uploadSubmit:
+            UploadTOSSubmitScreen()
+        case .uploadPending:
+            UploadPendingReviewScreen()
+        case .accountDeletion:
+            AccountDeletionScreen()
+        case .universalLinkLanding:
+            UniversalLinkLandingScreen()
+        case .makerDashboard:
+            MakerDashboardScreen()
+        case .reportForm:
+            ReportFormScreen()
+        case .favoritesCollection:
+            FavoritesCollectionScreen()
+        case .modQueue:
+            ModerationQueueScreen()
+        case .modDetail:
+            ModerationDetailScreen(itemID: "pending-filter")
+        case .blockList:
+            BlockListScreen()
+        case .remixFlow:
+            RemixFlowScreen()
+        case .paywallSingle:
+            PaywallSingleScreen(filterID: "Sunset 1973")
+        case .payoutOnboarding:
+            PayoutOnboardingScreen()
+        case .payoutTaxInfo:
+            PayoutTaxInfoScreen()
+        case .payoutHistory:
+            PayoutHistoryScreen()
+        case .earningsWithdraw:
+            EarningsWithdrawScreen()
+        case .filterRejected:
+            FilterRejectedScreen(filterID: "Sunset 1973")
+        case .myFilters:
+            MyFiltersScreen()
         }
     }
 }

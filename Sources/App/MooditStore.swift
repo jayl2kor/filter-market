@@ -363,6 +363,12 @@ final class MooditStore: ObservableObject {
     /// 로그인 상태 변화에 따라 /users/{uid}/wallet 와 /users/{uid}/proStatus 리스너를 설치 / 해제.
     /// 앱 진입 시 한 번만 호출하면 자동으로 추적.
     func subscribeToWallet() {
+        #if DEBUG
+        guard !isUITesting else {
+            hasLoadedProfile = true
+            return
+        }
+        #endif
         guard authStateHandle == nil else { return } // idempotent
         authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self else { return }
@@ -565,6 +571,9 @@ final class MooditStore: ObservableObject {
     /// /users/{uid}/savedFilters/{filterId} 저장/제거 (#24).
     /// 비로그인 사용자나 Firebase 미설정 환경에서는 silent fail — local downloadedFilterIDs는 그대로 유지.
     private func persistSavedFilter(filterId: Filter.ID, save: Bool) {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
         guard let uid = Auth.auth().currentUser?.uid else { return }
         let ref = Firestore.firestore()
             .collection("users").document(uid)

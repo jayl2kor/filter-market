@@ -252,6 +252,7 @@ struct FilterDetailScreen: View {
                 }
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("filter.detail.follow")
         .accessibilityLabel(isFollowing ? "팔로잉 중" : "팔로우")
     }
 
@@ -304,11 +305,15 @@ struct FilterDetailScreen: View {
             ForEach(mock.tags, id: \.self) { tag in
                 NavigationLink(value: AppRoute.search(initialQuery: nil, category: tag)) {
                     FMTag(tag, style: .outlined, size: .sm)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("filter.detail.tag.\(tag)")
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("filter.detail.tag.\(tag)")
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("filter.detail.tags")
     }
 
     // MARK: - Samples
@@ -551,6 +556,7 @@ struct FilterDetailScreen: View {
                         .foregroundStyle(FMColors.Accent.primary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier(title == "리뷰" ? "filter.detail.reviews" : "filter.detail.samples")
             }
         }
     }

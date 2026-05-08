@@ -18,6 +18,9 @@ final class NotificationsInboxStore: ObservableObject {
 
     func start() {
         guard authHandle == nil else { return }
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
         authHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self else { return }
             self.attach(uid: user?.uid)
@@ -117,6 +120,9 @@ final class NotificationsInboxStore: ObservableObject {
 
     /// 행 탭 시 readAt 타임스탬프 작성.
     func markRead(notificationId: String) {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
         guard let uid = Auth.auth().currentUser?.uid else { return }
         Firestore.firestore()
             .collection("users").document(uid)

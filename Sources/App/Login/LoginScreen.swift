@@ -130,6 +130,7 @@ struct LoginScreen: View {
         }
         .disabled(loadingProvider != nil)
         .accessibilityLabel("Apple로 계속하기")
+        .accessibilityIdentifier("auth.apple")
         .accessibilityAddTraits(.isButton)
     }
 
@@ -161,6 +162,7 @@ struct LoginScreen: View {
         }
         .disabled(loadingProvider != nil)
         .accessibilityLabel("Google로 계속하기")
+        .accessibilityIdentifier("auth.google")
         .accessibilityAddTraits(.isButton)
     }
 
@@ -222,6 +224,7 @@ struct LoginScreen: View {
                 .foregroundStyle(FMColors.Accent.primary)
         }
         .accessibilityLabel("로그인 없이 둘러보기")
+        .accessibilityIdentifier("auth.guest.continue")
     }
 
     private var termsText: some View {

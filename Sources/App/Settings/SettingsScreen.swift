@@ -420,6 +420,7 @@ struct SettingsScreen: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+        .accessibilityIdentifier("settings.row.\(title)")
     }
 
     @ViewBuilder
@@ -451,6 +452,7 @@ struct SettingsScreen: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+        .accessibilityIdentifier("settings.nav.\(route.title)")
     }
 
     @ViewBuilder

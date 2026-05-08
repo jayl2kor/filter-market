@@ -74,6 +74,12 @@ struct ProfileScreen: View {
 
     private func loadOtherProfile() async {
         guard let uid = otherUid else { return }
+        #if DEBUG
+        if isUITesting {
+            fetchedOtherUser = .other
+            return
+        }
+        #endif
         do {
             let snap = try await Firestore.firestore().collection("users").document(uid).getDocument()
             guard let data = snap.data() else { return }
@@ -143,6 +149,7 @@ struct ProfileScreen: View {
                 FMButton("로그인하기", variant: .primary, size: .lg) {
                     navigateToLogin = true
                 }
+                .accessibilityIdentifier("profile.login")
                 .padding(.horizontal, Sp.xl)
                 .padding(.top, Sp.md)
 
@@ -365,6 +372,7 @@ struct ProfileScreen: View {
                         }
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("profile.edit.open")
             } else {
                 FMButton("팔로우", variant: .primary, size: .md) {
                     FMHaptic.light.play()
@@ -418,6 +426,7 @@ struct ProfileScreen: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+        .accessibilityIdentifier("profile.shortcut.\(shortcutIdentifier(for: route))")
     }
 
     // MARK: - Segmented
@@ -536,6 +545,7 @@ struct ProfileScreen: View {
                 .frame(width: 36, height: 36)
         }
         .accessibilityLabel("설정 열기")
+        .accessibilityIdentifier("profile.settings")
     }
 
     // MARK: - Helpers
@@ -566,6 +576,19 @@ struct ProfileScreen: View {
         case ..<1_000: "\(count)"
         case 1_000..<10_000: String(format: "%.1fK", Double(count) / 1_000)
         default: "\(count / 1_000)K"
+        }
+    }
+
+    private func shortcutIdentifier(for route: AppRoute) -> String {
+        switch route {
+        case .wallet:
+            return "wallet"
+        case .myFilters:
+            return "myFilters"
+        case .makerDashboard:
+            return "dashboard"
+        default:
+            return route.title
         }
     }
 }

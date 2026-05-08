@@ -27,7 +27,8 @@ struct HelpCenterScreen: View {
                     contactRow(
                         icon: "envelope",
                         title: "이메일 문의",
-                        subtitle: "support@moodit.app"
+                        subtitle: "support@moodit.app",
+                        identifier: "help.email"
                     ) {
                         if let url = URL(string: "mailto:support@moodit.app") {
                             externalURL = ExternalURL(value: url)
@@ -42,11 +43,13 @@ struct HelpCenterScreen: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("help.refund")
                     divider
                     contactRow(
                         icon: "doc.text",
                         title: "이용약관",
-                        subtitle: "moodit 서비스 이용 약관"
+                        subtitle: "moodit 서비스 이용 약관",
+                        identifier: "help.terms"
                     ) {
                         externalURL = ExternalURL(value: MooditPolicyURL.terms)
                     }
@@ -54,7 +57,8 @@ struct HelpCenterScreen: View {
                     contactRow(
                         icon: "hand.raised",
                         title: "개인정보처리방침",
-                        subtitle: "개인정보 수집 및 이용"
+                        subtitle: "개인정보 수집 및 이용",
+                        identifier: "help.privacy"
                     ) {
                         externalURL = ExternalURL(value: MooditPolicyURL.privacy)
                     }
@@ -147,6 +151,7 @@ struct HelpCenterScreen: View {
             .padding(Sp.md)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("help.faq.\(item.id)")
     }
 
     @ViewBuilder
@@ -154,12 +159,14 @@ struct HelpCenterScreen: View {
         icon: String,
         title: String,
         subtitle: String,
+        identifier: String,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             contactRowLabel(icon: icon, title: title, subtitle: subtitle)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(identifier)
     }
 
     @ViewBuilder
