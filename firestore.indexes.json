@@ -1,5 +1,38 @@
 {
-  "indexes": [],
-  "fieldOverrides": [],
-  "_comment": "Skeleton — populate per docs/API_SPEC.md §3.4. Composite indexes for: filters by (status, category, publishedAt desc), filters by (ownerUid, createdAt desc), reports by (filterId, createdAt asc)."
+  "indexes": [
+    {
+      "collectionGroup": "filters",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "useCount", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "filters",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "filters",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "authorUid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "filters",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
 }
