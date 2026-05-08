@@ -25,6 +25,7 @@ struct FilterDetailScreen: View {
     @State private var isFollowing: Bool = false
     @State private var didLikeMockFilter = false
     @State private var sharePayload: SharePayload?
+    @State private var isDescriptionExpanded = false
 
     init(filter: Filter, mock: FilterDetailMock? = nil) {
         self.filter = filter
@@ -88,11 +89,8 @@ struct FilterDetailScreen: View {
                 statsRow
                     .padding(.horizontal, Sp.md)
 
-                Text(mock.description)
-                    .fmTypography(.body)
-                    .foregroundStyle(FMColors.Text.secondary)
+                descriptionSection
                     .padding(.horizontal, Sp.md)
-                    .fixedSize(horizontal: false, vertical: true)
 
                 tagsRow
                     .padding(.horizontal, Sp.md)
@@ -344,6 +342,39 @@ struct FilterDetailScreen: View {
         }
     }
 
+    // MARK: - Description
+
+    private var descriptionSection: some View {
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            Text(mock.description)
+                .fmTypography(.body)
+                .foregroundStyle(FMColors.Text.secondary)
+                .lineLimit(isDescriptionExpanded ? nil : 4)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel(mock.description)
+
+            if shouldShowDescriptionToggle {
+                Button {
+                    isDescriptionExpanded.toggle()
+                    FMHaptic.light.play()
+                } label: {
+                    Text(isDescriptionExpanded ? "접기" : "더 보기")
+                        .fmTypography(.subhead)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Accent.primary)
+                        .frame(minHeight: 44, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("filter.detail.description.toggle")
+                .accessibilityLabel(isDescriptionExpanded ? "설명 접기" : "설명 더 보기")
+            }
+        }
+    }
+
+    private var shouldShowDescriptionToggle: Bool {
+        mock.description.count > 120
+    }
+
     // MARK: - Tags
 
     private var tagsRow: some View {
@@ -353,11 +384,16 @@ struct FilterDetailScreen: View {
             ForEach(mock.tags, id: \.self) { tag in
                 NavigationLink(value: AppRoute.search(initialQuery: searchQuery(forTag: tag), category: nil)) {
                     FMTag(tag, style: .accent, size: .sm)
+                        .frame(minHeight: 44)
+                        .contentShape(Capsule())
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("filter.detail.tag.\(tag)")
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(TagPressStyle())
+                .simultaneousGesture(TapGesture().onEnded { FMHaptic.light.play() })
                 .accessibilityIdentifier("filter.detail.tag.\(tag)")
+                .accessibilityLabel("\(tag.replacingOccurrences(of: "#", with: "")) 태그")
+                .accessibilityHint("이 태그로 검색합니다")
             }
         }
         .accessibilityElement(children: .contain)
@@ -479,7 +515,7 @@ struct FilterDetailScreen: View {
             Image(systemName: "square.and.arrow.up")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(FMColors.Text.primary)
-                .frame(width: 36, height: 36)
+                .frame(width: 44, height: 44)
                 .background(.regularMaterial, in: Circle())
                 .overlay {
                     Circle()
@@ -487,7 +523,8 @@ struct FilterDetailScreen: View {
                 }
         }
         .accessibilityIdentifier("filter.detail.share")
-        .accessibilityLabel("공유")
+        .accessibilityLabel("필터 공유")
+        .accessibilityHint("이 필터의 링크를 공유합니다")
     }
 
     /// Universal-link compatible share payload. Server-side parser:
@@ -892,6 +929,14 @@ private actor SampleReferenceRenderCache {
             hash &*= 0x100000001b3
         }
         return String(format: "%016llx.jpg", hash)
+    }
+}
+
+private struct TagPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.fmFast, value: configuration.isPressed)
     }
 }
 
