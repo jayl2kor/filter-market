@@ -158,11 +158,12 @@ enum DataExportCategory: String, CaseIterable, Identifiable {
 }
 
 struct DataExportRequest: Identifiable, Equatable {
-    let id = UUID()
+    let id: String
     let categories: Set<DataExportCategory>
     let format: DataExportFormat
     let requestedAt: Date
     var status: String
+    var downloadURL: URL?
 
     var title: String {
         categories.count == DataExportCategory.allCases.count ? "전체 데이터" : "\(categories.count)개 카테고리"
@@ -380,6 +381,7 @@ final class MooditStore: ObservableObject {
     private var notificationPrefsListener: ListenerRegistration?
     private var savedFiltersListener: ListenerRegistration?
     private var favoritesListener: ListenerRegistration?
+    private var exportRequestsListener: ListenerRegistration?
     private var authStateHandle: AuthStateDidChangeListenerHandle?
     private var optimisticCoinReconcileTask: Task<Void, Never>?
     private var notificationPreferencesSaveTask: Task<Void, Never>?
@@ -429,6 +431,7 @@ final class MooditStore: ObservableObject {
         notificationPrefsListener?.remove()
         savedFiltersListener?.remove()
         favoritesListener?.remove()
+        exportRequestsListener?.remove()
         notificationPreferencesSaveTask?.cancel()
         walletListener = nil
         proStatusListener = nil
@@ -436,6 +439,7 @@ final class MooditStore: ObservableObject {
         notificationPrefsListener = nil
         savedFiltersListener = nil
         favoritesListener = nil
+        exportRequestsListener = nil
         optimisticCoinReconcileTask?.cancel()
         optimisticCoinReconcileTask = nil
         notificationPreferencesSaveTask = nil
@@ -547,6 +551,53 @@ final class MooditStore: ObservableObject {
                     self.favoriteFilterIDs = Set(uuids)
                 }
             }
+
+        exportRequestsListener = db.collection("users").document(uid)
+            .collection("exportRequests")
+            .order(by: "requestedAt", descending: true)
+            .limit(to: 50)
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self else { return }
+                Task { @MainActor in
+                    self.exportRequests = snapshot?.documents.compactMap(Self.decodeExportRequest) ?? []
+                }
+            }
+    }
+
+    private static func decodeExportRequest(_ document: QueryDocumentSnapshot) -> DataExportRequest? {
+        let data = document.data()
+        let categories = (data["categories"] as? [String] ?? [])
+            .compactMap(DataExportCategory.init(rawValue:))
+        let formatRaw = (data["format"] as? String) ?? DataExportFormat.json.rawValue
+        let requestedAt = (data["requestedAt"] as? Timestamp)?.dateValue() ?? Date()
+        let rawStatus = (data["status"] as? String) ?? "requested"
+        let downloadURL = (data["downloadURL"] as? String).flatMap(URL.init(string:))
+        return DataExportRequest(
+            id: document.documentID,
+            categories: Set(categories),
+            format: DataExportFormat(rawValue: formatRaw) ?? .json,
+            requestedAt: requestedAt,
+            status: exportStatusLabel(rawStatus, downloadURL: downloadURL),
+            downloadURL: downloadURL
+        )
+    }
+
+    private static func exportStatusLabel(_ rawStatus: String, downloadURL: URL?) -> String {
+        if downloadURL != nil { return "준비 완료" }
+        switch rawStatus {
+        case "requested":
+            return "요청됨"
+        case "processing":
+            return "처리 중"
+        case "ready", "completed":
+            return "준비 완료"
+        case "failed":
+            return "실패"
+        case "expired":
+            return "만료"
+        default:
+            return rawStatus
+        }
     }
 
     var selectedFilter: Filter? {
@@ -940,25 +991,35 @@ final class MooditStore: ObservableObject {
 
     func requestDataExport() {
         guard !selectedExportCategories.isEmpty else { return }
+        let uid = Auth.auth().currentUser?.uid
+        let ref = uid.map {
+            Firestore.firestore()
+                .collection("users").document($0)
+                .collection("exportRequests").document()
+        }
         let request = DataExportRequest(
+            id: ref?.documentID ?? UUID().uuidString,
             categories: selectedExportCategories,
             format: selectedExportFormat,
             requestedAt: Date(),
-            status: "요청됨"
+            status: "요청됨",
+            downloadURL: nil
         )
         exportRequests.insert(request, at: 0)
         // (#42) Firestore /users/{uid}/exportRequests/{auto} 영속화 — 앱 재실행/다른 디바이스 일관성.
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let ref else { return }
         let categoriesArray = selectedExportCategories.map { $0.rawValue }
-        Firestore.firestore()
-            .collection("users").document(uid)
-            .collection("exportRequests").document()
-            .setData([
-                "categories": categoriesArray,
-                "format": selectedExportFormat.rawValue,
-                "status": "requested",
-                "requestedAt": FieldValue.serverTimestamp()
-            ])
+        ref.setData([
+            "categories": categoriesArray,
+            "format": selectedExportFormat.rawValue,
+            "status": "requested",
+            "requestedAt": FieldValue.serverTimestamp()
+        ]) { [weak self] error in
+            guard let error else { return }
+            Task { @MainActor in
+                self?.lastSubmitErrorMessage = "데이터 내보내기 요청 실패: \(error.localizedDescription)"
+            }
+        }
     }
 
     func resetEditorDraft() {

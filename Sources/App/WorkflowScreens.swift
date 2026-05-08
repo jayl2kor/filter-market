@@ -1634,6 +1634,7 @@ struct UniversalLinkLandingScreen: View {
 
 struct DataExportScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @Environment(\.openURL) private var openURL
     @State private var showSubmitAlert = false
 
     var body: some View {
@@ -1762,9 +1763,18 @@ struct DataExportScreen: View {
                                     .foregroundStyle(FMColors.Text.secondary)
                             }
                             Spacer()
-                            Text(request.status)
+                            if let downloadURL = request.downloadURL {
+                                Button("다운로드") {
+                                    openURL(downloadURL)
+                                }
                                 .fmTypography(.caption)
-                                .foregroundStyle(request.status == "만료" ? FMColors.Text.tertiary : FMColors.Accent.primary)
+                                .foregroundStyle(FMColors.Accent.primary)
+                                .accessibilityIdentifier("settings.export.download.\(request.id)")
+                            } else {
+                                Text(request.status)
+                                    .fmTypography(.caption)
+                                    .foregroundStyle(request.status == "만료" ? FMColors.Text.tertiary : FMColors.Accent.primary)
+                            }
                         }
                         .padding(.vertical, Sp.xs)
                         if request.id != store.exportRequests.last?.id {

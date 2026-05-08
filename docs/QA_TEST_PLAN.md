@@ -384,7 +384,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | # | Element | Expected | PASS/FAIL |
 |---|---|---|---|
 | 11.4.1 | dataExport: "내보내기 요청" | mock 비동기 진행 |  |
-| 11.4.2 | dataExport: 이전 요청 row | 상태 표시 |  |
+| 11.4.2 | dataExport: 이전 요청 row | `/users/{uid}/exportRequests` listener 기반 상태 표시. `downloadURL`이 있으면 다운로드 버튼 표시 |  |
 | 11.4.3 | notificationSettings: 시스템 알림 카드 | `UNUserNotificationCenter.notificationSettings()` 기준으로 허용됨/차단됨/권한 미결정 표시. 설정 앱에서 변경 후 복귀 시 자동 갱신 |  |
 | 11.4.4 | notificationSettings: `notif.system.open` | iOS 앱 설정으로 이동 |  |
 | 11.4.5 | notificationSettings: 카테고리별 토글 (소셜/리뷰/마켓/메이커/지갑/제품) | 사용자 입력에서만 `/users/{uid}/notificationPreferences/main` debounced save 예약. remote listener 반영은 재저장하지 않음 |  |

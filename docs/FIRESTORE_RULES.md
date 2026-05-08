@@ -293,6 +293,14 @@ match /users/{uid}/favorites/{filterId} {
     && request.resource.data.filterId == filterId;
   allow delete: if isOwner(uid);
 }
+match /users/{uid}/exportRequests/{requestId} {
+  allow read: if isOwner(uid);
+  allow create: if isOwner(uid)
+    && request.resource.data.status == "requested"
+    && request.resource.data.categories is list
+    && request.resource.data.format in ["JSON", "CSV"];
+  allow update, delete: if false;
+}
 match /users/{uid}/walletLedger/{entryId} {
   allow read: if isOwner(uid);
   allow write: if false;

@@ -161,6 +161,15 @@ service cloud.firestore {
         allow delete: if isOwner(uid);
       }
 
+      match /exportRequests/{requestId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.status == "requested"
+          && request.resource.data.categories is list
+          && request.resource.data.format in ["JSON", "CSV"];
+        allow update, delete: if false;
+      }
+
       match /wallet/{doc} {
         allow read: if isOwner(uid);
         allow write: if false;
