@@ -1599,14 +1599,163 @@ struct DataExportScreen: View {
 
 // MARK: - Editor / Upload
 
+private struct EditorReferencePreview: View {
+    @EnvironmentObject private var store: MooditStore
+    @State private var renderedImage: UIImage?
+    @State private var sourceImage: UIImage?
+    @State private var isRendering = false
+    @State private var showingBefore = false
+
+    let height: CGFloat
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            if let image = showingBefore ? sourceImage : (renderedImage ?? sourceImage) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                LinearGradient(
+                    colors: store.editorDraft.category.swatch,
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+
+            LinearGradient(colors: [.clear, .black.opacity(0.48)], startPoint: .center, endPoint: .bottom)
+
+            VStack(alignment: .leading, spacing: Sp.xs) {
+                Text(showingBefore ? "BEFORE" : "AFTER")
+                    .fmTypography(.caption)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, Sp.sm)
+                    .padding(.vertical, Sp.xs)
+                    .background(.black.opacity(0.28), in: Capsule())
+                    .accessibilityIdentifier("editor.compare.hold")
+
+                Text(store.editorDraft.name.isEmpty ? "Untitled Filter" : store.editorDraft.name)
+                    .fmTypography(.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+            }
+            .padding(Sp.md)
+
+            if isRendering {
+                ProgressView()
+                    .tint(FMColors.Accent.primary)
+                    .padding(Sp.md)
+                    .background(.regularMaterial, in: Capsule())
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: height)
+        .clipShape(RoundedRectangle(cornerRadius: R.lg))
+        .overlay {
+            RoundedRectangle(cornerRadius: R.lg)
+                .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: R.lg))
+        .onLongPressGesture(
+            minimumDuration: 0.01,
+            perform: {},
+            onPressingChanged: { isPressing in
+                showingBefore = isPressing
+            }
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(showingBefore ? "참조 사진 원본" : "참조 사진 현재 파라미터 적용 결과")
+        .accessibilityIdentifier("editor.preview")
+        .task(id: renderKey) {
+            await scheduleRender()
+        }
+    }
+
+    private var renderKey: EditorPreviewRenderKey {
+        EditorPreviewRenderKey(
+            category: store.editorDraft.category,
+            sampleKind: store.editorReferenceSampleKind,
+            referenceRevision: store.editorReferencePhotoRevision,
+            lutRevision: store.editorImportedLUTRevision,
+            exposure: quantized("exposure"),
+            contrast: quantized("contrast"),
+            saturation: quantized("saturation"),
+            grain: quantized("grain"),
+            vignette: quantized("vignette")
+        )
+    }
+
+    private func quantized(_ key: String) -> Int {
+        Int(((store.editorDraft.parameterValues[key] ?? 0) * 1_000).rounded())
+    }
+
+    @MainActor
+    private func scheduleRender() async {
+        try? await Task.sleep(nanoseconds: 250_000_000)
+        guard !Task.isCancelled else { return }
+        await render()
+    }
+
+    @MainActor
+    private func render() async {
+        let referenceData = store.editorReferencePhotoData
+            ?? EditorReferenceSampleImage.makeJPEGData(kind: store.editorReferenceSampleKind)
+        sourceImage = UIImage(data: referenceData)
+
+        let sourceLUT = store.editorImportedLUT
+            ?? LUT3D.preset(LUTPreset.preset(for: store.editorDraft.category), size: 33)
+        let parameters = store.editorPreviewParameters
+        let grain = store.editorPreviewGrain
+        let vignette = store.editorPreviewVignette
+
+        isRendering = true
+        defer { isRendering = false }
+
+        do {
+            let renderedData = try await Task.detached(priority: .userInitiated) {
+                let bakedLUT = LUTBake.bake(sourceLUT: sourceLUT, parameters: parameters)
+                let renderer = PhotoFilterRenderer(jpegCompressionQuality: 0.86)
+                return try renderer.renderJPEG(
+                    to: referenceData,
+                    sourceLUT: bakedLUT,
+                    intensity: .full,
+                    grain: grain,
+                    vignette: vignette,
+                    cropAspectRatio: nil
+                )
+            }.value
+            renderedImage = UIImage(data: renderedData)
+        } catch {
+            renderedImage = sourceImage
+        }
+    }
+}
+
+private struct EditorPreviewRenderKey: Hashable {
+    let category: FilterCategory
+    let sampleKind: EditorReferenceSampleKind
+    let referenceRevision: Int
+    let lutRevision: Int
+    let exposure: Int
+    let contrast: Int
+    let saturation: Int
+    let grain: Int
+    let vignette: Int
+}
+
 struct FilterEditorScreen: View {
     @EnvironmentObject private var store: MooditStore
     @State private var showCancelAlert = false
+    @State private var selectedReferenceItem: PhotosPickerItem?
+    @State private var referenceLoadError: String?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Sp.lg) {
                 editorPreview
+                referenceSourceControls
                 quickStats
                 editorActions
                 parameterPreview
@@ -1640,38 +1789,82 @@ struct FilterEditorScreen: View {
         } message: {
             Text("현재 파라미터와 LUT 선택을 초안으로 남길 수 있습니다.")
         }
+        .onChange(of: selectedReferenceItem) { _, newItem in
+            Task { await loadReferencePhoto(from: newItem) }
+        }
     }
 
     private var editorPreview: some View {
-        ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: R.lg)
-                .fill(
-                    LinearGradient(
-                        colors: store.editorDraft.category.swatch,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .aspectRatio(4.0 / 5.0, contentMode: .fit)
-                .overlay {
-                    VStack(spacing: Sp.xs) {
-                        Image(systemName: "camera.filters")
-                            .font(.system(size: 42, weight: .semibold))
-                        Text(store.editorDraft.name)
-                            .fmTypography(.titleLarge)
-                    }
-                    .foregroundStyle(.white)
-                    .shadow(radius: 12)
-                }
+        EditorReferencePreview(height: 420)
+    }
 
-            Text("PRESS HOLD BEFORE")
-                .fmTypography(.caption)
-                .foregroundStyle(.white)
-                .padding(.horizontal, Sp.sm)
-                .padding(.vertical, Sp.xs)
-                .background(.black.opacity(0.28), in: Capsule())
-                .padding(Sp.md)
-                .accessibilityIdentifier("editor.compare.hold")
+    @ViewBuilder
+    private var referenceSourceControls: some View {
+        let hasReferencePhoto = store.editorReferencePhotoData != nil
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            HStack(spacing: Sp.sm) {
+                sectionLabel("참조 사진")
+                Spacer()
+                PhotosPicker(selection: $selectedReferenceItem, matching: .images) {
+                    Label(hasReferencePhoto ? "사진 교체" : "사진 선택", systemImage: "photo.badge.plus")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(FMColors.Accent.primary)
+                }
+                .accessibilityIdentifier("editor.reference.photo.pick")
+
+                if hasReferencePhoto {
+                    Button {
+                        store.setEditorReferencePhotoData(nil)
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(FMColors.Text.tertiary)
+                    }
+                    .accessibilityIdentifier("editor.reference.photo.clear")
+                }
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Sp.xs) {
+                    ForEach(EditorReferenceSampleKind.allCases) { kind in
+                        FMChip(
+                            kind.title,
+                            isSelected: !hasReferencePhoto && store.editorReferenceSampleKind == kind,
+                            size: .sm
+                        ) {
+                            store.setEditorReferenceSampleKind(kind)
+                            FMHaptic.selection.play()
+                        }
+                        .accessibilityIdentifier("editor.reference.sample.\(kind.rawValue)")
+                    }
+                }
+            }
+
+            if let referenceLoadError {
+                Text(referenceLoadError)
+                    .fmTypography(.caption)
+                    .foregroundStyle(FMColors.Semantic.error)
+            }
+        }
+    }
+
+    @MainActor
+    private func loadReferencePhoto(from item: PhotosPickerItem?) async {
+        guard let item else { return }
+        do {
+            guard
+                let data = try await item.loadTransferable(type: Data.self),
+                let image = UIImage(data: data),
+                let normalized = EditorReferenceSampleImage.normalizedJPEGData(from: image)
+            else {
+                referenceLoadError = "사진 데이터를 읽지 못했어요."
+                return
+            }
+            store.setEditorReferencePhotoData(normalized)
+            referenceLoadError = nil
+            FMHaptic.success.play()
+        } catch {
+            referenceLoadError = "사진을 불러오지 못했어요."
+            FMHaptic.error.play()
         }
     }
 
@@ -1769,6 +1962,7 @@ struct EditorParametersScreen: View {
                     subtitle: "조명, 색, 질감 값을 조정해 필터 룩을 만듭니다.",
                     symbol: "slider.horizontal.3"
                 )
+                EditorReferencePreview(height: 300)
                 sectionTabs
                 sliders
                 compareCard
@@ -1864,6 +2058,7 @@ struct EditorLUTImportScreen: View {
                 )
                 lutCard
                 validationCard
+                EditorReferencePreview(height: 300)
                 NavigationLink(value: AppRoute.editorDraft) {
                     routeButton("초안 저장 단계로", icon: "arrow.right")
                 }
@@ -1897,12 +2092,9 @@ struct EditorLUTImportScreen: View {
 
         do {
             let text = try String(contentsOf: url, encoding: .utf8)
-            // Validate via the FilterEngine parser. We discard the parsed LUT
-            // — the editor is wired against the filename for now (mock state).
-            // The parse pass guards against malformed files reaching downstream.
-            _ = try CubeLUTParser.parse(text)
+            let parsed = try CubeLUTParser.parse(text)
             importCount += 1
-            store.setEditorLUT(url.lastPathComponent)
+            store.setEditorLUT(url.lastPathComponent, lut: previewLUT(from: parsed))
             FMHaptic.success.play()
         } catch {
             importError = ImportErrorMessage(message: friendlyMessage(for: error))
@@ -1930,6 +2122,41 @@ struct EditorLUTImportScreen: View {
             }
         }
         return error.localizedDescription
+    }
+
+    private func previewLUT(from parsed: CubeLUTParser.LUT) -> LUT3D? {
+        switch parsed {
+        case .threeDimensional(let lut):
+            return lut
+        case .oneDimensional(let samples):
+            guard samples.count >= 2 else { return nil }
+            let size = 17
+            var values: [RGBColor] = []
+            values.reserveCapacity(size * size * size)
+            for b in 0 ..< size {
+                for g in 0 ..< size {
+                    for r in 0 ..< size {
+                        values.append(
+                            RGBColor(
+                                red: sample1D(samples, value: Float(r) / Float(size - 1), channel: \.red),
+                                green: sample1D(samples, value: Float(g) / Float(size - 1), channel: \.green),
+                                blue: sample1D(samples, value: Float(b) / Float(size - 1), channel: \.blue)
+                            )
+                        )
+                    }
+                }
+            }
+            return LUT3D(size: size, values: values)
+        }
+    }
+
+    private func sample1D(_ samples: [RGBColor], value: Float, channel: KeyPath<RGBColor, Float>) -> Float {
+        let clamped = min(max(value, 0), 1)
+        let scaled = clamped * Float(samples.count - 1)
+        let lower = Int(floor(scaled))
+        let upper = min(lower + 1, samples.count - 1)
+        let t = scaled - Float(lower)
+        return samples[lower][keyPath: channel] * (1 - t) + samples[upper][keyPath: channel] * t
     }
 
     private var lutCard: some View {
@@ -4791,5 +5018,108 @@ private enum PlaceholderPhoto {
             UIBezierPath(roundedRect: rect.insetBy(dx: 120, dy: 160), cornerRadius: 42).stroke()
         }
         return image.jpegData(compressionQuality: 0.92) ?? Data()
+    }
+}
+
+private enum EditorReferenceSampleImage {
+    static func makeJPEGData(kind: EditorReferenceSampleKind) -> Data {
+        let size = CGSize(width: 960, height: 1200)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image = renderer.image { context in
+            let rect = CGRect(origin: .zero, size: size)
+            drawBase(kind: kind, in: rect, context: context.cgContext)
+            drawDetail(kind: kind, in: rect)
+        }
+        return image.jpegData(compressionQuality: 0.88) ?? PlaceholderPhoto.makeJPEGData()
+    }
+
+    static func normalizedJPEGData(from image: UIImage, maxLongEdge: CGFloat = 1280) -> Data? {
+        let sourceSize = image.size
+        guard sourceSize.width > 0, sourceSize.height > 0 else { return nil }
+        let scale = min(1, maxLongEdge / max(sourceSize.width, sourceSize.height))
+        let targetSize = CGSize(width: sourceSize.width * scale, height: sourceSize.height * scale)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
+        let normalized = renderer.image { _ in
+            UIColor.black.setFill()
+            UIRectFill(CGRect(origin: .zero, size: targetSize))
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+        return normalized.jpegData(compressionQuality: 0.86)
+    }
+
+    private static func drawBase(kind: EditorReferenceSampleKind, in rect: CGRect, context: CGContext) {
+        let colors: [UIColor] = switch kind {
+        case .portrait:
+            [
+                UIColor(red: 0.70, green: 0.62, blue: 0.55, alpha: 1),
+                UIColor(red: 0.25, green: 0.29, blue: 0.35, alpha: 1)
+            ]
+        case .landscape:
+            [
+                UIColor(red: 0.35, green: 0.56, blue: 0.78, alpha: 1),
+                UIColor(red: 0.78, green: 0.71, blue: 0.47, alpha: 1),
+                UIColor(red: 0.25, green: 0.39, blue: 0.28, alpha: 1)
+            ]
+        case .indoor:
+            [
+                UIColor(red: 0.22, green: 0.19, blue: 0.18, alpha: 1),
+                UIColor(red: 0.58, green: 0.42, blue: 0.29, alpha: 1)
+            ]
+        case .lifestyle:
+            [
+                UIColor(red: 0.72, green: 0.66, blue: 0.57, alpha: 1),
+                UIColor(red: 0.45, green: 0.36, blue: 0.29, alpha: 1)
+            ]
+        }
+
+        let gradient = CGGradient(
+            colorsSpace: CGColorSpaceCreateDeviceRGB(),
+            colors: colors.map(\.cgColor) as CFArray,
+            locations: nil
+        )
+        context.drawLinearGradient(
+            gradient!,
+            start: CGPoint(x: rect.minX, y: rect.minY),
+            end: CGPoint(x: rect.maxX, y: rect.maxY),
+            options: []
+        )
+    }
+
+    private static func drawDetail(kind: EditorReferenceSampleKind, in rect: CGRect) {
+        switch kind {
+        case .portrait:
+            UIColor(red: 0.88, green: 0.66, blue: 0.52, alpha: 1).setFill()
+            UIBezierPath(ovalIn: CGRect(x: rect.midX - 150, y: 210, width: 300, height: 340)).fill()
+            UIColor(red: 0.18, green: 0.15, blue: 0.13, alpha: 1).setFill()
+            UIBezierPath(roundedRect: CGRect(x: rect.midX - 210, y: 520, width: 420, height: 440), cornerRadius: 120).fill()
+            UIColor.white.withAlphaComponent(0.20).setStroke()
+            UIBezierPath(roundedRect: rect.insetBy(dx: 110, dy: 145), cornerRadius: 52).stroke()
+        case .landscape:
+            UIColor.white.withAlphaComponent(0.85).setFill()
+            UIBezierPath(ovalIn: CGRect(x: 660, y: 145, width: 120, height: 120)).fill()
+            UIColor(red: 0.12, green: 0.23, blue: 0.18, alpha: 1).setFill()
+            UIBezierPath(rect: CGRect(x: 0, y: 780, width: rect.width, height: 420)).fill()
+            UIColor(red: 0.30, green: 0.45, blue: 0.30, alpha: 1).setFill()
+            UIBezierPath(roundedRect: CGRect(x: 130, y: 650, width: 720, height: 220), cornerRadius: 110).fill()
+        case .indoor:
+            UIColor(red: 0.94, green: 0.70, blue: 0.36, alpha: 1).setFill()
+            UIBezierPath(roundedRect: CGRect(x: 120, y: 180, width: 240, height: 360), cornerRadius: 18).fill()
+            UIColor(red: 0.18, green: 0.15, blue: 0.14, alpha: 1).setFill()
+            UIBezierPath(roundedRect: CGRect(x: 420, y: 360, width: 360, height: 560), cornerRadius: 36).fill()
+            UIColor.white.withAlphaComponent(0.16).setStroke()
+            UIBezierPath(roundedRect: CGRect(x: 170, y: 720, width: 280, height: 160), cornerRadius: 28).stroke()
+        case .lifestyle:
+            UIColor(red: 0.32, green: 0.24, blue: 0.18, alpha: 1).setFill()
+            UIBezierPath(roundedRect: CGRect(x: 90, y: 760, width: 780, height: 210), cornerRadius: 38).fill()
+            UIColor(red: 0.96, green: 0.89, blue: 0.76, alpha: 1).setFill()
+            UIBezierPath(ovalIn: CGRect(x: 180, y: 330, width: 270, height: 270)).fill()
+            UIColor(red: 0.22, green: 0.18, blue: 0.14, alpha: 1).setStroke()
+            UIBezierPath(ovalIn: CGRect(x: 240, y: 390, width: 150, height: 150)).stroke()
+            UIColor(red: 0.72, green: 0.28, blue: 0.20, alpha: 1).setFill()
+            UIBezierPath(roundedRect: CGRect(x: 530, y: 430, width: 170, height: 250), cornerRadius: 32).fill()
+        }
     }
 }

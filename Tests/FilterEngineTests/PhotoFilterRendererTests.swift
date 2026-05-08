@@ -94,6 +94,41 @@ final class PhotoFilterRendererTests: XCTestCase {
         )
     }
 
+    func testRenderJPEGWithSourceLUTAndVignetteDarkensEdges() throws {
+        let inputData = try makeSolidPNG(color: TestColor(red: 0.72, green: 0.72, blue: 0.72), width: 32, height: 32)
+        let renderer = PhotoFilterRenderer(jpegCompressionQuality: 1)
+
+        let output = try renderer.renderJPEG(
+            to: inputData,
+            sourceLUT: LUT3D.identity(size: 5),
+            vignette: 1
+        )
+        let center = try decodePixel(from: output, x: 16, y: 16)
+        let corner = try decodePixel(from: output, x: 1, y: 1)
+
+        XCTAssertGreaterThan(center.red, corner.red + 0.18)
+        XCTAssertGreaterThan(center.green, corner.green + 0.18)
+        XCTAssertGreaterThan(center.blue, corner.blue + 0.18)
+    }
+
+    func testRenderJPEGWithGrainIsDeterministic() throws {
+        let inputData = try makeSolidPNG(color: TestColor(red: 0.42, green: 0.42, blue: 0.42), width: 24, height: 24)
+        let renderer = PhotoFilterRenderer(jpegCompressionQuality: 1)
+
+        let first = try renderer.renderJPEG(
+            to: inputData,
+            sourceLUT: LUT3D.identity(size: 5),
+            grain: 0.5
+        )
+        let second = try renderer.renderJPEG(
+            to: inputData,
+            sourceLUT: LUT3D.identity(size: 5),
+            grain: 0.5
+        )
+
+        XCTAssertEqual(first, second)
+    }
+
     private func makeConfiguration(
         preset: LUTPreset = .identity,
         intensity: FilterIntensity = .full
@@ -206,6 +241,21 @@ final class PhotoFilterRendererTests: XCTestCase {
             throw TestImageError.cannotDecodeImage
         }
 
+        return try decodePixel(from: image, x: image.width / 2, y: image.height / 2)
+    }
+
+    private func decodePixel(from data: Data, x: Int, y: Int) throws -> TestColor {
+        guard
+            let source = CGImageSourceCreateWithData(data as CFData, nil),
+            let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        else {
+            throw TestImageError.cannotDecodeImage
+        }
+
+        return try decodePixel(from: image, x: x, y: y)
+    }
+
+    private func decodePixel(from image: CGImage, x: Int, y: Int) throws -> TestColor {
         let bytesPerPixel = 4
         let bytesPerRow = image.width * bytesPerPixel
         var pixels = [UInt8](repeating: 0, count: image.height * bytesPerRow)
@@ -227,8 +277,6 @@ final class PhotoFilterRendererTests: XCTestCase {
 
         context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
 
-        let x = image.width / 2
-        let y = image.height / 2
         let offset = y * bytesPerRow + x * bytesPerPixel
         return TestColor(
             red: Float(pixels[offset]) / 255,

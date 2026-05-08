@@ -14,6 +14,9 @@ final class ActionSurfaceSmokeTests: XCTestCase {
 
     func testMakerEditorAndUploadSurfaces() {
         assertRoute("editor", exposes: [
+            "editor.preview",
+            "editor.reference.photo.pick",
+            "editor.reference.sample.portrait",
             "editor.params",
             "editor.lut",
             "editor.draft",
@@ -21,12 +24,14 @@ final class ActionSurfaceSmokeTests: XCTestCase {
         ])
 
         assertRoute("editorParameters", exposes: [
+            "editor.preview",
             "editor.param.slider",
             "editor.compare.hold",
             "editor.next"
         ])
 
         assertRoute("editorLUT", exposes: [
+            "editor.preview",
             "editor.lut.import",
             "editor.lut.replace",
             "editor.next"

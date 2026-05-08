@@ -25,6 +25,24 @@ enum CameraTimerOption: Int, CaseIterable, Identifiable, Hashable {
     }
 }
 
+enum EditorReferenceSampleKind: String, CaseIterable, Identifiable, Hashable {
+    case portrait
+    case landscape
+    case indoor
+    case lifestyle
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .portrait: "인물"
+        case .landscape: "풍경"
+        case .indoor: "실내"
+        case .lifestyle: "일상"
+        }
+    }
+}
+
 enum CameraFlashMode: String, CaseIterable, Identifiable, Hashable {
     case off
     case auto
@@ -308,6 +326,9 @@ final class MooditStore: ObservableObject {
     @Published var cameraFlashMode: CameraFlashMode = .off
     @Published var cameraZoomPreset: Double = 1.0
     @Published var importedPhotoData: Data?
+    @Published var editorReferencePhotoData: Data?
+    @Published var editorReferencePhotoRevision = 0
+    @Published var editorReferenceSampleKind: EditorReferenceSampleKind = .portrait
     @Published var editableProfile = EditableProfile.empty
     @Published var lastProfileSavedAt: Date?
     @Published var accountDeletionRequestedAt: Date?
@@ -318,6 +339,8 @@ final class MooditStore: ObservableObject {
     @Published var exportRequests: [DataExportRequest] = []
     @Published var notificationPreferences = NotificationPreferences()
     @Published var editorDraft = MakerFilterDraft.empty
+    @Published var editorImportedLUT: LUT3D?
+    @Published var editorImportedLUTRevision = 0
     @Published var uploadStep: UploadStep = .cover
     @Published var selectedMakerStatus: MakerFilterStatus = .all
     /// 메이커 본인의 드래프트/검수/공개 필터 — 진짜 데이터는 Firestore /filters where authorUid==uid에서 들어옴.
@@ -599,6 +622,11 @@ final class MooditStore: ObservableObject {
         downloadedFilterIDs = []
         favoriteFilterIDs = []
         importedPhotoData = nil
+        editorReferencePhotoData = nil
+        editorReferencePhotoRevision = 0
+        editorReferenceSampleKind = .portrait
+        editorImportedLUT = nil
+        editorImportedLUTRevision = 0
         editorDraft = MakerFilterDraft.empty
         uploadStep = .cover
         selectedMakerStatus = .all
@@ -644,6 +672,19 @@ final class MooditStore: ObservableObject {
 
     func setImportedPhotoData(_ data: Data?) {
         importedPhotoData = data
+    }
+
+    func setEditorReferencePhotoData(_ data: Data?) {
+        editorReferencePhotoData = data
+        editorReferencePhotoRevision += 1
+    }
+
+    func setEditorReferenceSampleKind(_ kind: EditorReferenceSampleKind) {
+        editorReferenceSampleKind = kind
+        if editorReferencePhotoData != nil {
+            editorReferencePhotoData = nil
+            editorReferencePhotoRevision += 1
+        }
     }
 
     func saveProfile(_ profile: EditableProfile) {
@@ -713,6 +754,11 @@ final class MooditStore: ObservableObject {
 
     func resetEditorDraft() {
         editorDraft = MakerFilterDraft.empty
+        editorReferencePhotoData = nil
+        editorReferencePhotoRevision = 0
+        editorReferenceSampleKind = .portrait
+        editorImportedLUT = nil
+        editorImportedLUTRevision = 0
         uploadStep = .cover
     }
 
@@ -721,9 +767,28 @@ final class MooditStore: ObservableObject {
         editorDraft.updatedAt = Date()
     }
 
-    func setEditorLUT(_ fileName: String) {
+    func setEditorLUT(_ fileName: String, lut: LUT3D? = nil) {
         editorDraft.lutFileName = fileName
+        editorImportedLUT = lut
+        editorImportedLUTRevision += 1
         editorDraft.updatedAt = Date()
+    }
+
+    var editorPreviewParameters: EditorParameters {
+        EditorParameters(
+            exposure: Float(editorDraft.parameterValues["exposure"] ?? 0) * 2,
+            contrast: Float(editorDraft.parameterValues["contrast"] ?? 0),
+            saturation: Float(editorDraft.parameterValues["saturation"] ?? 0),
+            tint: 0
+        )
+    }
+
+    var editorPreviewGrain: Float {
+        max(0, Float(editorDraft.parameterValues["grain"] ?? 0))
+    }
+
+    var editorPreviewVignette: Float {
+        Float(editorDraft.parameterValues["vignette"] ?? 0)
     }
 
     func saveEditorDraft() {
