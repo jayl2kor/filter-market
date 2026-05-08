@@ -82,6 +82,10 @@ struct CameraScreen: View {
                 aspectGuide
                 focusAndSwipeLayer(size: proxy.size)
 
+                if let message = controller.previewUnavailableMessage {
+                    cameraUnavailableOverlay(message: message)
+                }
+
                 VStack(spacing: 0) {
                     topBar
                         .padding(.horizontal, Sp.md)
@@ -180,6 +184,50 @@ struct CameraScreen: View {
     }
 
     // MARK: - Top bar
+
+    private func cameraUnavailableOverlay(message: String) -> some View {
+        VStack(spacing: Sp.sm) {
+            Image(systemName: "camera.badge.ellipsis")
+                .font(.system(size: 32, weight: .semibold))
+                .foregroundStyle(FMColors.Accent.primary)
+                .frame(width: 56, height: 56)
+                .background(Color.black.opacity(0.55), in: Circle())
+                .overlay {
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+                }
+
+            Text(message)
+                .font(.headline)
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .shadow(color: .black.opacity(0.65), radius: 2, y: 1)
+
+            Button {
+                FMHaptic.light.play()
+                isPhotoImportPresented = true
+            } label: {
+                Label("사진 라이브러리에서 가져오기", systemImage: "photo.on.rectangle")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, Sp.md)
+                    .frame(minHeight: 44)
+                    .background(FMColors.Accent.primary, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("camera.unavailable.import")
+        }
+        .padding(Sp.md)
+        .background(Color.black.opacity(0.5), in: RoundedRectangle(cornerRadius: R.lg))
+        .overlay {
+            RoundedRectangle(cornerRadius: R.lg)
+                .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+        }
+        .padding(.horizontal, Sp.xl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("camera.unavailable")
+    }
 
     private var topBar: some View {
         HStack(alignment: .center, spacing: Sp.xs) {
@@ -1067,6 +1115,7 @@ private final class CameraPreviewController: ObservableObject {
     @Published private(set) var isSwitchingCamera = false
     @Published private(set) var cameraPosition = CameraPosition.back
     @Published private(set) var cropAspectRatio = PhotoCropAspectRatio.fourThree
+    @Published private(set) var previewUnavailableMessage: String?
 
     let renderer = MetalPreviewRenderer(lutResourceBundle: MarketplaceResources.bundle)
 
@@ -1106,10 +1155,13 @@ private final class CameraPreviewController: ObservableObject {
                 return
             }
             isRunning = true
+            previewUnavailableMessage = nil
             statusMessage = renderer.isAvailable ? "Live Metal preview" : "Metal unavailable"
             startMetricsPolling()
         } catch {
             statusMessage = "Camera failed to start"
+            previewUnavailableMessage = "카메라를 사용할 수 없어요"
+            Telemetry.record(error: error, context: ["where": "CameraPreviewController.start"])
         }
     }
 
