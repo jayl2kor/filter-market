@@ -28,6 +28,17 @@ final class PhaseAE2ETests: XCTestCase {
         XCTAssertTrue(element("camera.aspectRatio").exists)
     }
 
+    func testMarketplaceNewFilterCardNavigatesToDetail() {
+        launch()
+
+        tap("market.tile.0", timeout: 8)
+
+        XCTAssertTrue(
+            element("filter.detail.download").waitForExistence(timeout: 4),
+            "새로 들어온 필터 카드 탭은 필터 상세로 이동해야 합니다"
+        )
+    }
+
     func testCameraHudAndPhotoImportEntry() {
         launch(route: "camera")
         acknowledgeSystemPermissionIfNeeded()

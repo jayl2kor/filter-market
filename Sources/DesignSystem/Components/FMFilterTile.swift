@@ -47,35 +47,49 @@ public struct FMFilterTileData: Equatable, Sendable {
 /// 사이즈는 부모 너비에 따라 자동.
 public struct FMFilterTile: View {
     private let data: FMFilterTileData
-    private let onTap: () -> Void
+    private let onTap: (() -> Void)?
 
-    public init(data: FMFilterTileData, onTap: @escaping () -> Void = {}) {
+    public init(data: FMFilterTileData, onTap: (() -> Void)? = nil) {
         self.data = data
         self.onTap = onTap
     }
 
     public var body: some View {
-        Button(action: onTap) {
-            ZStack(alignment: .bottomLeading) {
-                preview
-                gradientOverlay
-                badge
-                infoBlock
-            }
-            .clipShape(RoundedRectangle(cornerRadius: R.lg))
-            .overlay {
-                RoundedRectangle(cornerRadius: R.lg)
-                    .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
-            }
-        }
-        .buttonStyle(.plain)
-        .aspectRatio(4.0 / 5.0, contentMode: .fit)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(data.title), \(data.makerName), 다운로드 \(data.downloadCount)")
-        .accessibilityAddTraits(.isButton)
+        content
+            .aspectRatio(4.0 / 5.0, contentMode: .fit)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(data.title), \(data.makerName), 다운로드 \(data.downloadCount)")
+            .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - Subviews
+
+    @ViewBuilder
+    private var content: some View {
+        if let onTap {
+            Button(action: onTap) {
+                surface
+            }
+            .buttonStyle(.plain)
+        } else {
+            surface
+        }
+    }
+
+    private var surface: some View {
+        ZStack(alignment: .bottomLeading) {
+            preview
+            gradientOverlay
+            badge
+            infoBlock
+        }
+        .clipShape(RoundedRectangle(cornerRadius: R.lg))
+        .overlay {
+            RoundedRectangle(cornerRadius: R.lg)
+                .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: R.lg))
+    }
 
     @ViewBuilder
     private var preview: some View {
