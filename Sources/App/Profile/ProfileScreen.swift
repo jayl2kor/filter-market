@@ -550,12 +550,12 @@ struct ProfileScreen: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.title)
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(FMColors.Text.inverse)
                     .lineLimit(1)
                 if item.downloadCount > 0 {
                     Text(formattedCount(item.downloadCount))
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.78))
+                        .foregroundStyle(FMColors.Text.inverse.opacity(0.78))
                         .monospacedDigit()
                 }
             }

@@ -177,12 +177,14 @@ public extension View {
 
 private struct FMToastOverlayModifier: ViewModifier {
     @Binding var toast: FMToastMessage?
+    @State private var displayedToast: FMToastMessage?
+    @State private var queuedToasts: [FMToastMessage] = []
     @State private var dismissTask: Task<Void, Never>? = nil
 
     func body(content: Content) -> some View {
         content
             .overlay(alignment: .bottom) {
-                if let message = toast {
+                if let message = displayedToast {
                     FMToast(message)
                         .padding(.horizontal, Sp.md)
                         .padding(.bottom, FMLayout.tabBarHeight + Sp.md)
@@ -190,16 +192,32 @@ private struct FMToastOverlayModifier: ViewModifier {
                             .move(edge: .bottom).combined(with: .opacity)
                         )
                         .zIndex(Z.toast)
-                        .onAppear { scheduleDismiss(for: message) }
                 }
             }
-            .animation(.fmSpringSheet, value: toast?.id)
+            .animation(.fmSpringSheet, value: displayedToast?.id)
+            .onAppear(perform: consumeIncomingToast)
             .onChange(of: toast?.id) { _, newId in
-                if newId == nil {
-                    dismissTask?.cancel()
-                    dismissTask = nil
-                }
+                guard newId != nil else { return }
+                consumeIncomingToast()
             }
+    }
+
+    private func consumeIncomingToast() {
+        guard let message = toast else { return }
+        if displayedToast == nil {
+            show(message)
+        } else if displayedToast?.id != message.id, !queuedToasts.contains(message) {
+            queuedToasts.append(message)
+        }
+        toast = nil
+    }
+
+    private func show(_ message: FMToastMessage) {
+        dismissTask?.cancel()
+        withAnimation(.fmSpringSheet) {
+            displayedToast = message
+        }
+        scheduleDismiss(for: message)
     }
 
     private func scheduleDismiss(for message: FMToastMessage) {
@@ -208,7 +226,13 @@ private struct FMToastOverlayModifier: ViewModifier {
             try? await Task.sleep(nanoseconds: UInt64(message.duration * 1_000_000_000))
             guard !Task.isCancelled else { return }
             withAnimation(.fmSpringSheet) {
-                toast = nil
+                displayedToast = nil
+            }
+            if !queuedToasts.isEmpty {
+                let next = queuedToasts.removeFirst()
+                show(next)
+            } else {
+                dismissTask = nil
             }
         }
     }

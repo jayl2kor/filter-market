@@ -168,18 +168,36 @@ final class NotificationsInboxStore: ObservableObject {
         guard !isUITesting else { return }
         #endif
         guard let uid = Auth.auth().currentUser?.uid else { return }
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            Firestore.firestore()
-            .collection("users").document(uid)
-            .collection("notifications").document(notificationId)
-            .setData(["readAt": FieldValue.serverTimestamp()], merge: true) { error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume()
+        let wasUnread = items.first { $0.firestoreDocId == notificationId }?.isUnread ?? false
+        setNotification(notificationId, isUnread: false)
+        do {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                Firestore.firestore()
+                .collection("users").document(uid)
+                .collection("notifications").document(notificationId)
+                .setData(["readAt": FieldValue.serverTimestamp()], merge: true) { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
                 }
             }
+        } catch {
+            setNotification(notificationId, isUnread: wasUnread)
+            throw error
         }
+    }
+
+    private func setNotification(_ notificationId: String, isUnread: Bool) {
+        func update(_ list: inout [NotificationItem]) {
+            guard let index = list.firstIndex(where: { $0.firestoreDocId == notificationId }) else { return }
+            list[index].isUnread = isUnread
+        }
+        update(&liveItems)
+        update(&pagedItems)
+        update(&items)
+        updateAppBadge()
     }
 
     private func publish(live: [NotificationItem], paged: [NotificationItem]) {

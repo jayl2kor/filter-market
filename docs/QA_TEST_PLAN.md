@@ -427,6 +427,8 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 12.18 | 공유 링크 테스트 (admin/moderator only) | → AppRoute.universalLinkLanding |  |
 | 12.19 | ⚠️ 로그아웃 | alert 표시, 확인 시 `Auth.auth().signOut()` + `isAuthenticated = false` + dismiss |  |
 | 12.20 | ⚠️ 계정 삭제 | → AppRoute.accountDeletion |  |
+| 12.21 | Settings 푸시 알림 상태 | NotificationSettingsScreen에서 변경한 `store.notificationPreferences.systemEnabled` 값이 Settings row에도 동일하게 표시 |  |
+| 12.22 | 연속 toast | 짧은 시간에 toast 3개 이상 발생 시 마지막 메시지로 덮어쓰지 않고 순차 표시 |  |
 
 ---
 

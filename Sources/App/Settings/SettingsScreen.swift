@@ -48,8 +48,7 @@ struct SettingsScreen: View {
         )
     }
 
-    // 알림 (#22 — UserDefaults 영속화)
-    @AppStorage("settings.notif.push") private var pushNotifications: Bool = true
+    // 알림 상태는 MooditStore.notificationPreferences를 단일 진실원으로 사용.
     @AppStorage("settings.notif.sensitiveFilter") private var sensitiveFilterRaw: String = SensitiveFilterLevel.strong.rawValue
 
     private var sensitiveFilter: Binding<SensitiveFilterLevel> {
@@ -125,7 +124,7 @@ struct SettingsScreen: View {
                     navigationRow(
                         icon: "bell",
                         title: "푸시 알림",
-                        accessory: .value(text: pushNotifications ? "켬" : "끔", chevron: true),
+                        accessory: .value(text: store.notificationPreferences.systemEnabled ? "켬" : "끔", chevron: true),
                         route: .notificationSettings
                     )
                     divider
@@ -303,7 +302,7 @@ struct SettingsScreen: View {
         HStack(spacing: Sp.md) {
             FMAvatar(initials: store.editableProfile.initials, size: .md)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Sp.xxs) {
                 Text(store.editableProfile.displayName.isEmpty
                      ? store.editableProfile.handle.isEmpty ? "사용자" : store.editableProfile.handle
                      : store.editableProfile.displayName)
@@ -347,7 +346,7 @@ struct SettingsScreen: View {
             RoundedRectangle(cornerRadius: R.lg)
                 .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
         }
-        .shadow(color: Color.black.opacity(0.04), radius: 1, x: 0, y: 1)
+        .shadow(color: FMColors.Border.subtle.opacity(0.45), radius: 1, x: 0, y: 1)
     }
 
     // MARK: - Section
