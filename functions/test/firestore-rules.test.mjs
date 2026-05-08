@@ -7,7 +7,7 @@
  * heart of the reviews migration:
  *   - 1 review per (uid, filterId)  (enforced by docId == authorUid + create policy)
  *   - Author may edit their own review's body/stars only
- *   - Anyone authed can bump helpfulCount by exactly +1
+ *   - Anyone authed can toggle helpfulCount by exactly +/-1
  *   - Only the filter's maker may attach a single makerReply
  *   - Recipient-only reads on /users/{uid}/notifications
  *   - Block edges scoped to actor uid
@@ -160,7 +160,7 @@ const suite = describe(
       );
     });
 
-    it("allows any authed user to bump helpfulCount by +1, but not by +2", async () => {
+    it("allows any authed user to toggle helpfulCount by +/-1, but not by larger deltas", async () => {
       const uid = "u-helpful-author";
       await env.withSecurityRulesDisabled(async (ctx) => {
         await ctx
@@ -175,6 +175,12 @@ const suite = describe(
           .firestore()
           .doc(`filters/${FILTER_ID}/reviews/${uid}`)
           .update({ helpfulCount: 4 })
+      );
+      await assertSucceeds(
+        peer
+          .firestore()
+          .doc(`filters/${FILTER_ID}/reviews/${uid}`)
+          .update({ helpfulCount: 3 })
       );
 
       await assertFails(
@@ -367,6 +373,28 @@ const suite = describe(
           name: "Invalid",
           category: "cinematic",
           status: "archived",
+        })
+      );
+    });
+
+    it("allows owners to sync review helpful edges only under their uid", async () => {
+      const owner = env.authenticatedContext("u-helpful");
+      const stranger = env.authenticatedContext(STRANGER_UID);
+      const ref = owner.firestore().doc("users/u-helpful/reviewHelpful/sunset_u-reviewer");
+
+      await assertSucceeds(
+        ref.set({
+          filterId: FILTER_ID,
+          reviewId: "u-reviewer",
+          createdAt: new Date(),
+        })
+      );
+      await assertSucceeds(ref.get());
+      await assertSucceeds(ref.delete());
+      await assertFails(stranger.firestore().doc("users/u-helpful/reviewHelpful/sunset_u-reviewer").get());
+      await assertFails(
+        owner.firestore().doc("users/u-helpful/reviewHelpful/bad").set({
+          filterId: FILTER_ID,
         })
       );
     });

@@ -152,7 +152,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 6.1.3 | 메이커 답글 row (`social.review.makerReply.row`) | 표시 only |  |
 | 6.1.4 | 별점 표시 (`social.review.stars`) | 1~5 별 표시, 채워진 별 = stars |  |
 | 6.1.5 | 다운로드 확인 뱃지 (`social.review.verified`) | isVerifiedDownload=true일 때만 |  |
-| 6.1.6 | 👍 helpful (`social.review.helpful`) | helpfulIDs 토글, count 갱신 |  |
+| 6.1.6 | 👍 helpful (`social.review.helpful`) | Auth 사용자는 `/users/{uid}/reviewHelpful` edge를 만들거나 삭제하고, review `helpfulCount`를 transaction으로 +/-1 갱신. 화면 재진입 시 edge listener로 선택 상태 복원 |  |
 | 6.1.7 | 작성자 아바타 | → AppRoute.otherProfile(uid:) |  |
 | 6.1.8 | "리뷰 추가..." (`social.reviews.compose`) | Auth-gated → AppRoute.reviewCompose |  |
 | 6.1.9 | paper plane 버튼 | 동일 → reviewCompose |  |
@@ -515,9 +515,11 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 1. 로그인 → 필터 다운로드 (verified download 조건 충족)
 2. FilterDetail → ★ 평점 등록 → 별 4개 → 본문 입력 → 평점 등록
 3. FilterDetail로 돌아가서 → 리뷰 → ReviewsListScreen 진입
-4. social.review.helpful 탭 → count +1
-5. 다른 사용자 (Guest)로 재진입 → 같은 화면에서 helpful 다시 +1 (Firestore에선 두 번 못 누르지만 mock에선 toggle)
-- **PASS 기준**: 본인 리뷰 작성 후 같은 (uid, filterId)로 두번째 리뷰 시도 안 됨
+4. `social.review.helpful` 탭 → `helpfulCount` +1, `/users/{uid}/reviewHelpful/{edgeId}` 생성
+5. 같은 사용자로 화면 이탈 후 재진입 → thumb filled 상태 유지
+6. 같은 버튼 재탭 → `helpfulCount` -1, helpful edge 삭제
+7. 다른 사용자로 로그인 → 같은 리뷰에 helpful 가능, 기존 사용자의 edge와 분리
+- **PASS 기준**: 본인 리뷰 작성 후 같은 (uid, filterId)로 두번째 리뷰 시도 안 됨. helpful은 사용자별 1회만 유지되고 재진입/다중 사용자에서 Firestore 상태와 일치
 
 ### 14.3 Maker Upload (Phase 2)
 1. 로그인 → 에디터 진입

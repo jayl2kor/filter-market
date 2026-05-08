@@ -13,9 +13,10 @@ struct ReviewsListScreen: View {
     // (#37) 프로덕션은 Firestore /filters/{filterID}/reviews listener (.task에서 attach).
     // UI 테스트 (-ui-testing): 기존 mock 데이터로 fallback.
     @State private var reviews: [SocialReview] = isUITesting ? SocialReview.mock : []
-    @State private var helpfulIDs: Set<UUID> = isUITesting ? Set(SocialReview.mock.filter(\.isHelpful).map(\.id)) : []
+    @State private var helpfulIDs: Set<String> = isUITesting ? Set(SocialReview.mock.filter(\.isHelpful).map(\.id)) : []
     @State private var moreMenuReview: SocialReview?
     @State private var reviewsListener: ListenerRegistration?
+    @State private var helpfulListener: ListenerRegistration?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -69,10 +70,13 @@ struct ReviewsListScreen: View {
             // (#37) Firestore listener attach. UI test fallback은 mock 데이터를 그대로 사용.
             guard !isUITesting else { return }
             attachReviewsListener()
+            attachHelpfulListener()
         }
         .onDisappear {
             reviewsListener?.remove()
             reviewsListener = nil
+            helpfulListener?.remove()
+            helpfulListener = nil
         }
     }
 
@@ -102,6 +106,7 @@ struct ReviewsListScreen: View {
                     else if interval < 86400 { timeStr = "\(Int(interval / 3600))시간" }
                     else { timeStr = "\(Int(interval / 86400))일" }
                     return SocialReview(
+                        id: doc.documentID,
                         name: authorName,
                         handle: "@\(authorUid.prefix(8))",
                         initials: initials,
@@ -127,6 +132,24 @@ struct ReviewsListScreen: View {
         if let double = value as? Double { return Int(double) }
         if let string = value as? String, let int = Int(string) { return int }
         return defaultValue
+    }
+
+    private func attachHelpfulListener() {
+        helpfulListener?.remove()
+        guard let uid = Auth.auth().currentUser?.uid else {
+            helpfulIDs = []
+            return
+        }
+        helpfulListener = Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("reviewHelpful")
+            .whereField("filterId", isEqualTo: filterID)
+            .addSnapshotListener { snapshot, _ in
+                let ids = Set((snapshot?.documents ?? []).compactMap { $0.data()["reviewId"] as? String })
+                Task { @MainActor in
+                    self.helpfulIDs = ids
+                }
+            }
     }
 
     private var filterMiniCard: some View {
@@ -257,10 +280,9 @@ struct ReviewsListScreen: View {
 
                 HStack(spacing: Sp.md) {
                     Button {
-                        toggleHelpful(review)
+                        Task { await toggleHelpful(review) }
                     } label: {
-                        let bumpedCount = review.helpfulCount + (helpfulIDs.contains(review.id) && !review.isHelpful ? 1 : 0)
-                        Label("\(bumpedCount)", systemImage: helpfulIDs.contains(review.id) ? "hand.thumbsup.fill" : "hand.thumbsup")
+                        Label("\(review.helpfulCount)", systemImage: helpfulIDs.contains(review.id) ? "hand.thumbsup.fill" : "hand.thumbsup")
                     }
                     .foregroundStyle(helpfulIDs.contains(review.id) ? FMColors.Accent.primary : FMColors.Text.tertiary)
                     .accessibilityIdentifier("social.review.helpful")
@@ -325,13 +347,72 @@ struct ReviewsListScreen: View {
         .accessibilityLabel("\(stars)점")
     }
 
-    private func toggleHelpful(_ review: SocialReview) {
+    private func toggleHelpful(_ review: SocialReview) async {
         FMHaptic.selection.play()
-        if helpfulIDs.contains(review.id) {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            FMHaptic.warning.play()
+            return
+        }
+
+        let wasHelpful = helpfulIDs.contains(review.id)
+        if wasHelpful {
             helpfulIDs.remove(review.id)
         } else {
             helpfulIDs.insert(review.id)
         }
+
+        let filterID = filterID
+        let reviewID = review.id
+        let edgeID = helpfulEdgeID(reviewID: review.id)
+
+        do {
+            _ = try await Task.detached(priority: .userInitiated) {
+                let db = Firestore.firestore()
+                let reviewRef = db.collection("filters").document(filterID)
+                    .collection("reviews").document(reviewID)
+                let edgeRef = db.collection("users").document(uid)
+                    .collection("reviewHelpful").document(edgeID)
+
+                _ = try await db.runTransaction { transaction, errorPointer in
+                    do {
+                        let edgeSnapshot = try transaction.getDocument(edgeRef)
+                        if wasHelpful {
+                            if edgeSnapshot.exists {
+                                transaction.updateData(["helpfulCount": FieldValue.increment(Int64(-1))], forDocument: reviewRef)
+                                transaction.deleteDocument(edgeRef)
+                            }
+                        } else if !edgeSnapshot.exists {
+                            transaction.updateData(["helpfulCount": FieldValue.increment(Int64(1))], forDocument: reviewRef)
+                            transaction.setData([
+                                "filterId": filterID,
+                                "reviewId": reviewID,
+                                "createdAt": FieldValue.serverTimestamp()
+                            ], forDocument: edgeRef)
+                        }
+                    } catch {
+                        errorPointer?.pointee = error as NSError
+                    }
+                    return nil
+                }
+            }.value
+            FMHaptic.success.play()
+        } catch {
+            if wasHelpful {
+                helpfulIDs.insert(review.id)
+            } else {
+                helpfulIDs.remove(review.id)
+            }
+            FMHaptic.warning.play()
+        }
+    }
+
+    private func helpfulEdgeID(reviewID: String) -> String {
+        "\(filterID)_\(reviewID)"
+            .map { character -> Character in
+                character.isLetter || character.isNumber || character == "-" || character == "_" ? character : "_"
+            }
+            .map(String.init)
+            .joined()
     }
 }
 
@@ -1635,7 +1716,7 @@ private struct SocialMakerReply: Identifiable {
 }
 
 private struct SocialReview: Identifiable {
-    let id = UUID()
+    let id: String
     let name: String
     let handle: String
     let initials: String
@@ -1650,6 +1731,7 @@ private struct SocialReview: Identifiable {
 
     static let mock: [SocialReview] = [
         SocialReview(
+            id: UUID().uuidString,
             name: "민지",
             handle: "@minji.lab",
             initials: "MJ",
@@ -1669,6 +1751,7 @@ private struct SocialReview: Identifiable {
             )
         ),
         SocialReview(
+            id: UUID().uuidString,
             name: "Alex",
             handle: "@alex.grade",
             initials: "AL",
@@ -1682,6 +1765,7 @@ private struct SocialReview: Identifiable {
             makerReply: nil
         ),
         SocialReview(
+            id: UUID().uuidString,
             name: "유나",
             handle: "@yuna.diary",
             initials: "YN",
@@ -1695,6 +1779,7 @@ private struct SocialReview: Identifiable {
             makerReply: nil
         ),
         SocialReview(
+            id: UUID().uuidString,
             name: "Emma",
             handle: "@emma.travel",
             initials: "EM",

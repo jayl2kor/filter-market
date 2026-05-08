@@ -62,11 +62,13 @@ service cloud.firestore {
         && isValidString(d.body, 1, 280);
     }
 
-    function validHelpfulBump(d) {
-      // Anyone authed can bump helpfulCount by exactly +1.
+    function validHelpfulChange(d) {
+      // Anyone authed can toggle helpfulCount by exactly +/-1.
       let changed = d.diff(resource.data).affectedKeys();
       return changed.hasOnly(['helpfulCount'])
-        && d.helpfulCount == resource.data.helpfulCount + 1;
+        && d.helpfulCount >= 0
+        && (d.helpfulCount == resource.data.helpfulCount + 1
+          || d.helpfulCount == resource.data.helpfulCount - 1);
     }
 
     function validMakerReplyAttach(d, filterId) {
@@ -101,10 +103,10 @@ service cloud.firestore {
 
         // Three legal update paths:
         //   (a) author edits stars/body
-        //   (b) anyone authed bumps helpfulCount by +1
+        //   (b) anyone authed toggles helpfulCount by +/-1
         //   (c) the filter's maker attaches a single makerReply
         allow update: if (isOwner(authorUid) && validReviewSelfUpdate(request.resource.data))
-          || (isAuthenticated() && validHelpfulBump(request.resource.data))
+          || (isAuthenticated() && validHelpfulChange(request.resource.data))
           || (isAuthenticated() && validMakerReplyAttach(request.resource.data, filterId));
 
         allow delete: if isOwner(authorUid) || isModerator();
@@ -177,6 +179,15 @@ service cloud.firestore {
           && request.resource.data.name is string
           && request.resource.data.category is string;
         allow delete: if isOwner(uid);
+      }
+
+      match /reviewHelpful/{edgeId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.filterId is string
+          && request.resource.data.reviewId is string;
+        allow delete: if isOwner(uid);
+        allow update: if false;
       }
 
       match /wallet/{doc} {

@@ -309,6 +309,14 @@ match /users/{uid}/makerDrafts/{draftId} {
     && request.resource.data.category is string;
   allow delete: if isOwner(uid);
 }
+match /users/{uid}/reviewHelpful/{edgeId} {
+  allow read: if isOwner(uid);
+  allow create: if isOwner(uid)
+    && request.resource.data.filterId is string
+    && request.resource.data.reviewId is string;
+  allow delete: if isOwner(uid);
+  allow update: if false;
+}
 match /users/{uid}/walletLedger/{entryId} {
   allow read: if isOwner(uid);
   allow write: if false;

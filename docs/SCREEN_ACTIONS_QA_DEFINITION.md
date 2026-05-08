@@ -74,7 +74,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 
 | Screen ID | Route / Entry | SwiftUI | 상태 | Required actions |
 |---|---|---|---|---|
-| `reviews.list` | `AppRoute.reviews(filterId:)` | `ReviewsListScreen` | Implemented, NeedsE2E | `social.reviews.filter`, `social.reviews.compose`, `social.rating.open`, `social.review.author`, `social.review.helpful`, `social.review.more`, `social.review.more.report`, `social.review.more.block`, `social.review.more.copy` |
+| `reviews.list` | `AppRoute.reviews(filterId:)` | `ReviewsListScreen` | Implemented, NeedsFirebaseQA | `social.reviews.filter`, `social.reviews.compose`, `social.rating.open`, `social.review.author`, `social.review.helpful` (Firestore edge + counter transaction), `social.review.more`, `social.review.more.report`, `social.review.more.block`, `social.review.more.copy` |
 | `reviews.compose` | `AppRoute.reviewCompose(filterId:)` | `ReviewComposeScreen` | Implemented, NeedsE2E | `social.compose.input`, `social.compose.send`, `social.review.makerReply`, `social.compose.insertMention`, `social.compose.attachImage`, `social.compose.removeImage`, `social.compose.emojiToggle`, `social.compose.emoji.*` |
 | `reviews.rating` | `AppRoute.rating(filterId:)` | `RatingFormScreen` | Implemented, NeedsE2E | `social.rating.star`, `social.rating.star.*`, `social.rating.body`, `social.rating.submit` |
 | `social.followers` | `AppRoute.followers(uid:)` | `FollowersListScreen` | Implemented, NeedsFirebaseQA | `social.user.row`, `social.user.tap`, `social.follow.toggle`, empty state |
