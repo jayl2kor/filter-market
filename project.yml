@@ -52,6 +52,10 @@ targets:
         product: FirebaseFunctions
       - package: Firebase
         product: FirebaseMessaging
+      - package: Firebase
+        product: FirebaseCrashlytics
+      - package: Firebase
+        product: FirebaseAnalytics
       - package: GoogleSignIn
         product: GoogleSignIn
       - package: GoogleSignIn

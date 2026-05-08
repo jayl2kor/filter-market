@@ -3102,7 +3102,9 @@ struct PaywallSingleScreen: View {
 
     private func purchase() async {
         guard !isProcessing else { return }
+        Telemetry.log(.filterPurchaseAttempted, parameters: ["filter_id": filterID, "price_coins": priceCoins])
         if store.coinBalance < priceCoins {
+            Telemetry.log(.filterPurchaseInsufficient, parameters: ["filter_id": filterID, "price_coins": priceCoins, "balance": store.coinBalance])
             showInsufficient = true
             return
         }
@@ -3116,10 +3118,14 @@ struct PaywallSingleScreen: View {
             if let filter = store.filter(matching: filterID) {
                 store.download(filter)
             }
+            Telemetry.log(.filterPurchaseSucceeded, parameters: ["filter_id": filterID, "price_coins": priceCoins])
             didPurchase = true
         } catch let error as NSError where error.localizedDescription.contains("insufficient_balance") {
+            Telemetry.log(.filterPurchaseInsufficient, parameters: ["filter_id": filterID, "price_coins": priceCoins])
             showInsufficient = true
         } catch {
+            Telemetry.log(.filterPurchaseFailed, parameters: ["filter_id": filterID, "reason": "callable_error"])
+            Telemetry.record(error: error, context: ["where": "purchaseFilter", "filter_id": filterID])
             purchaseError = error.localizedDescription
         }
     }

@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  functions:
+    name: Cloud Functions (lint + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+  ios:
+    name: iOS (build)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select latest Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+      - name: Install xcodegen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build (no signing, generic device)
+        env:
+          DERIVED_DATA_PATH: .build/DerivedData
+        run: |
+          xcodebuild \
+            -project moodit.xcodeproj \
+            -scheme moodit \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            CODE_SIGNING_ALLOWED=NO \
+            build

@@ -69,6 +69,7 @@ struct RootShell: View {
         }
         .onOpenURL { url in
             if let route = UniversalLinkParser.route(for: url) {
+                Telemetry.log(.deepLinkReceived, parameters: ["route_kind": route.telemetryKind])
                 store.pendingDeepLinkRoute = route
             }
         }

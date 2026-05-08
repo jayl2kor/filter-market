@@ -69,6 +69,16 @@ enum AppRoute: Hashable {
     case helpCenter
 }
 
+extension AppRoute {
+    /// 분석 이벤트용 case 라벨 — 연관 값 제거. 예) filterDetail(id: "x") → "filterDetail".
+    var telemetryKind: String {
+        String(describing: self)
+            .split(separator: "(")
+            .first
+            .map(String.init) ?? "unknown"
+    }
+}
+
 extension View {
     /// Defines every `NavigationStack` destination in one place.
     func appRouteDestinations() -> some View {

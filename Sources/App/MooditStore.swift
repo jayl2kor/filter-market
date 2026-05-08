@@ -366,6 +366,7 @@ final class MooditStore: ObservableObject {
         guard authStateHandle == nil else { return } // idempotent
         authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self else { return }
+            Telemetry.setUserId(user?.uid)
             self.attachWalletListeners(uid: user?.uid)
         }
     }

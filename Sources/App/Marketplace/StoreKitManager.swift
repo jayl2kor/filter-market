@@ -60,6 +60,7 @@ public final class StoreKitManager: ObservableObject {
     public func purchase(_ product: Product) async -> PurchaseOutcome {
         isProcessing = true
         defer { isProcessing = false }
+        Telemetry.log(.iapAttempted, parameters: ["product_id": product.id])
         do {
             let result = try await product.purchase()
             switch result {
@@ -69,20 +70,26 @@ public final class StoreKitManager: ObservableObject {
                     await creditBackend(transaction: transaction, productId: product.id, jws: verification.jwsRepresentation)
                     purchasedProductIDs.insert(product.id)
                     await transaction.finish()
+                    Telemetry.log(.iapSucceeded, parameters: ["product_id": product.id])
                     return .success(verification)
                 case .unverified(_, let error):
                     lastError = "결제 검증 실패: \(error.localizedDescription)"
+                    Telemetry.log(.iapFailed, parameters: ["product_id": product.id, "reason": "unverified"])
                     return .failed(error.localizedDescription)
                 }
             case .userCancelled:
+                Telemetry.log(.iapFailed, parameters: ["product_id": product.id, "reason": "user_cancelled"])
                 return .userCancelled
             case .pending:
                 return .pending
             @unknown default:
+                Telemetry.log(.iapFailed, parameters: ["product_id": product.id, "reason": "unknown"])
                 return .failed("알 수 없는 결제 결과")
             }
         } catch {
             lastError = error.localizedDescription
+            Telemetry.log(.iapFailed, parameters: ["product_id": product.id, "reason": "exception"])
+            Telemetry.record(error: error, context: ["where": "StoreKitManager.purchase", "product_id": product.id])
             return .failed(error.localizedDescription)
         }
     }
