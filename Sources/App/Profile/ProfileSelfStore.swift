@@ -1,5 +1,6 @@
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseFunctions
 import Foundation
 import Models
 
@@ -20,6 +21,8 @@ final class ProfileSelfStore: ObservableObject {
     private var capturesListener: ListenerRegistration?
     private var userDocListener: ListenerRegistration?
     private var authHandle: AuthStateDidChangeListenerHandle?
+    /// (#47) 신규 사용자 doc seed 1회 가드 — listener가 exists==false로 여러 번 fire되어도 중복 호출 방지.
+    private var didAttemptSeed: Set<String> = []
 
     func start() {
         guard authHandle == nil else { return }
@@ -100,7 +103,35 @@ final class ProfileSelfStore: ObservableObject {
                     doc: data,
                     filterCount: self.myFilters.count
                 )
+                // (#16) 신규 사용자 — /users/{uid} doc이 없으면 client-side 1회 seed.
+                // (#47) didAttemptSeed 가드 — listener가 여러 번 fire되어도 중복 callable 호출 방지.
+                if snapshot?.exists == false, !self.didAttemptSeed.contains(authUser.uid) {
+                    self.didAttemptSeed.insert(authUser.uid)
+                    Task { await self.seedInitialUserDoc(authUser: authUser) }
+                }
             }
+    }
+
+    /// 신규 사용자가 처음 로그인 시 /users/{uid} 기본 doc을 1회 작성.
+    /// updateProfile callable 사용 (서버 측 검증 + 일관 schema, /handles는 별도 setHandle로 보호).
+    private func seedInitialUserDoc(authUser: User) async {
+        let displayName = authUser.displayName
+            ?? authUser.email?.split(separator: "@").first.map(String.init)
+            ?? "사용자"
+        let region = "asia-northeast3"
+        let callable = Functions.functions(region: region).httpsCallable("updateProfile")
+        do {
+            _ = try await callable.call([
+                "displayName": displayName,
+                "bio": "",
+                "website": "",
+                "makerPageVisible": true,
+                "photoSharingAllowed": false,
+                "avatarVariant": 0
+            ] as [String: Any])
+        } catch {
+            // 실패해도 다음 진입 시 listener가 재시도. 사용자는 Auth-derived 임시 표시.
+        }
     }
 
     /// FirebaseAuth.User + Firestore doc → 표시용 ProfileUser.

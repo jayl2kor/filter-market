@@ -81,6 +81,27 @@ final class PushRegistration: NSObject {
         Messaging.messaging().apnsToken = deviceToken
     }
 
+    /// 로그아웃 직전 호출 — 현재 디바이스의 \`/users/{uid}/devices/{deviceId}\` doc 삭제.
+    /// uid를 인자로 받는 이유: Auth.signOut() 후엔 currentUser가 nil이라 doc 경로를 못 만듦. (#23)
+    func unregisterCurrentDevice(uid: String) {
+        guard
+            let firestore,
+            let deviceId = UIDevice.current.identifierForVendor?.uuidString
+        else { return }
+        firestore
+            .collection("users")
+            .document(uid)
+            .collection("devices")
+            .document(deviceId)
+            .delete { error in
+                #if DEBUG
+                if let error {
+                    print("[Push] Failed to delete device doc: \(error.localizedDescription)")
+                }
+                #endif
+            }
+    }
+
     /// Persist `(uid, deviceId, fcmToken)` to Firestore so backend fan-out can
     /// address every device of a user.
     fileprivate func persistDevice(fcmToken: String) {

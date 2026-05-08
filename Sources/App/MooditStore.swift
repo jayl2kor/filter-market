@@ -239,7 +239,29 @@ struct MakerFilterDraft: Identifiable, Equatable {
     var status: MakerFilterStatus
     var updatedAt: Date
     var submittedAt: Date?
+    /// uploadInit Cloud Function이 반환한 Firestore /filters/{id} 문서 ID (#44).
+    /// nil이면 아직 R2 업로드 init 전 — submitCurrentDraft가 submitForReview 호출 가드.
+    var firestoreFilterId: String? = nil
 
+    /// 신규 드래프트 — 사용자가 처음 에디터 진입 시 빈 상태에서 시작.
+    static let empty = MakerFilterDraft(
+        name: "",
+        summary: "",
+        category: .cinematic,
+        tags: [],
+        parameterValues: [:],
+        lutFileName: nil,
+        coverCount: 0,
+        beforeAfterEnabled: false,
+        tosOriginal: false,
+        tosPolicy: false,
+        tosCommercial: false,
+        status: .draft,
+        updatedAt: Date(),
+        submittedAt: nil
+    )
+
+    /// Preview / SwiftUI Preview 전용 — 실제 앱에서는 사용 안 함.
     static let preview = MakerFilterDraft(
         name: "Amber Cafe",
         summary: "70년대 필름 카메라 톤. 카페, 실내, 골든아워에 어울리는 부드러운 골드.",
@@ -295,7 +317,7 @@ final class MooditStore: ObservableObject {
     /// (이전: 2개 하드코딩 mock 잔재 — 사용자가 요청한 적 없는 export 이력이 노출되는 문제 해결)
     @Published var exportRequests: [DataExportRequest] = []
     @Published var notificationPreferences = NotificationPreferences()
-    @Published var editorDraft = MakerFilterDraft.preview
+    @Published var editorDraft = MakerFilterDraft.empty
     @Published var uploadStep: UploadStep = .cover
     @Published var selectedMakerStatus: MakerFilterStatus = .all
     /// 메이커 본인의 드래프트/검수/공개 필터 — 진짜 데이터는 Firestore /filters where authorUid==uid에서 들어옴.
@@ -319,6 +341,7 @@ final class MooditStore: ObservableObject {
     private var walletListener: ListenerRegistration?
     private var proStatusListener: ListenerRegistration?
     private var userDocListener: ListenerRegistration?
+    private var notificationPrefsListener: ListenerRegistration?
     private var authStateHandle: AuthStateDidChangeListenerHandle?
     /// Universal Link / push tap에서 도착한 라우트. RootShell이 관찰해 표시한다.
     /// 한 번 처리되면 nil로 리셋한다.
@@ -351,16 +374,20 @@ final class MooditStore: ObservableObject {
         walletListener?.remove()
         proStatusListener?.remove()
         userDocListener?.remove()
+        notificationPrefsListener?.remove()
         walletListener = nil
         proStatusListener = nil
         userDocListener = nil
+        notificationPrefsListener = nil
 
         guard let uid else {
-            coinBalance = 0
-            isProActive = false
-            editableProfile = .empty
+            // 로그아웃 / 미로그인 — 본인 스코프 모든 상태 즉시 정리.
+            // 이전 사용자 잔재 방지 (#17).
+            hasLoadedProfile = false  // (#47) 미로그인 reset
+            resetUserScopedState()
             return
         }
+        hasLoadedProfile = false  // (#47) 새 uid attach 시 — 다음 snapshot이 도착하면 true
         let db = Firestore.firestore()
         // Auth.currentUser의 displayName/email 즉시 사용해 editableProfile 부분 채움.
         if let authUser = Auth.auth().currentUser {
@@ -391,6 +418,7 @@ final class MooditStore: ObservableObject {
         userDocListener = db.collection("users").document(uid)
             .addSnapshotListener { [weak self] snapshot, _ in
                 guard let self else { return }
+                self.hasLoadedProfile = true  // (#47) 첫 snapshot 도착 신호
                 guard let data = snapshot?.data() else { return }
                 self.editableProfile = EditableProfile(
                     displayName: (data["displayName"] as? String) ?? self.editableProfile.displayName,
@@ -402,6 +430,42 @@ final class MooditStore: ObservableObject {
                     avatarVariant: (data["avatarVariant"] as? Int) ?? self.editableProfile.avatarVariant
                 )
             }
+        // (#45) /users/{uid}/notificationPreferences/main listener — 사용자 토글 변경 즉시 반영.
+        notificationPrefsListener = db.collection("users").document(uid)
+            .collection("notificationPreferences").document("main")
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self else { return }
+                guard let data = snapshot?.data() else { return }
+                self.notificationPreferences = NotificationPreferences(
+                    systemEnabled: (data["systemEnabled"] as? Bool) ?? self.notificationPreferences.systemEnabled,
+                    social: (data["social"] as? Bool) ?? self.notificationPreferences.social,
+                    reviews: (data["reviews"] as? Bool) ?? self.notificationPreferences.reviews,
+                    marketplace: (data["marketplace"] as? Bool) ?? self.notificationPreferences.marketplace,
+                    creator: (data["creator"] as? Bool) ?? self.notificationPreferences.creator,
+                    wallet: (data["wallet"] as? Bool) ?? self.notificationPreferences.wallet,
+                    product: (data["product"] as? Bool) ?? self.notificationPreferences.product,
+                    quietHoursEnabled: (data["quietHoursEnabled"] as? Bool) ?? self.notificationPreferences.quietHoursEnabled,
+                    quietStart: (data["quietStart"] as? String) ?? self.notificationPreferences.quietStart,
+                    quietEnd: (data["quietEnd"] as? String) ?? self.notificationPreferences.quietEnd
+                )
+            }
+        // (#24) /users/{uid}/savedFilters — 1회 로드해서 downloadedFilterIDs로 합침.
+        // 다른 디바이스에서 다운로드한 필터도 SavedScreen에 표시.
+        Task { [weak self] in
+            do {
+                let snapshot = try await db.collection("users").document(uid)
+                    .collection("savedFilters")
+                    .limit(to: 500)
+                    .getDocuments()
+                let uuids = snapshot.documents.compactMap { UUID(uuidString: $0.documentID) }
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    self.downloadedFilterIDs.formUnion(uuids)
+                }
+            } catch {
+                // silent — local downloadedFilterIDs는 그대로 유지.
+            }
+        }
     }
 
     var selectedFilter: Filter? {
@@ -454,6 +518,84 @@ final class MooditStore: ObservableObject {
         await load()
     }
 
+    /// Pro 구독 구매 직후 낙관적 활성화 (#27). Firestore listener가 도착하면 정정.
+    func markProActiveOptimistically() {
+        isProActive = true
+    }
+
+    /// 결제 실패 시 마지막 에러 메시지 (#41). PaymentFailedScreen이 표시 후 reset.
+    @Published var lastPaymentErrorMessage: String?
+    /// (#47) /users/{uid} 첫 listener snapshot이 도착했는지 — RootShell의 핸들 검사 등에서 사용.
+    /// listener attach 시 false → 첫 snapshot 도착 시 true. 비로그인 시 false.
+    @Published private(set) var hasLoadedProfile: Bool = false
+    /// 업로드/리뷰 등 비동기 callable 실패 시 사용자에 보여줄 에러 메시지 (#47).
+    @Published var lastSubmitErrorMessage: String?
+
+    /// NotificationPreferences를 Firestore /users/{uid}/notificationPreferences/main에 저장 (#45).
+    /// 토글 변경 후 호출. 비로그인이면 silent skip.
+    func persistNotificationPreferences() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let p = notificationPreferences
+        Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("notificationPreferences").document("main")
+            .setData([
+                "systemEnabled": p.systemEnabled,
+                "social": p.social,
+                "reviews": p.reviews,
+                "marketplace": p.marketplace,
+                "creator": p.creator,
+                "wallet": p.wallet,
+                "product": p.product,
+                "quietHoursEnabled": p.quietHoursEnabled,
+                "quietStart": p.quietStart,
+                "quietEnd": p.quietEnd,
+                "updatedAt": FieldValue.serverTimestamp()
+            ], merge: true)
+    }
+
+    /// 코인 잔액 낙관적 조정 (#29 적립, #31 차감). listener가 도착하면 정정.
+    /// 양수: 적립 (IAP 구매), 음수: 차감 (필터 구매). server-side는 별도 callable이 처리.
+    /// Firestore listener는 server 값으로 덮어쓰기 (비-가산)이라 중복 카운트 없음.
+    func creditCoinsOptimistically(_ amount: Int) {
+        coinBalance = max(0, coinBalance + amount)
+    }
+
+    /// /users/{uid}/savedFilters/{filterId} 저장/제거 (#24).
+    /// 비로그인 사용자나 Firebase 미설정 환경에서는 silent fail — local downloadedFilterIDs는 그대로 유지.
+    private func persistSavedFilter(filterId: Filter.ID, save: Bool) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let ref = Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("savedFilters").document(filterId.uuidString)
+        if save {
+            ref.setData([
+                "filterId": filterId.uuidString,
+                "savedAt": FieldValue.serverTimestamp()
+            ], merge: true)
+        } else {
+            ref.delete()
+        }
+    }
+
+    /// 로그아웃 / 사용자 전환 시 본인 스코프 데이터 일괄 초기화 (#17).
+    /// `Auth.signOut()` 호출 직후 또는 attachWalletListeners(uid: nil)에서 사용.
+    func resetUserScopedState() {
+        coinBalance = 0
+        isProActive = false
+        editableProfile = .empty
+        lastProfileSavedAt = nil
+        accountDeletionRequestedAt = nil
+        downloadedFilterIDs = []
+        favoriteFilterIDs = []
+        importedPhotoData = nil
+        editorDraft = MakerFilterDraft.empty
+        uploadStep = .cover
+        selectedMakerStatus = .all
+        makerFilters = []
+        exportRequests = []
+    }
+
     func select(_ filter: Filter) {
         selectedFilterID = filter.id
         downloadedFilterIDs.insert(filter.id)
@@ -461,11 +603,14 @@ final class MooditStore: ObservableObject {
 
     func download(_ filter: Filter) {
         downloadedFilterIDs.insert(filter.id)
+        // (#24) /users/{uid}/savedFilters/{filterId} Firestore 동기화 — 앱 재시작/다른 디바이스에서도 유지.
+        persistSavedFilter(filterId: filter.id, save: true)
     }
 
     func removeDownload(_ filter: Filter) {
         downloadedFilterIDs.remove(filter.id)
         favoriteFilterIDs.remove(filter.id)
+        persistSavedFilter(filterId: filter.id, save: false)
         if selectedFilterID == filter.id {
             selectedFilterID = libraryFilters.first?.id ?? filters.first?.id
         }
@@ -496,7 +641,7 @@ final class MooditStore: ObservableObject {
         lastProfileSavedAt = Date()
         // Firestore /users/{uid} 영속화 — Cloud Function updateProfile callable로 위임 (서버 측 검증 + 일관 schema).
         // 핸들 변경은 별도 setHandle callable로 분리 (uniqueness check + reservation 보호).
-        Task.detached { [profile] in
+        Task { [weak self, profile] in
             let region = "asia-northeast3"
             do {
                 let updateCallable = Functions.functions(region: region).httpsCallable("updateProfile")
@@ -513,7 +658,10 @@ final class MooditStore: ObservableObject {
                     _ = try await handleCallable.call(["handle": profile.handle])
                 }
             } catch {
-                // 실패해도 로컬 store는 갱신된 상태 유지 — 다음 진입 시 Firestore listener가 정정.
+                // (#47) silent failure 제거 — 사용자 알림 surface.
+                await MainActor.run { [weak self] in
+                    self?.lastSubmitErrorMessage = "프로필 저장 실패: \(error.localizedDescription)"
+                }
             }
         }
     }
@@ -539,10 +687,22 @@ final class MooditStore: ObservableObject {
             status: "요청됨"
         )
         exportRequests.insert(request, at: 0)
+        // (#42) Firestore /users/{uid}/exportRequests/{auto} 영속화 — 앱 재실행/다른 디바이스 일관성.
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let categoriesArray = selectedExportCategories.map { $0.rawValue }
+        Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("exportRequests").document()
+            .setData([
+                "categories": categoriesArray,
+                "format": selectedExportFormat.rawValue,
+                "status": "requested",
+                "requestedAt": FieldValue.serverTimestamp()
+            ])
     }
 
     func resetEditorDraft() {
-        editorDraft = MakerFilterDraft.preview
+        editorDraft = MakerFilterDraft.empty
         uploadStep = .cover
     }
 
@@ -597,6 +757,27 @@ final class MooditStore: ObservableObject {
         editorDraft.updatedAt = Date()
         uploadStep = .pending
         upsertMakerFilter(editorDraft)
+        // (#44) firestoreFilterId가 있으면 submitForReview callable 호출.
+        // uploadInit/uploadFinalize 흐름이 아직 client에서 호출되지 않으면 nil — silent skip.
+        guard let fsId = editorDraft.firestoreFilterId else { return }
+        let payload: [String: Any] = [
+            "filterId": fsId,
+            "tosOriginal": editorDraft.tosOriginal,
+            "tosPolicy": editorDraft.tosPolicy,
+            "tosCommercial": editorDraft.tosCommercial,
+        ]
+        Task { [weak self] in
+            do {
+                _ = try await Functions.functions(region: "asia-northeast3")
+                    .httpsCallable("submitForReview")
+                    .call(payload)
+            } catch {
+                // (#47) silent failure 제거 — 사용자에게 알림 가능하게 store에 메시지 게시.
+                await MainActor.run { [weak self] in
+                    self?.lastSubmitErrorMessage = "검수 제출 실패: \(error.localizedDescription)"
+                }
+            }
+        }
     }
 
     func startEditing(_ draft: MakerFilterDraft) {

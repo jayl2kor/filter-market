@@ -237,7 +237,7 @@ struct ProfileScreen: View {
         .task {
             profileStore.start()
             await loadOtherProfile()
-            try? await Task.sleep(nanoseconds: 250_000_000)
+            // hasAppeared 즉시 true — 데이터 listener가 도착하면 자동 갱신. (#18 hardcoded 250ms sleep 제거)
             hasAppeared = true
         }
         .sheet(item: $shareSheetPayload) { payload in

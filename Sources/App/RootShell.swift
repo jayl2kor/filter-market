@@ -8,9 +8,14 @@ import SwiftUI
 /// 셔터 탭은 selection 으로 사용되지 않고 `.fullScreenCover` 로 카메라를 띄움.
 struct RootShell: View {
     @StateObject private var store = MooditStore()
+    @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
 
     @State private var selectedTab: FMTab = .market
     @State private var isCameraPresented = false
+    @State private var showHandleOnboarding = false
+    /// 신규 사용자 첫 로그인 후 listener가 도착할 시간을 약간 둔 뒤 핸들 검사.
+    /// (#32) 너무 일찍 검사하면 .empty 초기값을 보고 잘못 trigger.
+    @State private var didCheckHandle = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -65,6 +70,29 @@ struct RootShell: View {
         .onOpenURL { url in
             if let route = UniversalLinkParser.route(for: url) {
                 store.pendingDeepLinkRoute = route
+            }
+        }
+        .sheet(isPresented: $showHandleOnboarding) {
+            NavigationStack {
+                EditProfileScreen()
+            }
+            .environmentObject(store)
+            .interactiveDismissDisabled(false) // 사용자가 나중에 설정할 수 있도록 dismiss 허용 (#32 tradeoff)
+        }
+        .onReceive(store.$editableProfile) { profile in
+            // (#32) 핸들 미설정 + 인증 + listener 첫 도착 후에만 sheet trigger.
+            guard isAuthenticated, store.hasLoadedProfile else { return }
+            if profile.handle.isEmpty {
+                showHandleOnboarding = true
+            } else {
+                showHandleOnboarding = false
+            }
+        }
+        .onReceive(store.$hasLoadedProfile) { loaded in
+            // (#47) hardcoded sleep 제거 — store가 첫 listener snapshot을 받으면 검사 트리거.
+            guard loaded, isAuthenticated else { return }
+            if store.editableProfile.handle.isEmpty {
+                showHandleOnboarding = true
             }
         }
     }
