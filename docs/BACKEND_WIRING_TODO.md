@@ -3,16 +3,56 @@
 **전수조사 일자**: 2026-05-08
 **상태**: UI 30+개 화면 중 대부분이 mock 데이터 + skeleton placeholder. 실제 backend 호출 = Firestore 1건(FCM), Cloud Functions 0건.
 
-## Sprint 1-4 Ralph 진행 상황 (2026-05-08)
+## Sprint 1-4 + 폴리시 라운드 — 최종 결산 (2026-05-08)
 
-| Story | 상태 | 빌드 | 비고 |
-|---|---|---|---|
-| US-S1-01 helpCenter 라우팅 | ✅ 완료 | ✅ BUILD SUCCEEDED | AppRoute.helpCenter 추가 + HelpCenterScreen 신규 + SettingsScreen 라우트 수정 |
-| US-S1-02 ~ US-S4-03 (20개) | ⏳ 대기 | — | Marketplace 모듈에 Firebase deps 추가 또는 Firestore impl을 App 모듈에 분리 필요 |
+**전체 완료** ✅ — Sprint 1-4 21개 스토리 + 폴리시 라운드 30개 = 51 작업 처리, GitHub 이슈 45개 모두 closed.
 
-**주요 아키텍처 결정 필요**:
-- Marketplace target에 FirebaseFirestore 의존 추가 vs Firestore impl을 App 모듈에 두기 — App 모듈 분리가 의존성 측면에서 깔끔
-- Filter 모델 확장 (useCount/createdAt/status/priceCoins) vs 별도 MarketplaceFilter 모델 — 후자가 도메인 분리 측면에서 안전
+### 빌드/테스트
+- iOS: BUILD SUCCEEDED, **162 tests PASS / 0 failures**
+- Cloud Functions: **52 tests PASS** (recordUse + getFilterDetail + wallet + moderation + identity + submitForReview)
+
+### 채택된 아키텍처 결정
+- Firestore impl은 App 모듈 분리 (DI 역전): Sources/App/Marketplace/FirestoreFilterRepository.swift
+- Filter 모델 직접 확장: useCount/createdAt/status/priceCoins/coverURL/ratingAvg/downloadCount 모두 backward-compat optional + 기본값
+- StoreKitManager는 App 모듈 (Firebase Functions 의존)
+
+### Cloud Functions (11 callable + ToS 검증)
+getFilterDetail, recordUse, purchaseFilter, creditCoinsFromIAP, proSubscriptionUpdate, refundRequest, approveFilter, rejectFilter, reportFilter, setRole, setHandle, updateProfile, deleteAccount, submitForReview
+
+### iOS 신규 모듈 (13 파일)
+HelpCenterScreen, FilterDetailLoaderScreen, FilterTileMapping, FirestoreFilterRepository, IAPProductIDs, StoreKitManager, WalletLedger, ProfileSelfStore, NotificationsInboxStore, UITestingFlag
+
+### 정리된 mock 잔재 (30+ 영역)
+- 강지수/Alex Lab/Sunset 1973 등 모든 user-visible 가짜 데이터 제거
+- ProfileScreen/EditProfile/Settings me-card → Auth + Firestore listener
+- Marketplace/Search/FilterDetail/Wallet/Notifications/Reviews/Profile/MakerDashboard 등 — 빈 상태 + UI test fallback 분기
+
+### Firestore 영속화 영역
+- /users/{uid}/wallet/balance (잔액)
+- /users/{uid}/proStatus/status (Pro 활성)
+- /users/{uid}/savedFilters (다운로드 동기화)
+- /users/{uid}/walletLedger (거래 내역)
+- /users/{uid}/notifications (알림 인박스)
+- /users/{uid}/exportRequests (데이터 내보내기 요청)
+- /users/{uid}/notificationPreferences/main (알림 설정)
+- /users/{uid}/blocks (차단 목록)
+- /handles/{handle} (핸들 uniqueness)
+- /filters where authorUid==uid (내 필터)
+- /filters/{id}/reviews (리뷰)
+- /filters/{id}/ratings/{uid} (평점)
+- /filters/{id}/reports (신고)
+- /walletReceipts/{originalTransactionId} (IAP idempotency)
+
+### UX 폴리시
+- TabBar 디자인 재정비 (셔터 인라인, 후광 약화)
+- UUID 노출 방지 (4 화면)
+- 핸들 onboarding sheet (RootShell)
+- Settings AppStorage 영속화 (6 토글)
+- 낙관적 잔액/Pro 활성화 (구매 직후 즉시 반영)
+- PaymentFailedScreen 실에러 메시지 표시
+- Saved Filters 양방향 Firestore 동기화
+- 로그아웃 시 store + push 토큰 정리
+- LoaderScreen 깜빡임 제거
 
 ---
 
