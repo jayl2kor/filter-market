@@ -6,11 +6,11 @@ import Foundation
 /// Supported shapes:
 ///   - `moodit://filter/<slug>` → `.filterDetail(id: slug)`
 ///   - `moodit://reviews/<slug>` → `.reviews(filterId: slug)`
-///   - `moodit://maker/<handle>` → `.otherProfile(uid: handle)`
+///   - `moodit://maker/<handle>` → `.otherProfileHandle(handle: handle)`
 ///   - `moodit://search?q=<query>&category=<cat>` → `.search(initialQuery:category:)`
 ///   - `moodit://notifications` → `.notifications`
 ///   - `https://moodit.app/f/<slug>` → `.filterDetail(id: slug)`
-///   - `https://moodit.app/u/<handle>` → `.otherProfile(uid: handle)`
+///   - `https://moodit.app/u/<handle>` → `.otherProfileHandle(handle: handle)`
 ///   - `https://moodit.app/r/<slug>` → `.reviews(filterId: slug)`
 ///   - `https://moodit.app/notifications` → `.notifications`
 ///
@@ -54,7 +54,7 @@ enum UniversalLinkParser {
             return .reviews(filterId: slug)
         case "maker":
             guard let handle = pathParts.first, !handle.isEmpty else { return nil }
-            return .otherProfile(uid: handle)
+            return .otherProfileHandle(handle: handle)
         case "search":
             return searchRoute(from: url)
         case "notifications":
@@ -76,7 +76,7 @@ enum UniversalLinkParser {
             return .reviews(filterId: slug)
         case "u":
             guard let handle = pathParts.dropFirst().first, !handle.isEmpty else { return nil }
-            return .otherProfile(uid: handle)
+            return .otherProfileHandle(handle: handle)
         case "search":
             return searchRoute(from: url)
         case "notifications":

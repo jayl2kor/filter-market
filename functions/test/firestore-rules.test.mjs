@@ -529,6 +529,16 @@ const suite = describe(
           .set({ actorUid: STRANGER_UID, targetUid: "u-other", createdAt: new Date() })
       );
     });
+
+    it("allows public handle lookup reads but blocks client writes", async () => {
+      const anon = env.unauthenticatedContext();
+      const actor = env.authenticatedContext("u-handle");
+
+      await assertSucceeds(anon.firestore().doc("handles/sample").get());
+      await assertFails(
+        actor.firestore().doc("handles/sample").set({ uid: "u-handle" })
+      );
+    });
   }
 );
 

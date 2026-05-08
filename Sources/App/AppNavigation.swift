@@ -33,6 +33,7 @@ enum AppRoute: Hashable {
     case filterDownload(id: String)
     case filterAfterDownload(id: String)
     case otherProfile(uid: String)
+    case otherProfileHandle(handle: String)
     case settings
     case cameraAspect
     case cameraTimer
@@ -132,6 +133,9 @@ extension View {
 
             case .otherProfile(let uid):
                 ProfileScreen(otherUid: uid)
+
+            case .otherProfileHandle(let handle):
+                ProfileHandleResolverScreen(handle: handle)
 
             case .savedFilters:
                 SavedScreen()
@@ -335,6 +339,7 @@ extension AppRoute {
         case .filterDownload: "다운로드"
         case .filterAfterDownload: "다운로드 완료"
         case .otherProfile: "메이커 프로필"
+        case .otherProfileHandle: "메이커 프로필"
         case .settings: "설정"
         case .cameraAspect: "촬영 비율"
         case .cameraTimer: "타이머"

@@ -143,6 +143,11 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    match /handles/{handle} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // User documents and financial subcollections. Cloud Functions use the Admin
     // SDK and bypass these rules; clients may only read their own derived state.
     match /users/{uid} {

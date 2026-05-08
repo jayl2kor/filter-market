@@ -24,10 +24,10 @@ final class UniversalLinkParserTests: XCTestCase {
 
     func testParsesMakerFromCustomScheme() {
         let url = URL(string: "moodit://maker/jisoo.films")!
-        guard case .otherProfile(let uid) = UniversalLinkParser.route(for: url) else {
-            return XCTFail("Expected otherProfile route")
+        guard case .otherProfileHandle(let handle) = UniversalLinkParser.route(for: url) else {
+            return XCTFail("Expected otherProfileHandle route")
         }
-        XCTAssertEqual(uid, "jisoo.films")
+        XCTAssertEqual(handle, "jisoo.films")
     }
 
     func testParsesSearchFromCustomScheme() {
@@ -66,10 +66,10 @@ final class UniversalLinkParserTests: XCTestCase {
 
     func testParsesMakerFromUniversalLink() {
         let url = URL(string: "https://moodit.app/u/jisoo.films")!
-        guard case .otherProfile(let uid) = UniversalLinkParser.route(for: url) else {
-            return XCTFail("Expected otherProfile route")
+        guard case .otherProfileHandle(let handle) = UniversalLinkParser.route(for: url) else {
+            return XCTFail("Expected otherProfileHandle route")
         }
-        XCTAssertEqual(uid, "jisoo.films")
+        XCTAssertEqual(handle, "jisoo.films")
     }
 
     func testAcceptsWWWVariantOfMooditHost() {

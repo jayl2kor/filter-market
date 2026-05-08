@@ -42,6 +42,8 @@ struct DeepLinkDestination: View {
             RatingFormScreen(filterID: filterId)
         case .otherProfile(let uid):
             ProfileScreen(otherUid: uid)
+        case .otherProfileHandle(let handle):
+            ProfileHandleResolverScreen(handle: handle)
         case .followers(let uid):
             FollowersListScreen(userID: uid)
         case .following(let uid):

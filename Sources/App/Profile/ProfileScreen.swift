@@ -670,6 +670,82 @@ struct CaptureDetailScreen: View {
     }
 }
 
+struct ProfileHandleResolverScreen: View {
+    let handle: String
+
+    @State private var resolvedUID: String?
+    @State private var errorMessage: String?
+    @State private var isLoading = true
+
+    var body: some View {
+        Group {
+            if let resolvedUID {
+                ProfileScreen(otherUid: resolvedUID)
+            } else {
+                VStack(spacing: Sp.md) {
+                    if isLoading {
+                        ProgressView()
+                            .tint(FMColors.Accent.primary)
+                        Text("@\(normalizedHandle)")
+                            .font(Font.fmCaption)
+                            .foregroundStyle(FMColors.Text.tertiary)
+                    } else {
+                        FMEmptyState(.emptyProfile(isOwnProfile: false, makerName: displayHandle))
+                        if let errorMessage {
+                            Text(errorMessage)
+                                .font(Font.fmCaption)
+                                .foregroundStyle(FMColors.Text.tertiary)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
+                }
+                .padding(Sp.md)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(FMColors.Background.bg1.ignoresSafeArea())
+            }
+        }
+        .navigationTitle("메이커 프로필")
+        .navigationBarTitleDisplayMode(.inline)
+        .task(id: normalizedHandle) { await resolve() }
+    }
+
+    private var normalizedHandle: String {
+        handle
+            .trimmingCharacters(in: CharacterSet(charactersIn: "@").union(.whitespacesAndNewlines))
+            .lowercased()
+    }
+
+    private var displayHandle: String? {
+        normalizedHandle.isEmpty ? nil : "@\(normalizedHandle)"
+    }
+
+    @MainActor
+    private func resolve() async {
+        guard !normalizedHandle.isEmpty else {
+            isLoading = false
+            errorMessage = "유효하지 않은 프로필 링크입니다."
+            return
+        }
+        isLoading = true
+        errorMessage = nil
+        do {
+            let snapshot = try await Firestore.firestore()
+                .collection("handles").document(normalizedHandle)
+                .getDocument()
+            guard let uid = snapshot.data()?["uid"] as? String, !uid.isEmpty else {
+                isLoading = false
+                errorMessage = "해당 유저네임의 프로필을 찾을 수 없어요."
+                return
+            }
+            resolvedUID = uid
+            isLoading = false
+        } catch {
+            isLoading = false
+            errorMessage = "프로필 링크를 확인하지 못했어요: \(error.localizedDescription)"
+        }
+    }
+}
+
 // MARK: - Preview
 
 #Preview("ProfileScreen — Light") {
