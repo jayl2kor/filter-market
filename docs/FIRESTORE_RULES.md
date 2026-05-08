@@ -281,6 +281,18 @@ match /users/{uid}/wallet/{doc} {
   allow read: if isOwner(uid);
   allow write: if false;
 }
+match /users/{uid}/savedFilters/{filterId} {
+  allow read: if isOwner(uid);
+  allow create, update: if isOwner(uid)
+    && request.resource.data.filterId == filterId;
+  allow delete: if isOwner(uid);
+}
+match /users/{uid}/favorites/{filterId} {
+  allow read: if isOwner(uid);
+  allow create, update: if isOwner(uid)
+    && request.resource.data.filterId == filterId;
+  allow delete: if isOwner(uid);
+}
 match /users/{uid}/walletLedger/{entryId} {
   allow read: if isOwner(uid);
   allow write: if false;

@@ -282,6 +282,34 @@ const suite = describe(
       }
     });
 
+    it("allows owners to sync saved filters and favorites only under their uid", async () => {
+      const owner = env.authenticatedContext("u-sync");
+      const stranger = env.authenticatedContext(STRANGER_UID);
+
+      await assertSucceeds(
+        owner.firestore().doc("users/u-sync/savedFilters/filter-a").set({
+          filterId: "filter-a",
+          savedAt: new Date(),
+        })
+      );
+      await assertSucceeds(
+        owner.firestore().doc("users/u-sync/favorites/filter-a").set({
+          filterId: "filter-a",
+          favoritedAt: new Date(),
+        })
+      );
+
+      await assertFails(
+        owner.firestore().doc("users/u-sync/favorites/filter-b").set({
+          filterId: "filter-a",
+          favoritedAt: new Date(),
+        })
+      );
+      await assertFails(
+        stranger.firestore().doc("users/u-sync/savedFilters/filter-a").delete()
+      );
+    });
+
     it("scopes block edges to the calling actor", async () => {
       const actor = env.authenticatedContext("u-blocker");
       await assertSucceeds(

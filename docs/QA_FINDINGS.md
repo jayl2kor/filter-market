@@ -45,6 +45,8 @@
 | 2026-05-09 | `npm --prefix functions run test:rules` | PASS after wallet/pro/refund rules hardening (#136), 12 tests |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after FirebaseAppCheck iOS provider wiring (#137) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after notifications inbox QA batch (#216/#217/#218/#239/#240/#243) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after saved/favorites/wallet reconcile batch (#219/#220/#249) |
+| 2026-05-09 | `npm --prefix functions run test:rules` | PASS after savedFilters/favorites owner rules, 13 tests |
 
 ## Remaining Manual QA Gates
 
@@ -80,5 +82,7 @@
 | Wallet security rules | Wallet, ledger, entitlements, Pro status, and refund request subcollections are owner-read/server-write only. | Emulator rules tests pass; production Firebase rules deploy remains a release gate. |
 | Pro subscription verifier | Pro receipts are now idempotent, owner-scoped, and expired/revoked JWS metadata maps to inactive Pro state. | StoreKit sandbox renewal/cancel manual QA remains required. |
 | Notifications inbox | Notification rows now compute relative time/buckets from `createdAt`, expose literal Korean labels instead of unresolved keys, support older-page loading, and surface markRead/follow errors. | Firebase QA should seed 100+ notifications and verify load-more, badge count, read state, and follow edge writes. |
+| Saved/favorites state | Saved filters and favorites now sync through `/users/{uid}/savedFilters` and `/users/{uid}/favorites` snapshot listeners with optimistic rollback on failed remove/favorite writes. | Firebase QA should verify download, favorite toggle, remove download, app relaunch, and second-device sync under the same uid. |
+| Wallet optimistic reconcile | Coin credit optimism now falls back to a direct wallet balance reload if the listener does not reconcile within 10 seconds. | StoreKit/Firebase QA should verify top-up UI immediately changes, then converges to `/users/{uid}/wallet/balance.value`. |
 | Payout | Current screens are marked `MockOnly`; automated QA verifies placeholder surfaces, not real Stripe payout behavior. | Keep hidden/controlled until payout backend scope is defined. |
 | Firebase-backed mutations | Several screens expose state and action contracts, but production write/read behavior still depends on real Firebase setup. | Run manual QA with seeded Firebase project before release. |

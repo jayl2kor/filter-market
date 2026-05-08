@@ -224,6 +224,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | Push 권한 요청이 앱 시작 시 발생 가능 | 첫 실행 UX 회귀 | Onboarding/Login 전 알림 prompt 발생 여부 |
 | Payout은 closed-loop coin 정책상 후순위 | 불필요한 진입점 노출 위험 | 사용자가 볼 수 있는 entry point인지 확인 |
 | StoreKit/Google/Apple sign-in은 sandbox/실기기 의존 | 시뮬레이터만으로 검증 불가 | 실기기 QA checklist 별도 표시 |
+| 저장/즐겨찾기 사용자 상태 | `/users/{uid}/savedFilters`, `/users/{uid}/favorites` snapshot listener가 단일 출처 | 동일 uid 재실행/다른 디바이스 동기화와 실패 rollback 확인 |
 
 ## 8. Definition Gate Before QA
 
@@ -294,6 +295,8 @@ QA를 시작하기 전 반드시 아래 순서로 정의를 고정한다.
 | 2026-05-09 | `npm --prefix functions run test:rules` | PASS after wallet/pro/refund rules hardening (#136), 12 tests |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after FirebaseAppCheck iOS provider wiring (#137) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after notifications inbox QA batch (#216/#217/#218/#239/#240/#243) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after saved/favorites/wallet reconcile batch (#219/#220/#249) |
+| 2026-05-09 | `npm --prefix functions run test:rules` | PASS after savedFilters/favorites owner rules, 13 tests |
 
 ## 10. Definition of Done
 

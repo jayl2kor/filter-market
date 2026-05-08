@@ -279,6 +279,8 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 9.3 | 다운로드된 타일 (`saved.tile.<UUID>`) | → AppRoute.filterDetail |  |
 | 9.4 | "기본 필터" (toolbar) | → AppRoute.builtinFilters |  |
 | 9.5 | First-appear skeleton | 약 0.5s 후 실데이터로 교체 |  |
+| 9.6 | 다운로드 직후 앱 재실행 | `/users/{uid}/savedFilters` listener로 같은 필터가 다시 표시 |  |
+| 9.7 | 다운로드 제거 | `/users/{uid}/savedFilters/{filterId}`와 `/users/{uid}/favorites/{filterId}` delete 성공 후 저장/즐겨찾기 상태 제거. 실패 시 rollback + alert |  |
 
 ---
 
@@ -451,6 +453,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 13.2.9 | `.walletTopup` | `wallet.topup.package.com.jayl2kor.moodit.coins.3000` | 3000C StoreKit purchase (sandbox/local StoreKit config 필요) |  |
 | 13.2.10 | `.walletTopup` | `wallet.topup.restore` | StoreKit restore purchase (sandbox/local StoreKit config 필요) |  |
 | 13.2.11 | `.walletTopup` | `wallet.topup.failed_demo` | → paymentFailed |  |
+| 13.2.11b | `.walletTopup` | 결제 성공 직후 잔액 | optimistic balance 표시 후 Firestore listener 또는 10초 fallback reload로 `/users/{uid}/wallet/balance.value`와 일치 |  |
 | 13.2.12 | `.proSubscription` | `pro.plan.toggle` | 월간/연간 가격 표시 변경 |  |
 | 13.2.13 | `.proSubscription` | `pro.subscribe.com.jayl2kor.moodit.pro.monthly` | 월간 Pro StoreKit subscription (sandbox/local StoreKit config 필요) |  |
 | 13.2.14 | `.proSubscription` | `pro.subscribe.com.jayl2kor.moodit.pro.yearly` | 연간 Pro StoreKit subscription (sandbox/local StoreKit config 필요) |  |

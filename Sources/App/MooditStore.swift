@@ -374,7 +374,10 @@ final class MooditStore: ObservableObject {
     private var proStatusListener: ListenerRegistration?
     private var userDocListener: ListenerRegistration?
     private var notificationPrefsListener: ListenerRegistration?
+    private var savedFiltersListener: ListenerRegistration?
+    private var favoritesListener: ListenerRegistration?
     private var authStateHandle: AuthStateDidChangeListenerHandle?
+    private var optimisticCoinReconcileTask: Task<Void, Never>?
     /// Universal Link / push tap에서 도착한 라우트. RootShell이 관찰해 표시한다.
     /// 한 번 처리되면 nil로 리셋한다.
     @Published var pendingDeepLinkRoute: AppRoute?
@@ -416,10 +419,16 @@ final class MooditStore: ObservableObject {
         proStatusListener?.remove()
         userDocListener?.remove()
         notificationPrefsListener?.remove()
+        savedFiltersListener?.remove()
+        favoritesListener?.remove()
         walletListener = nil
         proStatusListener = nil
         userDocListener = nil
         notificationPrefsListener = nil
+        savedFiltersListener = nil
+        favoritesListener = nil
+        optimisticCoinReconcileTask?.cancel()
+        optimisticCoinReconcileTask = nil
 
         guard let uid else {
             // 로그아웃 / 미로그인 — 본인 스코프 모든 상태 즉시 정리.
@@ -449,6 +458,8 @@ final class MooditStore: ObservableObject {
                 guard let self else { return }
                 Task { @MainActor in
                     let value = (snapshot?.data()?["value"] as? Int) ?? 0
+                    self.optimisticCoinReconcileTask?.cancel()
+                    self.optimisticCoinReconcileTask = nil
                     self.coinBalance = value
                 }
             }
@@ -500,23 +511,29 @@ final class MooditStore: ObservableObject {
                     )
                 }
             }
-        // (#24) /users/{uid}/savedFilters — 1회 로드해서 downloadedFilterIDs로 합침.
-        // 다른 디바이스에서 다운로드한 필터도 SavedScreen에 표시.
-        Task { [weak self] in
-            do {
-                let snapshot = try await db.collection("users").document(uid)
-                    .collection("savedFilters")
-                    .limit(to: 500)
-                    .getDocuments()
-                let uuids = snapshot.documents.compactMap { UUID(uuidString: $0.documentID) }
-                await MainActor.run { [weak self] in
-                    guard let self else { return }
-                    self.downloadedFilterIDs.formUnion(uuids)
+        savedFiltersListener = db.collection("users").document(uid)
+            .collection("savedFilters")
+            .order(by: "savedAt", descending: true)
+            .limit(to: 500)
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self else { return }
+                Task { @MainActor in
+                    let uuids = snapshot?.documents.compactMap { UUID(uuidString: $0.documentID) } ?? []
+                    self.downloadedFilterIDs = Set(uuids)
                 }
-            } catch {
-                // silent — local downloadedFilterIDs는 그대로 유지.
             }
-        }
+
+        favoritesListener = db.collection("users").document(uid)
+            .collection("favorites")
+            .order(by: "favoritedAt", descending: true)
+            .limit(to: 500)
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self else { return }
+                Task { @MainActor in
+                    let uuids = snapshot?.documents.compactMap { UUID(uuidString: $0.documentID) } ?? []
+                    self.favoriteFilterIDs = Set(uuids)
+                }
+            }
     }
 
     var selectedFilter: Filter? {
@@ -610,25 +627,10 @@ final class MooditStore: ObservableObject {
     /// Firestore listener는 server 값으로 덮어쓰기 (비-가산)이라 중복 카운트 없음.
     func creditCoinsOptimistically(_ amount: Int) {
         coinBalance = max(0, coinBalance + amount)
-    }
-
-    /// /users/{uid}/savedFilters/{filterId} 저장/제거 (#24).
-    /// 비로그인 사용자나 Firebase 미설정 환경에서는 silent fail — local downloadedFilterIDs는 그대로 유지.
-    private func persistSavedFilter(filterId: Filter.ID, save: Bool) {
-        #if DEBUG
-        guard !isUITesting else { return }
-        #endif
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        let ref = Firestore.firestore()
-            .collection("users").document(uid)
-            .collection("savedFilters").document(filterId.uuidString)
-        if save {
-            ref.setData([
-                "filterId": filterId.uuidString,
-                "savedAt": FieldValue.serverTimestamp()
-            ], merge: true)
-        } else {
-            ref.delete()
+        optimisticCoinReconcileTask?.cancel()
+        optimisticCoinReconcileTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            await self?.forceReloadWalletBalance()
         }
     }
 
@@ -661,6 +663,61 @@ final class MooditStore: ObservableObject {
                         continuation.resume()
                     }
                 }
+            }
+        }
+    }
+
+    private func persistFavoriteAsync(filterId: Filter.ID, save: Bool) async throws {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let ref = Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("favorites").document(filterId.uuidString)
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            if save {
+                ref.setData([
+                    "filterId": filterId.uuidString,
+                    "favoritedAt": FieldValue.serverTimestamp()
+                ], merge: true) { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            } else {
+                ref.delete { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+    }
+
+    private func forceReloadWalletBalance() async {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        do {
+            let snapshot = try await Firestore.firestore()
+                .collection("users").document(uid)
+                .collection("wallet").document("balance")
+                .getDocument()
+            let value = (snapshot.data()?["value"] as? Int) ?? 0
+            await MainActor.run {
+                self.coinBalance = value
+                self.optimisticCoinReconcileTask = nil
+            }
+        } catch {
+            await MainActor.run {
+                self.lastPaymentErrorMessage = "잔액 동기화 실패: \(error.localizedDescription)"
             }
         }
     }
@@ -704,19 +761,51 @@ final class MooditStore: ObservableObject {
     }
 
     func removeDownload(_ filter: Filter) {
+        let hadDownload = downloadedFilterIDs.contains(filter.id)
+        let hadFavorite = favoriteFilterIDs.contains(filter.id)
         downloadedFilterIDs.remove(filter.id)
         favoriteFilterIDs.remove(filter.id)
-        persistSavedFilter(filterId: filter.id, save: false)
+        Task { [weak self] in
+            do {
+                try await self?.persistSavedFilterAsync(filterId: filter.id, save: false)
+                try await self?.persistFavoriteAsync(filterId: filter.id, save: false)
+            } catch {
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    if hadDownload { self.downloadedFilterIDs.insert(filter.id) }
+                    if hadFavorite { self.favoriteFilterIDs.insert(filter.id) }
+                    self.lastSubmitErrorMessage = "저장 상태 동기화 실패: \(error.localizedDescription)"
+                }
+            }
+        }
         if selectedFilterID == filter.id {
             selectedFilterID = libraryFilters.first?.id ?? filters.first?.id
         }
     }
 
     func toggleFavorite(_ filter: Filter) {
+        let shouldSave: Bool
         if favoriteFilterIDs.contains(filter.id) {
             favoriteFilterIDs.remove(filter.id)
+            shouldSave = false
         } else {
             favoriteFilterIDs.insert(filter.id)
+            shouldSave = true
+        }
+        Task { [weak self] in
+            do {
+                try await self?.persistFavoriteAsync(filterId: filter.id, save: shouldSave)
+            } catch {
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    if shouldSave {
+                        self.favoriteFilterIDs.remove(filter.id)
+                    } else {
+                        self.favoriteFilterIDs.insert(filter.id)
+                    }
+                    self.lastSubmitErrorMessage = "즐겨찾기 동기화 실패: \(error.localizedDescription)"
+                }
+            }
         }
     }
 
