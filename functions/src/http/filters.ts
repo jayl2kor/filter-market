@@ -241,11 +241,65 @@ export const uploadFinalize = onCall(
   },
 );
 
+const submitForReviewSchema = z.object({
+  filterId: z.string().min(1).max(128),
+  tosOriginal: z.boolean(),
+  tosPolicy: z.boolean(),
+  tosCommercial: z.boolean(),
+});
+
+export interface SubmitForReviewDeps {
+  firestore?: Firestore;
+}
+
+export interface SubmitForReviewResult {
+  ok: true;
+  filterId: string;
+  status: "pending_review";
+}
+
+/** Pure logic — exported for tests. */
+export async function applySubmitForReview(
+  uid: string,
+  rawData: unknown,
+  deps: SubmitForReviewDeps = {},
+): Promise<SubmitForReviewResult> {
+  const parsed = submitForReviewSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId, tosOriginal, tosPolicy, tosCommercial } = parsed.data;
+  if (!tosOriginal || !tosPolicy || !tosCommercial) {
+    throw new HttpsError("failed-precondition", "tos_not_accepted");
+  }
+  const db = deps.firestore ?? getFirestore();
+  const ref = db.collection("filters").doc(filterId);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    throw new HttpsError("not-found", `filter ${filterId} not found`);
+  }
+  const data = snap.data() ?? {};
+  if (data.authorUid !== uid) {
+    throw new HttpsError("permission-denied", "not the filter owner");
+  }
+  if (data.status !== "pending_review_pre") {
+    throw new HttpsError("failed-precondition", `expected pending_review_pre, got ${data.status}`);
+  }
+  await ref.update({
+    status: "pending_review",
+    tosOriginal,
+    tosPolicy,
+    tosCommercial,
+    submittedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+  return { ok: true, filterId, status: "pending_review" };
+}
+
 /** POST /filters/{id}/submitForReview — see API_SPEC.md §5.3. */
 export const submitForReview = onCall({ region, cors: true }, async (req: CallableRequest) => {
-  requireAuth(req);
-  // TODO: validate ToS acceptance, transition status → pending_review.
-  throw new HttpsError("unimplemented", "submitForReview not implemented");
+  const uid = requireAuth(req);
+  return applySubmitForReview(uid, req.data);
 });
 
 /** POST /filters/{id}/use — see API_SPEC.md §5.7. Cooldown enforced (1h) per (uid, filter). */
@@ -354,6 +408,8 @@ export async function applyGetFilterDetail(
 export const getFilterDetail = onCall(
   { region, cors: true, secrets: r2Secrets },
   async (req: CallableRequest) => {
+    // (#46) 유료 필터 R2 presigned URL을 비인증 사용자에게 노출하지 않도록 인증 강제.
+    requireAuth(req);
     return applyGetFilterDetail(req.data);
   },
 );

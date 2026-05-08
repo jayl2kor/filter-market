@@ -192,7 +192,7 @@ describe("applyProSubscriptionUpdate", () => {
     const result = await applyProSubscriptionUpdate(
       "u-1",
       { originalTransactionId: "tx-1", productId: "com.jayl2kor.moodit.pro.monthly", signedJWS: "x" },
-      { firestore },
+      { firestore, verifyReceipt: async () => true },
     );
     assert.equal(result.active, true);
     assert.equal(firestore._data.get("users/u-1/proStatus/status").active, true);
@@ -204,7 +204,7 @@ describe("applyProSubscriptionUpdate", () => {
       () => applyProSubscriptionUpdate(
         "u-1",
         { originalTransactionId: "tx-1", productId: "com.jayl2kor.moodit.coins.100", signedJWS: "x" },
-        { firestore },
+        { firestore, verifyReceipt: async () => true },
       ),
       (err) => err && err.code === "invalid-argument",
     );

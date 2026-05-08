@@ -156,7 +156,11 @@ export async function applyCreditCoinsFromIAP(
     throw new HttpsError("invalid-argument", `unknown_product: ${productId}`);
   }
 
-  const verifier = deps.verifyReceipt ?? (async () => true);
+  // (#46) Production 안전 가드 — 검증기 미주입이면 즉시 throw.
+  // 테스트는 deps.verifyReceipt를 명시적 주입해야 함.
+  const verifier = deps.verifyReceipt ?? (async (): Promise<boolean> => {
+    throw new HttpsError("internal", "receipt_verifier_not_configured");
+  });
   const verified = await verifier(signedJWS, productId);
   if (!verified) {
     throw new HttpsError("permission-denied", "receipt_verification_failed");
@@ -172,6 +176,12 @@ export async function applyCreditCoinsFromIAP(
     const currentBalance = ((balanceSnap.data()?.value as number | undefined) ?? 0);
 
     if (receiptSnap.exists) {
+      // (#48) 동일 originalTransactionId 재호출 — 첫 claim한 uid와 일치하는지 확인.
+      // 다른 uid가 같은 receipt를 claim하려 하면 차단 (정상 흐름에선 JWS가 막아주지만 defensive).
+      const receiptOwner = receiptSnap.data()?.uid as string | undefined;
+      if (receiptOwner && receiptOwner !== uid) {
+        throw new HttpsError("permission-denied", "receipt_belongs_to_another_user");
+      }
       return {
         ok: true,
         productId,
@@ -238,15 +248,26 @@ export interface ProSubscriptionResult {
 export async function applyProSubscriptionUpdate(
   uid: string,
   rawData: unknown,
-  deps: { firestore?: Firestore } = {},
+  deps: {
+    firestore?: Firestore;
+    verifyReceipt?: (jws: string, productId: string) => Promise<boolean>;
+  } = {},
 ): Promise<ProSubscriptionResult> {
   const parsed = proSubSchema.safeParse(rawData);
   if (!parsed.success) {
     throw new HttpsError("invalid-argument", parsed.error.message);
   }
-  const { productId } = parsed.data;
+  const { productId, signedJWS } = parsed.data;
   if (!PRO_PRODUCT_IDS.has(productId)) {
     throw new HttpsError("invalid-argument", `not_a_pro_sku: ${productId}`);
+  }
+  // (#46) JWS 검증 — 검증기 미주입 시 즉시 throw로 production 안전.
+  const verifier = deps.verifyReceipt ?? (async (): Promise<boolean> => {
+    throw new HttpsError("internal", "receipt_verifier_not_configured");
+  });
+  const verified = await verifier(signedJWS, productId);
+  if (!verified) {
+    throw new HttpsError("permission-denied", "receipt_verification_failed");
   }
   const db = deps.firestore ?? getFirestore();
   const ref = db.collection("users").doc(uid).collection("proStatus").doc("status");
