@@ -247,7 +247,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 |---|---|---|---|
 | 8.1.1 | 닫기 (`preview.dismiss`) | onRetake() + dismiss |  |
 | 8.1.2 | ··· more (`preview.more`) | ConfirmationDialog: 사진 정보 / 다른 필터로 적용 / 메타데이터 복사 / 취소 |  |
-| 8.1.3 | "저장" (`preview.save`) | onSave → photoLibrarySaver.savePhoto |  |
+| 8.1.3 | "저장" (`preview.save`) | onSave → photoLibrarySaver.savePhoto 성공 후 `/users/{uid}/captures` metadata 생성 |  |
 | 8.1.4 | "공유" (`preview.share`) | onShare → ShareSheet (mock) |  |
 | 8.1.5 | "재촬영" (`preview.retake`) | onRetake → CameraScreen으로 |  |
 | 8.1.6 | "필터 변경" (`preview.changeFilter`) | onChangeFilter (필터 선택 UI 또는 카메라로) |  |

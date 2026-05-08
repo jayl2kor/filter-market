@@ -1,5 +1,7 @@
 import Camera
 import DesignSystem
+import FirebaseAuth
+import FirebaseFirestore
 import FilterEngine
 import Marketplace
 import Models
@@ -896,11 +898,31 @@ private struct CapturePreviewHost: View {
         saveState = next
         switch next {
         case .saved:
+            await persistCaptureMetadata()
             FMHaptic.success.play()
         case .permissionDenied, .permissionRestricted, .permissionNotDetermined, .invalidData, .failed:
             FMHaptic.error.play()
         case .idle, .saving:
             break
+        }
+    }
+
+    private func persistCaptureMetadata() async {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        do {
+            try await Firestore.firestore()
+                .collection("users").document(uid)
+                .collection("captures").document()
+                .setData([
+                    "filterId": result.filter.id.uuidString,
+                    "filterTitle": result.filter.title,
+                    "intensityPercent": Int((result.filteredPhoto.configuration.intensity.value * 100).rounded()),
+                    "aspect": result.cropAspectRatio.label,
+                    "source": "camera",
+                    "createdAt": FieldValue.serverTimestamp()
+                ])
+        } catch {
+            // Photo save already succeeded; captures sync can retry through a later save.
         }
     }
 }

@@ -173,6 +173,21 @@ service cloud.firestore {
         allow delete: if isOwner(uid);
       }
 
+      match /captures/{captureId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.keys().hasOnly(['filterId', 'filterTitle', 'intensityPercent', 'aspect', 'source', 'createdAt'])
+          && isValidString(request.resource.data.filterId, 1, 128)
+          && isValidString(request.resource.data.filterTitle, 1, 120)
+          && request.resource.data.intensityPercent is int
+          && request.resource.data.intensityPercent >= 0
+          && request.resource.data.intensityPercent <= 100
+          && isValidString(request.resource.data.aspect, 1, 32)
+          && request.resource.data.source == "camera";
+        allow update: if false;
+        allow delete: if isOwner(uid);
+      }
+
       match /exportRequests/{requestId} {
         allow read: if isOwner(uid);
         allow create: if isOwner(uid)

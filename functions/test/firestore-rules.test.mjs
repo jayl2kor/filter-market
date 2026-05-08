@@ -356,6 +356,36 @@ const suite = describe(
       await assertSucceeds(ref.delete());
     });
 
+    it("allows owners to create camera capture metadata only under their uid", async () => {
+      const owner = env.authenticatedContext("u-captures");
+      const stranger = env.authenticatedContext(STRANGER_UID);
+      const ref = owner.firestore().doc("users/u-captures/captures/c-1");
+
+      await assertSucceeds(
+        ref.set({
+          filterId: "filter-a",
+          filterTitle: "Cafe Tone",
+          intensityPercent: 80,
+          aspect: "4:5",
+          source: "camera",
+          createdAt: new Date(),
+        })
+      );
+      await assertSucceeds(ref.get());
+      await assertFails(stranger.firestore().doc("users/u-captures/captures/c-1").get());
+      await assertFails(
+        owner.firestore().doc("users/u-captures/captures/bad").set({
+          filterId: "filter-a",
+          filterTitle: "Cafe Tone",
+          intensityPercent: 180,
+          aspect: "4:5",
+          source: "camera",
+          createdAt: new Date(),
+        })
+      );
+      await assertSucceeds(ref.delete());
+    });
+
     it("allows owners to create and read data export requests only under their uid", async () => {
       const owner = env.authenticatedContext("u-export");
       const stranger = env.authenticatedContext(STRANGER_UID);
