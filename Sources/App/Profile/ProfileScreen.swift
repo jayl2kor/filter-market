@@ -43,6 +43,9 @@ struct ProfileScreen: View {
     @State private var navigateToLogin = false
     @State private var shareSheetPayload: SharePayload?
     @State private var fetchedOtherUser: ProfileUser?
+    @State private var isOtherProfileLoading = false
+    @State private var isOtherProfileNotFound = false
+    @State private var otherProfileLoadError: String?
 
     init(user: ProfileUser? = nil) {
         self.injectedUser = user
@@ -60,9 +63,9 @@ struct ProfileScreen: View {
         if otherUid != nil, let other = fetchedOtherUser { return other }
         if otherUid == nil, let mine = profileStore.currentUserProfile { return mine }
         // 로드 전 placeholder.
-        return ProfileUser(
-            displayName: otherUid != nil ? "..." : "사용자",
-            handle: otherUid.map { "@" + String($0.prefix(8)) } ?? "@user",
+            return ProfileUser(
+                displayName: otherUid != nil ? "..." : "사용자",
+                handle: otherUid.map { "@" + String($0.prefix(8)) } ?? "@user",
             bio: "",
             avatarInitials: "··",
             filterCount: 0,
@@ -74,17 +77,27 @@ struct ProfileScreen: View {
 
     private func loadOtherProfile() async {
         guard let uid = otherUid else { return }
+        isOtherProfileLoading = true
+        isOtherProfileNotFound = false
+        otherProfileLoadError = nil
         #if DEBUG
         if isUITesting {
             fetchedOtherUser = .other
+            isOtherProfileLoading = false
             return
         }
         #endif
         do {
             let snap = try await Firestore.firestore().collection("users").document(uid).getDocument()
-            guard let data = snap.data() else { return }
+            guard snap.exists, let data = snap.data() else {
+                fetchedOtherUser = nil
+                isOtherProfileNotFound = true
+                isOtherProfileLoading = false
+                return
+            }
             let displayName = (data["displayName"] as? String) ?? "사용자"
-            let handle = (data["handle"] as? String) ?? "@" + String(uid.prefix(8))
+            let rawHandle = (data["handle"] as? String) ?? String(uid.prefix(8))
+            let handle = ProfileSelfStore.displayHandle(from: rawHandle)
             let bio = (data["bio"] as? String) ?? ""
             let initials = String(displayName.prefix(2)).uppercased()
             let followerCount = (data["followerCount"] as? Int) ?? 0
@@ -100,14 +113,20 @@ struct ProfileScreen: View {
                 followingCount: followingCount,
                 isOwnProfile: false
             )
+            isOtherProfileLoading = false
         } catch {
-            // 로드 실패 — placeholder 유지.
+            fetchedOtherUser = nil
+            otherProfileLoadError = error.localizedDescription
+            isOtherProfileLoading = false
         }
     }
 
     /// 시뮬레이션: 첫 진입 시 짧은 로딩 후 그리드 표시.
     private var isLoading: Bool {
-        !hasAppeared
+        if otherUid != nil {
+            return isOtherProfileLoading && fetchedOtherUser == nil && !isOtherProfileNotFound && otherProfileLoadError == nil
+        }
+        return !hasAppeared
     }
 
     var body: some View {
@@ -183,47 +202,54 @@ struct ProfileScreen: View {
     private var authenticatedBody: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    profileHead
+                if shouldShowOtherProfileError {
+                    otherProfileErrorState
                         .padding(.horizontal, Sp.md)
-                        .padding(.top, Sp.md)
-
-                    statsRow
-                        .padding(.horizontal, Sp.md)
-                        .padding(.top, Sp.md)
-
-                    actionsRow
-                        .padding(.horizontal, Sp.md)
-                        .padding(.top, Sp.md)
-
-                    if user.isOwnProfile {
-                        profileShortcuts
+                        .padding(.top, Sp.xxxl)
+                        .frame(maxWidth: .infinity)
+                } else {
+                    VStack(alignment: .leading, spacing: 0) {
+                        profileHead
                             .padding(.horizontal, Sp.md)
-                            .padding(.top, Sp.sm)
+                            .padding(.top, Sp.md)
+
+                        statsRow
+                            .padding(.horizontal, Sp.md)
+                            .padding(.top, Sp.md)
+
+                        actionsRow
+                            .padding(.horizontal, Sp.md)
+                            .padding(.top, Sp.md)
+
+                        if user.isOwnProfile {
+                            profileShortcuts
+                                .padding(.horizontal, Sp.md)
+                                .padding(.top, Sp.sm)
+                        }
+
+                        segmentedRow
+                            .padding(.horizontal, Sp.md)
+                            .padding(.top, Sp.lg)
+                            .padding(.bottom, Sp.md)
+
+                        if isLoading {
+                            loadingGrid
+                                .padding(.horizontal, Sp.md)
+                        } else if currentItems.isEmpty {
+                            emptyState
+                                .padding(.top, Sp.xxl)
+                        } else {
+                            contentGrid
+                                .padding(.horizontal, Sp.md)
+                        }
                     }
-
-                    segmentedRow
-                        .padding(.horizontal, Sp.md)
-                        .padding(.top, Sp.lg)
-                        .padding(.bottom, Sp.md)
-
-                    if isLoading {
-                        loadingGrid
-                            .padding(.horizontal, Sp.md)
-                    } else if currentItems.isEmpty {
-                        emptyState
-                            .padding(.top, Sp.xxl)
-                    } else {
-                        contentGrid
-                            .padding(.horizontal, Sp.md)
-                    }
+                    .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
                 }
-                .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
             }
             .background(FMColors.Background.bg0)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text(user.handle)
+                    Text(shouldShowOtherProfileError ? "프로필" : user.handle)
                         .fmTypography(.headline)
                         .foregroundStyle(FMColors.Text.primary)
                 }
@@ -236,13 +262,18 @@ struct ProfileScreen: View {
             .appRouteDestinations()
         }
         .task {
-            profileStore.start()
-            await loadOtherProfile()
+            if otherUid == nil {
+                profileStore.start()
+            } else {
+                await loadOtherProfile()
+            }
             // hasAppeared 즉시 true — 데이터 listener가 도착하면 자동 갱신. (#18 hardcoded 250ms sleep 제거)
             hasAppeared = true
         }
         .onDisappear {
-            profileStore.stop()
+            if otherUid == nil {
+                profileStore.stop()
+            }
         }
         .sheet(item: $shareSheetPayload) { payload in
             ShareSheet(activityItems: payload.items)
@@ -252,6 +283,38 @@ struct ProfileScreen: View {
     private func profileShareURL() -> URL {
         let handle = user.handle.replacingOccurrences(of: "@", with: "")
         return URL(string: "https://moodit.app/u/\(handle)") ?? URL(string: "https://moodit.app")!
+    }
+
+    private var shouldShowOtherProfileError: Bool {
+        otherUid != nil && (isOtherProfileNotFound || otherProfileLoadError != nil)
+    }
+
+    private var otherProfileErrorState: some View {
+        VStack(spacing: Sp.md) {
+            Image(systemName: isOtherProfileNotFound ? "person.crop.circle.badge.questionmark" : "wifi.exclamationmark")
+                .font(.system(size: 44, weight: .regular))
+                .foregroundStyle(FMColors.Text.tertiary)
+                .frame(width: 96, height: 96)
+                .background(FMColors.Background.bg2, in: Circle())
+
+            VStack(spacing: Sp.xs) {
+                Text(isOtherProfileNotFound ? "사용자를 찾을 수 없어요" : "프로필을 불러오지 못했어요")
+                    .fmTypography(.title)
+                    .foregroundStyle(FMColors.Text.primary)
+                Text(otherProfileLoadError ?? "삭제되었거나 접근할 수 없는 프로필입니다.")
+                    .fmTypography(.body)
+                    .foregroundStyle(FMColors.Text.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            if !isOtherProfileNotFound {
+                FMButton("다시 시도", variant: .primary, size: .md) {
+                    Task { await loadOtherProfile() }
+                }
+                .accessibilityIdentifier("profile.other.retry")
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Head

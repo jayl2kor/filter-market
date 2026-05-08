@@ -370,6 +370,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 11.1.9 | (other) 차단 버튼 | confirmation → block |  |
 | 11.1.10 | `profile.tile.myFilters.*` | title 문자열이 아니라 `filter.id.uuidString`으로 상세 진입 |  |
 | 11.1.11 | `profile.tile.captures.*` | capture document ID를 filterDetail로 보내지 않고 capture detail 화면 표시 |  |
+| 11.1.12 | (other) 없는 uid / fetch 실패 | 없는 uid는 not-found 안내, 네트워크 실패는 retry CTA 표시. placeholder `...`가 영구 노출되지 않음 |  |
 
 ### 11.2 EditProfileScreen — `.editProfile`
 

@@ -165,8 +165,10 @@ final class ProfileSelfStore: ObservableObject {
             ?? authUser.displayName
             ?? authUser.email?.split(separator: "@").first.map(String.init)
             ?? "사용자"
-        let handle = (doc?["handle"] as? String)
-            ?? "@" + (authUser.email?.split(separator: "@").first.map(String.init) ?? authUser.uid.prefix(8).description)
+        let rawHandle = (doc?["handle"] as? String)
+            ?? authUser.email?.split(separator: "@").first.map(String.init)
+            ?? authUser.uid.prefix(8).description
+        let handle = displayHandle(from: rawHandle)
         let bio = (doc?["bio"] as? String) ?? ""
         let initials = String(displayName.prefix(2)).uppercased()
         let followerCount = (doc?["followerCount"] as? Int) ?? 0
@@ -181,5 +183,12 @@ final class ProfileSelfStore: ObservableObject {
             followingCount: followingCount,
             isOwnProfile: true
         )
+    }
+
+    static func displayHandle(from rawValue: String) -> String {
+        let normalized = rawValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "@", with: "")
+        return normalized.isEmpty ? "@user" : "@\(normalized)"
     }
 }
