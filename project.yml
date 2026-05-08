@@ -23,6 +23,9 @@ packages:
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk
     from: "11.0.0"
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: "8.0.0"
 
 targets:
   moodit:
@@ -47,12 +50,22 @@ targets:
         product: FirebaseFirestore
       - package: Firebase
         product: FirebaseFunctions
+      - package: Firebase
+        product: FirebaseMessaging
+      - package: GoogleSignIn
+        product: GoogleSignIn
+      - package: GoogleSignIn
+        product: GoogleSignInSwift
     settings:
       base:
         # Bundle ID matches GoogleService-Info.plist (Firebase project: moodit-a9e7a).
         # Firebase only validates the main app's bundle ID; frameworks use com.moodit.*.
         PRODUCT_BUNDLE_IDENTIFIER: com.jayl2kor.moodit.app
         INFOPLIST_FILE: Sources/App/Info.plist
+        # APNs entitlements (Apple Sign In + aps-environment).
+        # Production builds need aps-environment: production — switch this file
+        # or add a release variant before App Store / TestFlight external.
+        CODE_SIGN_ENTITLEMENTS: mooditDebug.entitlements
         # 브랜드 자산 — Phase Brand 통합. Asset Catalog 위치: Sources/App/Resources/Assets.xcassets.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     postBuildScripts:
@@ -118,6 +131,7 @@ targets:
       - Sources/Marketplace
     dependencies:
       - target: Models
+      - target: FilterEngine
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.moodit.Marketplace
@@ -195,6 +209,22 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
 
+  AppTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - Tests/AppTests
+    dependencies:
+      - target: moodit
+    settings:
+      base:
+        # Host the app so @testable import moodit works on App-target code
+        # like UniversalLinkParser. AppUITests above is for UI / black-box flows.
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/moodit.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/moodit
+        BUNDLE_LOADER: $(TEST_HOST)
+        GENERATE_INFOPLIST_FILE: YES
+
   AppUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -218,4 +248,5 @@ schemes:
         - CameraTests
         - FilterEngineTests
         - MarketplaceTests
+        - AppTests
         - AppUITests

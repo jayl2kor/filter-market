@@ -1,7 +1,12 @@
+import FirebaseAuth
+import FirebaseFirestore
 import Foundation
 import FilterEngine
 import Marketplace
 import Models
+
+// Disambiguate from FirebaseFirestore.Filter (which is bridged from FIRFilter).
+typealias Filter = Models.Filter
 
 enum CameraTimerOption: Int, CaseIterable, Identifiable, Hashable {
     case off = 0
@@ -133,7 +138,7 @@ struct DataExportRequest: Identifiable, Equatable {
 struct NotificationPreferences: Equatable {
     var systemEnabled = true
     var social = true
-    var comments = true
+    var reviews = true
     var marketplace = true
     var creator = true
     var wallet = true
@@ -346,11 +351,72 @@ final class MooditStore: ObservableObject {
     @Published private(set) var loadError: Error?
     /// 로드 진행 상태. skeleton vs 에러 vs 빈 상태 분기에 사용.
     @Published private(set) var isLoading = false
+    /// 마켓 트렌딩 — useCount 내림차순. 비어 있으면 FMEmptyState.
+    @Published private(set) var trendingFilters: [Filter] = []
+    /// 마켓 신규 — createdAt 내림차순. 비어 있으면 FMEmptyState.
+    @Published private(set) var newFiltersList: [Filter] = []
+    /// 코인 잔액 — Firestore /users/{uid}/wallet/balance.value 미러.
+    /// `subscribeToWallet()` 호출 시 실시간 갱신.
+    @Published private(set) var coinBalance: Int = 0
+    /// Pro 멤버십 활성화 여부 — /users/{uid}/proStatus.active 미러.
+    @Published private(set) var isProActive: Bool = false
+
+    private var walletListener: ListenerRegistration?
+    private var proStatusListener: ListenerRegistration?
+    private var authStateHandle: AuthStateDidChangeListenerHandle?
+    /// Universal Link / push tap에서 도착한 라우트. RootShell이 관찰해 표시한다.
+    /// 한 번 처리되면 nil로 리셋한다.
+    @Published var pendingDeepLinkRoute: AppRoute?
 
     private let repository: any FilterRepository
 
     init(repository: any FilterRepository = BundleSeedFilterRepository()) {
         self.repository = repository
+    }
+
+    // MooditStore lives the entire app lifetime so explicit deinit cleanup is
+    // not required. Swift 6 strict concurrency disallows touching non-Sendable
+    // ListenerRegistration / AuthStateDidChangeListenerHandle from a nonisolated
+    // deinit, so we rely on app termination to drop the listeners.
+
+    // MARK: - Wallet
+
+    /// 로그인 상태 변화에 따라 /users/{uid}/wallet 와 /users/{uid}/proStatus 리스너를 설치 / 해제.
+    /// 앱 진입 시 한 번만 호출하면 자동으로 추적.
+    func subscribeToWallet() {
+        guard authStateHandle == nil else { return } // idempotent
+        authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            guard let self else { return }
+            self.attachWalletListeners(uid: user?.uid)
+        }
+    }
+
+    private func attachWalletListeners(uid: String?) {
+        walletListener?.remove()
+        proStatusListener?.remove()
+        walletListener = nil
+        proStatusListener = nil
+
+        guard let uid else {
+            coinBalance = 0
+            isProActive = false
+            return
+        }
+        let db = Firestore.firestore()
+        walletListener = db.collection("users").document(uid)
+            .collection("wallet").document("balance")
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self else { return }
+                let value = (snapshot?.data()?["value"] as? Int) ?? 0
+                self.coinBalance = value
+            }
+        proStatusListener = db.collection("users").document(uid)
+            .collection("proStatus").document("status")
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self else { return }
+                let active = (snapshot?.data()?["active"] as? Bool) ?? false
+                self.isProActive = active
+            }
     }
 
     var selectedFilter: Filter? {
@@ -362,9 +428,9 @@ final class MooditStore: ObservableObject {
         filters.filter { downloadedFilterIDs.contains($0.id) }
     }
 
-    func load() async {
-        // 이미 정상 로드된 상태면 재호출 무시. 실패 후 retry 는 통과시킨다.
-        guard filters.isEmpty else { return }
+    func load(force: Bool = false) async {
+        // 이미 정상 로드된 상태면 재호출 무시. 실패 후 retry / pull-to-refresh 는 통과시킨다.
+        guard force || filters.isEmpty || loadError != nil else { return }
 
         isLoading = true
         loadError = nil
@@ -377,9 +443,23 @@ final class MooditStore: ObservableObject {
             if let firstFilter = loadedFilters.first {
                 downloadedFilterIDs.insert(firstFilter.id)
             }
+            // 트렌딩/신규 — repository의 default impl이 메모리 정렬, Firestore impl은 backend 정렬.
+            // 실패해도 listFilters 결과는 유지 (트렌딩/신규는 조용히 비움).
+            do {
+                trendingFilters = try await repository.trending(limit: 24)
+            } catch {
+                trendingFilters = []
+            }
+            do {
+                newFiltersList = try await repository.newFilters(limit: 24)
+            } catch {
+                newFiltersList = []
+            }
         } catch {
             loadError = error
             filters = []
+            trendingFilters = []
+            newFiltersList = []
         }
     }
 

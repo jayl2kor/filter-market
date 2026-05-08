@@ -38,10 +38,34 @@ struct RootShell: View {
         .environmentObject(store)
         .task {
             await store.load()
+            PushRegistration.shared.deepLinkHandler = { [weak store] route in
+                store?.pendingDeepLinkRoute = route
+            }
+            #if DEBUG
+            // UI test launch arg: `-deepLink <url>` simulates the URL arriving
+            // through `.onOpenURL` so PhaseAE2ETests can exercise the deep-link
+            // path without Springboard/Safari indirection.
+            if let url = uiTestingDeepLinkURL(),
+               let route = UniversalLinkParser.route(for: url) {
+                store.pendingDeepLinkRoute = route
+            }
+            #endif
         }
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraScreen(isPresentedAsCover: true)
                 .environmentObject(store)
+        }
+        .sheet(item: $store.pendingDeepLinkRoute) { route in
+            NavigationStack {
+                DeepLinkDestination(route: route)
+                    .appRouteDestinations()
+            }
+            .environmentObject(store)
+        }
+        .onOpenURL { url in
+            if let route = UniversalLinkParser.route(for: url) {
+                store.pendingDeepLinkRoute = route
+            }
         }
     }
 
@@ -61,4 +85,15 @@ struct RootShell: View {
             ProfileScreen()
         }
     }
+
+    #if DEBUG
+    /// Reads the `-deepLink <url>` launch argument from `ProcessInfo`.
+    /// Returns nil if the flag is missing, malformed, or the value is empty.
+    private func uiTestingDeepLinkURL() -> URL? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let flagIndex = args.firstIndex(of: "-deepLink"),
+              args.indices.contains(flagIndex + 1) else { return nil }
+        return URL(string: args[flagIndex + 1])
+    }
+    #endif
 }

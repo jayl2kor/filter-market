@@ -1,4 +1,5 @@
 import FirebaseCore
+import GoogleSignIn
 import SwiftUI
 import UIKit
 
@@ -9,7 +10,39 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         configureFirebaseIfAvailable()
+        PushRegistration.shared.bootstrap(application: application)
         return true
+    }
+
+    /// APNs hands the device token here; forward it to FirebaseMessaging via PushRegistration.
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        PushRegistration.shared.handleAPNsToken(deviceToken)
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        #if DEBUG
+        print("[Push] APNs registration failed: \(error.localizedDescription)")
+        #endif
+    }
+
+    /// OAuth callback handler. Google Sign-In gets first crack at the URL;
+    /// if it doesn't recognize the URL, returns `false` and SwiftUI's
+    /// `.onOpenURL` modifier downstream will route as a universal link.
+    func application(
+        _ application: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+    ) -> Bool {
+        if GIDSignIn.sharedInstance.handle(url) {
+            return true
+        }
+        return false
     }
 
     private func configureFirebaseIfAvailable() {
@@ -73,8 +106,8 @@ private enum UITestLaunchRoute: String {
     case builtinFilters
     case filterDownload
     case filterAfterDownload
-    case comments
-    case commentCompose
+    case reviews
+    case reviewCompose
     case rating
     case followers
     case following
@@ -127,10 +160,10 @@ private struct UITestLaunchHost: View {
             FilterDownloadProgressScreen(filterID: "Sunset 1973")
         case .filterAfterDownload:
             FilterAfterDownloadScreen(filterID: "Sunset 1973")
-        case .comments:
-            CommentsListScreen(filterID: "Sunset 1973")
-        case .commentCompose:
-            CommentComposeScreen(filterID: "Sunset 1973")
+        case .reviews:
+            ReviewsListScreen(filterID: "Sunset 1973")
+        case .reviewCompose:
+            ReviewComposeScreen(filterID: "Sunset 1973")
         case .rating:
             RatingFormScreen(filterID: "Sunset 1973")
         case .followers:
