@@ -157,7 +157,7 @@ struct MarketplaceScreen: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Sp.xs) {
-                    ForEach(MarketplaceMockData.categories, id: \.self) { category in
+                    ForEach(categoryChips, id: \.self) { category in
                         FMChip(
                             category,
                             isSelected: category == selectedCategory,
@@ -208,6 +208,7 @@ struct MarketplaceScreen: View {
     // 프로덕션은 빈 목록일 때 섹션 자체를 숨김.
     @ViewBuilder
     private var collectionsSection: some View {
+        #if DEBUG
         let entries = isUITesting ? MarketplaceMockData.collections : []
         if !entries.isEmpty {
             VStack(alignment: .leading, spacing: Sp.sm) {
@@ -226,6 +227,7 @@ struct MarketplaceScreen: View {
                 .padding(.horizontal, Sp.md)
             }
         }
+        #endif
     }
 
     // MARK: - Error
@@ -320,17 +322,11 @@ struct MarketplaceScreen: View {
     /// 카테고리 칩 라벨 (예: "Cinematic", "B&W") → `FilterCategory` enum.
     /// 매칭되는 카테고리가 없으면 nil — 그 경우 필터링하지 않고 전체 노출.
     private func filterCategory(for chip: String) -> FilterCategory? {
-        switch chip {
-        case "Cinematic": .cinematic
-        case "Vintage": .vintage
-        case "Pastel": .pastel
-        case "B&W": .bw
-        case "Portrait": .portrait
-        case "Food": .food
-        case "Travel": .travel
-        case "Mood": .mood
-        default: nil
-        }
+        FilterCategory.allCases.first { $0.displayTitle == chip }
+    }
+
+    private var categoryChips: [String] {
+        ["전체"] + FilterCategory.allCases.map(\.displayTitle)
     }
 
     private func sectionHeader(title: String, more: String?) -> some View {
@@ -363,7 +359,7 @@ struct MarketplaceScreen: View {
             description: "메이커가 직접 조정한 톤커브로, 일상의 순간을 한 단계 더 풍부한 분위기로 끌어올립니다. 강도 60~80% 에서 가장 자연스럽게 어울려요.",
             tags: ["#mood", "#daily", "#warm", "#analog"],
             sampleSymbols: ["photo", "photo.fill", "sun.max", "moon.stars", "leaf", "camera"],
-            reviews: FilterDetailMock.preview.reviews,
+            reviews: [],
             categoryHint: tile.categoryHint ?? FMColors.Category.cinematic,
             isPaid: tile.priceLabel != nil,
             priceLabel: tile.priceLabel
@@ -476,6 +472,7 @@ private struct FeaturedCard: View {
 
 // MARK: - CollectionCard
 
+#if DEBUG
 private struct CollectionCard: View {
     let entry: MarketplaceMockData.CollectionEntry
 
@@ -529,6 +526,7 @@ private struct CollectionCard: View {
         .frame(width: 64, height: 64)
     }
 }
+#endif
 
 // MARK: - Preview
 

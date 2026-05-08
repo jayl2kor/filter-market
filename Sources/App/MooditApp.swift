@@ -233,7 +233,7 @@ private struct UITestLaunchHost: View {
         case .search:
             SearchScreen(initialQuery: nil, initialCategory: nil)
         case .filterDetail:
-            FilterDetailScreen(mock: FilterDetailMock.mock(forRouteID: "Sunset 1973"))
+            FilterDetailScreen(mock: FilterDetailMock.mock(forRouteID: "sample-filter"))
         case .profile:
             ProfileScreen()
         case .otherProfile:
@@ -251,7 +251,7 @@ private struct UITestLaunchHost: View {
         case .walletTransactions:
             WalletTransactionsScreen()
         case .insufficientBalance:
-            InsufficientBalanceScreen(filterID: "Sunset 1973")
+            InsufficientBalanceScreen(filterID: "sample-filter")
         case .paymentFailed:
             PaymentFailedScreen()
         case .refundRequest:
@@ -270,7 +270,7 @@ private struct UITestLaunchHost: View {
             CameraScreen(isPresentedAsCover: false)
         case .capturePreview:
             CapturePreviewScreen(
-                filterName: "Sunset 1973",
+                filterName: "테스트 필터",
                 aspectRatio: "4:3",
                 intensityPercent: 72
             )
@@ -301,15 +301,15 @@ private struct UITestLaunchHost: View {
         case .builtinFilters:
             BuiltinFilterLibraryScreen()
         case .filterDownload:
-            FilterDownloadProgressScreen(filterID: "Sunset 1973")
+            FilterDownloadProgressScreen(filterID: "sample-filter")
         case .filterAfterDownload:
-            FilterAfterDownloadScreen(filterID: "Sunset 1973")
+            FilterAfterDownloadScreen(filterID: "sample-filter")
         case .reviews:
-            ReviewsListScreen(filterID: "Sunset 1973")
+            ReviewsListScreen(filterID: "sample-filter")
         case .reviewCompose:
-            ReviewComposeScreen(filterID: "Sunset 1973")
+            ReviewComposeScreen(filterID: "sample-filter")
         case .rating:
-            RatingFormScreen(filterID: "Sunset 1973")
+            RatingFormScreen(filterID: "sample-filter")
         case .followers:
             FollowersListScreen(userID: "me")
         case .following:
@@ -357,7 +357,7 @@ private struct UITestLaunchHost: View {
         case .remixFlow:
             RemixFlowScreen()
         case .paywallSingle:
-            PaywallSingleScreen(filterID: "Sunset 1973")
+            PaywallSingleScreen(filterID: "sample-filter")
         case .payoutOnboarding:
             PayoutOnboardingScreen()
         case .payoutTaxInfo:
@@ -367,7 +367,7 @@ private struct UITestLaunchHost: View {
         case .earningsWithdraw:
             EarningsWithdrawScreen()
         case .filterRejected:
-            FilterRejectedScreen(filterID: "Sunset 1973")
+            FilterRejectedScreen(filterID: "sample-filter")
         case .myFilters:
             MyFiltersScreen()
         }

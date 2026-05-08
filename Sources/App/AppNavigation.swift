@@ -94,12 +94,18 @@ extension View {
                 SearchScreen(initialQuery: initialQuery, initialCategory: category)
 
             case .filterDetail(let id):
-                // UUID 형식이면 Cloud Function getFilterDetail 호출 (로딩/에러 분기 포함).
-                // 비-UUID(레거시 mock 라우팅 호환)이면 mock 폴백.
                 if UUID(uuidString: id) != nil {
                     FilterDetailLoaderScreen(filterId: id)
                 } else {
-                    FilterDetailScreen(mock: FilterDetailMock.mock(forRouteID: id))
+                    #if DEBUG
+                    if isUITesting {
+                        FilterDetailScreen(mock: FilterDetailMock.mock(forRouteID: id))
+                    } else {
+                        FilterUnavailableScreen(filterID: id)
+                    }
+                    #else
+                    FilterUnavailableScreen(filterID: id)
+                    #endif
                 }
 
             case .settings:
@@ -547,7 +553,7 @@ extension AppRoute {
         case .notifications:
             [
                 .init("notif.settings", "알림 설정", systemImage: "gearshape", target: .notificationSettings),
-                .init("notif.tap", "필터 알림 열기", systemImage: "bell.badge", target: .filterDetail(id: "Sunset 1973")),
+                .init("notif.tap", "필터 알림 열기", systemImage: "bell.badge", target: .filterDetail(id: "sample-filter")),
                 .init("notif.follow.action", "팔로우 수락", systemImage: "person.badge.plus")
             ]
 
@@ -562,7 +568,7 @@ extension AppRoute {
             [
                 .init("maker.dashboard.withdraw", "출금 신청", systemImage: "banknote", target: .earningsWithdraw),
                 .init("maker.period.set", "기간 변경", systemImage: "calendar"),
-                .init("maker.filter.row", "필터 상세 보기", systemImage: "camera.filters", target: .filterDetail(id: "Sunset 1973"))
+                .init("maker.filter.row", "필터 상세 보기", systemImage: "camera.filters", target: .filterDetail(id: "sample-filter"))
             ]
 
         case .reportForm:
@@ -743,8 +749,8 @@ extension AppRoute {
 
         case .universalLinkLanding:
             [
-                .init("app.deeplink.confirm", "다운로드 + 카메라 열기", systemImage: "arrow.down.circle", target: .filterDownload(id: "Sunset 1973")),
-                .init("app.deeplink.detail", "상세 페이지", systemImage: "doc.text.magnifyingglass", target: .filterDetail(id: "Sunset 1973"))
+                .init("app.deeplink.confirm", "다운로드 + 카메라 열기", systemImage: "arrow.down.circle", target: .filterDownload(id: "sample-filter")),
+                .init("app.deeplink.detail", "상세 페이지", systemImage: "doc.text.magnifyingglass", target: .filterDetail(id: "sample-filter"))
             ]
 
         default:
@@ -947,7 +953,7 @@ struct ScreenWorkflowScaffold: View {
         case .modQueue, .modDetail, .filterRejected:
             [("7건", "신규 검수", "doc.badge.clock"), ("2건", "사용자 신고", "exclamationmark.bubble"), ("1건", "반려 대기", "xmark.seal"), ("자동", "우선순위", "wand.and.stars")]
         default:
-            [("Sunset 1973", "대표 필터", "camera.filters"), ("jisoo.films", "메이커", "person"), ("4.8", "평점", "star"), ("9.8K", "다운로드", "arrow.down.circle")]
+            [("준비 중", "콘텐츠", "camera.filters"), ("연결 예정", "데이터", "link"), ("-", "평점", "star"), ("-", "다운로드", "arrow.down.circle")]
         }
     }
 
@@ -981,6 +987,7 @@ struct ScreenWorkflowScaffold: View {
 
 extension FilterDetailMock {
     static func mock(forRouteID id: String) -> FilterDetailMock {
+        #if DEBUG
         let tiles = MarketplaceMockData.trending + MarketplaceMockData.newFilters
         guard let tile = tiles.first(where: { $0.title == id }) else {
             return .preview
@@ -998,10 +1005,40 @@ extension FilterDetailMock {
             description: "NAVIGATION.md 라우트에서 열린 필터입니다. 무료 다운로드, Coin 구매, 리뷰, 신고, 공유 흐름을 이 상세 화면에서 이어갈 수 있습니다.",
             tags: ["#mood", "#daily", "#route", "#moodit"],
             sampleSymbols: ["photo", "photo.fill", "sun.max", "moon.stars", "leaf", "camera"],
-            reviews: FilterDetailMock.preview.reviews,
+            reviews: [],
             categoryHint: tile.categoryHint ?? FMColors.Category.cinematic,
             isPaid: tile.priceLabel != nil,
             priceLabel: tile.priceLabel
         )
+        #else
+        FilterDetailMock(
+            displayTitle: id.isEmpty ? "필터" : id,
+            makerHandle: "@maker",
+            makerInitials: "M",
+            categoryLabel: "필터",
+            downloadCount: 0,
+            rating: 0,
+            reviewCount: 0,
+            likeCount: 0,
+            description: "필터 정보를 불러올 수 없습니다.",
+            tags: [],
+            sampleSymbols: ["photo"],
+            reviews: [],
+            categoryHint: FMColors.Category.cinematic,
+            isPaid: false,
+            priceLabel: nil
+        )
+        #endif
+    }
+}
+
+struct FilterUnavailableScreen: View {
+    let filterID: String
+
+    var body: some View {
+        FMEmptyState(.noSearchResults(query: filterID.isEmpty ? "필터" : filterID))
+            .padding(Sp.xl)
+            .navigationTitle("필터를 찾을 수 없어요")
+            .navigationBarTitleDisplayMode(.inline)
     }
 }

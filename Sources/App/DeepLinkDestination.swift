@@ -16,7 +16,15 @@ struct DeepLinkDestination: View {
             if UUID(uuidString: id) != nil {
                 FilterDetailLoaderScreen(filterId: id)
             } else {
-                FilterDetailScreen(mock: FilterDetailMock.mock(forRouteID: id))
+                #if DEBUG
+                if isUITesting {
+                    FilterDetailScreen(mock: FilterDetailMock.mock(forRouteID: id))
+                } else {
+                    FilterUnavailableScreen(filterID: id)
+                }
+                #else
+                FilterUnavailableScreen(filterID: id)
+                #endif
             }
         case .reviews(let filterId):
             ReviewsListScreen(filterID: filterId)

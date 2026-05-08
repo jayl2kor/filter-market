@@ -14,7 +14,7 @@ enum SearchPhase: Hashable {
 
 /// 검색 화면용 인기 메이커 표시 모델.
 struct PopularMaker: Identifiable, Sendable {
-    let id = UUID()
+    let id: String
     let initials: String
     let handle: String
     let filterCount: Int
@@ -39,14 +39,6 @@ struct SearchScreen: View {
     private let suggestedKeywords = [
         "#골든아워", "#필름룩", "#씨네마틱", "#카페",
         "#포트레이트", "#모노톤", "#비비드", "#무드"
-    ]
-
-    private let popularMakers: [PopularMaker] = [
-        .init(initials: "JS", handle: "jisoo.films", filterCount: 24),
-        .init(initials: "AL", handle: "alex.lab", filterCount: 18),
-        .init(initials: "NS", handle: "noon.studio", filterCount: 31),
-        .init(initials: "AF", handle: "air.films", filterCount: 12),
-        .init(initials: "WH", handle: "warm.house", filterCount: 9)
     ]
 
     init(initialQuery: String? = nil, initialCategory: String? = nil) {
@@ -189,6 +181,7 @@ struct SearchScreen: View {
         }
         .padding(.horizontal, Sp.md)
         .padding(.vertical, Sp.md)
+        .accessibilityIdentifier("search.makers")
     }
 
     private func recentRow(term: String) -> some View {
@@ -263,14 +256,22 @@ struct SearchScreen: View {
                 .buttonStyle(.plain)
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: Sp.md) {
-                    ForEach(popularMakers) { maker in
-                        makerCell(maker)
-                            .accessibilityIdentifier("search.maker.\(maker.handle)")
+            if popularMakers.isEmpty {
+                Text("아직 인기 메이커 데이터가 없어요.")
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Text.tertiary)
+                    .padding(.vertical, Sp.xs)
+                    .accessibilityIdentifier("search.makers.empty")
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: Sp.md) {
+                        ForEach(popularMakers) { maker in
+                            makerCell(maker)
+                                .accessibilityIdentifier("search.maker.\(maker.id)")
+                        }
                     }
+                    .padding(.bottom, Sp.xs)
                 }
-                .padding(.bottom, Sp.xs)
             }
         }
         .padding(.horizontal, Sp.md)
@@ -278,7 +279,7 @@ struct SearchScreen: View {
     }
 
     private func makerCell(_ maker: PopularMaker) -> some View {
-        NavigationLink(value: AppRoute.otherProfile(uid: maker.handle)) {
+        NavigationLink(value: AppRoute.otherProfile(uid: maker.id)) {
             VStack(spacing: Sp.xs) {
                 FMAvatar(initials: maker.initials, size: .lg)
                     .overlay {
@@ -362,7 +363,7 @@ struct SearchScreen: View {
     }
 
     private func makerRow(_ maker: PopularMaker) -> some View {
-        NavigationLink(value: AppRoute.otherProfile(uid: maker.handle)) {
+        NavigationLink(value: AppRoute.otherProfile(uid: maker.id)) {
             HStack(spacing: Sp.sm) {
                 FMAvatar(initials: maker.initials, size: .sm)
                 VStack(alignment: .leading, spacing: 2) {
@@ -451,6 +452,39 @@ struct SearchScreen: View {
         guard !query.isEmpty else { return [] }
         let lower = query.lowercased()
         return popularMakers.filter { $0.handle.lowercased().contains(lower) }
+    }
+
+    private var popularMakers: [PopularMaker] {
+        let approved = store.filters.filter { $0.status == .approved }
+        let grouped = Dictionary(grouping: approved) { $0.author.uid }
+
+        return grouped.compactMap { uid, filters -> PopularMaker? in
+            guard let author = filters.first?.author else { return nil }
+            let displayName = author.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let handleSource = displayName.isEmpty ? uid : displayName
+            let initials = handleSource
+                .split(separator: " ")
+                .prefix(2)
+                .compactMap { $0.first }
+                .map(String.init)
+                .joined()
+                .uppercased()
+
+            return PopularMaker(
+                id: uid,
+                initials: initials.isEmpty ? "M" : initials,
+                handle: handleSource.hasPrefix("@") ? handleSource : "@\(handleSource)",
+                filterCount: filters.count
+            )
+        }
+        .sorted {
+            if $0.filterCount == $1.filterCount {
+                return $0.handle < $1.handle
+            }
+            return $0.filterCount > $1.filterCount
+        }
+        .prefix(5)
+        .map { $0 }
     }
 
     private func cancelSearch() {

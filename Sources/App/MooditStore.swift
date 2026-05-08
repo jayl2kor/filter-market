@@ -61,9 +61,9 @@ struct EditableProfile: Equatable {
     /// Preview / Xcode SwiftUI Preview 전용 — 실제 앱에서는 사용하지 않음.
     static let preview = EditableProfile(
         displayName: "강지수",
-        handle: "jisoo.films",
+        handle: "sample.maker",
         bio: "필름 카메라와 햇빛을 좋아합니다. 카페·여행·일상 위주로 필터를 만들어요.",
-        website: "https://jisoo.films",
+        website: "https://example.com",
         makerPageVisible: true,
         photoSharingAllowed: false,
         avatarVariant: 0

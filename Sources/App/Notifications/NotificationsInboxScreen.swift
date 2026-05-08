@@ -434,11 +434,11 @@ extension NotificationItem {
 
     static let mock: [NotificationItem] = [
         NotificationItem(
-            kind: .like(filterID: "Sunset 1973"),
+            kind: .like(filterID: "sample-filter"),
             body: AttributedSegments(segments: [
                 .strong("민지"),
                 .normal(" 외 12명이 "),
-                .strong("Sunset 1973"),
+                .strong("추천 필터"),
                 .normal("에 좋아요를 눌렀습니다")
             ]),
             relativeTime: "방금 전",
@@ -446,11 +446,11 @@ extension NotificationItem {
             isUnread: true
         ),
         NotificationItem(
-            kind: .review(filterID: "Sunset 1973"),
+            kind: .review(filterID: "sample-filter"),
             body: AttributedSegments(segments: [
                 .strong("Alex"),
                 .normal("가 "),
-                .strong("Sunset 1973"),
+                .strong("추천 필터"),
                 .normal("에 댓글을 남겼습니다 — \"Mid-tone에 살짝 마젠타가...\"")
             ]),
             relativeTime: "5분 전",
@@ -458,9 +458,9 @@ extension NotificationItem {
             isUnread: true
         ),
         NotificationItem(
-            kind: .download(filterID: "Sunset 1973"),
+            kind: .download(filterID: "sample-filter"),
             body: AttributedSegments(segments: [
-                .strong("Sunset 1973"),
+                .strong("추천 필터"),
                 .normal("이 오늘 "),
                 .strong("120회"),
                 .normal(" 다운로드되었습니다")

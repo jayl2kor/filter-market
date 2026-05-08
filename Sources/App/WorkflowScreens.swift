@@ -1237,7 +1237,7 @@ struct EditProfileScreen: View {
                                 handleStatus = .unchecked
                             }
                         ),
-                        placeholder: "jisoo.films"
+                        placeholder: "your.handle"
                     )
                     .accessibilityIdentifier("profile.edit.handle")
                     Button {
@@ -1331,12 +1331,12 @@ struct UniversalLinkLandingScreen: View {
                     VStack(alignment: .leading, spacing: Sp.md) {
                         landingThumbnail
                         VStack(alignment: .leading, spacing: Sp.xs) {
-                            Text("Sunset 1973")
+                            Text(landingFilterTitle)
                                 .fmTypography(.titleLarge)
                                 .foregroundStyle(FMColors.Text.primary)
                             HStack(spacing: Sp.xs) {
-                                FMAvatar(initials: "JS", size: .xs)
-                                Text("@jisoo.films")
+                                FMAvatar(initials: landingFilterInitials, size: .xs)
+                                Text(landingFilterAuthor)
                                     .fmTypography(.subhead)
                                     .foregroundStyle(FMColors.Text.secondary)
                                 Text("무료 필터")
@@ -1346,20 +1346,20 @@ struct UniversalLinkLandingScreen: View {
                                     .padding(.vertical, 4)
                                     .background(FMColors.Accent.bg, in: Capsule())
                             }
-                            Text("따뜻한 황혼과 필름 입자를 담은 추천 필터입니다.")
+                            Text("공유받은 필터 정보를 확인하고 앱에서 이어서 사용할 수 있습니다.")
                                 .fmTypography(.body)
                                 .foregroundStyle(FMColors.Text.secondary)
                         }
                     }
                 }
 
-                NavigationLink(value: AppRoute.filterDownload(id: "Sunset 1973")) {
+                NavigationLink(value: AppRoute.filterDownload(id: landingFilterID)) {
                     routeButton("다운로드 + 카메라 열기", icon: "arrow.down.circle")
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("app.deeplink.confirm")
 
-                NavigationLink(value: AppRoute.filterDetail(id: "Sunset 1973")) {
+                NavigationLink(value: AppRoute.filterDetail(id: landingFilterID)) {
                     HStack(spacing: Sp.xs) {
                         Image(systemName: "doc.text.magnifyingglass")
                         Text("상세 페이지 보기")
@@ -1393,7 +1393,7 @@ struct UniversalLinkLandingScreen: View {
 
     @ViewBuilder
     private var landingThumbnail: some View {
-        if let filter = store.filter(matching: "Sunset 1973") ?? store.filters.first {
+        if let filter = landingFilter {
             FilterThumbnail(filter: filter)
                 .frame(height: 180)
         } else {
@@ -1406,6 +1406,37 @@ struct UniversalLinkLandingScreen: View {
                         .foregroundStyle(FMColors.Text.tertiary)
                 }
         }
+    }
+
+    private var landingFilter: Filter? {
+        store.filters.first
+    }
+
+    private var landingFilterID: String {
+        landingFilter?.id.uuidString ?? ""
+    }
+
+    private var landingFilterTitle: String {
+        landingFilter?.title ?? "공유된 필터"
+    }
+
+    private var landingFilterAuthor: String {
+        guard let author = landingFilter?.author.displayName, !author.isEmpty else {
+            return "@maker"
+        }
+        return author.hasPrefix("@") ? author : "@\(author)"
+    }
+
+    private var landingFilterInitials: String {
+        let source = landingFilter?.author.displayName ?? "M"
+        let initials = source
+            .split(separator: " ")
+            .prefix(2)
+            .compactMap { $0.first }
+            .map(String.init)
+            .joined()
+            .uppercased()
+        return initials.isEmpty ? "M" : initials
     }
 }
 
@@ -3151,7 +3182,7 @@ struct PaywallSingleScreen: View {
 
     private func loadFilterDetail() async {
         if isUITesting {
-            filterTitle = "Sunset 1973"
+            filterTitle = "테스트 필터"
             priceCoins = 120
             loadError = nil
             return

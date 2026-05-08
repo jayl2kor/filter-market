@@ -21,7 +21,7 @@ struct ProfileUser: Sendable {
 extension ProfileUser {
     static let preview = ProfileUser(
         displayName: "강지수",
-        handle: "@jisoo.films",
+        handle: "@sample.maker",
         bio: "필름 카메라가 추억이 된 시대,\n디지털 위에 빛을 그립니다.",
         avatarInitials: "JS",
         filterCount: 24,
@@ -68,7 +68,7 @@ struct ProfileGridItem: Identifiable, Sendable {
 /// Profile 화면 — Phase D3 mock 표시 데이터.
 enum ProfileMockData {
     static let myFilters: [ProfileGridItem] = [
-        .init(title: "Sunset 1973", downloadCount: 2_400, categoryHint: FMColors.Category.vintage),
+        .init(title: "Sample Film", downloadCount: 2_400, categoryHint: FMColors.Category.vintage),
         .init(title: "Mono Soft", downloadCount: 1_800, categoryHint: FMColors.Category.monochrome),
         .init(title: "Teal Story", downloadCount: 3_100, categoryHint: FMColors.Category.cinematic),
         .init(title: "Honey Glow", downloadCount: 980, categoryHint: FMColors.Category.food),

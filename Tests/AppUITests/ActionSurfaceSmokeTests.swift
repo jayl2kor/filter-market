@@ -212,7 +212,7 @@ final class ActionSurfaceSmokeTests: XCTestCase {
     func testMarketplaceSupportPermissionAndPreviewSurfaces() {
         assertRoute("search", exposes: [
             "search.suggested.#골든아워",
-            "search.maker.jisoo.films"
+            "search.makers"
         ])
 
         assertRoute("filterDetail", exposes: [

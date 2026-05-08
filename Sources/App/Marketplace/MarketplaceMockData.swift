@@ -3,6 +3,8 @@ import Foundation
 import Models
 import SwiftUI
 
+#if DEBUG
+
 // MARK: - MarketplaceMockData
 
 /// 마켓 화면 — Phase D3 mock 표시 데이터.
@@ -21,8 +23,8 @@ enum MarketplaceMockData {
             categoryHint: FMColors.Category.cinematic
         ),
         FMFilterTileData(
-            title: "Sunset 1973",
-            makerName: "@jisoo.films",
+            title: "Sample Film",
+            makerName: "@sample.maker",
             downloadCount: 9_800,
             priceLabel: nil,
             categoryHint: FMColors.Category.vintage
@@ -76,7 +78,7 @@ enum MarketplaceMockData {
         ),
         FMFilterTileData(
             title: "Mono Soft",
-            makerName: "@jisoo.films",
+            makerName: "@sample.maker",
             downloadCount: 5_100,
             priceLabel: nil,
             categoryHint: FMColors.Category.monochrome
@@ -172,6 +174,8 @@ enum MarketplaceMockData {
     }
 }
 
+#endif
+
 // MARK: - FilterDetail mock
 
 /// 상세 화면 mock — `Filter` 도메인 모델만으로는 부족한 표시 정보(다운로드/리뷰/태그/샘플/댓글)를 보강.
@@ -207,9 +211,9 @@ struct FilterDetailMock: Sendable {
 extension FilterDetailMock {
     /// 샘플 default — 화면 단독 Preview / placeholder 용.
     static let preview = FilterDetailMock(
-        displayTitle: "Sunset 1973",
-        makerHandle: "@jisoo.films",
-        makerInitials: "JS",
+        displayTitle: "Sample Film",
+        makerHandle: "@sample.maker",
+        makerInitials: "SM",
         categoryLabel: "빈티지 · 시네마틱",
         downloadCount: 9_800,
         rating: 4.8,
@@ -273,7 +277,7 @@ extension FilterDetailMock {
             description: "메이커가 직접 조정한 톤커브로, 일상의 순간을 한 단계 더 풍부한 분위기로 끌어올립니다. 강도 60~80%에서 가장 자연스럽게 어울려요.",
             tags: ["#mood", "#golden", "#warm", "#daily"],
             sampleSymbols: ["photo", "photo.fill", "sun.max", "moon.stars", "leaf", "camera"],
-            reviews: FilterDetailMock.preview.reviews,
+            reviews: [],
             categoryHint: filter.category.swatch.first ?? FMColors.Category.cinematic,
             isPaid: false,
             priceLabel: nil

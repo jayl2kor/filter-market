@@ -364,7 +364,7 @@ struct RejectionData {
             reasons: [
                 RejectionReason(
                     title: "기존 필터와 LUT 92% 유사",
-                    body: "@jisoo.films의 \"Sunset 1973\"과 색조·대비 곡선이 거의 동일합니다."
+                    body: "기존 공개 필터와 색조·대비 곡선이 거의 동일합니다."
                 ),
                 RejectionReason(
                     title: "표지 사진 1장 부족",

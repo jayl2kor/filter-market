@@ -409,7 +409,7 @@ public struct CapturePreviewScreen: View {
 
 #Preview("CapturePreviewScreen — Placeholder 4:5") {
     CapturePreviewScreen(
-        filterName: "Sunset 1973",
+        filterName: "테스트 필터",
         aspectRatio: "4:5",
         intensityPercent: 75
     )
@@ -437,7 +437,7 @@ public struct CapturePreviewScreen: View {
 
 #Preview("CapturePreviewScreen — XXXLarge") {
     CapturePreviewScreen(
-        filterName: "Sunset 1973",
+        filterName: "테스트 필터",
         aspectRatio: "4:5",
         intensityPercent: 75
     )

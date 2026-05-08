@@ -126,7 +126,7 @@ struct ReviewsListScreen: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(FMColors.Text.primary)
                     // UI 테스트는 정적 메이커 라벨 유지 (어시드 호환). 프로덕션은 일반 텍스트.
-                    Text(isUITesting ? "@jisoo.films · ★ 4.9 · ↓ \(formattedDownloadCount(6_200))" : "리뷰 목록")
+                    Text(isUITesting ? "@sample.maker · ★ 4.9 · ↓ \(formattedDownloadCount(6_200))" : "리뷰 목록")
                         .fmTypography(.caption)
                         .foregroundStyle(FMColors.Text.tertiary)
                 }
@@ -830,7 +830,7 @@ private struct FollowListScreen: View {
             list
         }
         .background(FMColors.Background.bg1)
-        .navigationTitle(userID == "me" ? "@me" : "@jisoo.films")
+        .navigationTitle(userID == "me" ? "@me" : "@sample.maker")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -1029,7 +1029,7 @@ struct ForYouFeedScreen: View {
                         .fmTypography(.titleLarge)
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
-                    Text("@jisoo.films · ★ 4.8 · ↓ \(formattedDownloadCount(6_200))")
+                    Text("@sample.maker · ★ 4.8 · ↓ \(formattedDownloadCount(6_200))")
                         .fmTypography(.subhead)
                         .foregroundStyle(.white.opacity(0.78))
                 }
@@ -1074,7 +1074,7 @@ struct ForYouFeedScreen: View {
     private var railSection: some View {
         VStack(alignment: .leading, spacing: Sp.sm) {
             HStack {
-                Text("Sunset 1973을 좋아한 사람들이 본 필터")
+                Text("추천 필터를 좋아한 사람들이 본 필터")
                     .fmTypography(.headline)
                     .foregroundStyle(FMColors.Text.primary)
                 Spacer()
@@ -1472,7 +1472,7 @@ private struct SocialReview: Identifiable {
             isHelpful: true,
             isVerifiedDownload: true,
             makerReply: SocialMakerReply(
-                handle: "@jisoo.films",
+                handle: "@sample.maker",
                 initials: "JS",
                 avatarColors: [Color(hex: 0xE0C39A), Color(hex: 0x8E6A4A)],
                 time: "1시간",
@@ -1558,7 +1558,7 @@ private struct SocialUser: Identifiable {
     ]
 
     static let mentionSuggestions: [SocialUser] = [
-        .init(name: "정지수", handle: "@jisoo.films", initials: "JS", avatarColors: [Color(hex: 0xE0C39A), Color(hex: 0x8E6A4A)], filterCount: 24, role: "", badge: "메이커", newFilterCount: 0, relationship: .following),
+        .init(name: "샘플 메이커", handle: "@sample.maker", initials: "SM", avatarColors: [Color(hex: 0xE0C39A), Color(hex: 0x8E6A4A)], filterCount: 24, role: "", badge: "메이커", newFilterCount: 0, relationship: .following),
         .init(name: "jisook", handle: "@jisook.daily", initials: "JD", avatarColors: [Color(hex: 0xF6E2E8), Color(hex: 0xB39EC2)], filterCount: 2, role: "", badge: nil, newFilterCount: 0, relationship: .notFollowing),
         .init(name: "jisoo_studio", handle: "@jisoo.studio", initials: "JS", avatarColors: [Color(hex: 0xAEC59A), Color(hex: 0x4A6A3C)], filterCount: 9, role: "", badge: nil, newFilterCount: 0, relationship: .notFollowing)
     ]
