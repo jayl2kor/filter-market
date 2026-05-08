@@ -590,6 +590,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 2. 앱 진입 → `MooditStore.pendingDeepLinkRoute` 설정 → RootShell이 sheet로 destination 표시
 - **PASS 기준**: 위 6개 URL 모두 적절한 화면으로 라우팅 (시트로). 시트 닫으면 원래 탭으로 돌아옴.
 - **알 수 없는 URL** (`moodit://unknown`, `https://example.com/...`) → 시트 안 열림 (no-op).
+- **Deferred**: `hasOnboarded == false` 상태에서 링크를 열면 onboarding 완료 후 1회만 표시. 인증 필요 route는 로그인 완료 후 표시.
 
 ### 14.7 Push 알림 deep-link 라우팅
 1. Firebase Console에서 다음 페이로드의 푸시 전송:

@@ -26,6 +26,8 @@ enum Telemetry {
         // Engagement
         case appResumed        = "app_resumed"
         case deepLinkReceived  = "deep_link_received"
+        case deepLinkDeferred  = "deep_link_deferred"
+        case deepLinkFlushed   = "deep_link_flushed"
         case filterApplied     = "filter_applied"
         case filterShared      = "filter_shared"
         case filterSaved       = "filter_saved"

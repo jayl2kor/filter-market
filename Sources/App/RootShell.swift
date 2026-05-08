@@ -11,10 +11,12 @@ struct RootShell: View {
     @StateObject private var store = MooditStore()
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
+    @AppStorage("hasOnboarded") private var hasOnboarded: Bool = false
 
     @State private var selectedTab: FMTab = .market
     @State private var isCameraPresented = false
     @State private var showHandleOnboarding = false
+    @State private var deferredDeepLinkRoute: AppRoute?
     /// 신규 사용자 첫 로그인 후 listener가 도착할 시간을 약간 둔 뒤 핸들 검사.
     /// (#32) 너무 일찍 검사하면 .empty 초기값을 보고 잘못 trigger.
     @State private var didCheckHandle = false
@@ -47,8 +49,10 @@ struct RootShell: View {
         .task {
             await store.load()
             store.subscribeToWallet()
-            PushRegistration.shared.deepLinkHandler = { [weak store] route in
-                store?.pendingDeepLinkRoute = route
+            PushRegistration.shared.deepLinkHandler = { route in
+                Task { @MainActor in
+                    handleIncomingDeepLink(route)
+                }
             }
             #if DEBUG
             // UI test launch arg: `-deepLink <url>` simulates the URL arriving
@@ -56,7 +60,7 @@ struct RootShell: View {
             // path without Springboard/Safari indirection.
             if let url = uiTestingDeepLinkURL(),
                let route = UniversalLinkParser.route(for: url) {
-                store.pendingDeepLinkRoute = route
+                handleIncomingDeepLink(route)
             }
             #endif
         }
@@ -73,8 +77,7 @@ struct RootShell: View {
         }
         .onOpenURL { url in
             if let route = UniversalLinkParser.route(for: url) {
-                Telemetry.log(.deepLinkReceived, parameters: ["route_kind": route.telemetryKind])
-                store.pendingDeepLinkRoute = route
+                handleIncomingDeepLink(route)
             }
         }
         .sheet(isPresented: $showHandleOnboarding, onDismiss: markHandleOnboardingDismissed) {
@@ -96,9 +99,13 @@ struct RootShell: View {
         .onChange(of: isAuthenticated) { _, authenticated in
             if authenticated {
                 syncHandleOnboarding(profile: store.editableProfile)
+                flushDeferredDeepLinkIfReady()
             } else {
                 resetHandleOnboardingGate()
             }
+        }
+        .onChange(of: hasOnboarded) { _, _ in
+            flushDeferredDeepLinkIfReady()
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
@@ -106,6 +113,7 @@ struct RootShell: View {
             Task {
                 await store.refreshOnForeground()
                 syncHandleOnboarding(profile: store.editableProfile)
+                flushDeferredDeepLinkIfReady()
             }
         }
     }
@@ -132,6 +140,33 @@ struct RootShell: View {
 
     private var handleOnboardingUID: String {
         Auth.auth().currentUser?.uid ?? "__authenticated__"
+    }
+
+    private func handleIncomingDeepLink(_ route: AppRoute) {
+        Telemetry.log(.deepLinkReceived, parameters: ["route_kind": route.telemetryKind])
+        guard canPresentDeepLink(route) else {
+            deferredDeepLinkRoute = route
+            Telemetry.log(.deepLinkDeferred, parameters: [
+                "route_kind": route.telemetryKind,
+                "has_onboarded": hasOnboarded,
+                "is_authenticated": isAuthenticated
+            ])
+            return
+        }
+        store.pendingDeepLinkRoute = route
+    }
+
+    private func flushDeferredDeepLinkIfReady() {
+        guard let route = deferredDeepLinkRoute, canPresentDeepLink(route) else { return }
+        deferredDeepLinkRoute = nil
+        Telemetry.log(.deepLinkFlushed, parameters: ["route_kind": route.telemetryKind])
+        store.pendingDeepLinkRoute = route
+    }
+
+    private func canPresentDeepLink(_ route: AppRoute) -> Bool {
+        guard hasOnboarded else { return false }
+        guard !route.requiresAuthentication || isAuthenticated else { return false }
+        return true
     }
 
     private func syncHandleOnboarding(profile: EditableProfile) {

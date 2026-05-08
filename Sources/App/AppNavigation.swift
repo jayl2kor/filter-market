@@ -90,6 +90,22 @@ enum AppRoute: Hashable {
 }
 
 extension AppRoute {
+    var requiresAuthentication: Bool {
+        switch self {
+        case .login,
+             .emailLogin,
+             .search,
+             .filterDetail,
+             .otherProfile,
+             .otherProfileHandle,
+             .reviews,
+             .universalLinkLanding:
+            return false
+        default:
+            return true
+        }
+    }
+
     /// 분석 이벤트용 case 라벨 — 연관 값 제거. 예) filterDetail(id: "x") → "filterDetail".
     var telemetryKind: String {
         String(describing: self)
