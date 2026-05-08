@@ -290,6 +290,9 @@ QA를 시작하기 전 반드시 아래 순서로 정의를 고정한다.
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after P0/P1 issue batch (#185/#186/#187/#188/#189/#190/#192/#207/#203) |
 | 2026-05-09 | `xcodebuild ... -only-testing:FilterEngineTests/CubeLUTParserTests -only-testing:MarketplaceTests/SocialRepositoriesTests test` | PASS, LUT size cap and self-block guard covered |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after P0 state/account deletion batch (#140/#147/#227) |
+| 2026-05-09 | `npm --prefix functions test` | PASS after backend P0 security batch (#142/#144/#137), 61 tests |
+| 2026-05-09 | `npm --prefix functions run test:rules` | PASS after wallet/pro/refund rules hardening (#136), 12 tests |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after FirebaseAppCheck iOS provider wiring (#137) |
 
 ## 10. Definition of Done
 

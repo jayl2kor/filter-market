@@ -272,14 +272,30 @@ match /notifications/{uid}/items/{itemId} {
 }
 ```
 
-### 3.9 보유권 (Phase 6) — 코인 모델로 통합됨
+### 3.9 사용자 지갑/보유권 서브컬렉션
 
-> **변경**: 기존 `entitlements/{uid}/{productId}` 컬렉션은 [`CURRENCY_DESIGN.md`](./CURRENCY_DESIGN.md)의 코인 모델 도입과 함께 폐기됨. 필터 보유는 `users/{uid}/ownedFilters/{filterId}` 서브컬렉션으로, Pro 멤버십은 `wallets/{uid}.proUntil` 필드로 표현.
+> 실제 앱/Functions 경로 기준. 모든 write는 Cloud Functions(Admin SDK)만 수행하고, 클라이언트는 본인 uid 아래의 파생 상태만 read 한다.
 
 ```javascript
-match /users/{uid}/ownedFilters/{filterId} {
+match /users/{uid}/wallet/{doc} {
   allow read: if isOwner(uid);
-  allow write: if false;  // /filters/{id}/purchase Cloud Function만
+  allow write: if false;
+}
+match /users/{uid}/walletLedger/{entryId} {
+  allow read: if isOwner(uid);
+  allow write: if false;
+}
+match /users/{uid}/entitlements/{filterId} {
+  allow read: if isOwner(uid);
+  allow write: if false;
+}
+match /users/{uid}/proStatus/{doc} {
+  allow read: if isOwner(uid);
+  allow write: if false;
+}
+match /users/{uid}/refundRequests/{reqId} {
+  allow read: if isOwner(uid);
+  allow write: if false;
 }
 ```
 

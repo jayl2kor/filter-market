@@ -61,7 +61,7 @@
   - Sign in with Apple (필수)
   - Push Notifications (Phase 3)
   - Associated Domains (Universal Link, Phase 3)
-  - App Attest (Phase 5)
+  - App Attest / App Check (필수, callable 보호)
   - In-App Purchase (Phase 6)
 
 ### 3.2 인증서 / 프로비저닝 프로파일
@@ -164,7 +164,7 @@
 | **Crashlytics** | ✓ | dSYM 자동 업로드 |
 | **Performance** | ✓ | 자동 |
 | **Remote Config** | ✓ | 피처 플래그 |
-| **App Check** | ✓ (Phase 5) | App Attest 통합 |
+| **App Check** | ✓ | Cloud Functions callable `enforceAppCheck` 활성. iOS DEBUG는 `AppCheckDebugProviderFactory`, Release는 App Attest |
 | **Hosting** | ✓ | 모더레이터 웹 어드민 (Phase 5) |
 
 ### 7.3 iOS 앱 추가
@@ -365,7 +365,9 @@
 - [ ] Algolia 가입 + index 셋업
 
 ## Phase 5
-- [ ] App Attest 활성화
+- [x] App Check callable enforcement + iOS provider 연결
+- [ ] Firebase Console App Check에서 App Attest 등록
+- [ ] DEBUG App Check token을 Firebase Console에 등록
 - [ ] 모더레이션 BPO 후보 평가 (선택)
 
 ## Phase 6

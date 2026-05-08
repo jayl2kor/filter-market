@@ -41,6 +41,9 @@
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after P0/P1 issue batch (#185/#186/#187/#188/#189/#190/#192/#207/#203) |
 | 2026-05-09 | `xcodebuild ... -only-testing:FilterEngineTests/CubeLUTParserTests -only-testing:MarketplaceTests/SocialRepositoriesTests test` | PASS, LUT size cap and self-block guard covered |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after P0 state/account deletion batch (#140/#147/#227) |
+| 2026-05-09 | `npm --prefix functions test` | PASS after backend P0 security batch (#142/#144/#137), 61 tests |
+| 2026-05-09 | `npm --prefix functions run test:rules` | PASS after wallet/pro/refund rules hardening (#136), 12 tests |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after FirebaseAppCheck iOS provider wiring (#137) |
 
 ## Remaining Manual QA Gates
 
@@ -72,5 +75,8 @@
 | Notification follow action | Follow notification action now writes a root `follows/{actor}_{target}` edge before marking the notification read. | Seed follow notification and verify count trigger/list update in Firebase. |
 | Root wallet/profile subscription | RootShell now starts the wallet/profile/auth listener on cold start, and MooditStore listener callbacks re-enter MainActor before publishing state. | Device/Firebase QA should verify cold-start balance, Pro status, profile handle onboarding, and notification preference state. |
 | Account deletion | Account deletion confirmation now calls the `deleteAccount` Cloud Function before showing the receipt and signs out after success. | Manual Firebase QA should verify `users/{uid}` soft-delete fields and failure alert behavior. |
+| App Check | Callable Cloud Functions now enforce App Check and iOS registers AppCheckDebugProviderFactory in DEBUG / AppAttestProviderFactory in release. | Register debug tokens in Firebase Console for dev devices/CI before exercising callable flows. |
+| Wallet security rules | Wallet, ledger, entitlements, Pro status, and refund request subcollections are owner-read/server-write only. | Emulator rules tests pass; production Firebase rules deploy remains a release gate. |
+| Pro subscription verifier | Pro receipts are now idempotent, owner-scoped, and expired/revoked JWS metadata maps to inactive Pro state. | StoreKit sandbox renewal/cancel manual QA remains required. |
 | Payout | Current screens are marked `MockOnly`; automated QA verifies placeholder surfaces, not real Stripe payout behavior. | Keep hidden/controlled until payout backend scope is defined. |
 | Firebase-backed mutations | Several screens expose state and action contracts, but production write/read behavior still depends on real Firebase setup. | Run manual QA with seeded Firebase project before release. |

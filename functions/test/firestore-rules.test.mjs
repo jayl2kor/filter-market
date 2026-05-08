@@ -255,6 +255,33 @@ const suite = describe(
       );
     });
 
+    it("scopes wallet and commerce subcollections to the owning uid", async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        await db.doc("users/u-wallet/wallet/balance").set({ value: 120 });
+        await db.doc("users/u-wallet/walletLedger/l-1").set({ amount: 120 });
+        await db.doc("users/u-wallet/entitlements/filter-1").set({ filterId: "filter-1" });
+        await db.doc("users/u-wallet/proStatus/status").set({ active: true });
+        await db.doc("users/u-wallet/refundRequests/r-1").set({ status: "pending" });
+      });
+
+      const owner = env.authenticatedContext("u-wallet");
+      const stranger = env.authenticatedContext(STRANGER_UID);
+      const paths = [
+        "users/u-wallet/wallet/balance",
+        "users/u-wallet/walletLedger/l-1",
+        "users/u-wallet/entitlements/filter-1",
+        "users/u-wallet/proStatus/status",
+        "users/u-wallet/refundRequests/r-1",
+      ];
+
+      for (const path of paths) {
+        await assertSucceeds(owner.firestore().doc(path).get());
+        await assertFails(stranger.firestore().doc(path).get());
+        await assertFails(owner.firestore().doc(path).set({ forged: true }, { merge: true }));
+      }
+    });
+
     it("scopes block edges to the calling actor", async () => {
       const actor = env.authenticatedContext("u-blocker");
       await assertSucceeds(

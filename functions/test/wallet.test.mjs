@@ -192,10 +192,17 @@ describe("applyProSubscriptionUpdate", () => {
     const result = await applyProSubscriptionUpdate(
       "u-1",
       { originalTransactionId: "tx-1", productId: "com.jayl2kor.moodit.pro.monthly", signedJWS: "x" },
-      { firestore, verifyReceipt: async () => true },
+      {
+        firestore,
+        verifyTransaction: async () => ({
+          productId: "com.jayl2kor.moodit.pro.monthly",
+          expiresDate: Date.now() + 86_400_000,
+        }),
+      },
     );
     assert.equal(result.active, true);
     assert.equal(firestore._data.get("users/u-1/proStatus/status").active, true);
+    assert.ok(firestore._data.get("proReceipts/tx-1"));
   });
 
   it("rejects non-Pro SKU", async () => {
@@ -204,10 +211,64 @@ describe("applyProSubscriptionUpdate", () => {
       () => applyProSubscriptionUpdate(
         "u-1",
         { originalTransactionId: "tx-1", productId: "com.jayl2kor.moodit.coins.100", signedJWS: "x" },
-        { firestore, verifyReceipt: async () => true },
+        { firestore, verifyTransaction: async () => ({ productId: "com.jayl2kor.moodit.coins.100" }) },
       ),
       (err) => err && err.code === "invalid-argument",
     );
+  });
+
+  it("is idempotent for the same Pro receipt and rejects another uid", async () => {
+    const firestore = makeFakeFirestore({});
+    const payload = {
+      originalTransactionId: "pro-tx-1",
+      productId: "com.jayl2kor.moodit.pro.yearly",
+      signedJWS: "x",
+    };
+    const verifyTransaction = async () => ({
+      productId: "com.jayl2kor.moodit.pro.yearly",
+      expiresDate: Date.now() + 86_400_000,
+    });
+
+    await applyProSubscriptionUpdate("u-1", payload, { firestore, verifyTransaction });
+    const second = await applyProSubscriptionUpdate("u-1", payload, { firestore, verifyTransaction });
+    assert.equal(second.active, true);
+
+    await assert.rejects(
+      () => applyProSubscriptionUpdate("u-2", payload, { firestore, verifyTransaction }),
+      (err) => err && err.code === "permission-denied" && /receipt_belongs/.test(err.message),
+    );
+  });
+
+  it("marks expired or revoked Pro receipts inactive", async () => {
+    const firestore = makeFakeFirestore({});
+    const payload = {
+      originalTransactionId: "pro-tx-2",
+      productId: "com.jayl2kor.moodit.pro.monthly",
+      signedJWS: "x",
+    };
+
+    const expired = await applyProSubscriptionUpdate("u-1", payload, {
+      firestore,
+      verifyTransaction: async () => ({
+        productId: "com.jayl2kor.moodit.pro.monthly",
+        expiresDate: Date.now() - 1_000,
+      }),
+    });
+    assert.equal(expired.active, false);
+    assert.equal(firestore._data.get("users/u-1/proStatus/status").active, false);
+
+    const revoked = await applyProSubscriptionUpdate("u-1", {
+      ...payload,
+      originalTransactionId: "pro-tx-3",
+    }, {
+      firestore,
+      verifyTransaction: async () => ({
+        productId: "com.jayl2kor.moodit.pro.monthly",
+        revocationDate: Date.now(),
+        expiresDate: Date.now() + 86_400_000,
+      }),
+    });
+    assert.equal(revoked.active, false);
   });
 });
 

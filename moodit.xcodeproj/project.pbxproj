@@ -92,6 +92,7 @@
 		70C44FD8D87F5EEC463F3F33 /* soft-portra.png in Resources */ = {isa = PBXBuildFile; fileRef = 60104C170874523EAEDF783C /* soft-portra.png */; };
 		70E5DF5961DDBD47E8971737 /* FilterDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2AA3CD9BD608293E9758F6E /* FilterDetailScreen.swift */; };
 		71354515A23946FE7BDBA18B /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = F42BCE691DB3B42D9AC39597 /* FirebaseAuth */; };
+		7A2F4B91C83D4E65A9B0C1D2 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 8B3A5C02D94E6F7180A1B2C3 /* FirebaseAppCheck */; };
 		739A5350A83C9F4C319AC344 /* Storage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 55E4166718CCDBCEA85DADDC /* Storage.framework */; };
 		74D91101BA09C2626EBA493F /* FMSegmentedControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0E964CBD9F708F068F5A6D /* FMSegmentedControl.swift */; };
 		75A416B3410AC840412C0A6F /* MooditStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309D364AADCB11180774B6FA /* MooditStore.swift */; };
@@ -598,6 +599,7 @@
 				880460F99F69203334E7DD12 /* DesignSystem.framework in Frameworks */,
 				1D1398AD8450F4BA33201F7E /* Auth.framework in Frameworks */,
 				2998B5867C7C9AC83EC1804F /* FirebaseCore in Frameworks */,
+				7A2F4B91C83D4E65A9B0C1D2 /* FirebaseAppCheck in Frameworks */,
 				71354515A23946FE7BDBA18B /* FirebaseAuth in Frameworks */,
 				41271A631E0AFA920EC8F3DC /* FirebaseFirestore in Frameworks */,
 				567AEADE9822F1EA9E88016D /* FirebaseFunctions in Frameworks */,
@@ -1436,6 +1438,7 @@
 			name = moodit;
 			packageProductDependencies = (
 				60A248AE1A8648FAB6C78F14 /* FirebaseCore */,
+				8B3A5C02D94E6F7180A1B2C3 /* FirebaseAppCheck */,
 				F42BCE691DB3B42D9AC39597 /* FirebaseAuth */,
 				4DFDCBB3A1A08C1770D80B67 /* FirebaseFirestore */,
 				5D36BF81FFD2E93336324579 /* FirebaseFunctions */,
@@ -2854,6 +2857,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 244A25847A11344C1D31BB1E /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignInSwift;
+		};
+		8B3A5C02D94E6F7180A1B2C3 /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 873FE04C2E2B9771E10A8E74 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
 		};
 		A5D7782EB8953AA7AE5D5CE6 /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;

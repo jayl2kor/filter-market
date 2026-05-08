@@ -141,6 +141,38 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // User documents and financial subcollections. Cloud Functions use the Admin
+    // SDK and bypass these rules; clients may only read their own derived state.
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+
+      match /wallet/{doc} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      match /walletLedger/{entryId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      match /entitlements/{filterId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      match /proStatus/{doc} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      match /refundRequests/{reqId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+    }
+
     // Notifications — recipient-only reads. Writes are server-only (Cloud Functions
     // via admin SDK after a Firestore trigger).
     match /users/{uid}/notifications/{notifId} {

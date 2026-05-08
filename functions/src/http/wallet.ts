@@ -14,7 +14,11 @@ import { defineSecret } from "firebase-functions/params";
 import { getFirestore, FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth.js";
-import { verifyAppleReceipt } from "../lib/appleReceiptVerifier.js";
+import {
+  type AppleTransactionInfo,
+  verifyAppleReceipt,
+  verifyAppleTransaction,
+} from "../lib/appleReceiptVerifier.js";
 
 const region = "asia-northeast3";
 
@@ -111,7 +115,7 @@ export async function applyPurchaseFilter(
   });
 }
 
-export const purchaseFilter = onCall({ region, cors: true }, async (req: CallableRequest) => {
+export const purchaseFilter = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
   const uid = requireAuth(req);
   return applyPurchaseFilter(uid, req.data);
 });
@@ -225,7 +229,7 @@ export async function applyCreditCoinsFromIAP(
 }
 
 export const creditCoinsFromIAP = onCall(
-  { region, cors: true, secrets: appleSecrets },
+  { region, cors: true, secrets: appleSecrets, enforceAppCheck: true },
   async (req: CallableRequest) => {
     const uid = requireAuth(req);
     return applyCreditCoinsFromIAP(uid, req.data);
@@ -253,43 +257,83 @@ export interface ProSubscriptionResult {
   active: boolean;
 }
 
+export interface ProSubscriptionDeps {
+  firestore?: Firestore;
+  verifyTransaction?: (
+    jws: string,
+    productId: string,
+  ) => Promise<AppleTransactionInfo | false>;
+}
+
+function isProTransactionActive(tx: AppleTransactionInfo): boolean {
+  if (tx.revocationDate !== undefined) {
+    return false;
+  }
+  if (tx.expiresDate !== undefined) {
+    return tx.expiresDate > Date.now();
+  }
+  return true;
+}
+
 export async function applyProSubscriptionUpdate(
   uid: string,
   rawData: unknown,
-  deps: {
-    firestore?: Firestore;
-    verifyReceipt?: (jws: string, productId: string) => Promise<boolean>;
-  } = {},
+  deps: ProSubscriptionDeps = {},
 ): Promise<ProSubscriptionResult> {
   const parsed = proSubSchema.safeParse(rawData);
   if (!parsed.success) {
     throw new HttpsError("invalid-argument", parsed.error.message);
   }
-  const { productId, signedJWS } = parsed.data;
+  const { originalTransactionId, productId, signedJWS } = parsed.data;
   if (!PRO_PRODUCT_IDS.has(productId)) {
     throw new HttpsError("invalid-argument", `not_a_pro_sku: ${productId}`);
   }
   // (Tier1-1) Apple JWS 검증 — production 기본은 verifyAppleReceipt.
-  const verifier = deps.verifyReceipt ?? verifyAppleReceipt;
-  const verified = await verifier(signedJWS, productId);
-  if (!verified) {
+  const verifier = deps.verifyTransaction ?? verifyAppleTransaction;
+  const transaction = await verifier(signedJWS, productId);
+  if (!transaction || transaction.productId !== productId) {
     throw new HttpsError("permission-denied", "receipt_verification_failed");
   }
   const db = deps.firestore ?? getFirestore();
-  const ref = db.collection("users").doc(uid).collection("proStatus").doc("status");
-  await ref.set(
-    {
-      active: true,
+  const active = isProTransactionActive(transaction);
+  await db.runTransaction(async (tx: Transaction) => {
+    const receiptRef = db.collection("proReceipts").doc(originalTransactionId);
+    const receiptSnap = await tx.get(receiptRef);
+    const receiptOwner = receiptSnap.data()?.uid as string | undefined;
+    if (receiptSnap.exists && receiptOwner && receiptOwner !== uid) {
+      throw new HttpsError("permission-denied", "receipt_belongs_to_another_user");
+    }
+
+    tx.set(receiptRef, {
+      uid,
       productId,
+      active,
+      expiresDate: transaction.expiresDate ?? null,
+      revocationDate: transaction.revocationDate ?? null,
       updatedAt: FieldValue.serverTimestamp(),
-    },
-    { merge: true },
-  );
-  return { ok: true, productId, active: true };
+      createdAt: receiptSnap.exists
+        ? receiptSnap.data()?.createdAt ?? FieldValue.serverTimestamp()
+        : FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    const ref = db.collection("users").doc(uid).collection("proStatus").doc("status");
+    tx.set(
+      ref,
+      {
+        active,
+        productId,
+        expiresAt: transaction.expiresDate ?? null,
+        revokedAt: transaction.revocationDate ?? null,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  });
+  return { ok: true, productId, active };
 }
 
 export const proSubscriptionUpdate = onCall(
-  { region, cors: true, secrets: appleSecrets },
+  { region, cors: true, secrets: appleSecrets, enforceAppCheck: true },
   async (req: CallableRequest) => {
     const uid = requireAuth(req);
     return applyProSubscriptionUpdate(uid, req.data);
@@ -326,7 +370,7 @@ export async function applyRefundRequest(
   return { ok: true, requestId: ref.id };
 }
 
-export const refundRequest = onCall({ region, cors: true }, async (req: CallableRequest) => {
+export const refundRequest = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
   const uid = requireAuth(req);
   return applyRefundRequest(uid, req.data);
 });

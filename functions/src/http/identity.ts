@@ -24,7 +24,7 @@ const setRoleSchema = z.object({
  *
  * Bootstrap: the FIRST admin must be set via `tools/bootstrap-admin.mjs`.
  */
-export const setRole = onCall({ region, cors: true }, async (req: CallableRequest) => {
+export const setRole = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
   requireAdmin(req);
 
   const parsed = setRoleSchema.safeParse(req.data);
@@ -115,7 +115,7 @@ export async function applySetHandle(
   });
 }
 
-export const setHandle = onCall({ region, cors: true }, async (req: CallableRequest) => {
+export const setHandle = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
   const uid = requireAuth(req);
   return applySetHandle(uid, req.data);
 });
@@ -153,7 +153,7 @@ export async function applyUpdateProfile(
   return { ok: true };
 }
 
-export const updateProfile = onCall({ region, cors: true }, async (req: CallableRequest) => {
+export const updateProfile = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
   const uid = requireAuth(req);
   return applyUpdateProfile(uid, req.data);
 });
@@ -184,7 +184,7 @@ export async function applyDeleteAccount(
 }
 
 /** DELETE /me — full account deletion (GDPR / Apple guideline 5.1.1(v)). */
-export const deleteAccount = onCall({ region, cors: true }, async (req: CallableRequest) => {
+export const deleteAccount = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
   const uid = requireAuth(req);
   await applyDeleteAccount(uid);
   // Auth 사용자 삭제 — 본 호출은 idempotent (이미 삭제된 경우 무시).

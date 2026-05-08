@@ -121,7 +121,7 @@ const uploadInitSchema = z.object({
  * a presigned PUT URL the client uploads the `.fmpkg` to directly.
  */
 export const uploadInit = onCall(
-  { region, cors: true, secrets: r2Secrets },
+  { region, cors: true, secrets: r2Secrets, enforceAppCheck: true },
   async (req: CallableRequest) => {
     const uid = requireAuth(req);
 
@@ -185,7 +185,7 @@ const uploadFinalizeSchema = z.object({
  * `pending_review_pre`.
  */
 export const uploadFinalize = onCall(
-  { region, cors: true, secrets: r2Secrets },
+  { region, cors: true, secrets: r2Secrets, enforceAppCheck: true },
   async (req: CallableRequest) => {
     const uid = requireAuth(req);
 
@@ -299,13 +299,13 @@ export async function applySubmitForReview(
 }
 
 /** POST /filters/{id}/submitForReview — see API_SPEC.md §5.3. */
-export const submitForReview = onCall({ region, cors: true }, async (req: CallableRequest) => {
+export const submitForReview = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
   const uid = requireAuth(req);
   return applySubmitForReview(uid, req.data);
 });
 
 /** POST /filters/{id}/use — see API_SPEC.md §5.7. Cooldown enforced (1h) per (uid, filter). */
-export const recordUse = onCall({ region, cors: true }, async (req: CallableRequest) => {
+export const recordUse = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
   const uid = requireAuth(req);
   return applyRecordUse(uid, req.data);
 });
@@ -477,7 +477,7 @@ export async function applyGetFilterDetail(
 
 /** GET /filters/{id} — see API_SPEC.md §5.8. Returns signed download URL. */
 export const getFilterDetail = onCall(
-  { region, cors: true, secrets: r2Secrets },
+  { region, cors: true, secrets: r2Secrets, enforceAppCheck: true },
   async (req: CallableRequest) => {
     // (#46) 유료 필터 R2 presigned URL을 비인증 사용자에게 노출하지 않도록 인증 강제.
     const uid = requireAuth(req);
@@ -486,7 +486,7 @@ export const getFilterDetail = onCall(
 );
 
 /** POST /filters/{id}/report — see API_SPEC.md §5.6. */
-export const reportFilter = onCall({ region, cors: true }, async (req: CallableRequest) => {
+export const reportFilter = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
   const uid = requireAuth(req);
   const { applyReportFilter } = await import("./moderation.js");
   return applyReportFilter(uid, req.data);

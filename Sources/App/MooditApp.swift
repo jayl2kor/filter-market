@@ -1,4 +1,5 @@
 import FirebaseAnalytics
+import FirebaseAppCheck
 import FirebaseCore
 import FirebaseCrashlytics
 import GoogleSignIn
@@ -68,8 +69,17 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             return
         }
 
+        configureAppCheckForCurrentProcess()
         FirebaseApp.configure(options: options)
         configureTelemetryForCurrentProcess()
+    }
+
+    private func configureAppCheckForCurrentProcess() {
+        #if DEBUG
+        AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
+        #else
+        AppCheck.setAppCheckProviderFactory(AppAttestProviderFactory())
+        #endif
     }
 
     private func configureTelemetryForCurrentProcess() {

@@ -119,12 +119,12 @@ export async function applyReportFilter(
   return { ok: true, reportId: reportRef.id };
 }
 
-export const approveFilter = onCall({ region, cors: true }, async (req: CallableRequest) => {
+export const approveFilter = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
   requireModerator(req);
   return applyApproveFilter(req.data);
 });
 
-export const rejectFilter = onCall({ region, cors: true }, async (req: CallableRequest) => {
+export const rejectFilter = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
   requireModerator(req);
   return applyRejectFilter(req.data);
 });

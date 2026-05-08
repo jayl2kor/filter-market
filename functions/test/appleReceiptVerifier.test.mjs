@@ -1,7 +1,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { verifyWithVerifier } from "../lib/lib/appleReceiptVerifier.js";
+import {
+  decodeWithVerifier,
+  loadBundledRootCerts,
+  verifyWithVerifier,
+} from "../lib/lib/appleReceiptVerifier.js";
 
 class FakeVerifier {
   constructor(payload) {
@@ -45,5 +49,20 @@ describe("verifyWithVerifier", () => {
     const inner = new FakeVerifier({});
     const ok = await verifyWithVerifier(inner, "jws", "com.jayl2kor.moodit.coins.100");
     assert.equal(ok, false);
+  });
+
+  it("loads bundled Apple root certificates without network fetch", () => {
+    const certs = loadBundledRootCerts();
+    assert.equal(certs.length, 3);
+    assert.ok(certs.every((cert) => cert.length > 0));
+  });
+
+  it("decodes transaction metadata needed for subscription status", async () => {
+    const payload = {
+      productId: "com.jayl2kor.moodit.pro.monthly",
+      expiresDate: Date.now() + 86_400_000,
+    };
+    const decoded = await decodeWithVerifier(new FakeVerifier(payload), "jws");
+    assert.deepEqual(decoded, payload);
   });
 });
