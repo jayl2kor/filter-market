@@ -601,6 +601,13 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 - **PASS 기준**: 모든 케이스가 적절한 시트로 라우팅. 알 수 없는 kind는 무시.
 - **유닛 테스트**: AppTests/UniversalLinkParserTests 20/20 pass (`UniversalLinkParser.route(forPushUserInfo:)` 보장)
 
+### 14.8 Foreground Recovery
+1. 로그인 상태에서 앱을 background로 30분 이상 둠
+2. 다른 디바이스나 Firebase Console에서 wallet/profile/notificationPreferences 중 하나를 변경
+3. 앱을 foreground로 복귀
+4. RootShell scenePhase active 처리 후 변경값이 relaunch 없이 반영되는지 확인
+- **PASS 기준**: Auth token refresh, user-scoped listener reattach, filter reload가 크래시 없이 수행되고 stale 값이 남지 않음
+
 ---
 
 ## 15. 버그 리포트 템플릿

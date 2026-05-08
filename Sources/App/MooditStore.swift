@@ -450,6 +450,24 @@ final class MooditStore: ObservableObject {
         }
     }
 
+    func refreshOnForeground() async {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        guard let user = Auth.auth().currentUser else {
+            attachWalletListeners(uid: nil)
+            return
+        }
+        do {
+            _ = try await user.getIDTokenResult(forcingRefresh: true)
+        } catch {
+            Telemetry.record(error: error, context: ["source": "refreshOnForeground"])
+        }
+        attachWalletListeners(uid: user.uid)
+        PushRegistration.shared.retryDeviceRegistrationForCurrentUser()
+        await load(force: true)
+    }
+
     private func attachWalletListeners(uid: String?) {
         persistEditorDraftLocallyForCurrentUser()
         walletListener?.remove()

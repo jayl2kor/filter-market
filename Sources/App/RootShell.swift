@@ -9,6 +9,7 @@ import SwiftUI
 /// 셔터 탭은 selection 으로 사용되지 않고 `.fullScreenCover` 로 카메라를 띄움.
 struct RootShell: View {
     @StateObject private var store = MooditStore()
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
 
     @State private var selectedTab: FMTab = .market
@@ -97,6 +98,14 @@ struct RootShell: View {
                 syncHandleOnboarding(profile: store.editableProfile)
             } else {
                 resetHandleOnboardingGate()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Telemetry.log(.appResumed)
+            Task {
+                await store.refreshOnForeground()
+                syncHandleOnboarding(profile: store.editableProfile)
             }
         }
     }
