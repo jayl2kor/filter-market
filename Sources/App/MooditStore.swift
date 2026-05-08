@@ -415,6 +415,9 @@ final class MooditStore: ObservableObject {
             Task { @MainActor in
                 Telemetry.setUserId(user?.uid)
                 self.attachWalletListeners(uid: user?.uid)
+                if user != nil {
+                    PushRegistration.shared.retryDeviceRegistrationForCurrentUser()
+                }
             }
         }
     }

@@ -156,6 +156,7 @@ final class PushRegistration: NSObject {
     /// deep-link payload. Wired by the app shell so it can route into a
     /// `MooditStore.pendingDeepLinkRoute`.
     var deepLinkHandler: ((AppRoute) -> Void)?
+    private var lastKnownFCMToken: String?
 
     private var firestore: Firestore? {
         guard FirebaseApp.app() != nil else { return nil }
@@ -210,6 +211,29 @@ final class PushRegistration: NSObject {
         Messaging.messaging().apnsToken = deviceToken
     }
 
+    /// Called after Auth becomes available. FCM may have issued the token while
+    /// signed out, so retry with the cached token or explicitly fetch it.
+    func retryDeviceRegistrationForCurrentUser() {
+        guard FirebaseApp.app() != nil else { return }
+        if let lastKnownFCMToken {
+            persistDevice(fcmToken: lastKnownFCMToken)
+            return
+        }
+
+        Messaging.messaging().token { [weak self] token, error in
+            if let error {
+                #if DEBUG
+                print("[Push] Failed to fetch FCM token after auth: \(error.localizedDescription)")
+                #endif
+                return
+            }
+            guard let token else { return }
+            Task { @MainActor in
+                self?.persistDevice(fcmToken: token)
+            }
+        }
+    }
+
     /// 로그아웃 직전 호출 — 현재 디바이스의 \`/users/{uid}/devices/{deviceId}\` doc 삭제.
     /// uid를 인자로 받는 이유: Auth.signOut() 후엔 currentUser가 nil이라 doc 경로를 못 만듦. (#23)
     func unregisterCurrentDevice(uid: String) {
@@ -234,6 +258,7 @@ final class PushRegistration: NSObject {
     /// Persist `(uid, deviceId, fcmToken)` to Firestore so backend fan-out can
     /// address every device of a user.
     fileprivate func persistDevice(fcmToken: String) {
+        lastKnownFCMToken = fcmToken
         guard
             let firestore,
             let uid = auth?.currentUser?.uid,
