@@ -297,7 +297,8 @@ struct CameraScreen: View {
     private var gridButton: some View {
         frostedIconButton(
             systemName: store.cameraGridEnabled ? "squareshape.split.3x3" : "square",
-            label: store.cameraGridEnabled ? "그리드 끄기" : "그리드 켜기"
+            label: store.cameraGridEnabled ? "그리드 끄기" : "그리드 켜기",
+            isActive: store.cameraGridEnabled
         ) {
             FMHaptic.selection.play()
             store.cameraGridEnabled.toggle()
@@ -320,14 +321,30 @@ struct CameraScreen: View {
                 }
             }
         } label: {
-            Image(systemName: store.cameraFlashMode.systemImage)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(FMColors.Text.inverse)
-                .frame(width: 44, height: 44)
-                .background(.ultraThinMaterial.opacity(0.7), in: Circle())
+            HStack(spacing: 4) {
+                Image(systemName: store.cameraFlashMode.systemImage)
+                    .font(.system(size: 14, weight: .semibold))
+                Text(store.cameraFlashMode.label)
+                    .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+                .foregroundStyle(store.cameraFlashMode == .off ? FMColors.Text.inverse : FMColors.Accent.primary)
+                .padding(.horizontal, Sp.xs + 2)
+                .frame(minWidth: 54, minHeight: 44)
+                .background(.ultraThinMaterial.opacity(0.7), in: Capsule())
                 .overlay {
-                    Circle()
-                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                    Capsule()
+                        .fill(store.cameraFlashMode == .off ? Color.clear : FMColors.Accent.primary.opacity(0.18))
+                }
+                .overlay {
+                    Capsule()
+                        .strokeBorder(
+                            store.cameraFlashMode == .off
+                                ? Color.white.opacity(0.12)
+                                : FMColors.Accent.primary.opacity(0.65),
+                            lineWidth: 1
+                        )
                 }
                 .colorScheme(.dark)
         }
@@ -338,17 +355,25 @@ struct CameraScreen: View {
     private func frostedIconButton(
         systemName: String,
         label: String,
+        isActive: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(FMColors.Text.inverse)
+                .foregroundStyle(isActive ? FMColors.Accent.primary : FMColors.Text.inverse)
                 .frame(width: 44, height: 44)
                 .background(.ultraThinMaterial.opacity(0.7), in: Circle())
                 .overlay {
                     Circle()
-                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                        .fill(isActive ? FMColors.Accent.primary.opacity(0.18) : Color.clear)
+                }
+                .overlay {
+                    Circle()
+                        .strokeBorder(
+                            isActive ? FMColors.Accent.primary.opacity(0.65) : Color.white.opacity(0.12),
+                            lineWidth: 1
+                        )
                 }
                 .colorScheme(.dark)
         }
@@ -423,15 +448,15 @@ struct CameraScreen: View {
             }
         }
         .foregroundStyle(FMColors.Text.inverse.opacity(0.85))
+        .shadow(color: .black.opacity(0.55), radius: 1, y: 1)
         .padding(.horizontal, Sp.sm)
         .padding(.vertical, 6)
-        .background(.ultraThinMaterial.opacity(0.6), in: Capsule())
+        .background(Color.black.opacity(0.58), in: Capsule())
         .overlay {
             Capsule()
-                .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                .strokeBorder(Color.white.opacity(0.28), lineWidth: 1)
         }
         .colorScheme(.dark)
-        .opacity(0.85)
     }
 
     private func adjacentFilters() -> (previous: Filter, next: Filter)? {
@@ -605,12 +630,21 @@ struct CameraScreen: View {
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(FMColors.Text.inverse)
                     .lineLimit(1)
+                    .shadow(color: .black.opacity(0.65), radius: 2, y: 1)
 
                 Text("@\(filter.author.displayName)")
                     .font(.system(size: 11, weight: .medium))
                     .tracking(0.3)
                     .foregroundStyle(FMColors.Text.inverse.opacity(0.62))
                     .lineLimit(1)
+                    .shadow(color: .black.opacity(0.65), radius: 2, y: 1)
+            }
+            .padding(.horizontal, Sp.sm)
+            .padding(.vertical, Sp.xs)
+            .background(Color.black.opacity(0.45), in: RoundedRectangle(cornerRadius: R.md))
+            .overlay {
+                RoundedRectangle(cornerRadius: R.md)
+                    .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
             }
             .padding(.horizontal, Sp.md)
             .accessibilityElement(children: .combine)
