@@ -588,8 +588,11 @@ extension AppRoute {
 
         case .forYou:
             [
-                .init("market.tile.tap", "추천 필터 열기", systemImage: "sparkles", target: .filterDetail(id: "Teal Story")),
-                .init("market.maker.tap", "추천 메이커", systemImage: "person", target: .otherProfile(uid: "maker"))
+                .init("social.foryou.hero.apply", "추천 필터 열기", systemImage: "sparkles", target: .filterDetail(id: "recommended-filter")),
+                .init("social.foryou.hero.save", "추천 필터 저장", systemImage: "bookmark"),
+                .init("market.tile.tap", "추천 필터 열기", systemImage: "sparkles", target: .filterDetail(id: "recommended-filter")),
+                .init("market.maker.tap", "추천 메이커", systemImage: "person", target: .otherProfile(uid: "maker")),
+                .init("social.foryou.maker.follow", "추천 메이커 팔로우", systemImage: "person.badge.plus")
             ]
 
         case .followingFeed:

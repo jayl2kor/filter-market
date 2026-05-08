@@ -531,6 +531,14 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 5. (mock 거부 상태로 설정) → filterRejected 진입 시 거부 사유 표시
 - **PASS 기준**: 모든 navigation 정상, mock 데이터로 끝까지
 
+### 14.3b For You Discovery Feed
+1. Firebase `/filters`에 approved 필터 3개 이상 seed → 앱 로그인 → ForYou 진입
+2. hero card가 실제 필터 제목/메이커/평점/다운로드 수를 표시하는지 확인
+3. `social.foryou.hero.apply` 탭 → `filter.id.uuidString` 기반 FilterDetail 진입
+4. `social.foryou.hero.save` 탭 → `/users/{uid}/favorites/{filterId}` 생성 및 재진입 후 bookmark 유지
+5. rail 카드 탭 → 각 필터 UUID 상세 진입, maker spotlight는 실제 필터 author 기반 노출
+- **PASS 기준**: "Amber Café" 같은 고정 hero/reason이 노출되지 않고, 빈 필터 응답이면 `social.foryou.empty` CTA만 노출
+
 ### 14.4 Push Notification (실기기 + Firebase Console)
 1. 실기기 첫 실행, 알림 권한 수락
 2. Xcode 콘솔에서 `[Push] Persisted FCM token for device <UUID>` 확인

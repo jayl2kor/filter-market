@@ -79,7 +79,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | `reviews.rating` | `AppRoute.rating(filterId:)` | `RatingFormScreen` | Implemented, NeedsE2E | `social.rating.star`, `social.rating.star.*`, `social.rating.body`, `social.rating.submit` |
 | `social.followers` | `AppRoute.followers(uid:)` | `FollowersListScreen` | Implemented, NeedsFirebaseQA | `social.user.row`, `social.user.tap`, `social.follow.toggle`, empty state |
 | `social.following` | `AppRoute.following(uid:)` | `FollowingListScreen` | Implemented, NeedsFirebaseQA | `social.user.row`, `social.user.tap`, `social.follow.toggle`, empty state |
-| `social.forYou` | `AppRoute.forYou` | `ForYouFeedScreen` | Partial | `market.tile.tap`, `market.maker.tap`, `social.foryou.hero.apply`, `social.foryou.hero.save`, `social.foryou.maker.follow` |
+| `social.forYou` | `AppRoute.forYou` | `ForYouFeedScreen` | Implemented, NeedsFirebaseQA | `market.tile.tap` (UUID route), `market.maker.tap`, `social.foryou.hero.apply` (UUID route), `social.foryou.hero.save` (`MooditStore.toggleFavorite`), `social.foryou.maker.follow`, `social.foryou.empty` |
 | `social.followingFeed` | `AppRoute.followingFeed` | `FollowingFeedScreen` | Partial | `market.tile.tap`, `profile.following`, `social.following.newFilter`, `social.following.post.like`, `social.following.post.reviews`, `social.following.post.save` |
 | `social.blockList` | `AppRoute.blockList` | `BlockListScreen` | Partial | `social.block.tab`, `social.block.toggle`, `blocklist.empty` |
 | `social.report` | `AppRoute.reportForm` | `ReportFormScreen` | Partial | `report.filterId`, `report.reason`, `report.detail`, `report.submit` |

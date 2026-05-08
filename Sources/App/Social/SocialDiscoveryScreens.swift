@@ -1334,11 +1334,46 @@ private struct FollowListScreen: View {
 // MARK: - Discovery Feeds
 
 struct ForYouFeedScreen: View {
-    @State private var followedMakerIDs: Set<UUID> = []
-    @State private var savedHero = false
+    @EnvironmentObject private var store: MooditStore
+    @State private var followedMakerIDs: Set<String> = []
 
-    private var spotlightMakers: [SocialUser] {
-        isUITesting ? SocialUser.spotlight : []
+    private var rankedFilters: [Filter] {
+        let source = store.trendingFilters.isEmpty ? store.filters : store.trendingFilters
+        return source.sorted { lhs, rhs in
+            let lhsScore = (lhs.downloadCount > 0 ? lhs.downloadCount : lhs.useCount) + Int((lhs.ratingAvg ?? 0) * 100)
+            let rhsScore = (rhs.downloadCount > 0 ? rhs.downloadCount : rhs.useCount) + Int((rhs.ratingAvg ?? 0) * 100)
+            return lhsScore == rhsScore ? lhs.title < rhs.title : lhsScore > rhsScore
+        }
+    }
+
+    private var heroFilter: Filter? {
+        rankedFilters.first
+    }
+
+    private var railFilters: [Filter] {
+        Array(rankedFilters.dropFirst().prefix(8))
+    }
+
+    private var spotlightMakers: [ForYouMaker] {
+        let grouped = Dictionary(grouping: rankedFilters) { $0.author.uid }
+        return grouped.compactMap { uid, filters in
+            guard let first = filters.first else { return nil }
+            let totalDownloads = filters.reduce(0) { partial, filter in
+                partial + (filter.downloadCount > 0 ? filter.downloadCount : filter.useCount)
+            }
+            return ForYouMaker(
+                id: uid,
+                name: first.author.displayName,
+                role: first.category.displayTitle,
+                filterCount: filters.count,
+                downloadCount: totalDownloads
+            )
+        }
+        .sorted { lhs, rhs in
+            lhs.downloadCount == rhs.downloadCount ? lhs.name < rhs.name : lhs.downloadCount > rhs.downloadCount
+        }
+        .prefix(5)
+        .map { $0 }
     }
 
     var body: some View {
@@ -1346,8 +1381,12 @@ struct ForYouFeedScreen: View {
             VStack(alignment: .leading, spacing: Sp.lg) {
                 discoveryHeader(active: .forYou)
                 reasonChip
-                heroCard
-                railSection
+                if let heroFilter {
+                    heroCard(heroFilter)
+                    railSection
+                } else {
+                    emptyRecommendations
+                }
                 makerSpotlight
             }
             .padding(.horizontal, Sp.md)
@@ -1364,10 +1403,13 @@ struct ForYouFeedScreen: View {
                 .accessibilityLabel("검색")
             }
         }
+        .task {
+            await store.load()
+        }
     }
 
     private var reasonChip: some View {
-        Label("좋아한 빈티지 톤과 비슷", systemImage: "sparkles")
+        Label(recommendationReason, systemImage: "sparkles")
             .fmTypography(.caption)
             .fontWeight(.semibold)
             .foregroundStyle(FMColors.Accent.primary)
@@ -1376,22 +1418,36 @@ struct ForYouFeedScreen: View {
             .background(FMColors.Accent.bg, in: Capsule())
     }
 
-    private var heroCard: some View {
+    private var recommendationReason: String {
+        guard let heroFilter else { return "마켓에서 첫 필터를 둘러보세요" }
+        let favoriteCategories = store.filters
+            .filter { store.favoriteFilterIDs.contains($0.id) }
+            .map(\.category)
+        if favoriteCategories.contains(heroFilter.category) {
+            return "\(heroFilter.category.displayTitle) 취향과 비슷"
+        }
+        if !store.downloadedFilterIDs.isEmpty {
+            return "최근 저장한 필터와 어울림"
+        }
+        return "지금 인기 있는 필터"
+    }
+
+    private func heroCard(_ filter: Filter) -> some View {
         ZStack(alignment: .bottomLeading) {
-            FMFilterCoverArt(motif: .vintage)
+            filterCover(filter)
             LinearGradient(colors: [.clear, Color.black.opacity(0.85)], startPoint: .center, endPoint: .bottom)
             VStack(alignment: .leading, spacing: Sp.sm) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Amber Café")
+                    Text(filter.title)
                         .fmTypography(.titleLarge)
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
-                    Text("@sample.maker · ★ 4.8 · ↓ \(formattedDownloadCount(6_200))")
+                    Text(heroSubtitle(filter))
                         .fmTypography(.subhead)
                         .foregroundStyle(.white.opacity(0.78))
                 }
                 HStack(spacing: Sp.xs) {
-                    NavigationLink(value: AppRoute.filterDetail(id: "Amber Café")) {
+                    NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
                         Text("카메라로 적용")
                             .fmTypography(.callout)
                             .fontWeight(.bold)
@@ -1404,10 +1460,10 @@ struct ForYouFeedScreen: View {
                     .accessibilityIdentifier("social.foryou.hero.apply")
 
                     Button {
-                        savedHero.toggle()
+                        store.toggleFavorite(filter)
                         FMHaptic.selection.play()
                     } label: {
-                        Image(systemName: savedHero ? "bookmark.fill" : "bookmark")
+                        Image(systemName: store.isFavorite(filter) ? "bookmark.fill" : "bookmark")
                             .frame(width: 40, height: 40)
                             .background(Color.white.opacity(0.20), in: RoundedRectangle(cornerRadius: R.md))
                     }
@@ -1428,6 +1484,34 @@ struct ForYouFeedScreen: View {
         .shadow(color: Color.black.opacity(0.12), radius: 8, y: 4)
     }
 
+    @ViewBuilder
+    private func filterCover(_ filter: Filter) -> some View {
+        if let coverURL = filter.coverURL {
+            AsyncImage(url: coverURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFill()
+                default:
+                    FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filter.title, category: filter.category.rawValue))
+                }
+            }
+        } else {
+            FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filter.title, category: filter.category.rawValue))
+        }
+    }
+
+    private func heroSubtitle(_ filter: Filter) -> String {
+        var parts = ["@\(filter.author.displayName)"]
+        if let ratingAvg = filter.ratingAvg, ratingAvg > 0 {
+            parts.append("★ \(String(format: "%.1f", ratingAvg))")
+        }
+        let downloadCount = filter.downloadCount > 0 ? filter.downloadCount : filter.useCount
+        if downloadCount > 0 {
+            parts.append("↓ \(formattedDownloadCount(downloadCount))")
+        }
+        return parts.joined(separator: " · ")
+    }
+
     private var railSection: some View {
         VStack(alignment: .leading, spacing: Sp.sm) {
             HStack {
@@ -1435,24 +1519,24 @@ struct ForYouFeedScreen: View {
                     .fmTypography(.headline)
                     .foregroundStyle(FMColors.Text.primary)
                 Spacer()
-                NavigationLink("모두 보기", value: AppRoute.search(initialQuery: "vintage", category: nil))
+                NavigationLink("모두 보기", value: AppRoute.search(initialQuery: heroFilter?.category.displayTitle, category: heroFilter?.category.displayTitle))
                     .fmTypography(.caption)
                     .foregroundStyle(FMColors.Text.tertiary)
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Sp.sm) {
-                    ForEach(SocialFeedItem.recommendations) { item in
-                        NavigationLink(value: AppRoute.filterDetail(id: item.title)) {
+                    ForEach(railFilters) { filter in
+                        NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
                             VStack(alignment: .leading, spacing: 0) {
-                                FMFilterCoverArt(motif: item.motif)
+                                filterCover(filter)
                                     .aspectRatio(4.0 / 5.0, contentMode: .fit)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.title)
+                                    Text(filter.title)
                                         .fmTypography(.caption)
                                         .fontWeight(.semibold)
                                         .foregroundStyle(FMColors.Text.primary)
-                                    Text("\(item.author) · ↓ \(formattedDownloadCount(item.downloadCount))")
+                                    Text("@\(filter.author.displayName) · ↓ \(formattedDownloadCount(filter.downloadCount > 0 ? filter.downloadCount : filter.useCount))")
                                         .font(.system(size: 10))
                                         .foregroundStyle(FMColors.Text.tertiary)
                                 }
@@ -1467,6 +1551,30 @@ struct ForYouFeedScreen: View {
                 }
             }
         }
+    }
+
+    private var emptyRecommendations: some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            Text("아직 추천할 필터가 없어요")
+                .fmTypography(.headline)
+                .foregroundStyle(FMColors.Text.primary)
+            Text("마켓에서 필터를 둘러보고 저장하면 여기 추천이 채워집니다.")
+                .fmTypography(.subhead)
+                .foregroundStyle(FMColors.Text.tertiary)
+            NavigationLink(value: AppRoute.search(initialQuery: nil, category: nil)) {
+                Text("마켓 둘러보기")
+                    .fmTypography(.callout)
+                    .fontWeight(.bold)
+                    .foregroundStyle(FMColors.Text.inverse)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(Sp.md)
+        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.lg))
+        .accessibilityIdentifier("social.foryou.empty")
     }
 
     private var makerSpotlight: some View {
@@ -1517,7 +1625,7 @@ struct ForYouFeedScreen: View {
         }
     }
 
-    private func toggleFollow(_ id: UUID) {
+    private func toggleFollow(_ id: String) {
         if followedMakerIDs.contains(id) {
             followedMakerIDs.remove(id)
         } else {
@@ -2002,19 +2110,25 @@ private func formattedDownloadCount(_ count: Int) -> String {
     }
 }
 
-private struct SocialFeedItem: Identifiable {
-    let id = UUID()
-    let title: String
-    let author: String
+private struct ForYouMaker: Identifiable {
+    let id: String
+    let name: String
+    let role: String
+    let filterCount: Int
     let downloadCount: Int
-    let motif: FMFilterCoverArt.Motif
 
-    static let recommendations: [SocialFeedItem] = [
-        .init(title: "Honey Hour", author: "@hellofilms", downloadCount: 3_420, motif: .vintage),
-        .init(title: "Brown Sugar", author: "@minji.lab", downloadCount: 2_180, motif: .food),
-        .init(title: "Old Polaroid", author: "@studio.haru", downloadCount: 8_760, motif: .vintage),
-        .init(title: "Hokkaido", author: "@yuna.diary", downloadCount: 1_090, motif: .travel)
-    ]
+    var initials: String {
+        let prefix = name.prefix(2)
+        return prefix.isEmpty ? "MK" : String(prefix).uppercased()
+    }
+
+    var meta: String {
+        "\(filterCount)개 필터 · ↓ \(formattedDownloadCount(downloadCount))"
+    }
+
+    var avatarColors: [Color] {
+        [FMColors.Category.cinematic, FMColors.Category.vintage]
+    }
 }
 
 private struct SocialPost: Identifiable {
