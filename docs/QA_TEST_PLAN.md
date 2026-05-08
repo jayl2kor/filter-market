@@ -361,9 +361,11 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 11.1.4 | 팔로워 stat | → AppRoute.followers(uid:) |  |
 | 11.1.5 | 팔로잉 stat | → AppRoute.following(uid:) |  |
 | 11.1.6 | 세그먼트 picker (내 필터/저장됨/촬영함) | 그리드 변경 |  |
-| 11.1.7 | 그리드 타일 | → AppRoute.filterDetail |  |
+| 11.1.7 | 그리드 타일 | 내 필터/저장됨은 filter UUID로 → AppRoute.filterDetail, 촬영함은 → AppRoute.captureDetail |  |
 | 11.1.8 | (other) 팔로우 버튼 | toggle |  |
 | 11.1.9 | (other) 차단 버튼 | confirmation → block |  |
+| 11.1.10 | `profile.tile.myFilters.*` | title 문자열이 아니라 `filter.id.uuidString`으로 상세 진입 |  |
+| 11.1.11 | `profile.tile.captures.*` | capture document ID를 filterDetail로 보내지 않고 capture detail 화면 표시 |  |
 
 ### 11.2 EditProfileScreen — `.editProfile`
 

@@ -455,7 +455,7 @@ struct ProfileScreen: View {
             spacing: 4
         ) {
             ForEach(Array(currentItems.enumerated()), id: \.element.id) { index, item in
-                NavigationLink(value: AppRoute.filterDetail(id: item.title)) {
+                NavigationLink(value: route(for: item)) {
                     gridTile(item: item)
                 }
                 .buttonStyle(.plain)
@@ -557,20 +557,54 @@ struct ProfileScreen: View {
         case .myFilters:
             return profileStore.myFilters.map { f in
                 ProfileGridItem(
+                    id: f.id.uuidString,
                     title: f.title,
+                    routeId: f.id.uuidString,
+                    kind: .filter,
                     downloadCount: f.downloadCount > 0 ? f.downloadCount : f.useCount,
                     categoryHint: f.category.hintColor
                 )
             }
         case .saved:
             return profileStore.savedFilterIDs.map { id in
-                ProfileGridItem(title: id, downloadCount: 0, categoryHint: FMColors.Category.cinematic)
+                ProfileGridItem(
+                    id: id,
+                    title: savedTitle(for: id),
+                    routeId: id,
+                    kind: .filter,
+                    downloadCount: 0,
+                    categoryHint: FMColors.Category.cinematic
+                )
             }
         case .captures:
             return profileStore.captureIDs.map { id in
-                ProfileGridItem(title: id, downloadCount: 0, categoryHint: FMColors.Category.cinematic)
+                ProfileGridItem(
+                    id: id,
+                    title: "촬영 \(String(id.prefix(6)))",
+                    routeId: id,
+                    kind: .capture,
+                    downloadCount: 0,
+                    categoryHint: FMColors.Category.cinematic
+                )
             }
         }
+    }
+
+    private func route(for item: ProfileGridItem) -> AppRoute {
+        switch item.kind {
+        case .filter:
+            return .filterDetail(id: item.routeId)
+        case .capture:
+            return .captureDetail(id: item.routeId)
+        }
+    }
+
+    private func savedTitle(for id: String) -> String {
+        if let uuid = UUID(uuidString: id),
+           let filter = store.filters.first(where: { $0.id == uuid }) ?? profileStore.myFilters.first(where: { $0.id == uuid }) {
+            return filter.title
+        }
+        return "저장된 필터"
     }
 
     private func formattedCount(_ count: Int) -> String {
@@ -594,6 +628,45 @@ struct ProfileScreen: View {
         default:
             return route.title
         }
+    }
+}
+
+struct CaptureDetailScreen: View {
+    let captureID: String
+
+    var body: some View {
+        VStack(spacing: Sp.lg) {
+            ZStack {
+                LinearGradient(
+                    colors: [FMColors.Category.cinematic.opacity(0.75), FMColors.Category.mood.opacity(0.85)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                Image(systemName: "photo")
+                    .font(.system(size: 42, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            .aspectRatio(1, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: R.lg))
+            .accessibilityIdentifier("capture.detail.preview")
+
+            VStack(alignment: .leading, spacing: Sp.xs) {
+                Text("촬영 상세")
+                    .font(Font.fmHeadline)
+                    .foregroundStyle(FMColors.Text.primary)
+                Text(captureID)
+                    .font(Font.fmCaption)
+                    .foregroundStyle(FMColors.Text.tertiary)
+                    .textSelection(.enabled)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer()
+        }
+        .padding(Sp.md)
+        .background(FMColors.Background.bg1.ignoresSafeArea())
+        .navigationTitle("촬영 상세")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

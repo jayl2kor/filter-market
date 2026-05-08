@@ -146,7 +146,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 
 | Screen ID | Route / Entry | SwiftUI | 상태 | Required actions |
 |---|---|---|---|---|
-| `profile.self` | root tab `profile` | `ProfileScreen` | Partial | `profile.login`, `profile.settings`, `profile.edit.open`, `profile.shortcut.wallet`, `profile.shortcut.myFilters`, `profile.shortcut.dashboard`, `profile.tile.*`, followers/following |
+| `profile.self` | root tab `profile` | `ProfileScreen` | Partial | `profile.login`, `profile.settings`, `profile.edit.open`, `profile.shortcut.wallet`, `profile.shortcut.myFilters`, `profile.shortcut.dashboard`, `profile.tile.*` (filter UUID route, capture detail route), followers/following |
 | `profile.other` | `AppRoute.otherProfile(uid:)` | `ProfileScreen(otherUid:)` | Partial | follow toggle, `profile.tile.*`, report/block/share candidates |
 | `profile.edit` | `AppRoute.editProfile` | `EditProfileScreen` | Implemented, NeedsE2E | `profile.edit.avatar.change`, `profile.edit.name`, `profile.edit.handle`, `profile.edit.handle.check`, `profile.edit.bio`, `profile.edit.website`, `profile.edit.save` |
 | `settings.home` | `AppRoute.settings` | `SettingsScreen` | Partial | `settings.nav.*`, `settings.row.*`, account, notification, data export, refund/help, admin section |

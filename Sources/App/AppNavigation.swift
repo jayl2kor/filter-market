@@ -38,6 +38,7 @@ enum AppRoute: Hashable {
     case cameraTimer
     case photoImport
     case photoEdit
+    case captureDetail(id: String)
     case savedFilters
     case builtinFilters
     case editor
@@ -152,6 +153,9 @@ extension View {
 
             case .photoEdit:
                 PhotoEditScreen()
+
+            case .captureDetail(let id):
+                CaptureDetailScreen(captureID: id)
 
             case .builtinFilters:
                 BuiltinFilterLibraryScreen()
@@ -336,6 +340,7 @@ extension AppRoute {
         case .cameraTimer: "타이머"
         case .photoImport: "사진 가져오기"
         case .photoEdit: "사진 편집"
+        case .captureDetail: "촬영 상세"
         case .savedFilters: "저장됨"
         case .builtinFilters: "기본 필터"
         case .editor: "필터 에디터"
@@ -418,7 +423,7 @@ extension AppRoute {
         case .notifications, .notificationSettings: "bell"
         case .modQueue, .modDetail, .filterRejected, .reportForm, .blockList: "shield.lefthalf.filled"
         case .proSubscription, .proStatus: "sparkles"
-        case .cameraAspect, .cameraTimer, .photoImport, .photoEdit: "camera"
+        case .cameraAspect, .cameraTimer, .photoImport, .photoEdit, .captureDetail: "camera"
         case .payoutOnboarding, .payoutTaxInfo, .earningsWithdraw, .payoutHistory: "banknote"
         default: "app.connected.to.app.below.fill"
         }

@@ -57,10 +57,33 @@ extension ProfileUser {
 
 /// 프로필 그리드 1셀.
 struct ProfileGridItem: Identifiable, Sendable {
-    let id = UUID()
+    enum Kind: Sendable {
+        case filter
+        case capture
+    }
+
+    let id: String
     let title: String
+    let routeId: String
+    let kind: Kind
     let downloadCount: Int
     let categoryHint: Color
+
+    init(
+        id: String = UUID().uuidString,
+        title: String,
+        routeId: String? = nil,
+        kind: Kind = .filter,
+        downloadCount: Int,
+        categoryHint: Color
+    ) {
+        self.id = id
+        self.title = title
+        self.routeId = routeId ?? id
+        self.kind = kind
+        self.downloadCount = downloadCount
+        self.categoryHint = categoryHint
+    }
 }
 
 // MARK: - ProfileMockData

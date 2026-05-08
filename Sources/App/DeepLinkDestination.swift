@@ -58,6 +58,8 @@ struct DeepLinkDestination: View {
             PhotoImportScreen()
         case .photoEdit:
             PhotoEditScreen()
+        case .captureDetail(let id):
+            CaptureDetailScreen(captureID: id)
         case .builtinFilters:
             BuiltinFilterLibraryScreen()
         case .editor:
