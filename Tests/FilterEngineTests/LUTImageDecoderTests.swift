@@ -30,6 +30,14 @@ final class LUTImageDecoderTests: XCTestCase {
         }
     }
 
+    func testRejectsInvalidLUTSizeBeforeDecoding() throws {
+        let data = try makePackedPNG(size: 2)
+
+        XCTAssertThrowsError(try LUTImageDecoder.decodePNG(data: data, size: 1)) { error in
+            XCTAssertEqual(error as? LUTImageLoaderError, .invalidImage)
+        }
+    }
+
     private func XCTAssertColor(
         _ color: RGBColor,
         red: Float,

@@ -1,3 +1,4 @@
+import CryptoKit
 import XCTest
 @testable import FilterEngine
 
@@ -90,6 +91,35 @@ final class FmpkgTests: XCTestCase {
         }
     }
 
+    func testVerifierRejectsOneDimensionalLUTPackage() throws {
+        let lutData = Data(
+            """
+            LUT_1D_SIZE 2
+            0.0 0.0 0.0
+            1.0 1.0 1.0
+            """.utf8
+        )
+        let manifest = FmpkgManifest(
+            schemaVersion: 1,
+            id: "00000000-0000-0000-0000-000000000001",
+            version: "1.0.0",
+            title: "One Dimensional",
+            author: FmpkgManifest.Author(uid: "maker-jisoo", displayName: "@jisoo.films"),
+            engine: FmpkgManifest.Engine(type: "lut+params", lutSize: 2, lutFile: "luts/lut.cube"),
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+            checksum: FmpkgManifest.Checksum(lut: sha256Hex(lutData))
+        )
+        let output = FmpkgBuilder.Output(
+            manifest: manifest,
+            manifestData: try encodeManifest(manifest),
+            lutData: lutData
+        )
+
+        XCTAssertThrowsError(try FmpkgVerifier.verify(output)) { error in
+            XCTAssertEqual(error as? FmpkgVerifier.VerifyError, .unsupportedLutDimension)
+        }
+    }
+
     func testBuilderRejectsTraversalLUTFilenames() {
         let malicious = [
             "../../../passwd",
@@ -147,5 +177,17 @@ final class FmpkgTests: XCTestCase {
         XCTAssertEqual(viaPackage.red, viaInMemory.red, accuracy: 1e-3)
         XCTAssertEqual(viaPackage.green, viaInMemory.green, accuracy: 1e-3)
         XCTAssertEqual(viaPackage.blue, viaInMemory.blue, accuracy: 1e-3)
+    }
+
+    private func encodeManifest(_ manifest: FmpkgManifest) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .prettyPrinted, .withoutEscapingSlashes]
+        encoder.dateEncodingStrategy = .iso8601
+        return try encoder.encode(manifest)
+    }
+
+    private func sha256Hex(_ data: Data) -> String {
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
 }

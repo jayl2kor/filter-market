@@ -39,11 +39,15 @@ public final class PermissionCoordinator: NSObject, ObservableObject {
     /// `requestLocation()` 이 만든 AsyncStream 의 continuation.
     /// `CLLocationManagerDelegate` 콜백으로부터 권한 변경을 yield 한다.
     private var locationContinuation: AsyncStream<CLAuthorizationStatus>.Continuation?
+    private var cachedNotificationStatus: Status?
 
     public init(locationManager: CLLocationManager = CLLocationManager()) {
         self.locationManager = locationManager
         super.init()
         self.locationManager.delegate = self
+        Task { [weak self] in
+            await self?.refreshNotificationStatus()
+        }
     }
 
     // MARK: - Status
@@ -56,9 +60,7 @@ public final class PermissionCoordinator: NSObject, ObservableObject {
         case .photos:
             mapPhotos(PHPhotoLibrary.authorizationStatus(for: .addOnly))
         case .notifications:
-            // 동기로는 정확히 알 수 없음 — 호출자는 `currentStatusAsync(.notifications)` 사용 권장.
-            // priming 게이트에는 `.notDetermined` 로 응답해 비동기 확인을 유도한다.
-            .notDetermined
+            cachedNotificationStatus ?? .notDetermined
         case .location:
             mapLocation(locationManager.authorizationStatus)
         }
@@ -68,11 +70,18 @@ public final class PermissionCoordinator: NSObject, ObservableObject {
     public func currentStatusAsync(_ permission: Permission) async -> Status {
         switch permission {
         case .notifications:
-            let settings = await UNUserNotificationCenter.current().notificationSettings()
-            return mapNotifications(settings.authorizationStatus)
+            return await refreshNotificationStatus()
         case .camera, .photos, .location:
             return currentStatus(permission)
         }
+    }
+
+    @discardableResult
+    public func refreshNotificationStatus() async -> Status {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        let status = mapNotifications(settings.authorizationStatus)
+        cachedNotificationStatus = status
+        return status
     }
 
     // MARK: - Request

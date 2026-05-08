@@ -42,6 +42,10 @@ enum LUTTextureFactory {
         size: Int,
         transform: (Float, Float, Float) -> (Float, Float, Float)
     ) -> MTLTexture? {
+        guard size >= 2 else {
+            return nil
+        }
+
         let descriptor = MTLTextureDescriptor()
         descriptor.textureType = .type3D
         descriptor.pixelFormat = .rgba32Float

@@ -881,16 +881,19 @@ private struct CapturePreviewHost: View {
 
     @State private var saveState: CaptureSaveState = .idle
     @State private var showShareSheet = false
+    private var filteredImage: UIImage? {
+        UIImage(data: result.filteredPhoto.filteredData)
+    }
     private let photoLibrarySaver: any PhotoLibrarySaving = PhotoLibrarySaver.live()
 
     var body: some View {
         CapturePreviewScreen(
-            image: UIImage(data: result.filteredPhoto.filteredData),
+            image: filteredImage,
             filterName: result.filter.title,
             aspectRatio: result.cropAspectRatio.label,
             intensityPercent: Int((result.filteredPhoto.configuration.intensity.value * 100).rounded()),
             onSave: { Task { await save() } },
-            onShare: { showShareSheet = true },
+            onShare: { share() },
             onDiscard: onClose,
             onRetake: onClose,
             onChangeFilter: onClose,
@@ -906,8 +909,17 @@ private struct CapturePreviewHost: View {
         .animation(.fmEaseOut, value: saveState)
         .fmShareSheet(
             isPresented: $showShareSheet,
-            items: [UIImage(data: result.filteredPhoto.filteredData) ?? result.filteredPhoto.filteredData]
+            items: filteredImage.map { [$0 as Any] } ?? []
         )
+    }
+
+    private func share() {
+        guard filteredImage != nil else {
+            saveState = .invalidShareData
+            FMHaptic.error.play()
+            return
+        }
+        showShareSheet = true
     }
 
     private func save() async {
@@ -920,7 +932,7 @@ private struct CapturePreviewHost: View {
         case .saved:
             await persistCaptureMetadata()
             FMHaptic.success.play()
-        case .permissionDenied, .permissionRestricted, .permissionNotDetermined, .invalidData, .failed:
+        case .permissionDenied, .permissionRestricted, .permissionNotDetermined, .invalidData, .invalidShareData, .failed:
             FMHaptic.error.play()
         case .idle, .saving:
             break
@@ -1019,6 +1031,8 @@ private final class CameraPreviewController: ObservableObject {
     private let photoFilterRenderer = PhotoFilterRenderer(lutResourceBundle: MarketplaceResources.bundle)
     private var activeFilter: RenderFilter?
     private var isRunning = false
+    private var isStarting = false
+    private var lifecycleGeneration: UInt64 = 0
     private var metricsTask: Task<Void, Never>?
 
     init() {
@@ -1028,9 +1042,15 @@ private final class CameraPreviewController: ObservableObject {
     }
 
     func start() async {
-        guard !isRunning else { return }
+        guard !isRunning, !isStarting else { return }
+
+        isStarting = true
+        lifecycleGeneration &+= 1
+        let generation = lifecycleGeneration
+        defer { isStarting = false }
 
         let isAuthorized = await cameraSession.requestAccess()
+        guard generation == lifecycleGeneration else { return }
         guard isAuthorized else {
             statusMessage = "Camera permission needed"
             return
@@ -1038,6 +1058,10 @@ private final class CameraPreviewController: ObservableObject {
 
         do {
             try await cameraSession.start()
+            guard generation == lifecycleGeneration else {
+                cameraSession.stop()
+                return
+            }
             isRunning = true
             statusMessage = renderer.isAvailable ? "Live Metal preview" : "Metal unavailable"
             startMetricsPolling()
@@ -1047,6 +1071,8 @@ private final class CameraPreviewController: ObservableObject {
     }
 
     func stop() {
+        lifecycleGeneration &+= 1
+        isStarting = false
         if isRunning {
             isRunning = false
             cameraSession.stop()
@@ -1181,6 +1207,7 @@ private enum CaptureSaveState: Equatable {
     case permissionRestricted
     case permissionNotDetermined
     case invalidData
+    case invalidShareData
     case failed
 
     init(result: PhotoLibrarySaveResult) {
@@ -1210,6 +1237,8 @@ private enum CaptureSaveState: Equatable {
             "사진 접근 권한이 필요해요"
         case .invalidData:
             "사진 데이터가 비어 있어요"
+        case .invalidShareData:
+            "공유할 사진을 준비하지 못했어요"
         case .failed:
             "저장에 실패했어요"
         }
@@ -1221,7 +1250,7 @@ private enum CaptureSaveState: Equatable {
             "checkmark.circle.fill"
         case .permissionDenied, .permissionRestricted, .permissionNotDetermined:
             "lock.fill"
-        case .invalidData, .failed:
+        case .invalidData, .invalidShareData, .failed:
             "exclamationmark.triangle.fill"
         case .idle, .saving:
             "circle"
@@ -1232,7 +1261,7 @@ private enum CaptureSaveState: Equatable {
         switch self {
         case .saved:
             FMColors.Accent.primary
-        case .permissionDenied, .permissionRestricted, .permissionNotDetermined, .invalidData, .failed:
+        case .permissionDenied, .permissionRestricted, .permissionNotDetermined, .invalidData, .invalidShareData, .failed:
             FMColors.Semantic.error
         case .idle, .saving:
             FMColors.Text.inverse.opacity(0.6)

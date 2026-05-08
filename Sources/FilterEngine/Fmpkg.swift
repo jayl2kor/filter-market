@@ -143,6 +143,7 @@ public enum FmpkgVerifier {
         case unsupportedSchemaVersion(Int)
         case checksumMismatch(expected: String, actual: String)
         case lutSizeMismatch(declared: Int, parsed: Int)
+        case unsupportedLutDimension
         case lutParseFailed
     }
 
@@ -163,15 +164,12 @@ public enum FmpkgVerifier {
             throw VerifyError.lutParseFailed
         }
 
-        switch parsed {
-        case .threeDimensional(let lut):
-            guard lut.size == decoded.engine.lutSize else {
-                throw VerifyError.lutSizeMismatch(declared: decoded.engine.lutSize, parsed: lut.size)
-            }
-        case .oneDimensional(let samples):
-            guard samples.count == decoded.engine.lutSize else {
-                throw VerifyError.lutSizeMismatch(declared: decoded.engine.lutSize, parsed: samples.count)
-            }
+        guard case .threeDimensional(let lut) = parsed else {
+            throw VerifyError.unsupportedLutDimension
+        }
+
+        guard lut.size == decoded.engine.lutSize else {
+            throw VerifyError.lutSizeMismatch(declared: decoded.engine.lutSize, parsed: lut.size)
         }
 
         return decoded

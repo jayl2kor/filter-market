@@ -1,3 +1,4 @@
+import Metal
 import XCTest
 @testable import FilterEngine
 
@@ -49,5 +50,13 @@ final class RenderFilterTests: XCTestCase {
                 fallbackPreset: .warm
             )
         )
+    }
+
+    func testLUTTextureFactoryRejectsInvalidSize() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            throw XCTSkip("Metal device is unavailable")
+        }
+
+        XCTAssertNil(LUTTextureFactory.makeIdentityLUT(device: device, size: 1))
     }
 }

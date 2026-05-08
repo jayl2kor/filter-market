@@ -202,7 +202,7 @@ final class PhotoFilterRendererTests: XCTestCase {
         height: Int,
         orientation: Int
     ) throws -> Data {
-        let imageData = try makeSolidImageData(color: color, width: width, height: height)
+        let imageData = makeSolidImageData(color: color, width: width, height: height)
         guard let provider = CGDataProvider(data: imageData as CFData) else {
             throw TestImageError.cannotCreateProvider
         }

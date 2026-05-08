@@ -2,6 +2,7 @@
 @preconcurrency import CoreImage
 import Foundation
 @preconcurrency import ImageIO
+@preconcurrency import Metal
 import UniformTypeIdentifiers
 
 public struct FilteredPhoto: Equatable, Sendable {
@@ -77,9 +78,17 @@ public enum PhotoFilterRendererError: Error, Equatable, Sendable {
 }
 
 public final class PhotoFilterRenderer {
+    private static let sharedMetalDevice = MTLCreateSystemDefaultDevice()
+    private static let sharedCIContext: CIContext = {
+        if let sharedMetalDevice {
+            return CIContext(mtlDevice: sharedMetalDevice)
+        }
+        return CIContext()
+    }()
+
     private let lutResourceBundle: Bundle?
     private let jpegCompressionQuality: CGFloat
-    private let ciContext = CIContext()
+    private let ciContext: CIContext
 
     public init(
         lutResourceBundle: Bundle? = nil,
@@ -87,6 +96,17 @@ public final class PhotoFilterRenderer {
     ) {
         self.lutResourceBundle = lutResourceBundle
         self.jpegCompressionQuality = min(max(jpegCompressionQuality, 0), 1)
+        self.ciContext = Self.sharedCIContext
+    }
+
+    init(
+        lutResourceBundle: Bundle? = nil,
+        jpegCompressionQuality: CGFloat = 0.92,
+        ciContext: CIContext
+    ) {
+        self.lutResourceBundle = lutResourceBundle
+        self.jpegCompressionQuality = min(max(jpegCompressionQuality, 0), 1)
+        self.ciContext = ciContext
     }
 
     public func apply(
@@ -290,16 +310,21 @@ private struct PixelBuffer {
 
     mutating func apply(lut: LUT3D, intensity: FilterIntensity) {
         let bytesPerPixel = 4
-        for offset in stride(from: 0, to: pixels.count, by: bytesPerPixel) {
-            let input = RGBColor(
-                red: Float(pixels[offset]) / 255,
-                green: Float(pixels[offset + 1]) / 255,
-                blue: Float(pixels[offset + 2]) / 255
-            )
-            let output = LUTSampler.sample(lut, color: input, intensity: intensity)
-            pixels[offset] = output.red.byteValue
-            pixels[offset + 1] = output.green.byteValue
-            pixels[offset + 2] = output.blue.byteValue
+        for rowStart in stride(from: 0, to: pixels.count, by: bytesPerRow) {
+            autoreleasepool {
+                let rowEnd = min(rowStart + bytesPerRow, pixels.count)
+                for offset in stride(from: rowStart, to: rowEnd, by: bytesPerPixel) {
+                    let input = RGBColor(
+                        red: Float(pixels[offset]) / 255,
+                        green: Float(pixels[offset + 1]) / 255,
+                        blue: Float(pixels[offset + 2]) / 255
+                    )
+                    let output = LUTSampler.sample(lut, color: input, intensity: intensity)
+                    pixels[offset] = output.red.byteValue
+                    pixels[offset + 1] = output.green.byteValue
+                    pixels[offset + 2] = output.blue.byteValue
+                }
+            }
         }
     }
 
@@ -314,33 +339,35 @@ private struct PixelBuffer {
         let maxDistance = sqrt(centerX * centerX + centerY * centerY)
 
         for y in 0 ..< height {
-            for x in 0 ..< width {
-                let offset = y * bytesPerRow + x * bytesPerPixel
-                var red = Float(pixels[offset]) / 255
-                var green = Float(pixels[offset + 1]) / 255
-                var blue = Float(pixels[offset + 2]) / 255
+            autoreleasepool {
+                for x in 0 ..< width {
+                    let offset = y * bytesPerRow + x * bytesPerPixel
+                    var red = Float(pixels[offset]) / 255
+                    var green = Float(pixels[offset + 1]) / 255
+                    var blue = Float(pixels[offset + 2]) / 255
 
-                if vignetteStrength != 0 {
-                    let dx = Float(x) - centerX
-                    let dy = Float(y) - centerY
-                    let normalizedDistance = min(sqrt(dx * dx + dy * dy) / maxDistance, 1)
-                    let edgeWeight = normalizedDistance * normalizedDistance
-                    let factor = 1 - vignetteStrength * 0.55 * edgeWeight
-                    red *= factor
-                    green *= factor
-                    blue *= factor
+                    if vignetteStrength != 0 {
+                        let dx = Float(x) - centerX
+                        let dy = Float(y) - centerY
+                        let normalizedDistance = min(sqrt(dx * dx + dy * dy) / maxDistance, 1)
+                        let edgeWeight = normalizedDistance * normalizedDistance
+                        let factor = 1 - vignetteStrength * 0.55 * edgeWeight
+                        red *= factor
+                        green *= factor
+                        blue *= factor
+                    }
+
+                    if grainStrength > 0 {
+                        let noise = deterministicNoise(x: x, y: y) * grainStrength * 0.12
+                        red += noise
+                        green += noise
+                        blue += noise
+                    }
+
+                    pixels[offset] = red.byteValue
+                    pixels[offset + 1] = green.byteValue
+                    pixels[offset + 2] = blue.byteValue
                 }
-
-                if grainStrength > 0 {
-                    let noise = deterministicNoise(x: x, y: y) * grainStrength * 0.12
-                    red += noise
-                    green += noise
-                    blue += noise
-                }
-
-                pixels[offset] = red.byteValue
-                pixels[offset + 1] = green.byteValue
-                pixels[offset + 2] = blue.byteValue
             }
         }
     }

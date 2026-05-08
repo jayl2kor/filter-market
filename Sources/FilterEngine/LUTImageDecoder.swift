@@ -17,6 +17,10 @@ struct DecodedLUTImage: Equatable, Sendable {
 
 enum LUTImageDecoder {
     static func decodePNG(data: Data, size: Int) throws -> DecodedLUTImage {
+        guard size >= 2 else {
+            throw LUTImageLoaderError.invalidImage
+        }
+
         guard
             let source = CGImageSourceCreateWithData(data as CFData, nil),
             let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
