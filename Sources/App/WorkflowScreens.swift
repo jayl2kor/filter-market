@@ -3446,7 +3446,8 @@ struct NotificationSettingsScreen: View {
 
 struct ReportFormScreen: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var filterId: String = ""
+    let target: ReportTarget
+
     @State private var reasonCode: String = "spam"
     @State private var detail: String = ""
     @State private var isProcessing = false
@@ -3463,9 +3464,17 @@ struct ReportFormScreen: View {
 
     var body: some View {
         Form {
-            Section(header: Text("필터 ID")) {
-                TextField("filters/abc-123 형식", text: $filterId).autocapitalization(.none)
-                    .accessibilityIdentifier("report.filterId")
+            Section(header: Text("신고 대상")) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(targetTitle)
+                        .font(Font.fmBody)
+                        .foregroundStyle(FMColors.Text.primary)
+                    Text(targetSubtitle)
+                        .font(Font.fmCaption)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                }
+                .textSelection(.enabled)
+                .accessibilityIdentifier("report.target")
             }
             Section(header: Text("사유")) {
                 Picker("사유 선택", selection: $reasonCode) {
@@ -3488,7 +3497,7 @@ struct ReportFormScreen: View {
                 } label: {
                     if isProcessing { ProgressView() } else { Text("신고 제출") }
                 }
-                .disabled(isProcessing || filterId.isEmpty)
+                .disabled(isProcessing || !target.isSubmittable)
                 .accessibilityIdentifier("report.submit")
             }
         }
@@ -3496,19 +3505,67 @@ struct ReportFormScreen: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
+    private var targetTitle: String {
+        switch target {
+        case .filter:
+            return "필터 신고"
+        case .review:
+            return "리뷰 신고"
+        case .user:
+            return "사용자 신고"
+        }
+    }
+
+    private var targetSubtitle: String {
+        switch target {
+        case .filter(let id):
+            return id.isEmpty ? "신고 대상 필터가 지정되지 않았습니다." : "필터 ID: \(id)"
+        case .review(let id, let filterId, let authorUid):
+            let author = authorUid.map { " · 작성자 \($0)" } ?? ""
+            return "필터 \(filterId) · 리뷰 \(id)\(author)"
+        case .user(let uid):
+            return uid.isEmpty ? "신고 대상 사용자가 지정되지 않았습니다." : "사용자 UID: \(uid)"
+        }
+    }
+
     private func submit() async {
         isProcessing = true
         defer { isProcessing = false }
         do {
-            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("reportFilter")
-            _ = try await callable.call([
-                "filterId": filterId,
-                "reasonCode": reasonCode,
-                "detail": detail
-            ])
+            let functions = Functions.functions(region: "asia-northeast3")
+            let trimmedDetail = detail.trimmingCharacters(in: .whitespacesAndNewlines)
+            switch target {
+            case .filter(let id):
+                let callable = functions.httpsCallable("reportFilter")
+                _ = try await callable.call([
+                    "filterId": id,
+                    "reasonCode": reasonCode,
+                    "detail": trimmedDetail
+                ])
+            case .review(let id, let filterId, let authorUid):
+                let callable = functions.httpsCallable("reportReview")
+                var payload: [String: Any] = [
+                    "filterId": filterId,
+                    "reviewId": id,
+                    "reasonCode": reasonCode,
+                    "detail": trimmedDetail
+                ]
+                if let authorUid {
+                    payload["authorUid"] = authorUid
+                }
+                _ = try await callable.call(payload)
+            case .user(let uid):
+                let callable = functions.httpsCallable("reportUser")
+                _ = try await callable.call([
+                    "targetUid": uid,
+                    "reasonCode": reasonCode,
+                    "detail": trimmedDetail
+                ])
+            }
             statusMessage = "신고가 접수되었습니다. 24시간 내 검토합니다."
-            filterId = ""
             detail = ""
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            dismiss()
         } catch {
             statusMessage = "오류: \(error.localizedDescription)"
         }

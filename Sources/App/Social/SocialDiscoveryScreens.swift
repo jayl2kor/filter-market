@@ -51,7 +51,7 @@ struct ReviewsListScreen: View {
             titleVisibility: .visible,
             presenting: moreMenuReview
         ) { review in
-            NavigationLink(value: AppRoute.reportForm) {
+            NavigationLink(value: AppRoute.reportForm(target: .review(id: review.id, filterId: filterID, authorUid: review.authorUid))) {
                 Text("이 리뷰 신고")
             }
             .accessibilityIdentifier("social.review.more.report")

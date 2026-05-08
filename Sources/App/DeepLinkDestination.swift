@@ -106,8 +106,8 @@ struct DeepLinkDestination: View {
             MyFiltersScreen()
         case .makerDashboard:
             MakerDashboardScreen()
-        case .reportForm:
-            ReportFormScreen()
+        case .reportForm(let target):
+            ReportFormScreen(target: target)
         case .favoritesCollection:
             FavoritesCollectionScreen()
         case .forYou:

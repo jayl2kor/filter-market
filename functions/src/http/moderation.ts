@@ -8,7 +8,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
 import { getFirestore, FieldValue, type Firestore } from "firebase-admin/firestore";
 import { z } from "zod";
-import { requireModerator } from "../lib/auth.js";
+import { requireAuth, requireModerator } from "../lib/auth.js";
 
 const region = "asia-northeast3";
 
@@ -121,6 +121,18 @@ const reportSchema = z.object({
   reasonCode: z.string().min(1).max(64),
   detail: z.string().max(2000).optional(),
 });
+const reportReviewSchema = z.object({
+  filterId: z.string().min(1).max(128),
+  reviewId: z.string().min(1).max(128),
+  authorUid: z.string().min(1).max(128).optional(),
+  reasonCode: z.string().min(1).max(64),
+  detail: z.string().max(2000).optional(),
+});
+const reportUserSchema = z.object({
+  targetUid: z.string().min(1).max(128),
+  reasonCode: z.string().min(1).max(64),
+  detail: z.string().max(2000).optional(),
+});
 
 export async function applyReportFilter(
   uid: string,
@@ -151,6 +163,86 @@ export async function applyReportFilter(
   });
   return { ok: true, reportId: reportRef.id };
 }
+
+export async function applyReportReview(
+  uid: string,
+  rawData: unknown,
+  deps: ModerationDeps = {},
+): Promise<{ ok: true; reportId: string }> {
+  const parsed = reportReviewSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId, reviewId, authorUid, reasonCode, detail } = parsed.data;
+  const db = deps.firestore ?? getFirestore();
+  const reviewRef = db.collection("filters").doc(filterId).collection("reviews").doc(reviewId);
+  const reviewSnap = await reviewRef.get();
+  if (!reviewSnap.exists) {
+    throw new HttpsError("not-found", `review ${reviewId} not found`);
+  }
+  const reviewData = reviewSnap.data() ?? {};
+  const reportRef = reviewRef.collection("reports").doc();
+  await reportRef.set({
+    reporterUid: uid,
+    targetType: "review",
+    filterId,
+    reviewId,
+    authorUid: reviewData.authorUid ?? authorUid ?? null,
+    reasonCode,
+    detail: detail ?? null,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+  await reviewRef.update({
+    reportCount: FieldValue.increment(1),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+  return { ok: true, reportId: reportRef.id };
+}
+
+export async function applyReportUser(
+  uid: string,
+  rawData: unknown,
+  deps: ModerationDeps = {},
+): Promise<{ ok: true; reportId: string }> {
+  const parsed = reportUserSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { targetUid, reasonCode, detail } = parsed.data;
+  if (targetUid === uid) {
+    throw new HttpsError("failed-precondition", "cannot report self");
+  }
+  const db = deps.firestore ?? getFirestore();
+  const userRef = db.collection("users").doc(targetUid);
+  const userSnap = await userRef.get();
+  if (!userSnap.exists) {
+    throw new HttpsError("not-found", `user ${targetUid} not found`);
+  }
+  const reportRef = userRef.collection("reports").doc();
+  await reportRef.set({
+    reporterUid: uid,
+    targetType: "user",
+    targetUid,
+    reasonCode,
+    detail: detail ?? null,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+  await userRef.update({
+    reportCount: FieldValue.increment(1),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+  return { ok: true, reportId: reportRef.id };
+}
+
+export const reportReview = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
+  const uid = requireAuth(req);
+  return applyReportReview(uid, req.data);
+});
+
+export const reportUser = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
+  const uid = requireAuth(req);
+  return applyReportUser(uid, req.data);
+});
 
 export const approveFilter = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
   requireModerator(req);

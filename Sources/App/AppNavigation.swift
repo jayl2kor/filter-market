@@ -4,6 +4,24 @@ import UIKit
 
 // MARK: - AppRoute
 
+enum ReportTarget: Hashable {
+    case filter(id: String)
+    case review(id: String, filterId: String, authorUid: String?)
+    case user(uid: String)
+
+    var isSubmittable: Bool {
+        switch self {
+        case .filter(let id):
+            return !id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .review(let id, let filterId, _):
+            return !id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && !filterId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .user(let uid):
+            return !uid.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+}
+
 /// SwiftUI route map for `docs/NAVIGATION.md`.
 ///
 /// Every case is a concrete screen target from the navigation document.
@@ -41,7 +59,7 @@ enum AppRoute: Hashable {
     case notifications
     case notificationSettings
     case makerDashboard
-    case reportForm
+    case reportForm(target: ReportTarget)
     case favoritesCollection
     case forYou
     case followingFeed
@@ -195,8 +213,8 @@ extension View {
             case .makerDashboard:
                 MakerDashboardScreen()
 
-            case .reportForm:
-                ReportFormScreen()
+            case .reportForm(let target):
+                ReportFormScreen(target: target)
 
             case .favoritesCollection:
                 FavoritesCollectionScreen()
@@ -573,7 +591,7 @@ extension AppRoute {
 
         case .reportForm:
             [
-                .init("report.filterId", "필터 ID 입력", systemImage: "number"),
+                .init("report.target", "신고 대상 확인", systemImage: "number"),
                 .init("report.reason", "신고 사유 선택", systemImage: "list.bullet.circle"),
                 .init("report.detail", "상세 설명 입력", systemImage: "square.and.pencil"),
                 .init("report.submit", "신고 제출", systemImage: "paperplane.fill")

@@ -9,6 +9,8 @@ import {
   applyApproveFilter,
   applyRejectFilter,
   applyReportFilter,
+  applyReportReview,
+  applyReportUser,
   applyUndoModerationDecision,
 } from "../lib/http/moderation.js";
 
@@ -169,6 +171,54 @@ describe("applyReportFilter", () => {
     await assert.rejects(
       () => applyReportFilter("u-1", { filterId: "f-1" }, { firestore }),
       (err) => err && err.code === "invalid-argument",
+    );
+  });
+});
+
+describe("applyReportReview", () => {
+  it("creates a report doc for an existing review", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/f-1/reviews/r-1": { authorUid: "u-author", reportCount: 0 },
+    });
+    const result = await applyReportReview(
+      "u-1",
+      { filterId: "f-1", reviewId: "r-1", reasonCode: "spam", detail: "bad" },
+      { firestore },
+    );
+    assert.equal(result.ok, true);
+    assert.ok(result.reportId);
+  });
+
+  it("rejects missing reviews", async () => {
+    const firestore = makeFakeFirestore({});
+    await assert.rejects(
+      () => applyReportReview("u-1", { filterId: "f-1", reviewId: "missing", reasonCode: "spam" }, { firestore }),
+      (err) => err && err.code === "not-found",
+    );
+  });
+});
+
+describe("applyReportUser", () => {
+  it("creates a report doc for an existing user", async () => {
+    const firestore = makeFakeFirestore({
+      "users/u-target": { reportCount: 0 },
+    });
+    const result = await applyReportUser(
+      "u-1",
+      { targetUid: "u-target", reasonCode: "spam", detail: "bad" },
+      { firestore },
+    );
+    assert.equal(result.ok, true);
+    assert.ok(result.reportId);
+  });
+
+  it("rejects self reports", async () => {
+    const firestore = makeFakeFirestore({
+      "users/u-1": { reportCount: 0 },
+    });
+    await assert.rejects(
+      () => applyReportUser("u-1", { targetUid: "u-1", reasonCode: "spam" }, { firestore }),
+      (err) => err && err.code === "failed-precondition",
     );
   });
 });

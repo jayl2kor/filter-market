@@ -355,7 +355,7 @@ private struct UITestLaunchHost: View {
         case .makerDashboard:
             MakerDashboardScreen()
         case .reportForm:
-            ReportFormScreen()
+            ReportFormScreen(target: .filter(id: "ui-test-filter"))
         case .favoritesCollection:
             FavoritesCollectionScreen()
         case .modQueue:

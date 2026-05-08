@@ -345,7 +345,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 |---|---|---|---|
 | 10.4.1 | `.remixFlow` | 부모 필터 카드 동적 표시 (`remix.parent.name`/`remix.parent.maker`) + "에디터 열기"가 draft를 `<parent> Remix` 이름과 remix 태그로 prefill |  |
 | 10.4.2 | `.makerDashboard` | 통계 카드 표시 |  |
-| 10.4.3 | `.reportForm` | 신고 입력 |  |
+| 10.4.3 | `.reportForm(target:)` | `report.target` read-only target summary + reason/detail | filterId/reviewId/targetUid 수동 입력 없이 신고 대상 자동 전달 |  |
 
 ---
 
@@ -491,8 +491,8 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 13.3.5 | `.modDetail` | 게시 중단 | confirmation → takedown |  |
 | 13.3.6 | `.blockList` | root `blocks` listener | `actorUid == currentUser.uid` 차단 목록 실시간 표시, 실패 시 `blocklist.retry` 노출 |  |
 | 13.3.7 | `.blockList` | `social.block.toggle` | root `blocks/{actorUid}_{targetUid}` delete 후 row 제거 |  |
-| 13.3.8 | `.reportForm` | 사유 picker | NSFW/저작권/스팸/폭력/기타 |  |
-| 13.3.9 | `.reportForm` | 제출 | mock + dismiss |  |
+| 13.3.8 | `.reportForm(target:)` | 사유 picker | NSFW/저작권/스팸/폭력/기타 |  |
+| 13.3.9 | `.reportForm(target:)` | 제출 | target별 callable(`reportFilter`/`reportReview`/`reportUser`) 호출 후 receipt + dismiss |  |
 | 13.3.10 | `.filterRejected(id:)` | 고객지원 (?) | mailto:support@moodit.app |  |
 | 13.3.11 | `.filterRejected(id:)` | 거부 사유 list | 표시 only |  |
 | 13.3.12 | `.filterRejected(id:)` | 검수 결과 확인 | 모달 |  |
