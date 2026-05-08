@@ -1,4 +1,5 @@
 import DesignSystem
+import FirebaseAuth
 import Models
 import SwiftUI
 
@@ -28,9 +29,12 @@ struct PopularMaker: Identifiable, Sendable {
 /// 헤더 + 입력 + 취소 / browsing(최근/추천/메이커) / typing(필터 + 메이커) / results(그리드 + 빈상태).
 struct SearchScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
     @State private var query: String = ""
     // (#39) 사용자별 최근 검색어 — UserDefaults 영속화. 신규 사용자는 빈 배열에서 시작.
     @State private var recentSearches: [String] = []
+    @State private var recentSearchesStorageKey: String = ""
+    @State private var cachedPopularMakers: [PopularMaker] = []
     @State private var phase: SearchPhase = .browsing
     @FocusState private var isFieldFocused: Bool
 
@@ -69,10 +73,17 @@ struct SearchScreen: View {
         }
         .background(FMColors.Background.bg0)
         .toolbar(.hidden, for: .navigationBar)
+        .onAppear {
+            loadRecentSearches()
+            refreshPopularMakers(from: store.filters)
+        }
         .task {
             // 첫 진입 시 자연스러운 focus.
             try? await Task.sleep(nanoseconds: 200_000_000)
             isFieldFocused = true
+        }
+        .onReceive(store.$filters) { filters in
+            refreshPopularMakers(from: filters)
         }
         .onChange(of: query) { _, newValue in
             if newValue.isEmpty {
@@ -80,6 +91,9 @@ struct SearchScreen: View {
             } else if phase != .results {
                 phase = .typing
             }
+        }
+        .onChange(of: isAuthenticated) { _, _ in
+            loadRecentSearches()
         }
     }
 
@@ -147,7 +161,7 @@ struct SearchScreen: View {
                 Spacer()
                 if !recentSearches.isEmpty {
                     Button {
-                        recentSearches = []
+                        clearRecentSearches()
                     } label: {
                         Text("모두 지우기")
                             .fmTypography(.subhead)
@@ -202,7 +216,7 @@ struct SearchScreen: View {
             .buttonStyle(.plain)
 
             Button {
-                recentSearches.removeAll { $0 == term }
+                removeRecentSearch(term)
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .semibold))
@@ -253,7 +267,7 @@ struct SearchScreen: View {
                 .buttonStyle(.plain)
             }
 
-            if popularMakers.isEmpty {
+            if cachedPopularMakers.isEmpty {
                 Text("아직 인기 메이커 데이터가 없어요.")
                     .fmTypography(.subhead)
                     .foregroundStyle(FMColors.Text.tertiary)
@@ -262,7 +276,7 @@ struct SearchScreen: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: Sp.md) {
-                        ForEach(popularMakers) { maker in
+                        ForEach(cachedPopularMakers) { maker in
                             makerCell(maker)
                                 .accessibilityIdentifier("search.maker.\(maker.id)")
                         }
@@ -450,11 +464,11 @@ struct SearchScreen: View {
     private var filteredMakers: [PopularMaker] {
         guard !query.isEmpty else { return [] }
         let lower = normalizedSearchToken(query)
-        return popularMakers.filter { $0.handle.lowercased().contains(lower) }
+        return cachedPopularMakers.filter { $0.handle.lowercased().contains(lower) }
     }
 
-    private var popularMakers: [PopularMaker] {
-        let approved = store.filters.filter {
+    private static func computePopularMakers(from filters: [Filter]) -> [PopularMaker] {
+        let approved = filters.filter {
             $0.status == .approved && !Self.systemSeedAuthorUIDs.contains($0.author.uid)
         }
         let grouped = Dictionary(grouping: approved) { $0.author.uid }
@@ -518,6 +532,45 @@ struct SearchScreen: View {
         if recentSearches.count > 8 {
             recentSearches = Array(recentSearches.prefix(8))
         }
+        persistRecentSearches()
+    }
+
+    private func removeRecentSearch(_ term: String) {
+        recentSearches.removeAll { $0 == term }
+        persistRecentSearches()
+    }
+
+    private func clearRecentSearches() {
+        recentSearches = []
+        persistRecentSearches()
+    }
+
+    private func refreshPopularMakers(from filters: [Filter]) {
+        cachedPopularMakers = Self.computePopularMakers(from: filters)
+    }
+
+    private func loadRecentSearches() {
+        let key = Self.recentSearchesKey()
+        recentSearchesStorageKey = key
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let decoded = try? JSONDecoder().decode([String].self, from: data) else {
+            recentSearches = []
+            return
+        }
+        recentSearches = Array(decoded.prefix(8))
+    }
+
+    private func persistRecentSearches() {
+        let key = recentSearchesStorageKey.isEmpty ? Self.recentSearchesKey() : recentSearchesStorageKey
+        guard let data = try? JSONEncoder().encode(Array(recentSearches.prefix(8))) else { return }
+        UserDefaults.standard.set(data, forKey: key)
+    }
+
+    private static func recentSearchesKey() -> String {
+        if let uid = Auth.auth().currentUser?.uid, !uid.isEmpty {
+            return "search.recent.\(uid)"
+        }
+        return "search.recent.guest"
     }
 }
 

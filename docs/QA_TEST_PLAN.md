@@ -106,6 +106,8 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 4.9 | 그리드 타일 long-press | 미구현 (no-op) |  |
 | 4.10 | Pull-to-refresh | `store.load()` 재호출, 스피너 표시 후 데이터 갱신 |  |
 | 4.11 | 코인 잔액 pill (`market.header.coinBalance`) | → AppRoute.wallet. 로그인 지갑 listener가 있으면 현재 coinBalance 표시 |  |
+| 4.12 | SearchScreen 최근 검색 | 검색 submit/추천 키워드/최근 항목 탭 시 UID별 UserDefaults에 최대 8개 저장. 앱 재시작 후 복원되고, 다른 계정/guest 키와 섞이지 않음 |  |
+| 4.13 | SearchScreen 인기 메이커 | 검색어 입력 중 인기 메이커 그룹/정렬 계산이 반복되지 않고, filter 목록 변경 시에만 캐시 갱신 |  |
 
 ---
 
