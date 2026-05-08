@@ -51,6 +51,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 1.4 | 위치 권한 (선택) | "촬영한 사진의 EXIF 에 위치를…" 메시지 |  |
 | 1.5 | 알림 권한 | "moodit"이(가) 알림을 보내고자 합니다. (실기기만) |  |
 | 1.6 | `GoogleService-Info.plist` 포함 확인 | Firebase 초기화 후 크래시 없이 로그인 화면 진입. Google 계정 picker/credential 교환은 수동 QA 게이트 |  |
+| 1.7 | 빈 유저네임 계정 첫 진입 | 프로필 편집 sheet 1회 표시. 사용자가 dismiss하면 같은 세션의 프로필 snapshot 재도착/탭 변경/foreground 복귀로 재오픈되지 않음. cold start에서는 다시 표시 가능 |  |
 
 **Reset to baseline**: 설정 > moodit > 데이터 및 저장공간 → "앱 삭제" → 재설치.
 

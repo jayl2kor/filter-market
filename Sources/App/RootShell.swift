@@ -1,4 +1,5 @@
 import DesignSystem
+import FirebaseAuth
 import SwiftUI
 
 /// 5탭 + 중앙 셔터 셸.
@@ -16,6 +17,7 @@ struct RootShell: View {
     /// 신규 사용자 첫 로그인 후 listener가 도착할 시간을 약간 둔 뒤 핸들 검사.
     /// (#32) 너무 일찍 검사하면 .empty 초기값을 보고 잘못 trigger.
     @State private var didCheckHandle = false
+    @State private var checkedHandleOnboardingUID: String?
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -74,7 +76,7 @@ struct RootShell: View {
                 store.pendingDeepLinkRoute = route
             }
         }
-        .sheet(isPresented: $showHandleOnboarding) {
+        .sheet(isPresented: $showHandleOnboarding, onDismiss: markHandleOnboardingDismissed) {
             NavigationStack {
                 EditProfileScreen()
             }
@@ -83,18 +85,18 @@ struct RootShell: View {
         }
         .onReceive(store.$editableProfile) { profile in
             // (#32) 핸들 미설정 + 인증 + listener 첫 도착 후에만 sheet trigger.
-            guard isAuthenticated, store.hasLoadedProfile else { return }
-            if profile.handle.isEmpty {
-                showHandleOnboarding = true
-            } else {
-                showHandleOnboarding = false
-            }
+            syncHandleOnboarding(profile: profile)
         }
         .onReceive(store.$hasLoadedProfile) { loaded in
             // (#47) hardcoded sleep 제거 — store가 첫 listener snapshot을 받으면 검사 트리거.
             guard loaded, isAuthenticated else { return }
-            if store.editableProfile.handle.isEmpty {
-                showHandleOnboarding = true
+            syncHandleOnboarding(profile: store.editableProfile)
+        }
+        .onChange(of: isAuthenticated) { _, authenticated in
+            if authenticated {
+                syncHandleOnboarding(profile: store.editableProfile)
+            } else {
+                resetHandleOnboardingGate()
             }
         }
     }
@@ -117,6 +119,47 @@ struct RootShell: View {
         case .profile:
             ProfileScreen()
         }
+    }
+
+    private var handleOnboardingUID: String {
+        Auth.auth().currentUser?.uid ?? "__authenticated__"
+    }
+
+    private func syncHandleOnboarding(profile: EditableProfile) {
+        guard isAuthenticated, store.hasLoadedProfile else { return }
+
+        let uid = handleOnboardingUID
+        if let checkedHandleOnboardingUID, checkedHandleOnboardingUID != uid {
+            resetHandleOnboardingGate()
+        }
+
+        let hasHandle = !profile.handle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if hasHandle {
+            checkedHandleOnboardingUID = uid
+            didCheckHandle = true
+            showHandleOnboarding = false
+            return
+        }
+
+        guard checkedHandleOnboardingUID != uid,
+              !didCheckHandle,
+              !showHandleOnboarding else { return }
+
+        checkedHandleOnboardingUID = uid
+        didCheckHandle = true
+        showHandleOnboarding = true
+    }
+
+    private func markHandleOnboardingDismissed() {
+        guard isAuthenticated else { return }
+        checkedHandleOnboardingUID = handleOnboardingUID
+        didCheckHandle = true
+    }
+
+    private func resetHandleOnboardingGate() {
+        showHandleOnboarding = false
+        didCheckHandle = false
+        checkedHandleOnboardingUID = nil
     }
 
     #if DEBUG
