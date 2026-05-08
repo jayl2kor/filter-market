@@ -67,7 +67,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | `filter.afterDownload` | `AppRoute.filterAfterDownload(id:)` | `FilterAfterDownloadScreen` | Partial | `filter.apply`, `filter.favorite.toggle`, `filter.collection.add`, `filter.remove` |
 | `filter.builtin` | `AppRoute.builtinFilters` | `BuiltinFilterLibraryScreen` | Implemented | `builtin.filter.tap`, `builtin.filter.apply.*`, `builtin.filter.info.*`, `builtin.manage` |
 | `filter.paywall` | `AppRoute.paywallSingle(filterId:)` | `PaywallSingleScreen` | Partial | `filter.purchase.confirm`, `filter.purchase.pro_upgrade` |
-| `collection.favorites` | `AppRoute.favoritesCollection` | `FavoritesCollectionScreen` | Implemented | `collection.create`, `collection.card.tap`, `collection.edit`, `collection.delete` |
+| `collection.favorites` | `AppRoute.favoritesCollection` | `FavoritesCollectionScreen` | Implemented, NeedsFirebaseQA | `/users/{uid}/collections` listener, non-negative custom count, `collection.create`, `collection.card.tap`, `collection.edit`, `collection.delete` |
 | `saved.filters` | root tab `saved`, `AppRoute.savedFilters` | `SavedScreen` | Partial | `saved.tile.*`, empty state CTA |
 
 ### 4.3 Reviews / Social
@@ -224,7 +224,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | Push 권한 요청이 앱 시작 시 발생 가능 | 첫 실행 UX 회귀 | Onboarding/Login 전 알림 prompt 발생 여부 |
 | Payout은 closed-loop coin 정책상 후순위 | 불필요한 진입점 노출 위험 | 사용자가 볼 수 있는 entry point인지 확인 |
 | StoreKit/Google/Apple sign-in은 sandbox/실기기 의존 | 시뮬레이터만으로 검증 불가 | 실기기 QA checklist 별도 표시 |
-| 저장/즐겨찾기 사용자 상태 | `/users/{uid}/savedFilters`, `/users/{uid}/favorites` snapshot listener가 단일 출처 | 동일 uid 재실행/다른 디바이스 동기화와 실패 rollback 확인 |
+| 저장/즐겨찾기/컬렉션 사용자 상태 | `/users/{uid}/savedFilters`, `/users/{uid}/favorites`, `/users/{uid}/collections` snapshot listener가 단일 출처 | 동일 uid 재실행/다른 디바이스 동기화와 실패 rollback 확인 |
 | 알림 설정 동기화 | 사용자 입력만 debounced Firestore write를 예약하고 remote snapshot은 재저장하지 않음 | 빠른 토글 6개 변경 후 최종 상태 1회성 반영, listener write loop 없음 |
 | Foreground push 표시 | `PushRegistration` foreground delegate가 notificationPreferences와 quiet hours를 적용 | 카테고리 OFF/quiet hours 중에는 banner/sound 없이 badge만 허용 |
 | Push device 등록 | 로그인 전 수신한 FCM token은 캐시하고 로그인 후 재저장 또는 token fetch 재시도 | 신규 사용자 첫 로그인 후 `/users/{uid}/devices/{deviceId}` 생성 확인 |

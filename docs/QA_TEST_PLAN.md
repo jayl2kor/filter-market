@@ -101,6 +101,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 4.6 | "전체" 카테고리 칩 | selectedCategory = nil |  |
 | 4.7 | 신규 필터 그리드 타일 (2열) | → AppRoute.filterDetail(id: title) |  |
 | 4.8 | 컬렉션 캐러셀 (`market.collection.<title>`) | 컬렉션별 SearchScreen으로 (initialCategory = 컬렉션 이름) |  |
+| 4.8a | `.favoritesCollection` | `/users/{uid}/collections` listener | 빈 상태에서도 "컬렉션 -1개"가 보이지 않고, 생성/삭제가 재진입 및 다른 디바이스에 동기화됨 |  |
 | 4.9 | 그리드 타일 long-press | 미구현 (no-op) |  |
 | 4.10 | Pull-to-refresh | `store.load()` 재호출, 스피너 표시 후 데이터 갱신 |  |
 | 4.11 | 코인 잔액 pill (`market.header.coinBalance`) | → AppRoute.wallet. 로그인 지갑 listener가 있으면 현재 coinBalance 표시 |  |

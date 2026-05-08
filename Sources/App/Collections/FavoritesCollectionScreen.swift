@@ -1,4 +1,6 @@
 import DesignSystem
+import FirebaseAuth
+import FirebaseFirestore
 import SwiftUI
 
 /// 30 Favorites Collection — `mockups/screens/30-favorites-collection.html` 정합.
@@ -6,10 +8,13 @@ import SwiftUI
 /// 컬렉션 그리드 (2열) + 4-사진 모자이크 커버 + 새 컬렉션 만들기 + 편집 모드.
 /// 첫 카드는 "전체 즐겨찾기" 자동 컬렉션 (accent.bg 배경).
 struct FavoritesCollectionScreen: View {
-    // 프로덕션은 /users/{uid}/collections Firestore listener (별도 작업)에서 채워짐.
-    // UI 테스트(-ui-testing): 기존 mock fallback.
+    @EnvironmentObject private var store: MooditStore
+
     @State private var collections: [FilterCollection] = isUITesting ? FilterCollection.mock : []
+    @State private var collectionsListener: ListenerRegistration?
+    @State private var statusMessage: String?
     @State private var isEditing = false
+    @State private var isSaving = false
     @State private var showingCreate = false
     @State private var newName = ""
     @State private var newIsPrivate = false
@@ -51,6 +56,22 @@ struct FavoritesCollectionScreen: View {
         .fmBottomSheet(isPresented: $showingCreate) {
             createSheet
         }
+        .onAppear { attachCollectionsListener() }
+        .onDisappear {
+            collectionsListener?.remove()
+            collectionsListener = nil
+        }
+        .alert(
+            "컬렉션",
+            isPresented: Binding(
+                get: { statusMessage != nil },
+                set: { if !$0 { statusMessage = nil } }
+            )
+        ) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(statusMessage ?? "")
+        }
     }
 
     // MARK: - Header
@@ -64,7 +85,7 @@ struct FavoritesCollectionScreen: View {
             HStack(spacing: 8) {
                 Text("즐겨찾기 \(totalFavorites)")
                 Text("·")
-                Text("컬렉션 \(collections.count - 1)개")
+                Text("컬렉션 \(customCollectionCount)개")
             }
             .fmTypography(.subhead)
             .foregroundStyle(FMColors.Text.secondary)
@@ -74,7 +95,14 @@ struct FavoritesCollectionScreen: View {
     }
 
     private var totalFavorites: Int {
-        collections.first { $0.isAutoAll }?.count ?? 0
+        if isUITesting {
+            return collections.first { $0.isAutoAll }?.count ?? 0
+        }
+        return store.favoriteFilterIDs.count
+    }
+
+    private var customCollectionCount: Int {
+        max(0, collections.filter { !$0.isAutoAll }.count)
     }
 
     // MARK: - Create button
@@ -237,7 +265,7 @@ struct FavoritesCollectionScreen: View {
     private func deleteButton(_ collection: FilterCollection) -> some View {
         Button {
             FMHaptic.warning.play()
-            collections.removeAll { $0.id == collection.id }
+            deleteCollection(collection)
         } label: {
             Image(systemName: "minus.circle.fill")
                 .font(.system(size: 22, weight: .semibold))
@@ -276,29 +304,130 @@ struct FavoritesCollectionScreen: View {
             .tint(FMColors.Accent.primary)
 
             FMButton("만들기", icon: "checkmark", variant: .primary, size: .lg) {
-                let trimmed = newName.trimmingCharacters(in: .whitespaces)
-                guard !trimmed.isEmpty else { return }
-                let collection = FilterCollection(
-                    name: trimmed,
-                    count: 0,
-                    isPrivate: newIsPrivate,
-                    isAutoAll: false,
-                    tiles: []
-                )
-                collections.append(collection)
-                FMHaptic.success.play()
-                showingCreate = false
+                Task { await createCollection() }
             }
-            .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
+            .disabled(isSaving || newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(Sp.lg)
+    }
+
+    private func attachCollectionsListener() {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        collectionsListener?.remove()
+        guard let uid = Auth.auth().currentUser?.uid else {
+            collections = [allFavoritesCollection(count: store.favoriteFilterIDs.count)]
+            statusMessage = "로그인 후 컬렉션을 동기화할 수 있어요."
+            return
+        }
+        collectionsListener = Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("collections")
+            .order(by: "createdAt", descending: false)
+            .addSnapshotListener { snapshot, error in
+                Task { @MainActor in
+                    if let error {
+                        statusMessage = "컬렉션을 불러오지 못했어요: \(error.localizedDescription)"
+                        collections = [allFavoritesCollection(count: store.favoriteFilterIDs.count)]
+                        return
+                    }
+                    let custom = (snapshot?.documents ?? []).compactMap(FilterCollection.init(document:))
+                    collections = [allFavoritesCollection(count: store.favoriteFilterIDs.count)] + custom
+                }
+            }
+    }
+
+    @MainActor
+    private func createCollection() async {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        #if DEBUG
+        guard !isUITesting else {
+            collections.append(FilterCollection(name: trimmed, count: 0, isPrivate: newIsPrivate, isAutoAll: false, tiles: []))
+            FMHaptic.success.play()
+            showingCreate = false
+            return
+        }
+        #endif
+        guard let uid = Auth.auth().currentUser?.uid else {
+            statusMessage = "로그인 후 컬렉션을 만들 수 있어요."
+            return
+        }
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            try await Firestore.firestore()
+                .collection("users").document(uid)
+                .collection("collections").document()
+                .setData([
+                    "name": trimmed,
+                    "isPrivate": newIsPrivate,
+                    "filterIds": [],
+                    "createdAt": FieldValue.serverTimestamp(),
+                    "updatedAt": FieldValue.serverTimestamp()
+                ])
+            FMHaptic.success.play()
+            showingCreate = false
+        } catch {
+            statusMessage = "컬렉션을 만들지 못했어요: \(error.localizedDescription)"
+        }
+    }
+
+    private func deleteCollection(_ collection: FilterCollection) {
+        #if DEBUG
+        guard !isUITesting else {
+            collections.removeAll { $0.id == collection.id }
+            return
+        }
+        #endif
+        guard let uid = Auth.auth().currentUser?.uid else {
+            statusMessage = "로그인 후 컬렉션을 삭제할 수 있어요."
+            return
+        }
+        let removed = collection
+        collections.removeAll { $0.id == collection.id }
+        Task {
+            do {
+                try await Firestore.firestore()
+                    .collection("users").document(uid)
+                    .collection("collections").document(collection.id)
+                    .delete()
+            } catch {
+                await MainActor.run {
+                    collections.append(removed)
+                    collections.sort { lhs, rhs in
+                        if lhs.isAutoAll != rhs.isAutoAll { return lhs.isAutoAll }
+                        return lhs.name < rhs.name
+                    }
+                    statusMessage = "컬렉션을 삭제하지 못했어요: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    private func allFavoritesCollection(count: Int) -> FilterCollection {
+        FilterCollection(
+            id: "all",
+            name: "전체 즐겨찾기",
+            count: count,
+            isPrivate: false,
+            isAutoAll: true,
+            tiles: favoriteTiles
+        )
+    }
+
+    private var favoriteTiles: [CollectionTile] {
+        let palette: [CollectionTile] = [.vintage, .cafe, .portrait, .moody, .travel, .nature]
+        let count = max(1, store.favoriteFilterIDs.count)
+        return Array(palette.prefix(min(4, count)))
     }
 }
 
 // MARK: - Model
 
 struct FilterCollection: Identifiable, Hashable {
-    let id = UUID()
+    let id: String
     let name: String
     let count: Int
     let isPrivate: Bool
@@ -312,8 +441,50 @@ struct FilterCollection: Identifiable, Hashable {
         return "\(count) 필터 · \(isPrivate ? "비공개" : "공개")"
     }
 
+    init(
+        id: String = UUID().uuidString,
+        name: String,
+        count: Int,
+        isPrivate: Bool,
+        isAutoAll: Bool,
+        tiles: [CollectionTile]
+    ) {
+        self.id = id
+        self.name = name
+        self.count = count
+        self.isPrivate = isPrivate
+        self.isAutoAll = isAutoAll
+        self.tiles = tiles
+    }
+
+    init?(document: QueryDocumentSnapshot) {
+        let data = document.data()
+        guard let name = (data["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !name.isEmpty else {
+            return nil
+        }
+        let filterIds = data["filterIds"] as? [String] ?? []
+        self.init(
+            id: document.documentID,
+            name: name,
+            count: filterIds.count,
+            isPrivate: data["isPrivate"] as? Bool ?? true,
+            isAutoAll: false,
+            tiles: Self.tiles(for: document.documentID, count: filterIds.count)
+        )
+    }
+
+    private static func tiles(for seed: String, count: Int) -> [CollectionTile] {
+        let palette: [CollectionTile] = [.cafe, .warm, .vintage, .portrait, .cinematic, .moody, .bw, .cool, .travel, .mountain, .nature, .city, .pastel]
+        guard !palette.isEmpty else { return [] }
+        let start = abs(seed.hashValue) % palette.count
+        let tileCount = min(4, max(0, count))
+        return (0 ..< tileCount).map { palette[(start + $0) % palette.count] }
+    }
+
     static let mock: [FilterCollection] = [
         FilterCollection(
+            id: "all",
             name: "전체 즐겨찾기",
             count: 12,
             isPrivate: false,
@@ -321,6 +492,7 @@ struct FilterCollection: Identifiable, Hashable {
             tiles: [.vintage, .cafe, .portrait, .moody]
         ),
         FilterCollection(
+            id: "cafe",
             name: "카페 일상",
             count: 8,
             isPrivate: false,
@@ -328,6 +500,7 @@ struct FilterCollection: Identifiable, Hashable {
             tiles: [.cafe, .warm, .vintage, .portrait]
         ),
         FilterCollection(
+            id: "cinematic",
             name: "시네마틱 무드",
             count: 6,
             isPrivate: true,
@@ -335,6 +508,7 @@ struct FilterCollection: Identifiable, Hashable {
             tiles: [.cinematic, .moody, .bw, .cool]
         ),
         FilterCollection(
+            id: "travel",
             name: "여행",
             count: 5,
             isPrivate: false,
@@ -342,6 +516,7 @@ struct FilterCollection: Identifiable, Hashable {
             tiles: [.travel, .mountain, .nature, .city]
         ),
         FilterCollection(
+            id: "autumn",
             name: "가을 분위기",
             count: 4,
             isPrivate: false,

@@ -316,6 +316,46 @@ const suite = describe(
       );
     });
 
+    it("allows owners to sync collections only under their uid", async () => {
+      const owner = env.authenticatedContext("u-collections");
+      const stranger = env.authenticatedContext(STRANGER_UID);
+      const ref = owner.firestore().doc("users/u-collections/collections/cafe");
+
+      await assertSucceeds(
+        ref.set({
+          name: "Cafe",
+          isPrivate: true,
+          filterIds: ["filter-a"],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+      );
+      await assertSucceeds(ref.get());
+      await assertSucceeds(
+        ref.set(
+          {
+            name: "Cafe edits",
+            isPrivate: false,
+            filterIds: ["filter-a", "filter-b"],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          { merge: false }
+        )
+      );
+      await assertFails(stranger.firestore().doc("users/u-collections/collections/cafe").get());
+      await assertFails(
+        owner.firestore().doc("users/u-collections/collections/bad").set({
+          name: "",
+          isPrivate: true,
+          filterIds: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+      );
+      await assertSucceeds(ref.delete());
+    });
+
     it("allows owners to create and read data export requests only under their uid", async () => {
       const owner = env.authenticatedContext("u-export");
       const stranger = env.authenticatedContext(STRANGER_UID);
