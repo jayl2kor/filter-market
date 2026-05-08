@@ -4971,8 +4971,10 @@ struct WalletTopupScreen: View {
         let outcome = await storeKit.purchase(product)
         switch outcome {
         case .success:
-            // (#29) 낙관적 잔액 증가 — listener 도착 전이라도 즉시 새 잔액 표시.
-            if let credit = IAPProductIDs.coinAmount(for: product.id) {
+            if let creditResult = storeKit.lastCoinCreditResult {
+                store.reconcileCoinBalance(creditResult.balance)
+            } else if let credit = IAPProductIDs.coinAmount(for: product.id) {
+                // Fallback for local StoreKit/test paths where callable response parsing is unavailable.
                 store.creditCoinsOptimistically(credit)
             }
             dismiss()

@@ -14,9 +14,16 @@ import SwiftUI
 /// - Pro SKU → `proSubscriptionUpdate({ originalTransactionId, productId, signedJWS })` callable (신규 — Sprint2)
 @MainActor
 public final class StoreKitManager: ObservableObject {
+    public struct CoinCreditResult: Equatable, Sendable {
+        public let creditedAmount: Int
+        public let balance: Int
+        public let duplicate: Bool
+    }
+
     @Published public private(set) var products: [Product] = []
     @Published public private(set) var purchasedProductIDs: Set<String> = []
     @Published public private(set) var lastError: String?
+    @Published public private(set) var lastCoinCreditResult: CoinCreditResult?
     @Published public private(set) var isProcessing = false
 
     private var updatesTask: Task<Void, Never>?
@@ -63,6 +70,7 @@ public final class StoreKitManager: ObservableObject {
     /// 사용자가 선택한 상품을 구매 시도. 검증 성공 시 백엔드 callable로 코인/Pro 적립.
     public func purchase(_ product: Product) async -> PurchaseOutcome {
         isProcessing = true
+        lastCoinCreditResult = nil
         defer { isProcessing = false }
         Telemetry.log(.iapAttempted, parameters: ["product_id": product.id])
         do {
@@ -71,7 +79,7 @@ public final class StoreKitManager: ObservableObject {
             case .success(let verification):
                 switch verification {
                 case .verified(let transaction):
-                    await creditBackend(transaction: transaction, productId: product.id, jws: verification.jwsRepresentation)
+                    _ = await creditBackend(transaction: transaction, productId: product.id, jws: verification.jwsRepresentation)
                     purchasedProductIDs.insert(product.id)
                     await transaction.finish()
                     Telemetry.log(.iapSucceeded, parameters: ["product_id": product.id])
@@ -123,7 +131,7 @@ public final class StoreKitManager: ObservableObject {
 
     private func handleBackgroundTransaction(_ transaction: StoreKit.Transaction, jws: String) async {
         // 갱신 / 환불 / 백그라운드 푸시 시 도착하는 트랜잭션은 즉시 finish + 서버 동기화.
-        await creditBackend(transaction: transaction, productId: transaction.productID, jws: jws)
+        _ = await creditBackend(transaction: transaction, productId: transaction.productID, jws: jws)
         purchasedProductIDs.insert(transaction.productID)
         await transaction.finish()
     }
@@ -132,19 +140,39 @@ public final class StoreKitManager: ObservableObject {
 
     /// StoreKit 검증된 트랜잭션 → Firebase Functions callable 호출.
     /// 실패해도 사용자에게는 noisy하게 보이지 않고 lastError만 갱신 — 사용자는 이미 결제 완료 후이므로.
-    private func creditBackend(transaction: StoreKit.Transaction, productId: String, jws: String) async {
+    private func creditBackend(transaction: StoreKit.Transaction, productId: String, jws: String) async -> CoinCreditResult? {
         let callableName = IAPProductIDs.isProSubscription(productId)
             ? "proSubscriptionUpdate"
             : "creditCoinsFromIAP"
         let callable = Functions.functions(region: region).httpsCallable(callableName)
         do {
-            _ = try await callable.call([
+            let result = try await callable.call([
                 "originalTransactionId": String(transaction.originalID),
                 "productId": productId,
                 "signedJWS": jws
             ])
+            guard !IAPProductIDs.isProSubscription(productId),
+                  let coinResult = parseCoinCreditResult(result.data) else {
+                return nil
+            }
+            lastCoinCreditResult = coinResult
+            return coinResult
         } catch {
             lastError = "서버 동기화 실패: \(error.localizedDescription)"
+            return nil
         }
+    }
+
+    private func parseCoinCreditResult(_ data: Any) -> CoinCreditResult? {
+        guard let dict = data as? [String: Any] else { return nil }
+        let creditedAmount = dict["creditedAmount"] as? Int ?? (dict["creditedAmount"] as? NSNumber)?.intValue
+        let balance = dict["balance"] as? Int ?? (dict["balance"] as? NSNumber)?.intValue
+        let duplicate = dict["duplicate"] as? Bool ?? (dict["duplicate"] as? NSNumber)?.boolValue
+        guard let creditedAmount, let balance, let duplicate else { return nil }
+        return CoinCreditResult(
+            creditedAmount: creditedAmount,
+            balance: max(balance, 0),
+            duplicate: duplicate
+        )
     }
 }

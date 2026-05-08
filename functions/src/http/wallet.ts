@@ -208,7 +208,7 @@ export async function applyCreditCoinsFromIAP(
       return {
         ok: true,
         productId,
-        creditedAmount: amount,
+        creditedAmount: 0,
         balance: currentBalance,
         duplicate: true,
       };
@@ -359,7 +359,7 @@ export const proSubscriptionUpdate = onCall(
 // ─────────────────────────────────────────────────────────────────────────────
 
 const refundSchema = z.object({
-  orderId: z.string().min(1).max(128),
+  orderId: z.string().min(1).max(128).regex(/^[A-Za-z0-9._:-]+$/),
   reason: z.string().min(1).max(2000),
 });
 
@@ -375,10 +375,31 @@ export async function applyRefundRequest(
   const { orderId, reason } = parsed.data;
   const db = deps.firestore ?? getFirestore();
   await enforceRateLimit(db, Buckets.walletRefund, uid);
-  const ref = db.collection("users").doc(uid).collection("refundRequests").doc();
+  const ledgerRef = db.collection("users").doc(uid).collection("walletLedger").doc(orderId);
+  const ledgerSnap = await ledgerRef.get();
+  if (!ledgerSnap.exists) {
+    throw new HttpsError("not-found", "order_not_found");
+  }
+  const ledger = ledgerSnap.data() ?? {};
+  const kind = ledger.kind as string | undefined;
+  if (kind !== "purchase" && kind !== "topup") {
+    throw new HttpsError("failed-precondition", "only_purchases_or_topups_can_be_refunded");
+  }
+
+  const sanitizedReason = reason.trim().replace(/<[^>]*>/g, "").trim();
+  if (!sanitizedReason) {
+    throw new HttpsError("invalid-argument", "reason must not be empty");
+  }
+
+  const ref = db.collection("users").doc(uid).collection("refundRequests").doc(orderId);
+  const existing = await ref.get();
+  if (existing.exists) {
+    throw new HttpsError("already-exists", "refund_already_requested");
+  }
   await ref.set({
     orderId,
-    reason,
+    reason: sanitizedReason,
+    ledgerKind: kind,
     status: "pending",
     createdAt: FieldValue.serverTimestamp(),
   });

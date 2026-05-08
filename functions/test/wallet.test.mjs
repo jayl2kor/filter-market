@@ -174,6 +174,7 @@ describe("applyCreditCoinsFromIAP", () => {
       { firestore, verifyReceipt: async () => true },
     );
     assert.equal(result.duplicate, true);
+    assert.equal(result.creditedAmount, 0);
     assert.equal(firestore._data.get("users/u-1/wallet/balance").value, 550);
   });
 
@@ -321,26 +322,77 @@ describe("applyProSubscriptionUpdate", () => {
 
 describe("applyRefundRequest", () => {
   it("creates refund request doc", async () => {
-    const firestore = makeFakeFirestore({});
+    const firestore = makeFakeFirestore({
+      "users/u-1/walletLedger/ord-1": { kind: "purchase", amount: -50 },
+    });
     const result = await applyRefundRequest(
       "u-1",
       { orderId: "ord-1", reason: "wrong charge" },
       { firestore },
     );
     assert.equal(result.ok, true);
-    assert.ok(result.requestId);
+    assert.equal(result.requestId, "ord-1");
+    assert.equal(firestore._data.get("users/u-1/refundRequests/ord-1").reason, "wrong charge");
   });
 
   it("rejects empty reason", async () => {
-    const firestore = makeFakeFirestore({});
+    const firestore = makeFakeFirestore({
+      "users/u-1/walletLedger/ord-1": { kind: "purchase", amount: -50 },
+    });
     await assert.rejects(
       () => applyRefundRequest("u-1", { orderId: "ord-1", reason: "" }, { firestore }),
       (err) => err && err.code === "invalid-argument",
     );
   });
 
-  it("rate limits refund requests", async () => {
+  it("rejects missing order id", async () => {
     const firestore = makeFakeFirestore({});
+    await assert.rejects(
+      () => applyRefundRequest("u-1", { orderId: "ord-1", reason: "wrong charge" }, { firestore }),
+      (err) => err && err.code === "not-found" && /order_not_found/.test(err.message),
+    );
+  });
+
+  it("rejects non-refundable ledger kind", async () => {
+    const firestore = makeFakeFirestore({
+      "users/u-1/walletLedger/ord-1": { kind: "bonus", amount: 10 },
+    });
+    await assert.rejects(
+      () => applyRefundRequest("u-1", { orderId: "ord-1", reason: "wrong charge" }, { firestore }),
+      (err) => err && err.code === "failed-precondition",
+    );
+  });
+
+  it("rejects duplicate refund requests for the same order", async () => {
+    const firestore = makeFakeFirestore({
+      "users/u-1/walletLedger/ord-1": { kind: "topup", amount: 550 },
+    });
+    await applyRefundRequest("u-1", { orderId: "ord-1", reason: "wrong charge" }, { firestore });
+
+    await assert.rejects(
+      () => applyRefundRequest("u-1", { orderId: "ord-1", reason: "wrong charge again" }, { firestore }),
+      (err) => err && err.code === "already-exists",
+    );
+  });
+
+  it("strips html tags from refund reasons", async () => {
+    const firestore = makeFakeFirestore({
+      "users/u-1/walletLedger/ord-1": { kind: "purchase", amount: -50 },
+    });
+    await applyRefundRequest("u-1", { orderId: "ord-1", reason: "<b>wrong</b> charge" }, { firestore });
+
+    assert.equal(firestore._data.get("users/u-1/refundRequests/ord-1").reason, "wrong charge");
+  });
+
+  it("rate limits refund requests", async () => {
+    const firestore = makeFakeFirestore({
+      "users/u-1/walletLedger/ord-0": { kind: "purchase" },
+      "users/u-1/walletLedger/ord-1": { kind: "purchase" },
+      "users/u-1/walletLedger/ord-2": { kind: "purchase" },
+      "users/u-1/walletLedger/ord-3": { kind: "purchase" },
+      "users/u-1/walletLedger/ord-4": { kind: "purchase" },
+      "users/u-1/walletLedger/ord-over-limit": { kind: "purchase" },
+    });
     for (let i = 0; i < 5; i += 1) {
       await applyRefundRequest("u-1", { orderId: `ord-${i}`, reason: "wrong charge" }, { firestore });
     }

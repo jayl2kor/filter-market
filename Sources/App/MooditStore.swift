@@ -850,6 +850,12 @@ final class MooditStore: ObservableObject {
         }
     }
 
+    func reconcileCoinBalance(_ balance: Int) {
+        optimisticCoinReconcileTask?.cancel()
+        optimisticCoinReconcileTask = nil
+        coinBalance = max(0, balance)
+    }
+
     private func persistSavedFilterAsync(filterId: Filter.ID, save: Bool) async throws {
         #if DEBUG
         guard !isUITesting else { return }
