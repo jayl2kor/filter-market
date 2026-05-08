@@ -27,6 +27,8 @@ public struct CapturePreviewScreen: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var showDiscardConfirm = false
+    @State private var showMoreMenu = false
+    @State private var showInfoAlert = false
 
     public init(
         image: UIImage? = nil,
@@ -91,6 +93,59 @@ public struct CapturePreviewScreen: View {
         } message: {
             Text("저장되지 않은 사진은 복구할 수 없어요.")
         }
+        .fmConfirmationDialog(
+            "더보기",
+            isPresented: $showMoreMenu,
+            titleVisibility: .hidden
+        ) {
+            Button("사진 정보") {
+                showInfoAlert = true
+            }
+            .accessibilityIdentifier("preview.more.info")
+
+            Button("다른 필터로 적용") {
+                onChangeFilter?()
+            }
+            .accessibilityIdentifier("preview.more.changeFilter")
+
+            Button("메타데이터 복사") {
+                UIPasteboard.general.string = metadataString()
+                FMHaptic.success.play()
+            }
+            .accessibilityIdentifier("preview.more.copyMetadata")
+
+            Button("취소", role: .cancel) {}
+        }
+        .alert("사진 정보", isPresented: $showInfoAlert) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(metadataString())
+        }
+    }
+
+    /// Human-readable summary of the capture (filter, intensity, aspect, dimensions)
+    /// — surfaced in the "사진 정보" alert and as the clipboard payload for
+    /// "메타데이터 복사".
+    private func metadataString() -> String {
+        var lines: [String] = []
+        if let filterName {
+            lines.append("필터: \(filterName)")
+        }
+        if let intensityPercent {
+            lines.append("강도: \(intensityPercent)%")
+        }
+        if let aspectRatio {
+            lines.append("비율: \(aspectRatio)")
+        }
+        if let image {
+            let w = Int(image.size.width * image.scale)
+            let h = Int(image.size.height * image.scale)
+            lines.append("해상도: \(w) × \(h)")
+        }
+        if lines.isEmpty {
+            return "정보 없음"
+        }
+        return lines.joined(separator: "\n")
     }
 
     // MARK: - Photo
@@ -168,7 +223,7 @@ public struct CapturePreviewScreen: View {
 
             iconButton(systemName: "ellipsis", label: "더보기") {
                 FMHaptic.light.play()
-                // 더보기 메뉴 — 후속 phase.
+                showMoreMenu = true
             }
             .accessibilityIdentifier("preview.more")
         }

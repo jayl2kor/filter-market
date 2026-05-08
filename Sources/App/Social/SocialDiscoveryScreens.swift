@@ -2,14 +2,17 @@ import DesignSystem
 import Foundation
 import SwiftUI
 
-// MARK: - Comments
+// MARK: - Reviews
 
-struct CommentsListScreen: View {
+struct ReviewsListScreen: View {
     @AppStorage("isAuthenticated") private var isAuthenticated = false
 
     let filterID: String
-    @State private var comments = SocialComment.mock
-    @State private var likedIDs: Set<UUID> = Set(SocialComment.mock.filter(\.isLiked).map(\.id))
+    // 프로덕션은 Firestore /filters/{id}/reviews listener (별도 작업)에서 채워짐.
+    // UI 테스트 (-ui-testing 런치 인자): 기존 mock 데이터로 fallback.
+    @State private var reviews: [SocialReview] = isUITesting ? SocialReview.mock : []
+    @State private var helpfulIDs: Set<UUID> = isUITesting ? Set(SocialReview.mock.filter(\.isHelpful).map(\.id)) : []
+    @State private var moreMenuReview: SocialReview?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -18,7 +21,7 @@ struct CommentsListScreen: View {
             composeBar
         }
         .background(FMColors.Background.bg1)
-        .navigationTitle("댓글 \(comments.reduce(0) { $0 + 1 + $1.replies.count })")
+        .navigationTitle("리뷰 \(reviews.count)")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -27,6 +30,37 @@ struct CommentsListScreen: View {
                 }
                 .accessibilityLabel("평점 등록")
             }
+        }
+        .confirmationDialog(
+            "리뷰 옵션",
+            isPresented: Binding(
+                get: { moreMenuReview != nil },
+                set: { if !$0 { moreMenuReview = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: moreMenuReview
+        ) { review in
+            NavigationLink(value: AppRoute.reportForm) {
+                Text("이 리뷰 신고")
+            }
+            .accessibilityIdentifier("social.review.more.report")
+
+            Button("작성자 차단", role: .destructive) {
+                // Mock: remove all reviews from the same handle.
+                reviews.removeAll { $0.handle == review.handle }
+                FMHaptic.warning.play()
+            }
+            .accessibilityIdentifier("social.review.more.block")
+
+            Button("리뷰 텍스트 복사") {
+                UIPasteboard.general.string = review.body
+                FMHaptic.success.play()
+            }
+            .accessibilityIdentifier("social.review.more.copy")
+
+            Button("취소", role: .cancel) {}
+        } message: { review in
+            Text("\(review.name) (\(review.handle))")
         }
     }
 
@@ -60,16 +94,16 @@ struct CommentsListScreen: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("social.comments.filter")
+        .accessibilityIdentifier("social.reviews.filter")
     }
 
     private var list: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                ForEach(comments) { comment in
-                    commentRow(comment, isReply: false)
-                    ForEach(comment.replies) { reply in
-                        commentRow(reply, isReply: true)
+                ForEach(reviews) { review in
+                    reviewRow(review)
+                    if let reply = review.makerReply {
+                        makerReplyRow(reply)
                             .padding(.leading, 44)
                     }
                 }
@@ -83,8 +117,8 @@ struct CommentsListScreen: View {
         HStack(spacing: Sp.sm) {
             avatar(initials: "HB", colors: [Color(hex: 0xB9D2E8), Color(hex: 0x4A6A90)], size: 32)
 
-            NavigationLink(value: isAuthenticated ? AppRoute.commentCompose(filterId: filterID) : AppRoute.login) {
-                Text(isAuthenticated ? "댓글 추가..." : "로그인하고 댓글 남기기")
+            NavigationLink(value: isAuthenticated ? AppRoute.reviewCompose(filterId: filterID) : AppRoute.login) {
+                Text(isAuthenticated ? "리뷰 추가..." : "로그인하고 리뷰 남기기")
                     .fmTypography(.subhead)
                     .foregroundStyle(FMColors.Text.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -96,9 +130,9 @@ struct CommentsListScreen: View {
                     }
             }
             .buttonStyle(.plain)
-            .accessibilityIdentifier("social.comments.compose")
+            .accessibilityIdentifier("social.reviews.compose")
 
-            NavigationLink(value: isAuthenticated ? AppRoute.commentCompose(filterId: filterID) : AppRoute.login) {
+            NavigationLink(value: isAuthenticated ? AppRoute.reviewCompose(filterId: filterID) : AppRoute.login) {
                 Image(systemName: "paperplane.fill")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(FMColors.Text.inverse)
@@ -106,7 +140,7 @@ struct CommentsListScreen: View {
                     .background(FMColors.Accent.primary, in: Circle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("댓글 보내기")
+            .accessibilityLabel("리뷰 보내기")
         }
         .padding(.horizontal, Sp.md)
         .padding(.top, Sp.sm)
@@ -117,49 +151,58 @@ struct CommentsListScreen: View {
         }
     }
 
-    private func commentRow(_ comment: SocialComment, isReply: Bool) -> some View {
+    private func reviewRow(_ review: SocialReview) -> some View {
         HStack(alignment: .top, spacing: Sp.sm) {
-            NavigationLink(value: AppRoute.otherProfile(uid: comment.handle)) {
-                avatar(initials: comment.initials, colors: comment.avatarColors, size: isReply ? 28 : 36)
+            NavigationLink(value: AppRoute.otherProfile(uid: review.handle)) {
+                avatar(initials: review.initials, colors: review.avatarColors, size: 36)
             }
             .buttonStyle(.plain)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(comment.name)
+                    Text(review.name)
                         .fmTypography(.subhead)
                         .fontWeight(.semibold)
                         .foregroundStyle(FMColors.Text.primary)
-                    Text(comment.handle)
+                    Text(review.handle)
                         .fmTypography(.caption)
                         .foregroundStyle(FMColors.Text.tertiary)
                     Spacer()
-                    Text(comment.time)
+                    Text(review.time)
                         .fmTypography(.caption)
                         .foregroundStyle(FMColors.Text.tertiary)
                 }
 
-                Text(comment.body)
+                HStack(spacing: 6) {
+                    starsRow(review.stars)
+                    if review.isVerifiedDownload {
+                        Text("다운로드 확인")
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Accent.primary)
+                            .accessibilityIdentifier("social.review.verified")
+                    }
+                }
+
+                Text(review.body)
                     .fmTypography(.body)
                     .foregroundStyle(FMColors.Text.primary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: Sp.md) {
                     Button {
-                        toggleLike(comment)
+                        toggleHelpful(review)
                     } label: {
-                        Label("\(comment.likeCount + (likedIDs.contains(comment.id) && !comment.isLiked ? 1 : 0))", systemImage: likedIDs.contains(comment.id) ? "heart.fill" : "heart")
+                        let bumpedCount = review.helpfulCount + (helpfulIDs.contains(review.id) && !review.isHelpful ? 1 : 0)
+                        Label("\(bumpedCount)", systemImage: helpfulIDs.contains(review.id) ? "hand.thumbsup.fill" : "hand.thumbsup")
                     }
-                    .foregroundStyle(likedIDs.contains(comment.id) ? FMColors.Accent.primary : FMColors.Text.tertiary)
-                    .accessibilityIdentifier(isReply ? "social.comment.reply.like" : "social.comment.like")
+                    .foregroundStyle(helpfulIDs.contains(review.id) ? FMColors.Accent.primary : FMColors.Text.tertiary)
+                    .accessibilityIdentifier("social.review.helpful")
 
-                    NavigationLink(value: isAuthenticated ? AppRoute.commentCompose(filterId: filterID) : AppRoute.login) {
-                        Text("답글")
+                    Button("···") {
+                        moreMenuReview = review
                     }
                     .foregroundStyle(FMColors.Text.tertiary)
-
-                    Button("···") {}
-                        .foregroundStyle(FMColors.Text.tertiary)
+                    .accessibilityIdentifier("social.review.more")
                 }
                 .fmTypography(.caption)
                 .buttonStyle(.plain)
@@ -167,34 +210,98 @@ struct CommentsListScreen: View {
         }
         .padding(.vertical, Sp.sm)
         .overlay(alignment: .bottom) {
-            if !isReply {
-                Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
-            }
+            Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityIdentifier(isReply ? "social.comment.reply.row" : "social.comment.row")
+        .accessibilityIdentifier("social.review.row")
     }
 
-    private func toggleLike(_ comment: SocialComment) {
+    private func makerReplyRow(_ reply: SocialMakerReply) -> some View {
+        HStack(alignment: .top, spacing: Sp.sm) {
+            avatar(initials: reply.initials, colors: reply.avatarColors, size: 28)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("메이커 답글")
+                        .fmTypography(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(FMColors.Accent.primary)
+                    Text(reply.handle)
+                        .fmTypography(.caption)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                    Spacer()
+                    Text(reply.time)
+                        .fmTypography(.caption)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                }
+
+                Text(reply.body)
+                    .fmTypography(.body)
+                    .foregroundStyle(FMColors.Text.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.vertical, Sp.sm)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("social.review.makerReply.row")
+    }
+
+    private func starsRow(_ stars: Int) -> some View {
+        HStack(spacing: 2) {
+            ForEach(0 ..< 5, id: \.self) { index in
+                Image(systemName: index < stars ? "star.fill" : "star")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(index < stars ? FMColors.Accent.primary : FMColors.Text.tertiary)
+            }
+        }
+        .accessibilityIdentifier("social.review.stars")
+        .accessibilityLabel("\(stars)점")
+    }
+
+    private func toggleHelpful(_ review: SocialReview) {
         FMHaptic.selection.play()
-        if likedIDs.contains(comment.id) {
-            likedIDs.remove(comment.id)
+        if helpfulIDs.contains(review.id) {
+            helpfulIDs.remove(review.id)
         } else {
-            likedIDs.insert(comment.id)
+            helpfulIDs.insert(review.id)
         }
     }
 }
 
-struct CommentComposeScreen: View {
+struct ReviewComposeScreen: View {
     @AppStorage("isAuthenticated") private var isAuthenticated = false
     @Environment(\.dismiss) private var dismiss
 
     let filterID: String
     @State private var text = "이 필터 너무 좋아요! @jiso"
     @State private var selectedMention: UUID?
+    @State private var showingPhotoPicker = false
+    @State private var attachedImage: UIImage?
+    @State private var showingEmojiPicker = false
 
     private let mentions = SocialUser.mentionSuggestions
     private let limit = 280
+
+    /// Curated emoji palette for review composition. Tied to the moodit
+    /// aesthetic — warmth/light/film vocabulary, not generic chat emojis.
+    private static let emojiPalette: [String] = [
+        "✨", "🌅", "🌇", "🌙", "☕️", "📷", "🎞️", "🌿",
+        "🌸", "💛", "🤎", "🔥", "✏️", "🖼", "🎨", "🌊",
+    ]
+
+    private func insertAtMention() {
+        // Append "@" so the existing mention box (driven by `text.contains("@")`)
+        // surfaces. Add a leading space if the text doesn't already end in
+        // whitespace — keeps tokens visually separated.
+        let separator = (text.last?.isWhitespace ?? true) ? "" : " "
+        text += "\(separator)@"
+        FMHaptic.selection.play()
+    }
+
+    private func insertEmoji(_ emoji: String) {
+        text += emoji
+        FMHaptic.selection.play()
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -206,7 +313,7 @@ struct CommentComposeScreen: View {
             }
         }
         .background(FMColors.Background.bg1)
-        .navigationTitle("새 댓글")
+        .navigationTitle("새 리뷰")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -222,6 +329,11 @@ struct CommentComposeScreen: View {
                 .foregroundStyle(canPost ? FMColors.Accent.primary : FMColors.Text.tertiary)
                 .disabled(!canPost)
                 .accessibilityIdentifier("social.compose.send")
+            }
+        }
+        .sheet(isPresented: $showingPhotoPicker) {
+            PhotoPicker { image in
+                attachedImage = image
             }
         }
     }
@@ -251,11 +363,68 @@ struct CommentComposeScreen: View {
                     .frame(minHeight: 180)
                     .accessibilityIdentifier("social.compose.input")
 
+                if let image = attachedImage {
+                    attachedImagePreview(image)
+                }
+
+                if showingEmojiPicker {
+                    emojiPalette
+                }
+
                 if text.contains("@") {
                     mentionBox
                 }
             }
             .padding(Sp.md)
+        }
+    }
+
+    private var emojiPalette: some View {
+        let columns = Array(repeating: GridItem(.flexible(), spacing: Sp.sm), count: 8)
+        return LazyVGrid(columns: columns, spacing: Sp.sm) {
+            ForEach(Self.emojiPalette, id: \.self) { emoji in
+                Button {
+                    insertEmoji(emoji)
+                } label: {
+                    Text(emoji)
+                        .font(.system(size: 22))
+                        .frame(width: 36, height: 36)
+                        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.sm))
+                }
+                .accessibilityLabel(emoji)
+                .accessibilityIdentifier("social.compose.emoji.\(emoji)")
+            }
+        }
+        .padding(Sp.sm)
+        .background(FMColors.Background.bg1, in: RoundedRectangle(cornerRadius: R.md))
+        .overlay {
+            RoundedRectangle(cornerRadius: R.md).strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+        }
+        .accessibilityIdentifier("social.compose.emojiPalette")
+    }
+
+    private func attachedImagePreview(_ image: UIImage) -> some View {
+        ZStack(alignment: .topTrailing) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: 240)
+                .clipShape(RoundedRectangle(cornerRadius: R.md))
+                .accessibilityIdentifier("social.compose.attachedImage")
+            Button {
+                attachedImage = nil
+                FMHaptic.light.play()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(.white, .black.opacity(0.55))
+                    .padding(Sp.xs)
+            }
+            .accessibilityLabel("첨부 사진 제거")
+            .accessibilityIdentifier("social.compose.removeImage")
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: R.md).strokeBorder(FMColors.Border.subtle, lineWidth: 1)
         }
     }
 
@@ -308,9 +477,36 @@ struct CommentComposeScreen: View {
 
     private var toolbar: some View {
         HStack(spacing: Sp.md) {
-            iconButton("at", label: "@멘션")
-            iconButton("photo", label: "이미지 첨부")
-            iconButton("face.smiling", label: "이모지")
+            Button {
+                insertAtMention()
+            } label: {
+                Image(systemName: "at")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(FMColors.Text.secondary)
+                    .frame(width: 36, height: 36)
+            }
+            .accessibilityLabel("@멘션")
+            .accessibilityIdentifier("social.compose.insertMention")
+            Button {
+                showingPhotoPicker = true
+            } label: {
+                Image(systemName: "photo")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(FMColors.Text.secondary)
+                    .frame(width: 36, height: 36)
+            }
+            .accessibilityLabel("이미지 첨부")
+            .accessibilityIdentifier("social.compose.attachImage")
+            Button {
+                showingEmojiPicker.toggle()
+            } label: {
+                Image(systemName: "face.smiling")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(showingEmojiPicker ? FMColors.Accent.primary : FMColors.Text.secondary)
+                    .frame(width: 36, height: 36)
+            }
+            .accessibilityLabel("이모지")
+            .accessibilityIdentifier("social.compose.emojiToggle")
             Spacer()
             Text("\(text.count) / \(limit)")
                 .fmTypography(.caption)
@@ -326,9 +522,9 @@ struct CommentComposeScreen: View {
 
     private var loginGate: some View {
         VStack(spacing: Sp.md) {
-            FMEmptyState(.emptyComments(isLoggedIn: false))
+            FMEmptyState(.emptyReviews(isLoggedIn: false))
             NavigationLink(value: AppRoute.login) {
-                FMButton("로그인하고 댓글 쓰기", icon: "person.crop.circle", variant: .primary, size: .lg) {}
+                FMButton("로그인하고 리뷰 쓰기", icon: "person.crop.circle", variant: .primary, size: .lg) {}
             }
             .buttonStyle(.plain)
         }
@@ -346,7 +542,7 @@ struct RatingFormScreen: View {
     let filterID: String
     @State private var rating = 5
     @State private var selectedTags: Set<String> = ["자연스러움", "강도 조절 좋음"]
-    @State private var comment = "필름 카페 사진에 정말 잘 어울려요. 강도 80%가 베스트."
+    @State private var reviewBody = "필름 카페 사진에 정말 잘 어울려요. 강도 80%가 베스트."
 
     private let tags = ["자연스러움", "강도 조절 좋음", "카페 잘 어울림", "셀카 좋음", "여행", "실내 광원"]
 
@@ -414,7 +610,7 @@ struct RatingFormScreen: View {
                 }
             }
 
-            TextEditor(text: $comment)
+            TextEditor(text: $reviewBody)
                 .font(.body)
                 .scrollContentBackground(.hidden)
                 .frame(minHeight: 88)
@@ -423,7 +619,7 @@ struct RatingFormScreen: View {
                 .overlay {
                     RoundedRectangle(cornerRadius: R.md).strokeBorder(FMColors.Border.default, lineWidth: 1)
                 }
-                .accessibilityIdentifier("social.rating.comment")
+                .accessibilityIdentifier("social.rating.body")
 
             HStack(spacing: Sp.xs) {
                 FMButton("건너뛰기", variant: .secondary, size: .lg) {
@@ -448,7 +644,7 @@ struct RatingFormScreen: View {
             Capsule()
                 .fill(FMColors.Background.bg3)
                 .frame(width: 36, height: 4)
-            FMEmptyState(.emptyComments(isLoggedIn: false))
+            FMEmptyState(.emptyReviews(isLoggedIn: false))
             NavigationLink(value: AppRoute.login) {
                 FMButton("로그인하고 평점 남기기", icon: "star", variant: .primary, size: .lg) {}
             }
@@ -969,10 +1165,10 @@ struct FollowingFeedScreen: View {
                 .foregroundStyle(likedPostIDs.contains(post.id) ? FMColors.Semantic.error : FMColors.Text.secondary)
                 .accessibilityIdentifier("social.following.post.like")
 
-                NavigationLink(value: AppRoute.comments(filterId: post.filterName)) {
-                    Label("\(post.commentCount)", systemImage: "bubble.left")
+                NavigationLink(value: AppRoute.reviews(filterId: post.filterName)) {
+                    Label("\(post.reviewCount)", systemImage: "bubble.left")
                 }
-                .accessibilityIdentifier("social.following.post.comments")
+                .accessibilityIdentifier("social.following.post.reviews")
 
                 Button {} label: {
                     Image(systemName: "square.and.arrow.up")
@@ -1125,7 +1321,16 @@ private struct FlowLayout: Layout {
 
 // MARK: - Shared Models
 
-private struct SocialComment: Identifiable {
+private struct SocialMakerReply: Identifiable {
+    let id = UUID()
+    let handle: String
+    let initials: String
+    let avatarColors: [Color]
+    let time: String
+    let body: String
+}
+
+private struct SocialReview: Identifiable {
     let id = UUID()
     let name: String
     let handle: String
@@ -1133,62 +1338,70 @@ private struct SocialComment: Identifiable {
     let avatarColors: [Color]
     let time: String
     let body: String
-    let likeCount: Int
-    let isLiked: Bool
-    var replies: [SocialComment] = []
+    let stars: Int
+    let helpfulCount: Int
+    let isHelpful: Bool
+    let isVerifiedDownload: Bool
+    let makerReply: SocialMakerReply?
 
-    nonisolated(unsafe) static let mock: [SocialComment] = [
-        SocialComment(
+    nonisolated(unsafe) static let mock: [SocialReview] = [
+        SocialReview(
             name: "민지",
             handle: "@minji.lab",
             initials: "MJ",
             avatarColors: [Color(hex: 0xF3DCC4), Color(hex: 0xD4A482)],
             time: "2시간",
             body: "카페 사진에 진짜 잘 어울려요. 강도 80%가 베스트네요.",
-            likeCount: 24,
-            isLiked: true,
-            replies: [
-                SocialComment(
-                    name: "jisoo",
-                    handle: "@jisoo.films · 메이커",
-                    initials: "JS",
-                    avatarColors: [Color(hex: 0xE0C39A), Color(hex: 0x8E6A4A)],
-                    time: "1시간",
-                    body: "@minji.lab 감사합니다! 아침 햇빛에서도 한번 써보세요.",
-                    likeCount: 8,
-                    isLiked: false
-                )
-            ]
+            stars: 5,
+            helpfulCount: 24,
+            isHelpful: true,
+            isVerifiedDownload: true,
+            makerReply: SocialMakerReply(
+                handle: "@jisoo.films",
+                initials: "JS",
+                avatarColors: [Color(hex: 0xE0C39A), Color(hex: 0x8E6A4A)],
+                time: "1시간",
+                body: "민지님 감사합니다! 아침 햇빛에서도 한번 써보세요."
+            )
         ),
-        SocialComment(
+        SocialReview(
             name: "Alex",
             handle: "@alex.grade",
             initials: "AL",
             avatarColors: [Color(hex: 0xAEC59A), Color(hex: 0x4A6A3C)],
             time: "5시간",
             body: "Mid-tone에 살짝 마젠타가 도는 느낌이 좋네요. 어떤 LUT 사이즈로 만드셨어요? 33³ 인가요?",
-            likeCount: 12,
-            isLiked: false
+            stars: 4,
+            helpfulCount: 12,
+            isHelpful: false,
+            isVerifiedDownload: true,
+            makerReply: nil
         ),
-        SocialComment(
+        SocialReview(
             name: "유나",
             handle: "@yuna.diary",
             initials: "YN",
             avatarColors: [Color(hex: 0xAAB5CB), Color(hex: 0x3A4560)],
             time: "어제",
             body: "제 셀카에는 강도 60%가 자연스러웠어요. 추천!",
-            likeCount: 6,
-            isLiked: false
+            stars: 4,
+            helpfulCount: 6,
+            isHelpful: false,
+            isVerifiedDownload: true,
+            makerReply: nil
         ),
-        SocialComment(
+        SocialReview(
             name: "Emma",
             handle: "@emma.travel",
             initials: "EM",
             avatarColors: [Color(hex: 0xCBD4E0), Color(hex: 0xC79A72)],
             time: "2일",
             body: "유럽 여행 사진들에 진짜 다 잘 맞네요. 다른 비슷한 톤도 있나요?",
-            likeCount: 4,
-            isLiked: false
+            stars: 5,
+            helpfulCount: 4,
+            isHelpful: false,
+            isVerifiedDownload: false,
+            makerReply: nil
         )
     ]
 }
@@ -1322,7 +1535,7 @@ private struct SocialPost: Identifiable {
     let motif: FMFilterCoverArt.Motif
     let downloadCount: Int
     let likeCount: Int
-    let commentCount: Int
+    let reviewCount: Int
     let isLiked: Bool
     let caption: String?
 
@@ -1338,7 +1551,7 @@ private struct SocialPost: Identifiable {
             motif: .cinematic,
             downloadCount: 128,
             likeCount: 42,
-            commentCount: 8,
+            reviewCount: 8,
             isLiked: true,
             caption: "새 필터 첫 시도. 도쿄 야경에 진짜 찰떡이네요."
         ),
@@ -1353,7 +1566,7 @@ private struct SocialPost: Identifiable {
             motif: .pastel,
             downloadCount: 2_430,
             likeCount: 28,
-            commentCount: 4,
+            reviewCount: 4,
             isLiked: false,
             caption: nil
         )

@@ -1,4 +1,5 @@
 import DesignSystem
+import Models
 import SwiftUI
 
 // MARK: - SearchPhase
@@ -26,6 +27,7 @@ struct PopularMaker: Identifiable, Sendable {
 /// Phase D3 — `mockups/screens/08-search.html` 와 정합.
 /// 헤더 + 입력 + 취소 / browsing(최근/추천/메이커) / typing(필터 + 메이커) / results(그리드 + 빈상태).
 struct SearchScreen: View {
+    @EnvironmentObject private var store: MooditStore
     @State private var query: String = ""
     @State private var recentSearches: [String] = ["야경", "여름 파스텔", "jisoo.films", "골든아워", "필름룩"]
     @State private var phase: SearchPhase = .browsing
@@ -350,9 +352,9 @@ struct SearchScreen: View {
                         ],
                         spacing: Sp.sm
                     ) {
-                        ForEach(Array(filteredFilters.enumerated()), id: \.offset) { index, data in
-                            NavigationLink(value: AppRoute.filterDetail(id: data.title)) {
-                                FMFilterTile(data: data)
+                        ForEach(Array(filteredFilters.enumerated()), id: \.offset) { index, filter in
+                            NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                                FMFilterTile(data: filter.toTileData())
                             }
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("search.typing.tile.\(index)")
@@ -415,9 +417,9 @@ struct SearchScreen: View {
                         ],
                         spacing: Sp.sm
                     ) {
-                        ForEach(Array(filteredFilters.enumerated()), id: \.offset) { index, data in
-                            NavigationLink(value: AppRoute.filterDetail(id: data.title)) {
-                                FMFilterTile(data: data)
+                        ForEach(Array(filteredFilters.enumerated()), id: \.offset) { index, filter in
+                            NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                                FMFilterTile(data: filter.toTileData())
                             }
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("search.result.tile.\(index)")
@@ -437,16 +439,17 @@ struct SearchScreen: View {
             .frame(height: 1)
     }
 
-    private var filteredFilters: [FMFilterTileData] {
+    private var filteredFilters: [Filter] {
         guard !query.isEmpty else { return [] }
         let lower = query.lowercased()
-        // 무결과는 그대로 빈 배열 반환 — `resultsContent` 의 `FMEmptyState(.noSearchResults)` 분기로 이어진다.
+        // 컬렉션 분기는 카테고리 필터로만 — 결과 비어있으면 FMEmptyState(.noSearchResults).
         if let initialCategory, initialCategory == "컬렉션" {
-            return MarketplaceMockData.newFilters
+            return store.newFiltersList
         }
-        return MarketplaceMockData.newFilters.filter {
-            $0.title.lowercased().contains(lower)
-                || $0.makerName.lowercased().contains(lower)
+        return store.filters.filter { f in
+            guard f.status == .approved else { return false }
+            return f.title.lowercased().contains(lower)
+                || f.author.displayName.lowercased().contains(lower)
         }
     }
 
@@ -486,7 +489,7 @@ struct SearchScreen: View {
             description: "메이커가 직접 조정한 톤커브로, 일상의 순간을 한 단계 더 풍부한 분위기로 끌어올립니다. 강도 60~80% 에서 가장 자연스럽게 어울려요.",
             tags: ["#mood", "#daily", "#warm", "#analog"],
             sampleSymbols: ["photo", "photo.fill", "sun.max", "moon.stars", "leaf", "camera"],
-            comments: FilterDetailMock.preview.comments,
+            reviews: FilterDetailMock.preview.reviews,
             categoryHint: tile.categoryHint ?? FMColors.Category.cinematic,
             isPaid: tile.priceLabel != nil,
             priceLabel: tile.priceLabel

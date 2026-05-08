@@ -1,4 +1,7 @@
 import DesignSystem
+import FirebaseAuth
+import FirebaseCore
+import GoogleSignIn
 import SwiftUI
 
 // MARK: - LoginScreen
@@ -10,6 +13,8 @@ import SwiftUI
 /// 실제 인증 흐름은 후속 Phase 에서 연결되며, 본 화면은 시각만 제공한다.
 struct LoginScreen: View {
     @State private var loadingProvider: LoginProvider? = nil
+    @State private var externalURL: ExternalURL?
+    @State private var navigateToEmailLogin = false
     @Environment(\.colorScheme) private var colorScheme
 
     /// 인증 성공 콜백. 현재는 호출되지 않으나 향후 `AuthState` 변경 트리거로 연결 예정.
@@ -45,6 +50,16 @@ struct LoginScreen: View {
             }
         }
         .accessibilityElement(children: .contain)
+        .sheet(item: $externalURL) { external in
+            SafariView(url: external.value)
+        }
+        .environment(\.openURL, OpenURLAction { url in
+            externalURL = ExternalURL(value: url)
+            return .handled
+        })
+        .navigationDestination(isPresented: $navigateToEmailLogin) {
+            EmailLoginScreen()
+        }
     }
 
     // MARK: - Sections
@@ -177,8 +192,10 @@ struct LoginScreen: View {
             size: .lg
         ) {
             onContinueWithEmail?()
+            navigateToEmailLogin = true
         }
         .disabled(loadingProvider != nil)
+        .accessibilityIdentifier("auth.email.continue")
     }
 
     private var divider: some View {
@@ -208,24 +225,38 @@ struct LoginScreen: View {
     }
 
     private var termsText: some View {
-        // 외부 링크는 후속 Phase 에서 SafariViewController 로 연결.
+        Text(termsAttributed)
+            .fmTypography(.footnote)
+            .multilineTextAlignment(.center)
+            .accessibilityIdentifier("auth.terms")
+    }
+
+    /// AttributedString with `.link` attributes — taps are intercepted by the
+    /// `openURL` environment override on `body` and presented via `SafariView`.
+    private var termsAttributed: AttributedString {
+        let tertiary = FMColors.Text.tertiary
         let highlight = FMColors.Text.secondary
-        return (
-            Text("계속을 누르면 ")
-                .foregroundStyle(FMColors.Text.tertiary)
-            + Text("이용약관")
-                .foregroundStyle(highlight)
-                .underline()
-            + Text(" 과 ")
-                .foregroundStyle(FMColors.Text.tertiary)
-            + Text("개인정보처리방침")
-                .foregroundStyle(highlight)
-                .underline()
-            + Text(" 에 동의하는 것으로 간주됩니다.")
-                .foregroundStyle(FMColors.Text.tertiary)
-        )
-        .fmTypography(.footnote)
-        .multilineTextAlignment(.center)
+
+        var prefix = AttributedString("계속을 누르면 ")
+        prefix.foregroundColor = tertiary
+
+        var terms = AttributedString("이용약관")
+        terms.foregroundColor = highlight
+        terms.underlineStyle = .single
+        terms.link = MooditPolicyURL.terms
+
+        var middle = AttributedString(" 과 ")
+        middle.foregroundColor = tertiary
+
+        var privacy = AttributedString("개인정보처리방침")
+        privacy.foregroundColor = highlight
+        privacy.underlineStyle = .single
+        privacy.link = MooditPolicyURL.privacy
+
+        var suffix = AttributedString(" 에 동의하는 것으로 간주됩니다.")
+        suffix.foregroundColor = tertiary
+
+        return prefix + terms + middle + privacy + suffix
     }
 
     // MARK: - Background
@@ -259,12 +290,83 @@ struct LoginScreen: View {
     private func triggerLogin(_ provider: LoginProvider) {
         guard loadingProvider == nil else { return }
         loadingProvider = provider
-        // 실제 인증 흐름은 후속 Phase. 시각적 로딩 상태만 약 1.2초 시뮬레이션.
+
+        switch provider {
+        case .apple:
+            // Apple Sign-In은 별도 SDK 흐름이 차후 추가 — 현재는 시뮬레이션.
+            simulateAuth(provider: provider)
+        case .google:
+            performGoogleSignIn()
+        }
+    }
+
+    /// Loading 상태만 잠시 표시한 뒤 onAuthenticated 호출 — Apple Sign-In 미연결 시 폴백.
+    @MainActor
+    private func simulateAuth(provider: LoginProvider) {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 1_200_000_000)
             loadingProvider = nil
             onAuthenticated?()
         }
+    }
+
+    /// Google Sign-In 흐름:
+    /// 1. `GIDSignIn` 시트 표시 → ID token + access token 획득
+    /// 2. Firebase `GoogleAuthProvider` 자격증명 생성
+    /// 3. `Auth.auth().signIn(with:)` 으로 Firebase 세션 시작
+    /// 4. `isAuthenticated` AppStorage 갱신 + onAuthenticated 콜백
+    @MainActor
+    private func performGoogleSignIn() {
+        guard let presenter = topViewController() else {
+            loadingProvider = nil
+            return
+        }
+        guard FirebaseApp.app() != nil else {
+            // Firebase 미설정 — GoogleService-Info.plist 누락. 시뮬레이션으로 폴백.
+            #if DEBUG
+            print("[Login] Firebase not configured; falling back to simulated auth.")
+            #endif
+            simulateAuth(provider: .google)
+            return
+        }
+
+        Task { @MainActor in
+            do {
+                let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: presenter)
+                guard let idToken = result.user.idToken?.tokenString else {
+                    throw NSError(
+                        domain: "moodit.LoginScreen",
+                        code: -10,
+                        userInfo: [NSLocalizedDescriptionKey: "Google ID token missing"]
+                    )
+                }
+                let credential = GoogleAuthProvider.credential(
+                    withIDToken: idToken,
+                    accessToken: result.user.accessToken.tokenString
+                )
+                _ = try await Auth.auth().signIn(with: credential)
+                UserDefaults.standard.set(true, forKey: "isAuthenticated")
+                loadingProvider = nil
+                FMHaptic.success.play()
+                onAuthenticated?()
+            } catch {
+                loadingProvider = nil
+                #if DEBUG
+                print("[Login] Google sign-in failed: \(error.localizedDescription)")
+                #endif
+            }
+        }
+    }
+
+    /// 현재 키 윈도우의 root view controller — `GIDSignIn`은 presenting controller가 필요.
+    private func topViewController() -> UIViewController? {
+        guard
+            let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+            let root = scene.keyWindow?.rootViewController ?? scene.windows.first?.rootViewController
+        else { return nil }
+        var top = root
+        while let presented = top.presentedViewController { top = presented }
+        return top
     }
 }
 

@@ -11,35 +11,37 @@ final class PhaseDE2ETests: XCTestCase {
         app = nil
     }
 
-    func testCommentsListSignedInComposeAndRatingEntry() {
-        launch(route: "comments", isAuthenticated: true)
+    func testReviewsListSignedInComposeAndRatingEntry() {
+        launch(route: "reviews", isAuthenticated: true)
 
-        XCTAssertTrue(element("social.comments.filter").waitForExistence(timeout: 6))
-        XCTAssertTrue(element("social.comment.row").exists)
-        XCTAssertTrue(element("social.comment.reply.row").exists)
+        XCTAssertTrue(element("social.reviews.filter").waitForExistence(timeout: 6))
+        XCTAssertTrue(element("social.review.row").exists)
+        XCTAssertTrue(element("social.review.makerReply.row").exists)
+        XCTAssertTrue(element("social.review.stars").exists)
+        XCTAssertTrue(element("social.review.verified").exists)
         assertStaticText(containing: "↓ 6.2K")
 
-        tap("social.comment.like")
-        tap("social.comments.compose")
+        tap("social.review.helpful")
+        tap("social.reviews.compose")
 
         XCTAssertTrue(element("social.compose.input").waitForExistence(timeout: 4))
         XCTAssertTrue(element("social.compose.mentions").exists)
 
         launch(route: "rating", isAuthenticated: true)
         tap("social.rating.star.4", timeout: 4)
-        XCTAssertTrue(element("social.rating.comment").exists)
+        XCTAssertTrue(element("social.rating.body").exists)
         XCTAssertTrue(element("social.rating.submit").exists)
     }
 
     func testSocialWriteActionsRouteGuestsToLogin() {
-        launch(route: "comments", isAuthenticated: false)
+        launch(route: "reviews", isAuthenticated: false)
 
-        tap("social.comments.compose", timeout: 4)
+        tap("social.reviews.compose", timeout: 4)
         XCTAssertTrue(app.buttons["Apple로 계속하기"].waitForExistence(timeout: 4))
 
-        launch(route: "commentCompose", isAuthenticated: false)
-        XCTAssertTrue(app.staticTexts["첫 번째 댓글을 남겨보세요"].waitForExistence(timeout: 4))
-        XCTAssertTrue(app.buttons["로그인하고 댓글 쓰기"].exists)
+        launch(route: "reviewCompose", isAuthenticated: false)
+        XCTAssertTrue(app.staticTexts["첫 번째 리뷰를 남겨보세요"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.buttons["로그인하고 리뷰 쓰기"].exists)
 
         launch(route: "rating", isAuthenticated: false)
         XCTAssertTrue(app.buttons["로그인하고 평점 남기기"].waitForExistence(timeout: 4))
@@ -80,8 +82,9 @@ final class PhaseDE2ETests: XCTestCase {
         assertStaticText(containing: "Cotton Candy · 70% · ↓ 2.4K", timeout: 4)
         tap("social.following.post.like")
         tap("social.following.post.save")
-        tap("social.following.post.comments")
-        XCTAssertTrue(element("social.comment.row").waitForExistence(timeout: 4))
+        tap("social.following.post.reviews")
+        XCTAssertTrue(element("social.review.row").waitForExistence(timeout: 4))
+        XCTAssertTrue(element("social.review.stars").exists)
     }
 
     private func launch(route: String, isAuthenticated: Bool = false) {

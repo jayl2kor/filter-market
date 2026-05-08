@@ -80,11 +80,62 @@ final class PhaseAE2ETests: XCTestCase {
         filterButton.tap()
     }
 
-    private func launch(route: String? = nil) {
+    /// Universal Link / push deep-link routing — verifies that
+    /// `RootShell` reads the `-deepLink` launch argument and routes it through
+    /// `UniversalLinkParser` + `MooditStore.pendingDeepLinkRoute` so the
+    /// destination sheet surfaces. Mirrors what happens for real users on
+    /// `.onOpenURL` or a tapped FCM notification.
+    func testDeepLinkURLRoutesToFilterDetail() {
+        launch(deepLink: "moodit://filter/Sunset 1973")
+
+        // FilterDetail renders the title as static text; the mock fallback
+        // returns the "Sunset 1973" preview detail when the slug doesn't match
+        // a seeded tile.
+        XCTAssertTrue(
+            app.staticTexts["Sunset 1973"].waitForExistence(timeout: 8),
+            "Deep link should surface the FilterDetail sheet"
+        )
+    }
+
+    func testDeepLinkURLRoutesToReviewsList() {
+        launch(deepLink: "moodit://reviews/Sunset 1973")
+
+        XCTAssertTrue(
+            element("social.reviews.filter").waitForExistence(timeout: 8),
+            "moodit://reviews/<id> should surface ReviewsListScreen"
+        )
+    }
+
+    func testDeepLinkURLRoutesToNotifications() {
+        launch(deepLink: "moodit://notifications")
+
+        // NotificationsInbox uses the `notif.cat.all` chip; presence of any
+        // category chip confirms the screen mounted.
+        XCTAssertTrue(
+            firstElement(withIdentifierPrefix: "notif.cat.").waitForExistence(timeout: 8),
+            "moodit://notifications should surface NotificationsInboxScreen"
+        )
+    }
+
+    func testUnknownDeepLinkURLDoesNotPresentSheet() {
+        launch(deepLink: "moodit://unknown/whatever")
+
+        // App should land on the marketplace tab without a deep-link sheet.
+        // Marketplace search bar is the canonical visible element on cold start.
+        XCTAssertTrue(
+            app.staticTexts["오늘의 빛,"].waitForExistence(timeout: 8),
+            "Unknown deep-link URLs should be ignored, leaving Marketplace visible"
+        )
+    }
+
+    private func launch(route: String? = nil, deepLink: String? = nil) {
         app = XCUIApplication()
         app.launchArguments = ["-ui-testing", "-hasOnboarded", "YES"]
         if let route {
             app.launchArguments += ["-ui-route", route]
+        }
+        if let deepLink {
+            app.launchArguments += ["-deepLink", deepLink]
         }
         app.launch()
         addUIInterruptionMonitor(withDescription: "System permissions") { alert in

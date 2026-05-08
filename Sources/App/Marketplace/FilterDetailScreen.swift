@@ -18,6 +18,7 @@ struct FilterDetailScreen: View {
     @State private var sliderProgress: CGFloat = 0.5
     @State private var downloadState: DownloadState = .ready
     @State private var isFollowing: Bool = false
+    @State private var sharePayload: SharePayload?
 
     init(filter: Filter, mock: FilterDetailMock? = nil) {
         self.filter = filter
@@ -51,6 +52,9 @@ struct FilterDetailScreen: View {
             }
         }
         .toolbarBackground(.hidden, for: .navigationBar)
+        .sheet(item: $sharePayload) { payload in
+            ShareSheet(activityItems: payload.items)
+        }
     }
 
     // MARK: - Scroll content
@@ -77,7 +81,7 @@ struct FilterDetailScreen: View {
 
                 samplesSection
 
-                commentsSection
+                reviewsSection
                     .padding(.horizontal, Sp.md)
                     .padding(.bottom, 100)
             }
@@ -298,7 +302,11 @@ struct FilterDetailScreen: View {
         let columns = [GridItem(.adaptive(minimum: 60, maximum: 200), spacing: Sp.xs, alignment: .leading)]
         return LazyVGrid(columns: columns, alignment: .leading, spacing: Sp.xs) {
             ForEach(mock.tags, id: \.self) { tag in
-                FMTag(tag, style: .outlined, size: .sm)
+                NavigationLink(value: AppRoute.search(initialQuery: nil, category: tag)) {
+                    FMTag(tag, style: .outlined, size: .sm)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("filter.detail.tag.\(tag)")
             }
         }
     }
@@ -345,33 +353,33 @@ struct FilterDetailScreen: View {
         .accessibilityHidden(true)
     }
 
-    // MARK: - Comments
+    // MARK: - Reviews
 
-    private var commentsSection: some View {
+    private var reviewsSection: some View {
         VStack(alignment: .leading, spacing: Sp.sm) {
-            sectionHeader(title: "댓글", more: "\(mock.reviewCount)개 →")
+            sectionHeader(title: "리뷰", more: "\(mock.reviewCount)개 →")
 
             FMCard {
                 VStack(spacing: 0) {
-                    ForEach(Array(mock.comments.prefix(3).enumerated()), id: \.element.id) { offset, comment in
+                    ForEach(Array(mock.reviews.prefix(3).enumerated()), id: \.element.id) { offset, review in
                         if offset > 0 {
                             Rectangle()
                                 .fill(FMColors.Border.subtle)
                                 .frame(height: 1)
                                 .padding(.vertical, Sp.xs)
                         }
-                        commentRow(comment)
+                        reviewRow(review)
                     }
                 }
             }
         }
     }
 
-    private func commentRow(_ comment: FilterDetailMock.Comment) -> some View {
+    private func reviewRow(_ review: FilterDetailMock.Review) -> some View {
         HStack(alignment: .top, spacing: Sp.sm) {
             ZStack {
-                Circle().fill(comment.avatarTint)
-                Text(comment.initials)
+                Circle().fill(review.avatarTint)
+                Text(review.initials)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.white)
             }
@@ -379,17 +387,35 @@ struct FilterDetailScreen: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: Sp.xs) {
-                    Text(comment.name)
+                    Text(review.name)
                         .fmTypography(.subhead)
                         .fontWeight(.semibold)
                         .foregroundStyle(FMColors.Text.primary)
 
-                    Text(comment.timeAgo)
+                    Text(review.timeAgo)
                         .font(.system(size: 10))
                         .foregroundStyle(FMColors.Text.tertiary)
+
+                    Spacer()
+
+                    HStack(spacing: 1) {
+                        ForEach(0 ..< 5, id: \.self) { index in
+                            Image(systemName: index < review.stars ? "star.fill" : "star")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(index < review.stars ? FMColors.Accent.primary : FMColors.Text.tertiary)
+                        }
+                    }
+                    .accessibilityLabel("\(review.stars)점")
+
+                    if review.isVerifiedDownload {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(FMColors.Accent.primary)
+                            .accessibilityLabel("다운로드 확인된 리뷰")
+                    }
                 }
 
-                Text(comment.body)
+                Text(review.body)
                     .fmTypography(.subhead)
                     .foregroundStyle(FMColors.Text.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -420,7 +446,8 @@ struct FilterDetailScreen: View {
 
     private var shareButton: some View {
         Button {
-            // 공유 — 후속 Phase.
+            sharePayload = makeSharePayload()
+            FMHaptic.light.play()
         } label: {
             Image(systemName: "square.and.arrow.up")
                 .font(.system(size: 14, weight: .semibold))
@@ -432,7 +459,23 @@ struct FilterDetailScreen: View {
                         .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
                 }
         }
+        .accessibilityIdentifier("filter.detail.share")
         .accessibilityLabel("공유")
+    }
+
+    /// Universal-link compatible share payload. Server-side parser:
+    /// `docs/SCREENS_PLAN.md` Universal Link section. Slug fallback uses the
+    /// display title until backend slug propagation lands.
+    private func makeSharePayload() -> SharePayload {
+        let slug = mock.displayTitle.lowercased()
+            .replacingOccurrences(of: " ", with: "-")
+            .replacingOccurrences(of: "_", with: "-")
+        let urlString = "https://moodit.app/f/\(slug)"
+        let title = "\(mock.displayTitle) by \(mock.makerHandle)"
+        if let url = URL(string: urlString) {
+            return SharePayload(items: [title, url])
+        }
+        return SharePayload(items: [title])
     }
 
     // MARK: - CTA
@@ -502,7 +545,7 @@ struct FilterDetailScreen: View {
                 .foregroundStyle(FMColors.Text.primary)
             Spacer()
             if let more {
-                NavigationLink(value: title == "댓글" ? AppRoute.comments(filterId: mock.displayTitle) : AppRoute.forYou) {
+                NavigationLink(value: title == "리뷰" ? AppRoute.reviews(filterId: mock.displayTitle) : AppRoute.forYou) {
                     Text(more)
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Accent.primary)
@@ -593,7 +636,7 @@ struct FilterDetailScreen: View {
                 description: m.description,
                 tags: m.tags,
                 sampleSymbols: m.sampleSymbols,
-                comments: m.comments,
+                reviews: m.reviews,
                 categoryHint: FMColors.Category.cinematic,
                 isPaid: true,
                 priceLabel: "₩2,900"

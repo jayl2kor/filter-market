@@ -1,4 +1,5 @@
 import DesignSystem
+import Models
 import SwiftUI
 
 // MARK: - ProfileSection
@@ -26,6 +27,7 @@ enum ProfileSection: Hashable, CaseIterable {
 /// 헤더 + 아바타/닉네임/소개 + 통계 3분할 + 액션 + 세그먼트 + 3열 그리드.
 struct ProfileScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @StateObject private var profileStore = ProfileSelfStore()
 
     /// 로그인 여부 — placeholder 인증 상태. 실제 Firebase Auth 통합 전까지 단순 플래그.
     @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
@@ -35,6 +37,7 @@ struct ProfileScreen: View {
     @State private var hasAppeared = false
     @State private var navigateToSettings = false
     @State private var navigateToLogin = false
+    @State private var shareSheetPayload: SharePayload?
 
     init(user: ProfileUser? = nil) {
         self.user = user ?? .preview
@@ -176,9 +179,18 @@ struct ProfileScreen: View {
             .appRouteDestinations()
         }
         .task {
+            profileStore.start()
             try? await Task.sleep(nanoseconds: 250_000_000)
             hasAppeared = true
         }
+        .sheet(item: $shareSheetPayload) { payload in
+            ShareSheet(activityItems: payload.items)
+        }
+    }
+
+    private func profileShareURL() -> URL {
+        let handle = user.handle.replacingOccurrences(of: "@", with: "")
+        return URL(string: "https://moodit.app/u/\(handle)") ?? URL(string: "https://moodit.app")!
     }
 
     // MARK: - Head
@@ -211,11 +223,20 @@ struct ProfileScreen: View {
 
     private var statsRow: some View {
         HStack(spacing: Sp.md) {
-            statItem(value: user.filterCount, label: "필터") {}
+            NavigationLink(value: AppRoute.myFilters) {
+                statContent(value: user.filterCount, label: "필터")
+            }
+            .buttonStyle(.plain)
             statDivider
-            statItem(value: user.followerCount, label: "팔로워") {}
+            NavigationLink(value: AppRoute.followers(uid: user.handle)) {
+                statContent(value: user.followerCount, label: "팔로워")
+            }
+            .buttonStyle(.plain)
             statDivider
-            statItem(value: user.followingCount, label: "팔로잉") {}
+            NavigationLink(value: AppRoute.following(uid: user.handle)) {
+                statContent(value: user.followingCount, label: "팔로잉")
+            }
+            .buttonStyle(.plain)
         }
         .padding(.vertical, Sp.md)
         .overlay(alignment: .top) {
@@ -228,6 +249,20 @@ struct ProfileScreen: View {
                 .fill(FMColors.Border.subtle)
                 .frame(height: 1)
         }
+    }
+
+    @ViewBuilder
+    private func statContent(value: Int, label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(formattedCount(value))
+                .fmTypography(.title)
+                .foregroundStyle(FMColors.Text.primary)
+                .monospacedDigit()
+            Text(label)
+                .fmTypography(.caption)
+                .foregroundStyle(FMColors.Text.secondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func statItem(value: Int, label: String, action: @escaping () -> Void) -> some View {
@@ -280,8 +315,8 @@ struct ProfileScreen: View {
             }
 
             Button {
-                // 공유 — 후속 Phase.
                 FMHaptic.light.play()
+                shareSheetPayload = SharePayload(items: [profileShareURL()])
             } label: {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 16, weight: .semibold))
@@ -449,14 +484,23 @@ struct ProfileScreen: View {
     // MARK: - Helpers
 
     private var currentItems: [ProfileGridItem] {
-        // 빈 메이커 (필터 0개) 일 때는 myFilters 섹션이 비어있다.
-        if user.filterCount == 0, selectedSection == .myFilters {
-            return []
-        }
         switch selectedSection {
-        case .myFilters: return ProfileMockData.myFilters
-        case .saved: return ProfileMockData.saved
-        case .captures: return ProfileMockData.captures
+        case .myFilters:
+            return profileStore.myFilters.map { f in
+                ProfileGridItem(
+                    title: f.title,
+                    downloadCount: f.downloadCount > 0 ? f.downloadCount : f.useCount,
+                    categoryHint: f.category.hintColor
+                )
+            }
+        case .saved:
+            return profileStore.savedFilterIDs.map { id in
+                ProfileGridItem(title: id, downloadCount: 0, categoryHint: FMColors.Category.cinematic)
+            }
+        case .captures:
+            return profileStore.captureIDs.map { id in
+                ProfileGridItem(title: id, downloadCount: 0, categoryHint: FMColors.Category.cinematic)
+            }
         }
     }
 

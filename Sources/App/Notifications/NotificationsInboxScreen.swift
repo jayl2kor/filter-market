@@ -7,7 +7,10 @@ import SwiftUI
 /// (좋아요/댓글/다운로드/팔로우/시스템). 미확인 행은 `accent.bg` highlight.
 struct NotificationsInboxScreen: View {
     @State private var category: NotificationCategory = .all
-    @State private var items: [NotificationItem] = NotificationItem.mock
+    // Firestore /users/{uid}/notifications listener는 별도 작업으로 분리.
+    // 프로덕션: 빈 배열에서 시작 — `groups.isEmpty` 분기가 FMEmptyState를 노출.
+    // UI 테스트 (-ui-testing 런치 인자): 기존 mock 데이터로 fallback해 어시드 가능 상태 유지.
+    @State private var items: [NotificationItem] = isUITesting ? NotificationItem.mock : []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -227,7 +230,7 @@ struct NotificationsInboxScreen: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("notif.follow.action.\(userID)")
 
-        case .like(let filterID), .comment(let filterID), .download(let filterID):
+        case .like(let filterID), .review(let filterID), .download(let filterID):
             NavigationLink(value: AppRoute.filterDetail(id: filterID)) {
                 thumb(item)
             }
@@ -280,7 +283,7 @@ struct NotificationsInboxScreen: View {
 enum NotificationCategory: String, CaseIterable, Identifiable, Hashable {
     case all
     case likes
-    case comments
+    case reviews
     case downloads
     case system
 
@@ -291,7 +294,7 @@ enum NotificationCategory: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .all: "notifications.category.all"
         case .likes: "notifications.category.likes"
-        case .comments: "notifications.category.comments"
+        case .reviews: "notifications.category.reviews"
         case .downloads: "notifications.category.downloads"
         case .system: "notifications.category.system"
         }
@@ -303,7 +306,7 @@ enum NotificationCategory: String, CaseIterable, Identifiable, Hashable {
 struct NotificationItem: Identifiable, Hashable {
     enum Kind: Hashable {
         case like(filterID: String)
-        case comment(filterID: String)
+        case review(filterID: String)
         case download(filterID: String)
         case followRequest(userID: String)
         case system
@@ -311,7 +314,7 @@ struct NotificationItem: Identifiable, Hashable {
         var category: NotificationCategory {
             switch self {
             case .like: .likes
-            case .comment: .comments
+            case .review: .reviews
             case .download: .downloads
             case .followRequest: .system
             case .system: .system
@@ -321,7 +324,7 @@ struct NotificationItem: Identifiable, Hashable {
         var overlaySymbol: String {
             switch self {
             case .like: "heart.fill"
-            case .comment: "bubble.left.fill"
+            case .review: "bubble.left.fill"
             case .download: "arrow.down"
             case .followRequest: "person.fill.badge.plus"
             case .system: "checkmark"
@@ -331,7 +334,7 @@ struct NotificationItem: Identifiable, Hashable {
         var overlayTint: (foreground: Color, background: Color) {
             switch self {
             case .like: (FMColors.Semantic.error, FMColors.Semantic.errorBg)
-            case .comment: (FMColors.Semantic.info, FMColors.Semantic.infoBg)
+            case .review: (FMColors.Semantic.info, FMColors.Semantic.infoBg)
             case .download: (FMColors.Semantic.success, FMColors.Semantic.successBg)
             case .followRequest: (FMColors.Accent.primary, FMColors.Accent.bg)
             case .system: (FMColors.Accent.primary, FMColors.Accent.bg)
@@ -349,7 +352,7 @@ struct NotificationItem: Identifiable, Hashable {
     var gradient: [Color] {
         switch kind {
         case .like: [Color(hex: 0xF3DCC4), Color(hex: 0xD4A482)]
-        case .comment: [Color(hex: 0xAEC59A), Color(hex: 0x4A6A3C)]
+        case .review: [Color(hex: 0xAEC59A), Color(hex: 0x4A6A3C)]
         case .download: [Color(hex: 0xB9D2E8), Color(hex: 0x4A6A90)]
         case .followRequest: [Color(hex: 0xF6E2E8), Color(hex: 0xB39EC2)]
         case .system: [FMColors.Accent.bg, FMColors.Accent.bg]
@@ -359,7 +362,7 @@ struct NotificationItem: Identifiable, Hashable {
     var thumbGradient: [Color] {
         switch kind {
         case .like: [Color(hex: 0xC79A72), Color(hex: 0x6A4A2C)]
-        case .comment: [Color(hex: 0x8A9D6A), Color(hex: 0x3D5230)]
+        case .review: [Color(hex: 0x8A9D6A), Color(hex: 0x3D5230)]
         case .download: [Color(hex: 0x8AA8C6), Color(hex: 0x3D547A)]
         default: [Color(hex: 0xC8C5BE), Color(hex: 0x8A8782)]
         }
@@ -434,7 +437,7 @@ extension NotificationItem {
             isUnread: true
         ),
         NotificationItem(
-            kind: .comment(filterID: "Sunset 1973"),
+            kind: .review(filterID: "Sunset 1973"),
             body: AttributedSegments(segments: [
                 .strong("Alex"),
                 .normal("가 "),
@@ -478,7 +481,7 @@ extension NotificationItem {
             isUnread: false
         ),
         NotificationItem(
-            kind: .comment(filterID: "Honey Glow"),
+            kind: .review(filterID: "Honey Glow"),
             body: AttributedSegments(segments: [
                 .strong("유나"),
                 .normal("가 회원님의 댓글에 답글을 남겼습니다")

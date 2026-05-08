@@ -38,6 +38,9 @@ struct MarketplaceScreen: View {
                 }
                 .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
             }
+            .refreshable {
+                await store.load(force: true)
+            }
             .background(FMColors.Background.bg0)
             .appRouteDestinations()
             .toolbar(.hidden, for: .navigationBar)
@@ -124,19 +127,24 @@ struct MarketplaceScreen: View {
             sectionHeader(title: "트렌딩", more: "더보기 →")
                 .padding(.horizontal, Sp.md)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Sp.sm) {
-                    ForEach(MarketplaceMockData.trending.indices, id: \.self) { index in
-                        let data = MarketplaceMockData.trending[index]
-                        NavigationLink(value: AppRoute.filterDetail(id: data.title)) {
-                            FeaturedCard(data: data, isHighlighted: index == 0)
-                                .frame(width: 268)
+            if store.trendingFilters.isEmpty {
+                FMEmptyState(.emptyMarket)
+                    .padding(.horizontal, Sp.md)
+                    .accessibilityIdentifier("market.trending.empty")
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: Sp.sm) {
+                        ForEach(Array(store.trendingFilters.enumerated()), id: \.element.id) { index, filter in
+                            NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                                FeaturedCard(data: filter.toTileData(), isHighlighted: index == 0)
+                                    .frame(width: 268)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("market.trending.\(index)")
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("market.trending.\(index)")
                     }
+                    .padding(.horizontal, Sp.md)
                 }
-                .padding(.horizontal, Sp.md)
             }
         }
     }
@@ -171,23 +179,28 @@ struct MarketplaceScreen: View {
             sectionHeader(title: "새로 들어온 필터", more: nil)
                 .padding(.horizontal, Sp.md)
 
-            LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: Sp.sm),
-                    GridItem(.flexible(), spacing: Sp.sm)
-                ],
-                spacing: Sp.sm
-            ) {
-                ForEach(filteredNewFilters.indices, id: \.self) { index in
-                    let data = filteredNewFilters[index]
-                    NavigationLink(value: AppRoute.filterDetail(id: data.title)) {
-                        FMFilterTile(data: data)
+            if filteredNewFilters.isEmpty {
+                FMEmptyState(.emptyMarket)
+                    .padding(.horizontal, Sp.md)
+                    .accessibilityIdentifier("market.new.empty")
+            } else {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: Sp.sm),
+                        GridItem(.flexible(), spacing: Sp.sm)
+                    ],
+                    spacing: Sp.sm
+                ) {
+                    ForEach(Array(filteredNewFilters.enumerated()), id: \.element.id) { index, filter in
+                        NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                            FMFilterTile(data: filter.toTileData())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("market.tile.\(index)")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("market.tile.\(index)")
                 }
+                .padding(.horizontal, Sp.md)
             }
-            .padding(.horizontal, Sp.md)
         }
     }
 
@@ -199,10 +212,16 @@ struct MarketplaceScreen: View {
 
             VStack(spacing: Sp.sm) {
                 ForEach(MarketplaceMockData.collections) { collection in
-                    NavigationLink(value: AppRoute.favoritesCollection) {
+                    // Route each collection to a category-filtered search so the
+                    // user lands on the curation's content. Until we wire a real
+                    // /collections backend, "category = collection.title" is the
+                    // contract: SearchScreen treats the value as a tag/category
+                    // filter via initialCategory.
+                    NavigationLink(value: AppRoute.search(initialQuery: nil, category: collection.title)) {
                         CollectionCard(entry: collection)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("market.collection.\(collection.title)")
                 }
             }
             .padding(.horizontal, Sp.md)
@@ -288,14 +307,29 @@ struct MarketplaceScreen: View {
 
     // MARK: - Helpers
 
-    private var filteredNewFilters: [FMFilterTileData] {
+    private var filteredNewFilters: [Filter] {
         guard selectedCategory != "전체" else {
-            return MarketplaceMockData.newFilters
+            return store.newFiltersList
         }
-        // mock 데이터에는 카테고리 식별자가 없으므로 임시로 트렌드 + 신규에서 무작위 부분 보여주기 대신
-        // 시각적 변화를 주기 위해 짝수 index 만 남긴다.
-        return MarketplaceMockData.newFilters.enumerated().compactMap { index, item in
-            (index % 2 == 0) ? item : nil
+        guard let category = filterCategory(for: selectedCategory) else {
+            return store.newFiltersList
+        }
+        return store.newFiltersList.filter { $0.category == category }
+    }
+
+    /// 카테고리 칩 라벨 (예: "Cinematic", "B&W") → `FilterCategory` enum.
+    /// 매칭되는 카테고리가 없으면 nil — 그 경우 필터링하지 않고 전체 노출.
+    private func filterCategory(for chip: String) -> FilterCategory? {
+        switch chip {
+        case "Cinematic": .cinematic
+        case "Vintage": .vintage
+        case "Pastel": .pastel
+        case "B&W": .bw
+        case "Portrait": .portrait
+        case "Food": .food
+        case "Travel": .travel
+        case "Mood": .mood
+        default: nil
         }
     }
 
@@ -329,7 +363,7 @@ struct MarketplaceScreen: View {
             description: "메이커가 직접 조정한 톤커브로, 일상의 순간을 한 단계 더 풍부한 분위기로 끌어올립니다. 강도 60~80% 에서 가장 자연스럽게 어울려요.",
             tags: ["#mood", "#daily", "#warm", "#analog"],
             sampleSymbols: ["photo", "photo.fill", "sun.max", "moon.stars", "leaf", "camera"],
-            comments: FilterDetailMock.preview.comments,
+            reviews: FilterDetailMock.preview.reviews,
             categoryHint: tile.categoryHint ?? FMColors.Category.cinematic,
             isPaid: tile.priceLabel != nil,
             priceLabel: tile.priceLabel

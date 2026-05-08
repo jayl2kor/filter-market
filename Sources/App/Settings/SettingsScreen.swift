@@ -1,4 +1,6 @@
 import DesignSystem
+import FirebaseAuth
+import FirebaseCore
 import SwiftUI
 
 // MARK: - Local enums
@@ -44,10 +46,15 @@ struct SettingsScreen: View {
 
     // 다이얼로그
     @State private var showLogoutAlert = false
-    @State private var showDeleteAccountAlert = false
+
+    // 운영 권한 (Firebase ID token의 `role` custom claim — admin/moderator)
+    @State private var role: String?
 
     // 인증 상태 (placeholder — 후속 Phase 에서 Firebase Auth 통합)
     @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
+
+    // 외부 링크 (이용약관 / 개인정보처리방침) — SafariView로 표시.
+    @State private var externalURL: ExternalURL?
 
     var body: some View {
         ScrollView {
@@ -129,20 +136,24 @@ struct SettingsScreen: View {
                         icon: "questionmark.circle",
                         title: "도움말",
                         accessory: .chevron,
-                        route: .refundRequest
+                        route: .helpCenter
                     )
                     divider
                     listRow(
                         icon: "doc.text",
                         title: "이용약관",
                         accessory: .chevron
-                    ) {}
+                    ) {
+                        externalURL = ExternalURL(value: MooditPolicyURL.terms)
+                    }
                     divider
                     listRow(
                         icon: "hand.raised",
                         title: "개인정보처리방침",
                         accessory: .chevron
-                    ) {}
+                    ) {
+                        externalURL = ExternalURL(value: MooditPolicyURL.privacy)
+                    }
                     divider
                     listRow(
                         icon: "info.circle",
@@ -151,20 +162,23 @@ struct SettingsScreen: View {
                     ) {}
                 }
 
-                section(title: "운영") {
-                    navigationRow(
-                        icon: "shield.lefthalf.filled",
-                        title: "모더레이션 큐",
-                        accessory: .chevron,
-                        route: .modQueue
-                    )
-                    divider
-                    navigationRow(
-                        icon: "link",
-                        title: "공유 링크 테스트",
-                        accessory: .chevron,
-                        route: .universalLinkLanding
-                    )
+                if hasAdminAccess {
+                    section(title: "운영") {
+                        navigationRow(
+                            icon: "shield.lefthalf.filled",
+                            title: "모더레이션 큐",
+                            accessory: .chevron,
+                            route: .modQueue
+                        )
+                        divider
+                        navigationRow(
+                            icon: "link",
+                            title: "공유 링크 테스트",
+                            accessory: .chevron,
+                            route: .universalLinkLanding
+                        )
+                    }
+                    .accessibilityIdentifier("settings.admin.section")
                 }
 
                 section(title: nil) {
@@ -199,26 +213,62 @@ struct SettingsScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(FMColors.Background.bg1, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .task { await refreshRoleClaim() }
+        .sheet(item: $externalURL) { external in
+            SafariView(url: external.value)
+        }
         .fmDestructiveAlert(
             "로그아웃 하시겠어요?",
             message: "다시 로그인하면 다운로드 받은 필터를 그대로 이용할 수 있어요.",
             destructiveTitle: "로그아웃",
             isPresented: $showLogoutAlert
         ) {
-            // 인증 상태 클리어 — Profile 탭이 guest 상태로 자동 전환.
-            // 후속 Phase 에서 Firebase Auth 세션 종료 + 토큰 폐기 추가.
-            isAuthenticated = false
-            dismiss()
-        }
-        .fmDestructiveAlert(
-            "계정을 삭제하시겠어요?",
-            message: "이 작업은 되돌릴 수 없어요. 보유한 필터·구매 이력·팔로우가 모두 사라집니다.",
-            destructiveTitle: "계정 삭제",
-            isPresented: $showDeleteAccountAlert
-        ) {
-            // 후속 Phase 에서 실제 삭제 흐름 연결.
+            performSignOut()
         }
         .appRouteDestinations()
+    }
+
+    /// `role` custom claim ∈ {"admin", "moderator"} 인지 검사.
+    /// 클라이언트 측 visibility 게이트일 뿐, 보안 경계는 Firestore Rules /
+    /// Cloud Functions의 requireAdmin / requireModerator에서.
+    private var hasAdminAccess: Bool {
+        role == "admin" || role == "moderator"
+    }
+
+    /// Settings 진입 시마다 ID token을 강제 새로고침해 최신 role claim을 가져온다.
+    /// `tools/bootstrap-admin.mjs` 또는 `setRole` Cloud Function이 변경한 역할이
+    /// 다음 진입에서 즉시 반영되도록 함 (기본 캐시는 ~1시간).
+    private func refreshRoleClaim() async {
+        guard FirebaseApp.app() != nil, let user = Auth.auth().currentUser else {
+            role = nil
+            return
+        }
+        do {
+            let result = try await user.getIDTokenResult(forcingRefresh: true)
+            role = result.claims["role"] as? String
+        } catch {
+            #if DEBUG
+            print("[Settings] Failed to refresh role claim: \(error.localizedDescription)")
+            #endif
+            role = nil
+        }
+    }
+
+    /// Firebase Auth 세션 종료 + AppStorage 인증 플래그 클리어.
+    /// Firebase가 미설정인 경우(GoogleService-Info.plist 누락 시뮬레이터 등)에도
+    /// 로컬 isAuthenticated만 false로 떨어지도록 안전하게 처리한다.
+    private func performSignOut() {
+        if FirebaseApp.app() != nil {
+            do {
+                try Auth.auth().signOut()
+            } catch {
+                #if DEBUG
+                print("[Settings] signOut failed: \(error.localizedDescription)")
+                #endif
+            }
+        }
+        isAuthenticated = false
+        dismiss()
     }
 
     // MARK: - Header (me) card

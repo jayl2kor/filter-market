@@ -9,6 +9,7 @@ import UIKit
 /// Every case is a concrete screen target from the navigation document.
 enum AppRoute: Hashable {
     case login
+    case emailLogin
     case search(initialQuery: String? = nil, category: String? = nil)
     case filterDetail(id: String)
     case filterDownload(id: String)
@@ -32,8 +33,8 @@ enum AppRoute: Hashable {
     case accountDeletion
     case editProfile
     case universalLinkLanding
-    case comments(filterId: String)
-    case commentCompose(filterId: String)
+    case reviews(filterId: String)
+    case reviewCompose(filterId: String)
     case rating(filterId: String)
     case followers(uid: String)
     case following(uid: String)
@@ -65,6 +66,7 @@ enum AppRoute: Hashable {
     case paymentFailed
     case dataExport
     case refundRequest
+    case helpCenter
 }
 
 extension View {
@@ -75,11 +77,20 @@ extension View {
             case .login:
                 LoginScreen()
 
+            case .emailLogin:
+                EmailLoginScreen()
+
             case .search(let initialQuery, let category):
                 SearchScreen(initialQuery: initialQuery, initialCategory: category)
 
             case .filterDetail(let id):
-                FilterDetailScreen(mock: FilterDetailMock.mock(forRouteID: id))
+                // UUID 형식이면 Cloud Function getFilterDetail 호출 (로딩/에러 분기 포함).
+                // 비-UUID(레거시 mock 라우팅 호환)이면 mock 폴백.
+                if UUID(uuidString: id) != nil {
+                    FilterDetailLoaderScreen(filterId: id)
+                } else {
+                    FilterDetailScreen(mock: FilterDetailMock.mock(forRouteID: id))
+                }
 
             case .settings:
                 SettingsScreen()
@@ -144,11 +155,11 @@ extension View {
             case .universalLinkLanding:
                 UniversalLinkLandingScreen()
 
-            case .comments(let filterId):
-                CommentsListScreen(filterID: filterId)
+            case .reviews(let filterId):
+                ReviewsListScreen(filterID: filterId)
 
-            case .commentCompose(let filterId):
-                CommentComposeScreen(filterID: filterId)
+            case .reviewCompose(let filterId):
+                ReviewComposeScreen(filterID: filterId)
 
             case .rating(let filterId):
                 RatingFormScreen(filterID: filterId)
@@ -242,6 +253,9 @@ extension View {
 
             case .refundRequest:
                 RefundRequestScreen()
+
+            case .helpCenter:
+                HelpCenterScreen()
             }
         }
     }
@@ -277,6 +291,7 @@ extension AppRoute {
     var title: String {
         switch self {
         case .login: "로그인"
+        case .emailLogin: "이메일로 로그인"
         case .search: "검색"
         case .filterDetail: "필터 상세"
         case .filterDownload: "다운로드"
@@ -300,8 +315,8 @@ extension AppRoute {
         case .accountDeletion: "계정 삭제"
         case .editProfile: "프로필 편집"
         case .universalLinkLanding: "공유 링크"
-        case .comments: "댓글"
-        case .commentCompose: "댓글 작성"
+        case .reviews: "리뷰"
+        case .reviewCompose: "리뷰 작성"
         case .rating: "평점 등록"
         case .followers: "팔로워"
         case .following: "팔로잉"
@@ -333,6 +348,7 @@ extension AppRoute {
         case .paymentFailed: "결제 실패"
         case .dataExport: "데이터 내보내기"
         case .refundRequest: "환불 요청"
+        case .helpCenter: "도움말"
         }
     }
 
@@ -364,7 +380,7 @@ extension AppRoute {
         case .wallet, .walletTopup, .walletTransactions, .insufficientBalance: "creditcard"
         case .editor, .editorParameters, .editorLUT, .editorDraft, .remixFlow: "slider.horizontal.3"
         case .uploadCover, .uploadTags, .uploadSubmit, .uploadPending: "square.and.arrow.up"
-        case .comments, .commentCompose: "bubble.left.and.bubble.right"
+        case .reviews, .reviewCompose: "bubble.left.and.bubble.right"
         case .notifications, .notificationSettings: "bell"
         case .modQueue, .modDetail, .filterRejected, .reportForm, .blockList: "shield.lefthalf.filled"
         case .proSubscription, .proStatus: "sparkles"
@@ -486,17 +502,17 @@ extension AppRoute {
                 .init("profile.edit.save", "저장", systemImage: "checkmark")
             ]
 
-        case .comments(let id):
+        case .reviews(let id):
             [
-                .init("social.comments.compose", "댓글 작성", systemImage: "square.and.pencil", target: .commentCompose(filterId: id)),
+                .init("social.reviews.compose", "리뷰 작성", systemImage: "square.and.pencil", target: .reviewCompose(filterId: id)),
                 .init("social.rating.open", "평점 등록", systemImage: "star", target: .rating(filterId: id)),
-                .init("social.comment.author", "작성자 프로필", systemImage: "person", target: .otherProfile(uid: "comment-author"))
+                .init("social.review.author", "작성자 프로필", systemImage: "person", target: .otherProfile(uid: "review-author"))
             ]
 
-        case .commentCompose:
+        case .reviewCompose:
             [
                 .init("social.compose.send", "게시", systemImage: "paperplane.fill"),
-                .init("social.comment.reply", "답글 모드", systemImage: "arrowshape.turn.up.left")
+                .init("social.review.makerReply", "메이커 답글", systemImage: "arrowshape.turn.up.left")
             ]
 
         case .rating:
@@ -615,11 +631,12 @@ extension AppRoute {
             ]
 
         case .wallet:
+            // Closed-loop virtual currency 모델 — 메이커 출금은 Phase 6+ 후보 (ADR-0006).
+            // payoutOnboarding/earningsWithdraw 라우트는 enum에 유지하되 진입점 노출 X.
             [
                 .init("wallet.topup", "충전하기", systemImage: "plus.circle", target: .walletTopup),
                 .init("wallet.transactions", "거래내역", systemImage: "list.bullet.rectangle", target: .walletTransactions),
-                .init("wallet.pro", "Pro 시작", systemImage: "sparkles", target: .proSubscription),
-                .init("payout.entry", "메이커 출금", systemImage: "banknote", target: .earningsWithdraw)
+                .init("wallet.pro", "Pro 시작", systemImage: "sparkles", target: .proSubscription)
             ]
 
         case .walletTopup:
@@ -945,7 +962,7 @@ struct ScreenWorkflowScaffold: View {
 
 // MARK: - Filter route lookup
 
-private extension FilterDetailMock {
+extension FilterDetailMock {
     static func mock(forRouteID id: String) -> FilterDetailMock {
         let tiles = MarketplaceMockData.trending + MarketplaceMockData.newFilters
         guard let tile = tiles.first(where: { $0.title == id }) else {
@@ -961,10 +978,10 @@ private extension FilterDetailMock {
             rating: 4.7,
             reviewCount: max(24, tile.downloadCount / 40),
             likeCount: tile.downloadCount / 6,
-            description: "NAVIGATION.md 라우트에서 열린 필터입니다. 무료 다운로드, Coin 구매, 댓글, 신고, 공유 흐름을 이 상세 화면에서 이어갈 수 있습니다.",
+            description: "NAVIGATION.md 라우트에서 열린 필터입니다. 무료 다운로드, Coin 구매, 리뷰, 신고, 공유 흐름을 이 상세 화면에서 이어갈 수 있습니다.",
             tags: ["#mood", "#daily", "#route", "#moodit"],
             sampleSymbols: ["photo", "photo.fill", "sun.max", "moon.stars", "leaf", "camera"],
-            comments: FilterDetailMock.preview.comments,
+            reviews: FilterDetailMock.preview.reviews,
             categoryHint: tile.categoryHint ?? FMColors.Category.cinematic,
             isPaid: tile.priceLabel != nil,
             priceLabel: tile.priceLabel

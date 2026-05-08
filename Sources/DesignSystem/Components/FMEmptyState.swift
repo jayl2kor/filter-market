@@ -8,7 +8,7 @@ public enum FMEmptyStateKind: Sendable {
     case noSearchResults(query: String)
     case emptyProfile(isOwnProfile: Bool, makerName: String?)
     case emptyDownloads
-    case emptyComments(isLoggedIn: Bool)
+    case emptyReviews(isLoggedIn: Bool)
 
     var illustration: FMEmptyStateIllustration.Kind {
         switch self {
@@ -16,7 +16,7 @@ public enum FMEmptyStateKind: Sendable {
         case .noSearchResults: .search
         case .emptyProfile: .profile
         case .emptyDownloads: .downloads
-        case .emptyComments: .comments
+        case .emptyReviews: .comments
         }
     }
 
@@ -30,8 +30,8 @@ public enum FMEmptyStateKind: Sendable {
             isOwn ? "아직 만든 필터가 없어요" : "\(maker ?? "메이커")의 필터가 곧 공개돼요"
         case .emptyDownloads:
             "다운로드한 필터가 없어요"
-        case .emptyComments:
-            "첫 번째 댓글을 남겨보세요"
+        case .emptyReviews:
+            "첫 번째 리뷰를 남겨보세요"
         }
     }
 
@@ -45,10 +45,10 @@ public enum FMEmptyStateKind: Sendable {
             isOwn ? "나만의 감성을 담은 첫 필터를 만들어보세요.\n메이커로서의 여정을 시작하는 순간입니다." : nil
         case .emptyDownloads:
             "마켓에서 마음에 드는 필터를 찾아보세요.\n다운로드하면 오프라인에서도 사용할 수 있어요."
-        case .emptyComments(let isLoggedIn):
+        case .emptyReviews(let isLoggedIn):
             isLoggedIn
-                ? "메이커에게 감상을 전해주세요.\n사진과 함께 남기면 더욱 생생하게 전달돼요."
-                : "댓글을 남기려면 로그인이 필요해요."
+                ? "메이커에게 감상을 전해주세요.\n별점과 함께 남기면 더욱 생생하게 전달돼요."
+                : "리뷰를 남기려면 로그인이 필요해요."
         }
     }
 
@@ -58,7 +58,7 @@ public enum FMEmptyStateKind: Sendable {
         case .noSearchResults: "카테고리 둘러보기"
         case .emptyProfile(let isOwn, _): isOwn ? "첫 필터 만들기" : nil
         case .emptyDownloads: "마켓 둘러보기"
-        case .emptyComments(let isLoggedIn): isLoggedIn ? "댓글 쓰기" : "로그인"
+        case .emptyReviews(let isLoggedIn): isLoggedIn ? "리뷰 쓰기" : "로그인"
         }
     }
 }
@@ -141,13 +141,13 @@ public struct FMEmptyState: View {
         .background(FMColors.Background.bg1)
 }
 
-#Preview("Empty comments (logged in)") {
-    FMEmptyState(.emptyComments(isLoggedIn: true)) {}
+#Preview("Empty reviews (logged in)") {
+    FMEmptyState(.emptyReviews(isLoggedIn: true)) {}
         .background(FMColors.Background.bg1)
 }
 
-#Preview("Empty comments (logged out)") {
-    FMEmptyState(.emptyComments(isLoggedIn: false)) {}
+#Preview("Empty reviews (logged out)") {
+    FMEmptyState(.emptyReviews(isLoggedIn: false)) {}
         .background(FMColors.Background.bg1)
 }
 

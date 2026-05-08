@@ -187,18 +187,20 @@ struct FilterDetailMock: Sendable {
     let description: String
     let tags: [String]
     let sampleSymbols: [String]
-    let comments: [Comment]
+    let reviews: [Review]
     let categoryHint: Color
     let isPaid: Bool
     let priceLabel: String?
 
-    struct Comment: Identifiable, Sendable {
+    struct Review: Identifiable, Sendable {
         let id = UUID()
         let initials: String
         let avatarTint: Color
         let name: String
         let timeAgo: String
         let body: String
+        let stars: Int
+        let isVerifiedDownload: Bool
     }
 }
 
@@ -223,27 +225,33 @@ extension FilterDetailMock {
             "leaf",
             "camera"
         ],
-        comments: [
-            Comment(
+        reviews: [
+            Review(
                 initials: "SJ",
                 avatarTint: FMColors.Category.travel,
                 name: "soojin_92",
                 timeAgo: "3시간",
-                body: "와 카페 사진에 너무 잘 어울려요. 강도 60%로 쓰니까 자연스럽고 좋네요."
+                body: "와 카페 사진에 너무 잘 어울려요. 강도 60%로 쓰니까 자연스럽고 좋네요.",
+                stars: 5,
+                isVerifiedDownload: true
             ),
-            Comment(
+            Review(
                 initials: "MJ",
                 avatarTint: FMColors.Category.vintage,
                 name: "minjun.shoots",
                 timeAgo: "1일",
-                body: "필름 디테일이 살아있어요. 인물에 적용해도 피부톤이 안 죽음."
+                body: "필름 디테일이 살아있어요. 인물에 적용해도 피부톤이 안 죽음.",
+                stars: 4,
+                isVerifiedDownload: true
             ),
-            Comment(
+            Review(
                 initials: "HY",
                 avatarTint: FMColors.Category.portrait,
                 name: "hyeona.k",
                 timeAgo: "3일",
-                body: "골든아워에 정말 찰떡! 강도 살짝 낮춰서 일상 사진에도 잘 써요."
+                body: "골든아워에 정말 찰떡! 강도 살짝 낮춰서 일상 사진에도 잘 써요.",
+                stars: 5,
+                isVerifiedDownload: false
             )
         ],
         categoryHint: FMColors.Category.vintage,
@@ -265,7 +273,7 @@ extension FilterDetailMock {
             description: "메이커가 직접 조정한 톤커브로, 일상의 순간을 한 단계 더 풍부한 분위기로 끌어올립니다. 강도 60~80%에서 가장 자연스럽게 어울려요.",
             tags: ["#mood", "#golden", "#warm", "#daily"],
             sampleSymbols: ["photo", "photo.fill", "sun.max", "moon.stars", "leaf", "camera"],
-            comments: FilterDetailMock.preview.comments,
+            reviews: FilterDetailMock.preview.reviews,
             categoryHint: filter.category.swatch.first ?? FMColors.Category.cinematic,
             isPaid: false,
             priceLabel: nil

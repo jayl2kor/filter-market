@@ -1,9 +1,13 @@
 import Camera
 import DesignSystem
 import FilterEngine
+import FirebaseAuth
+import FirebaseFirestore
+import FirebaseFunctions
 import Marketplace
 import Models
 import PhotosUI
+import StoreKit
 import SwiftUI
 import UIKit
 
@@ -1782,6 +1786,13 @@ struct EditorParametersScreen: View {
 struct EditorLUTImportScreen: View {
     @EnvironmentObject private var store: MooditStore
     @State private var importCount = 0
+    @State private var showingImporter = false
+    @State private var importError: ImportErrorMessage?
+
+    struct ImportErrorMessage: Identifiable {
+        let id = UUID()
+        let message: String
+    }
 
     var body: some View {
         ScrollView {
@@ -1805,6 +1816,60 @@ struct EditorLUTImportScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle("LUT 가져오기")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingImporter) {
+            DocumentPicker(allowedTypes: [.cube]) { url in
+                handleImportedLUT(at: url)
+            }
+        }
+        .alert(item: $importError) { error in
+            Alert(
+                title: Text("LUT 가져오기 실패"),
+                message: Text(error.message),
+                dismissButton: .default(Text("확인"))
+            )
+        }
+    }
+
+    private func handleImportedLUT(at url: URL) {
+        // Coordinate access for security-scoped resources from the file picker.
+        let needsAccess = url.startAccessingSecurityScopedResource()
+        defer { if needsAccess { url.stopAccessingSecurityScopedResource() } }
+
+        do {
+            let text = try String(contentsOf: url, encoding: .utf8)
+            // Validate via the FilterEngine parser. We discard the parsed LUT
+            // — the editor is wired against the filename for now (mock state).
+            // The parse pass guards against malformed files reaching downstream.
+            _ = try CubeLUTParser.parse(text)
+            importCount += 1
+            store.setEditorLUT(url.lastPathComponent)
+            FMHaptic.success.play()
+        } catch {
+            importError = ImportErrorMessage(message: friendlyMessage(for: error))
+            FMHaptic.error.play()
+        }
+    }
+
+    private func friendlyMessage(for error: Error) -> String {
+        if let parseError = error as? CubeLUTParser.ParseError {
+            switch parseError {
+            case .missingSizeHeader:
+                return "LUT_1D_SIZE 또는 LUT_3D_SIZE 헤더를 찾을 수 없어요."
+            case .duplicateSizeHeader:
+                return "1D와 3D LUT 헤더가 모두 있어요. 둘 중 하나만 남겨주세요."
+            case .invalidSizeValue(let line, _):
+                return "LUT 크기 값을 읽을 수 없어요 (\(line)번째 줄)."
+            case .sizeOutOfRange(_, let size, let allowed):
+                return "지원 범위(\(allowed.lowerBound)~\(allowed.upperBound)) 밖의 크기예요: \(size)."
+            case .malformedDataLine(let line, _):
+                return "데이터 줄 형식이 잘못됐어요 (\(line)번째 줄). 각 줄은 R G B 세 값이어야 합니다."
+            case .rowCountMismatch(let expected, let actual):
+                return "데이터 행 수가 맞지 않아요. 예상 \(expected) / 실제 \(actual)."
+            case .valueNotFinite(let line):
+                return "유효하지 않은 숫자가 포함돼 있어요 (\(line)번째 줄)."
+            }
+        }
+        return error.localizedDescription
     }
 
     private var lutCard: some View {
@@ -1827,14 +1892,12 @@ struct EditorLUTImportScreen: View {
 
                 HStack(spacing: Sp.sm) {
                     FMButton("가져오기", icon: "folder", variant: .secondary) {
-                        importCount += 1
-                        store.setEditorLUT("custom_lut_\(importCount + 1).cube")
+                        showingImporter = true
                     }
                     .accessibilityIdentifier("editor.lut.import")
 
                     FMButton("교체", icon: "arrow.triangle.2.circlepath", variant: .secondary) {
-                        importCount += 1
-                        store.setEditorLUT("amber_replace_\(importCount + 1).cube")
+                        showingImporter = true
                     }
                     .accessibilityIdentifier("editor.lut.replace")
                 }
@@ -2409,6 +2472,26 @@ struct RemixFlowScreen: View {
     @EnvironmentObject private var store: MooditStore
     @Environment(\.dismiss) private var dismiss
 
+    /// Parent filter — read from the store's currently selected filter so the
+    /// remix flow inherits whatever the user was just looking at. Falls back
+    /// to the first downloaded filter if nothing is selected (rare in practice
+    /// since the entry point is FilterDetail's "리믹스" action).
+    private var parent: Filter? {
+        store.selectedFilter ?? store.libraryFilters.first ?? store.filters.first
+    }
+
+    private var parentName: String {
+        parent?.title ?? "원본 필터"
+    }
+
+    private var parentMaker: String {
+        parent.map { "@" + $0.author.displayName.lowercased() } ?? ""
+    }
+
+    private var parentSwatch: [Color] {
+        parent?.category.swatch ?? [FMColors.Accent.bg, FMColors.Accent.primary]
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Sp.lg) {
             workflowHeader(
@@ -2418,19 +2501,34 @@ struct RemixFlowScreen: View {
             )
             FMCard {
                 VStack(alignment: .leading, spacing: Sp.sm) {
-                    HStack {
-                        Image(systemName: "camera.filters")
-                            .foregroundStyle(FMColors.Accent.primary)
-                        Text("Sunset 1973")
-                            .fmTypography(.headline)
-                            .foregroundStyle(FMColors.Text.primary)
+                    HStack(spacing: Sp.sm) {
+                        RoundedRectangle(cornerRadius: R.sm)
+                            .fill(LinearGradient(colors: parentSwatch, startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 44, height: 44)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(parentName)
+                                .fmTypography(.headline)
+                                .foregroundStyle(FMColors.Text.primary)
+                                .accessibilityIdentifier("remix.parent.name")
+                            if !parentMaker.isEmpty {
+                                Text(parentMaker)
+                                    .fmTypography(.caption)
+                                    .foregroundStyle(FMColors.Text.tertiary)
+                                    .accessibilityIdentifier("remix.parent.maker")
+                            }
+                        }
                         Spacer()
                         FMTag("Remix OK", style: .accent)
                     }
                     workflowDivider()
-                    Text("리믹스는 새 초안으로 저장되며, 원본 필터의 판매 파일은 복사되지 않습니다.")
-                        .fmTypography(.body)
-                        .foregroundStyle(FMColors.Text.secondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("리믹스는 새 초안으로 저장되며, 원본 필터의 판매 파일은 복사되지 않습니다.")
+                            .fmTypography(.body)
+                            .foregroundStyle(FMColors.Text.secondary)
+                        Text("저장 시 manifest의 `remix.parentId`에 원본 필터 ID가 기록되어 메이커 크레딧이 유지됩니다.")
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Text.tertiary)
+                    }
                 }
             }
             Spacer()
@@ -2444,9 +2542,7 @@ struct RemixFlowScreen: View {
                     routeButton("에디터 열기", icon: "slider.horizontal.3")
                 }
                 .simultaneousGesture(TapGesture().onEnded {
-                    store.resetEditorDraft()
-                    store.editorDraft.name = "Sunset 1973 Remix"
-                    store.editorDraft.tags = ["remix", "sunset", "film"]
+                    seedRemixDraft()
                 })
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("editor.remix.open_editor")
@@ -2456,6 +2552,21 @@ struct RemixFlowScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle("리믹스")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// Pre-populate the editor draft with parent metadata. The draft's name
+    /// becomes "<parent> Remix"; tags inherit "remix" + parent category as a
+    /// starting point. Parameter values stay at neutral so the user shapes
+    /// their own variation.
+    private func seedRemixDraft() {
+        store.resetEditorDraft()
+        store.editorDraft.name = "\(parentName) Remix"
+        var seedTags: [String] = ["remix"]
+        if let parent {
+            seedTags.append(parent.category.rawValue.lowercased())
+        }
+        store.editorDraft.tags = seedTags
+        FMHaptic.light.play()
     }
 }
 
@@ -2523,7 +2634,7 @@ struct NotificationSettingsScreen: View {
                 VStack(spacing: 0) {
                     preferenceToggle("소셜", detail: "팔로우, 좋아요, 메이커 활동", isOn: $store.notificationPreferences.social)
                     workflowDivider()
-                    preferenceToggle("댓글과 멘션", detail: "@멘션과 답글은 항상 알림", isOn: $store.notificationPreferences.comments)
+                    preferenceToggle("리뷰 알림", detail: "내 필터에 새 리뷰 또는 메이커 답글이 달릴 때", isOn: $store.notificationPreferences.reviews)
                     workflowDivider()
                     preferenceToggle("마켓", detail: "추천 필터, 컬렉션 업데이트", isOn: $store.notificationPreferences.marketplace)
                     workflowDivider()
@@ -2616,84 +2727,1244 @@ struct NotificationSettingsScreen: View {
 // MARK: - Safety / Moderation
 
 struct ReportFormScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .reportForm) }
+    @Environment(\.dismiss) private var dismiss
+    @State private var filterId: String = ""
+    @State private var reasonCode: String = "spam"
+    @State private var detail: String = ""
+    @State private var isProcessing = false
+    @State private var statusMessage: String?
+
+    private let reasonOptions: [(code: String, label: String)] = [
+        ("spam", "스팸 / 무의미한 콘텐츠"),
+        ("nsfw", "성적/노출 콘텐츠"),
+        ("violence", "폭력 / 잔혹 콘텐츠"),
+        ("hate", "혐오 발언"),
+        ("ip", "저작권 침해"),
+        ("other", "기타")
+    ]
+
+    var body: some View {
+        Form {
+            Section(header: Text("필터 ID")) {
+                TextField("filters/abc-123 형식", text: $filterId).autocapitalization(.none)
+                    .accessibilityIdentifier("report.filterId")
+            }
+            Section(header: Text("사유")) {
+                Picker("사유 선택", selection: $reasonCode) {
+                    ForEach(reasonOptions, id: \.code) { opt in
+                        Text(opt.label).tag(opt.code)
+                    }
+                }
+                .accessibilityIdentifier("report.reason")
+            }
+            Section(header: Text("상세 설명 (선택)")) {
+                TextEditor(text: $detail).frame(minHeight: 100)
+                    .accessibilityIdentifier("report.detail")
+            }
+            if let statusMessage {
+                Section { Text(statusMessage).foregroundStyle(FMColors.Text.secondary) }
+            }
+            Section {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if isProcessing { ProgressView() } else { Text("신고 제출") }
+                }
+                .disabled(isProcessing || filterId.isEmpty)
+                .accessibilityIdentifier("report.submit")
+            }
+        }
+        .navigationTitle("신고")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func submit() async {
+        isProcessing = true
+        defer { isProcessing = false }
+        do {
+            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("reportFilter")
+            _ = try await callable.call([
+                "filterId": filterId,
+                "reasonCode": reasonCode,
+                "detail": detail
+            ])
+            statusMessage = "신고가 접수되었습니다. 24시간 내 검토합니다."
+            filterId = ""
+            detail = ""
+        } catch {
+            statusMessage = "오류: \(error.localizedDescription)"
+        }
+    }
 }
 
 struct ModerationQueueScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .modQueue) }
+    @State private var pendingFilters: [Models.Filter] = []
+    @State private var isLoading = false
+
+    var body: some View {
+        Group {
+            if pendingFilters.isEmpty {
+                FMEmptyState(.emptyMarket)
+                    .padding(.horizontal, Sp.md)
+                    .accessibilityIdentifier("modqueue.empty")
+            } else {
+                List(pendingFilters) { filter in
+                    NavigationLink(value: AppRoute.modDetail(id: filter.id.uuidString)) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(filter.title).font(Font.fmHeadline)
+                            Text(filter.author.displayName).font(Font.fmCaption)
+                                .foregroundStyle(FMColors.Text.secondary)
+                            if let createdAt = filter.createdAt {
+                                Text(createdAt, style: .date)
+                                    .font(Font.fmCaption).foregroundStyle(FMColors.Text.tertiary)
+                            }
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                .refreshable { await load() }
+            }
+        }
+        .background(FMColors.Background.bg1.ignoresSafeArea())
+        .navigationTitle("검수 큐")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await load() }
+    }
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let snapshot = try await Firestore.firestore()
+                .collection("filters")
+                .whereField("status", isEqualTo: "pending_review")
+                .order(by: "createdAt", descending: true)
+                .limit(to: 100)
+                .getDocuments()
+            pendingFilters = snapshot.documents.compactMap { FirestoreFilterRepository.decode($0) }
+        } catch {
+            pendingFilters = []
+        }
+    }
 }
 
 struct ModerationDetailScreen: View {
     let itemID: String
-    var body: some View { ScreenWorkflowScaffold(route: .modDetail(id: itemID)) }
+
+    @State private var isProcessing = false
+    @State private var statusMessage: String?
+    @State private var rejectReason: String = ""
+
+    var body: some View {
+        Form {
+            Section(header: Text("필터 ID")) {
+                Text(itemID).font(Font.fmCaption).foregroundStyle(FMColors.Text.secondary)
+            }
+            Section {
+                Button {
+                    Task { await approve() }
+                } label: {
+                    if isProcessing { ProgressView() } else { Text("승인 (Approve)") }
+                }
+                .disabled(itemID.isEmpty || isProcessing)
+                .accessibilityIdentifier("modDetail.approve")
+            }
+            Section(header: Text("거부 사유")) {
+                TextEditor(text: $rejectReason).frame(minHeight: 80)
+                    .accessibilityIdentifier("modDetail.reason")
+                Button {
+                    Task { await reject() }
+                } label: {
+                    if isProcessing { ProgressView() } else { Text("거부 (Reject)").foregroundStyle(FMColors.Semantic.error) }
+                }
+                .disabled(itemID.isEmpty || rejectReason.isEmpty || isProcessing)
+                .accessibilityIdentifier("modDetail.reject")
+            }
+            if let statusMessage {
+                Section { Text(statusMessage).foregroundStyle(FMColors.Text.secondary) }
+            }
+        }
+        .navigationTitle("검수 상세")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func approve() async {
+        isProcessing = true
+        defer { isProcessing = false }
+        do {
+            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("approveFilter")
+            _ = try await callable.call(["filterId": itemID])
+            statusMessage = "승인 완료"
+        } catch {
+            statusMessage = "오류: \(error.localizedDescription)"
+        }
+    }
+
+    private func reject() async {
+        isProcessing = true
+        defer { isProcessing = false }
+        do {
+            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("rejectFilter")
+            _ = try await callable.call(["filterId": itemID, "reason": rejectReason])
+            statusMessage = "거부 완료"
+            rejectReason = ""
+        } catch {
+            statusMessage = "오류: \(error.localizedDescription)"
+        }
+    }
 }
 
 struct BlockListScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .blockList) }
+    @State private var blockedHandles: [String] = []
+    @State private var isLoading = false
+
+    var body: some View {
+        Group {
+            if blockedHandles.isEmpty {
+                FMEmptyState(.emptyMarket)
+                    .padding(.horizontal, Sp.md)
+                    .accessibilityIdentifier("blocklist.empty")
+            } else {
+                List {
+                    ForEach(blockedHandles, id: \.self) { handle in
+                        HStack {
+                            Image(systemName: "person.crop.circle.badge.xmark")
+                                .foregroundStyle(FMColors.Semantic.error)
+                            Text(handle).font(Font.fmBody)
+                            Spacer()
+                            Button("차단 해제") { unblock(handle) }
+                                .font(Font.fmCaption)
+                                .foregroundStyle(FMColors.Accent.primary)
+                        }
+                    }
+                }
+                .listStyle(.plain)
+            }
+        }
+        .background(FMColors.Background.bg1.ignoresSafeArea())
+        .navigationTitle("차단 목록")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await load() }
+    }
+
+    private func load() async {
+        // /users/{uid}/blocks 리스너 wiring은 별도 작업 — 현재는 빈 상태에서 시작.
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let snapshot = try await Firestore.firestore()
+                .collection("users").document(uid)
+                .collection("blocks")
+                .limit(to: 200)
+                .getDocuments()
+            blockedHandles = snapshot.documents.map { $0.documentID }
+        } catch {
+            blockedHandles = []
+        }
+    }
+
+    private func unblock(_ handle: String) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        Task {
+            try? await Firestore.firestore()
+                .collection("users").document(uid)
+                .collection("blocks").document(handle)
+                .delete()
+            blockedHandles.removeAll { $0 == handle }
+        }
+    }
 }
 
 // MARK: - Monetization
 
 struct PaywallSingleScreen: View {
     let filterID: String
-    var body: some View { ScreenWorkflowScaffold(route: .paywallSingle(filterId: filterID)) }
+
+    @EnvironmentObject private var store: MooditStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var filterTitle: String = "필터"
+    @State private var priceCoins: Int = 0
+    @State private var loadError: String?
+    @State private var isProcessing = false
+    @State private var purchaseError: String?
+    @State private var showInsufficient = false
+    @State private var didPurchase = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                titleSection
+                priceCard
+                cta
+            }
+            .padding(Sp.md)
+        }
+        .background(FMColors.Background.bg1.ignoresSafeArea())
+        .navigationTitle("필터 구매")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("결제 오류", isPresented: errorBinding, actions: {
+            Button("확인", role: .cancel) { purchaseError = nil }
+        }, message: { Text(purchaseError ?? "") })
+        .navigationDestination(isPresented: $showInsufficient) {
+            InsufficientBalanceScreen(filterID: filterID, requiredCoins: priceCoins, currentBalance: store.coinBalance)
+        }
+        .navigationDestination(isPresented: $didPurchase) {
+            FilterAfterDownloadScreen(filterID: filterID)
+        }
+        .task {
+            store.subscribeToWallet()
+            await loadFilterDetail()
+        }
+    }
+
+    private var errorBinding: Binding<Bool> {
+        Binding(get: { purchaseError != nil }, set: { if !$0 { purchaseError = nil } })
+    }
+
+    @ViewBuilder
+    private var titleSection: some View {
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            Text(filterTitle).font(Font.fmTitleLarge).foregroundStyle(FMColors.Text.primary)
+            if let loadError {
+                Text(loadError).font(Font.fmCaption).foregroundStyle(FMColors.Semantic.error)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var priceCard: some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            HStack {
+                Text("가격").font(Font.fmCaption).foregroundStyle(FMColors.Text.secondary)
+                Spacer()
+                Text("\(priceCoins.formatted()) 코인")
+                    .font(Font.fmHeadline)
+                    .foregroundStyle(FMColors.Text.primary)
+            }
+            Rectangle().fill(FMColors.Border.subtle).frame(height: 0.5)
+            HStack {
+                Text("현재 잔액").font(Font.fmCaption).foregroundStyle(FMColors.Text.secondary)
+                Spacer()
+                Text("\(store.coinBalance.formatted()) 코인")
+                    .font(Font.fmHeadline)
+                    .foregroundStyle(FMColors.Text.primary)
+            }
+            HStack {
+                Text("결제 후 잔액").font(Font.fmCaption).foregroundStyle(FMColors.Text.secondary)
+                Spacer()
+                let after = store.coinBalance - priceCoins
+                Text("\(after.formatted()) 코인")
+                    .font(Font.fmCaption)
+                    .foregroundStyle(after < 0 ? FMColors.Semantic.error : FMColors.Text.secondary)
+            }
+        }
+        .padding(Sp.md)
+        .background(FMColors.Background.bg2)
+        .clipShape(RoundedRectangle(cornerRadius: R.lg))
+    }
+
+    @ViewBuilder
+    private var cta: some View {
+        FMButton("구매하기", icon: "circle.hexagongrid.circle.fill", variant: .primary, size: .lg, isLoading: isProcessing) {
+            Task { await purchase() }
+        }
+        .disabled(isProcessing || priceCoins == 0)
+        .accessibilityIdentifier("paywall.single.buy")
+    }
+
+    private func loadFilterDetail() async {
+        do {
+            let detail = try await FilterDetailLoaderScreen.fetchDetail(filterId: filterID)
+            filterTitle = detail.title
+            priceCoins = detail.priceCoins
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
+        }
+    }
+
+    private func purchase() async {
+        guard !isProcessing else { return }
+        if store.coinBalance < priceCoins {
+            showInsufficient = true
+            return
+        }
+        isProcessing = true
+        defer { isProcessing = false }
+        do {
+            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("purchaseFilter")
+            _ = try await callable.call(["filterId": filterID])
+            didPurchase = true
+        } catch let error as NSError where error.localizedDescription.contains("insufficient_balance") {
+            showInsufficient = true
+        } catch {
+            purchaseError = error.localizedDescription
+        }
+    }
 }
 
 struct ProSubscriptionScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .proSubscription) }
+    @StateObject private var storeKit = StoreKitManager()
+    @Environment(\.dismiss) private var dismiss
+    @State private var purchaseError: String?
+    @State private var processingProductID: String?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                header
+                if storeKit.products.isEmpty {
+                    if let lastError = storeKit.lastError {
+                        Text(lastError).font(Font.fmCaption).foregroundStyle(FMColors.Semantic.error)
+                    } else {
+                        ProgressView().frame(maxWidth: .infinity)
+                    }
+                } else {
+                    ForEach(storeKit.products, id: \.id) { product in
+                        productCard(product: product)
+                    }
+                }
+                policy
+            }
+            .padding(Sp.md)
+        }
+        .background(FMColors.Background.bg1.ignoresSafeArea())
+        .navigationTitle("Pro 멤버십")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("결제 오류", isPresented: errorBinding, actions: {
+            Button("확인", role: .cancel) { purchaseError = nil }
+        }, message: { Text(purchaseError ?? "") })
+        .task {
+            if storeKit.products.isEmpty {
+                await storeKit.loadProducts(ids: IAPProductIDs.proIDs)
+            }
+        }
+    }
+
+    private var errorBinding: Binding<Bool> {
+        Binding(get: { purchaseError != nil }, set: { if !$0 { purchaseError = nil } })
+    }
+
+    @ViewBuilder
+    private var header: some View {
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            Label("Pro 혜택", systemImage: "sparkles")
+                .font(Font.fmHeadline)
+                .foregroundStyle(FMColors.Accent.primary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("• 광고 없이 사용").font(Font.fmBody)
+                Text("• 메이커 분석 도구").font(Font.fmBody)
+                Text("• Pro 전용 필터 무제한").font(Font.fmBody)
+            }
+            .foregroundStyle(FMColors.Text.primary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Sp.md)
+        .background(FMColors.Background.bg2)
+        .clipShape(RoundedRectangle(cornerRadius: R.lg))
+    }
+
+    @ViewBuilder
+    private func productCard(product: StoreKit.Product) -> some View {
+        let isProcessing = processingProductID == product.id
+        Button {
+            Task { await purchase(product) }
+        } label: {
+            HStack(spacing: Sp.md) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(product.id == IAPProductIDs.proYearly ? "연간" : "월간")
+                        .font(Font.fmHeadline)
+                        .foregroundStyle(FMColors.Text.primary)
+                    Text(product.id == IAPProductIDs.proYearly ? "12개월 — 가장 합리적" : "월 단위로 결제")
+                        .font(Font.fmCaption)
+                        .foregroundStyle(FMColors.Text.secondary)
+                }
+                Spacer()
+                if isProcessing {
+                    ProgressView()
+                } else {
+                    Text(product.displayPrice)
+                        .font(Font.fmHeadline)
+                        .foregroundStyle(FMColors.Text.primary)
+                }
+            }
+            .padding(Sp.md)
+            .frame(maxWidth: .infinity)
+            .background(FMColors.Background.bg2)
+            .clipShape(RoundedRectangle(cornerRadius: R.lg))
+        }
+        .buttonStyle(.plain)
+        .disabled(isProcessing || storeKit.isProcessing)
+        .accessibilityIdentifier("pro.subscribe.\(product.id)")
+    }
+
+    private func purchase(_ product: StoreKit.Product) async {
+        processingProductID = product.id
+        defer { processingProductID = nil }
+        let outcome = await storeKit.purchase(product)
+        switch outcome {
+        case .success:
+            dismiss()
+        case .userCancelled:
+            break
+        case .pending:
+            purchaseError = "결제가 보류 중입니다."
+        case .failed(let message):
+            purchaseError = message
+        }
+    }
+
+    @ViewBuilder
+    private var policy: some View {
+        Text("Apple ID로 결제. 자동 갱신은 App Store 설정에서 관리할 수 있습니다.")
+            .font(Font.fmCaption)
+            .foregroundStyle(FMColors.Text.tertiary)
+    }
 }
 
 struct ProStatusScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .proStatus) }
+    @EnvironmentObject private var store: MooditStore
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                statusCard
+                manageLink
+            }
+            .padding(Sp.md)
+        }
+        .background(FMColors.Background.bg1.ignoresSafeArea())
+        .navigationTitle("Pro 상태")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { store.subscribeToWallet() }
+    }
+
+    @ViewBuilder
+    private var statusCard: some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            HStack {
+                Image(systemName: "sparkles")
+                    .foregroundStyle(FMColors.Accent.primary)
+                Text(store.isProActive ? "Pro 활성" : "Pro 비활성")
+                    .font(Font.fmHeadline)
+                    .foregroundStyle(FMColors.Text.primary)
+            }
+            Text(store.isProActive
+                 ? "현재 Pro 멤버십이 활성화되어 있습니다."
+                 : "Pro에 가입하지 않았습니다.")
+                .font(Font.fmBody)
+                .foregroundStyle(FMColors.Text.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Sp.md)
+        .background(FMColors.Background.bg2)
+        .clipShape(RoundedRectangle(cornerRadius: R.lg))
+    }
+
+    @ViewBuilder
+    private var manageLink: some View {
+        Link(destination: URL(string: "https://apps.apple.com/account/subscriptions")!) {
+            HStack {
+                Image(systemName: "arrow.up.right.square")
+                Text("App Store에서 구독 관리")
+            }
+            .font(Font.fmBody)
+            .foregroundStyle(FMColors.Accent.primary)
+            .padding(Sp.md)
+            .frame(maxWidth: .infinity)
+            .background(FMColors.Background.bg2)
+            .clipShape(RoundedRectangle(cornerRadius: R.lg))
+        }
+    }
 }
 
 struct OrdersHistoryScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .ordersHistory) }
+    @StateObject private var ledger = WalletLedgerStore()
+
+    var body: some View {
+        Group {
+            let orders = ledger.entries.filter { $0.kind == .purchase }
+            if orders.isEmpty {
+                FMEmptyState(.emptyMarket)
+                    .padding(.horizontal, Sp.md)
+                    .accessibilityIdentifier("orders.empty")
+            } else {
+                List {
+                    ForEach(orders) { entry in
+                        HStack {
+                            Image(systemName: "cart.fill")
+                                .foregroundStyle(FMColors.Text.secondary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(entry.relatedItemTitle ?? "필터 구매").font(Font.fmBody)
+                                Text(entry.createdAt, style: .date).font(Font.fmCaption)
+                                    .foregroundStyle(FMColors.Text.tertiary)
+                            }
+                            Spacer()
+                            Text("\(entry.amount.formatted())")
+                                .font(Font.fmHeadline)
+                                .foregroundStyle(FMColors.Text.primary)
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                .refreshable { await ledger.refresh() }
+            }
+        }
+        .background(FMColors.Background.bg1.ignoresSafeArea())
+        .navigationTitle("주문 내역")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { ledger.start() }
+    }
 }
 
 struct WalletScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .wallet) }
+    @EnvironmentObject private var store: MooditStore
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                balanceCard
+                actions
+                policyNote
+            }
+            .padding(Sp.md)
+        }
+        .background(FMColors.Background.bg1.ignoresSafeArea())
+        .navigationTitle("지갑")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { store.subscribeToWallet() }
+    }
+
+    @ViewBuilder
+    private var balanceCard: some View {
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            Text("코인 잔액")
+                .font(Font.fmCaption)
+                .foregroundStyle(FMColors.Text.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: Sp.xs) {
+                Image(systemName: "circle.hexagongrid.circle.fill")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(FMColors.Accent.primary)
+                Text("\(store.coinBalance.formatted())")
+                    .font(Font.fmTitleLarge)
+                    .foregroundStyle(FMColors.Text.primary)
+                Text("코인")
+                    .font(Font.fmBody)
+                    .foregroundStyle(FMColors.Text.secondary)
+            }
+            if store.isProActive {
+                Label("Pro 멤버십 활성", systemImage: "sparkles")
+                    .font(Font.fmCaption)
+                    .foregroundStyle(FMColors.Accent.primary)
+                    .padding(.top, Sp.xs)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Sp.md)
+        .background(FMColors.Background.bg2)
+        .clipShape(RoundedRectangle(cornerRadius: R.lg))
+        .accessibilityIdentifier("wallet.balance")
+    }
+
+    @ViewBuilder
+    private var actions: some View {
+        VStack(spacing: 0) {
+            walletAction(icon: "plus.circle.fill", title: "충전하기", subtitle: "코인 패키지로 결제", route: .walletTopup)
+            divider
+            walletAction(icon: "list.bullet.rectangle", title: "거래 내역", subtitle: "충전 / 사용 / 환불 기록", route: .walletTransactions)
+            divider
+            walletAction(icon: "sparkles", title: store.isProActive ? "Pro 상태" : "Pro 시작",
+                         subtitle: store.isProActive ? "현재 구독 정보" : "Pro 멤버십 가입",
+                         route: store.isProActive ? .proStatus : .proSubscription)
+            divider
+            walletAction(icon: "doc.text.magnifyingglass", title: "주문 내역", subtitle: "필터 구매 내역", route: .ordersHistory)
+        }
+        .background(FMColors.Background.bg2)
+        .clipShape(RoundedRectangle(cornerRadius: R.lg))
+    }
+
+    @ViewBuilder
+    private func walletAction(icon: String, title: String, subtitle: String, route: AppRoute) -> some View {
+        NavigationLink(value: route) {
+            HStack(spacing: Sp.md) {
+                Image(systemName: icon)
+                    .font(.system(size: 18))
+                    .foregroundStyle(FMColors.Accent.primary)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(Font.fmBody).foregroundStyle(FMColors.Text.primary)
+                    Text(subtitle).font(Font.fmCaption).foregroundStyle(FMColors.Text.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(FMColors.Text.tertiary)
+            }
+            .padding(Sp.md)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("wallet.action.\(route.title)")
+    }
+
+    private var divider: some View {
+        Rectangle()
+            .fill(FMColors.Border.subtle)
+            .frame(height: 0.5)
+            .padding(.leading, Sp.lg)
+    }
+
+    @ViewBuilder
+    private var policyNote: some View {
+        Text("코인은 moodit 안에서만 사용 가능하며 환불은 Apple 정책 + 도움말 환불 폼을 통해 처리합니다 (ADR-0006).")
+            .font(Font.fmCaption)
+            .foregroundStyle(FMColors.Text.tertiary)
+            .padding(.horizontal, Sp.xs)
+    }
 }
 
 struct WalletTopupScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .walletTopup) }
+    @EnvironmentObject private var store: MooditStore
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var storeKit = StoreKitManager()
+
+    @State private var purchasingProductID: String?
+    @State private var purchaseError: String?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                header
+                if storeKit.products.isEmpty {
+                    if let lastError = storeKit.lastError {
+                        loadErrorBanner(lastError)
+                    } else {
+                        loadingBanner
+                    }
+                } else {
+                    packageList
+                }
+                policyNote
+            }
+            .padding(Sp.md)
+        }
+        .background(FMColors.Background.bg1.ignoresSafeArea())
+        .navigationTitle("코인 충전")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("결제 오류", isPresented: errorBinding, actions: {
+            Button("확인", role: .cancel) { purchaseError = nil }
+        }, message: {
+            Text(purchaseError ?? "")
+        })
+        .task {
+            store.subscribeToWallet()
+            if storeKit.products.isEmpty {
+                await storeKit.loadProducts(ids: IAPProductIDs.coinIDs)
+            }
+        }
+    }
+
+    private var errorBinding: Binding<Bool> {
+        Binding(get: { purchaseError != nil }, set: { if !$0 { purchaseError = nil } })
+    }
+
+    @ViewBuilder
+    private var header: some View {
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            Text("현재 잔액")
+                .font(Font.fmCaption)
+                .foregroundStyle(FMColors.Text.secondary)
+            HStack(spacing: Sp.xs) {
+                Image(systemName: "circle.hexagongrid.circle.fill")
+                    .foregroundStyle(FMColors.Accent.primary)
+                Text("\(store.coinBalance.formatted()) 코인")
+                    .font(Font.fmTitle)
+                    .foregroundStyle(FMColors.Text.primary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Sp.md)
+        .background(FMColors.Background.bg2)
+        .clipShape(RoundedRectangle(cornerRadius: R.lg))
+    }
+
+    @ViewBuilder
+    private var packageList: some View {
+        VStack(spacing: Sp.sm) {
+            ForEach(storeKit.products, id: \.id) { product in
+                packageRow(product: product)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func packageRow(product: StoreKit.Product) -> some View {
+        let coins = IAPProductIDs.coinAmount(for: product.id) ?? 0
+        let bonusLabel = bonusLabel(for: product.id)
+        let isProcessing = purchasingProductID == product.id
+        Button {
+            Task { await initiatePurchase(product) }
+        } label: {
+            HStack(spacing: Sp.md) {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: Sp.xs) {
+                        Text("\(coins.formatted()) 코인")
+                            .font(Font.fmHeadline)
+                            .foregroundStyle(FMColors.Text.primary)
+                        if let bonusLabel {
+                            Text(bonusLabel)
+                                .font(Font.fmCaption)
+                                .foregroundStyle(FMColors.Accent.primary)
+                                .padding(.horizontal, Sp.xs)
+                                .padding(.vertical, 2)
+                                .background(FMColors.Accent.primary.opacity(0.15))
+                                .clipShape(Capsule())
+                        }
+                    }
+                    Text(packageLabel(for: product.id))
+                        .font(Font.fmCaption)
+                        .foregroundStyle(FMColors.Text.secondary)
+                }
+                Spacer()
+                if isProcessing {
+                    ProgressView()
+                } else {
+                    Text(product.displayPrice)
+                        .font(Font.fmHeadline)
+                        .foregroundStyle(FMColors.Text.primary)
+                }
+            }
+            .padding(Sp.md)
+            .frame(maxWidth: .infinity)
+            .background(FMColors.Background.bg2)
+            .clipShape(RoundedRectangle(cornerRadius: R.lg))
+        }
+        .buttonStyle(.plain)
+        .disabled(isProcessing || storeKit.isProcessing)
+        .accessibilityIdentifier("wallet.topup.package.\(product.id)")
+    }
+
+    private func packageLabel(for productId: String) -> String {
+        switch productId {
+        case IAPProductIDs.coins100: "Starter — 가벼운 시도"
+        case IAPProductIDs.coins550: "Popular — 가장 인기"
+        case IAPProductIDs.coins1200: "Best Value — 효율적"
+        case IAPProductIDs.coins3000: "Pro Pack — 가장 큰 보너스"
+        default: "코인 패키지"
+        }
+    }
+
+    private func bonusLabel(for productId: String) -> String? {
+        switch productId {
+        case IAPProductIDs.coins550: "+10%"
+        case IAPProductIDs.coins1200: "+20%"
+        case IAPProductIDs.coins3000: "+30%"
+        default: nil
+        }
+    }
+
+    private func initiatePurchase(_ product: StoreKit.Product) async {
+        purchasingProductID = product.id
+        defer { purchasingProductID = nil }
+        let outcome = await storeKit.purchase(product)
+        switch outcome {
+        case .success:
+            dismiss()
+        case .userCancelled:
+            break
+        case .pending:
+            purchaseError = "결제가 보류 중입니다. 약관 승인 후 자동 완료됩니다."
+        case .failed(let message):
+            purchaseError = message
+        }
+    }
+
+    @ViewBuilder
+    private var loadingBanner: some View {
+        VStack(spacing: Sp.sm) {
+            ProgressView()
+            Text("패키지를 불러오는 중…")
+                .font(Font.fmCaption)
+                .foregroundStyle(FMColors.Text.secondary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 120)
+        .padding(Sp.md)
+    }
+
+    @ViewBuilder
+    private func loadErrorBanner(_ message: String) -> some View {
+        VStack(spacing: Sp.sm) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 28))
+                .foregroundStyle(FMColors.Semantic.error)
+            Text("패키지를 불러오지 못했어요")
+                .font(Font.fmHeadline)
+                .foregroundStyle(FMColors.Text.primary)
+            Text(message)
+                .font(Font.fmCaption)
+                .foregroundStyle(FMColors.Text.secondary)
+                .multilineTextAlignment(.center)
+            FMButton("다시 시도", variant: .secondary, size: .md) {
+                Task { await storeKit.loadProducts(ids: IAPProductIDs.coinIDs) }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(Sp.md)
+    }
+
+    @ViewBuilder
+    private var policyNote: some View {
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            Text("Apple ID 결제. 충전한 코인은 moodit 내에서만 사용 가능하며, 환불은 Apple 정책 + 도움말 환불 폼을 통해 처리합니다.")
+                .font(Font.fmCaption)
+                .foregroundStyle(FMColors.Text.tertiary)
+            Text("결제를 계속하면 코인 약관과 환불 정책에 동의하는 것으로 간주됩니다 (ADR-0006).")
+                .font(Font.fmCaption)
+                .foregroundStyle(FMColors.Text.tertiary)
+        }
+        .padding(.horizontal, Sp.xs)
+    }
 }
 
 struct WalletTransactionsScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .walletTransactions) }
+    @StateObject private var ledger = WalletLedgerStore()
+
+    var body: some View {
+        Group {
+            if ledger.entries.isEmpty {
+                if let loadError = ledger.loadError {
+                    errorView(loadError)
+                } else if ledger.isLoading {
+                    loadingView
+                } else {
+                    FMEmptyState(.emptyMarket)
+                        .padding(.horizontal, Sp.md)
+                        .accessibilityIdentifier("wallet.transactions.empty")
+                }
+            } else {
+                List {
+                    ForEach(ledger.entries) { entry in
+                        ledgerRow(entry: entry)
+                    }
+                }
+                .listStyle(.plain)
+                .refreshable { await ledger.refresh() }
+            }
+        }
+        .background(FMColors.Background.bg1.ignoresSafeArea())
+        .navigationTitle("거래 내역")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { ledger.start() }
+    }
+
+    @ViewBuilder
+    private func ledgerRow(entry: WalletLedgerEntry) -> some View {
+        HStack(spacing: Sp.md) {
+            Image(systemName: iconName(for: entry.kind))
+                .font(.system(size: 18))
+                .foregroundStyle(iconColor(for: entry.kind))
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label(for: entry.kind))
+                    .font(Font.fmBody)
+                    .foregroundStyle(FMColors.Text.primary)
+                if let item = entry.relatedItemTitle, !item.isEmpty {
+                    Text(item)
+                        .font(Font.fmCaption)
+                        .foregroundStyle(FMColors.Text.secondary)
+                }
+                Text(entry.createdAt, style: .date)
+                    .font(Font.fmCaption)
+                    .foregroundStyle(FMColors.Text.tertiary)
+            }
+            Spacer()
+            Text(amountText(entry.amount))
+                .font(Font.fmHeadline)
+                .foregroundStyle(amountColor(entry.amount))
+        }
+        .padding(.vertical, Sp.xs)
+        .accessibilityIdentifier("wallet.transactions.row.\(entry.id)")
+    }
+
+    private func iconName(for kind: WalletLedgerEntry.Kind) -> String {
+        switch kind {
+        case .topup: "plus.circle.fill"
+        case .purchase: "cart.fill"
+        case .refund: "arrow.uturn.backward.circle"
+        case .bonus: "gift.fill"
+        case .unknown: "questionmark.circle"
+        }
+    }
+
+    private func iconColor(for kind: WalletLedgerEntry.Kind) -> Color {
+        switch kind {
+        case .topup, .bonus: FMColors.Accent.primary
+        case .purchase: FMColors.Text.secondary
+        case .refund: FMColors.Semantic.error
+        case .unknown: FMColors.Text.tertiary
+        }
+    }
+
+    private func label(for kind: WalletLedgerEntry.Kind) -> String {
+        switch kind {
+        case .topup: "충전"
+        case .purchase: "사용"
+        case .refund: "환불"
+        case .bonus: "보너스"
+        case .unknown: "기록"
+        }
+    }
+
+    private func amountText(_ amount: Int) -> String {
+        amount > 0 ? "+\(amount.formatted())" : "\(amount.formatted())"
+    }
+
+    private func amountColor(_ amount: Int) -> Color {
+        amount > 0 ? FMColors.Accent.primary : FMColors.Text.primary
+    }
+
+    @ViewBuilder
+    private var loadingView: some View {
+        VStack(spacing: Sp.md) {
+            ProgressView()
+                .controlSize(.large)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private func errorView(_ message: String) -> some View {
+        VStack(spacing: Sp.sm) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 28))
+                .foregroundStyle(FMColors.Semantic.error)
+            Text("거래 내역을 불러오지 못했어요")
+                .font(Font.fmHeadline)
+                .foregroundStyle(FMColors.Text.primary)
+            Text(message)
+                .font(Font.fmCaption)
+                .foregroundStyle(FMColors.Text.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(Sp.md)
+    }
 }
 
 struct InsufficientBalanceScreen: View {
     let filterID: String
-    var body: some View { ScreenWorkflowScaffold(route: .insufficientBalance(filterId: filterID)) }
+    var requiredCoins: Int = 0
+    var currentBalance: Int = 0
+
+    var body: some View {
+        VStack(spacing: Sp.lg) {
+            Spacer()
+            Image(systemName: "exclamationmark.bubble.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(FMColors.Semantic.error)
+            Text("코인이 부족해요")
+                .font(Font.fmTitle)
+                .foregroundStyle(FMColors.Text.primary)
+            if requiredCoins > 0 {
+                let shortfall = max(requiredCoins - currentBalance, 0)
+                Text("\(shortfall.formatted())코인 부족")
+                    .font(Font.fmBody)
+                    .foregroundStyle(FMColors.Text.secondary)
+            }
+            NavigationLink(value: AppRoute.walletTopup) {
+                Text("충전하기")
+                    .font(Font.fmHeadline)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Sp.md)
+                    .background(FMColors.Accent.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: R.lg))
+            }
+            .accessibilityIdentifier("insufficient.topup")
+            Spacer()
+        }
+        .padding(Sp.md)
+        .background(FMColors.Background.bg1.ignoresSafeArea())
+        .navigationTitle("잔액 부족")
+        .navigationBarTitleDisplayMode(.inline)
+    }
 }
 
 struct PaymentFailedScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .paymentFailed) }
+    @State private var lastErrorMessage: String = "결제가 처리되지 않았습니다."
+    @StateObject private var storeKit = StoreKitManager()
+
+    var body: some View {
+        VStack(spacing: Sp.lg) {
+            Spacer()
+            Image(systemName: "xmark.octagon.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(FMColors.Semantic.error)
+            Text("결제 실패")
+                .font(Font.fmTitle)
+                .foregroundStyle(FMColors.Text.primary)
+            Text(lastErrorMessage)
+                .font(Font.fmBody)
+                .foregroundStyle(FMColors.Text.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Sp.md)
+            Button {
+                Task { await storeKit.restore() }
+            } label: {
+                Text("구매 복원")
+                    .font(Font.fmHeadline)
+                    .foregroundStyle(FMColors.Accent.primary)
+            }
+            .accessibilityIdentifier("payment.failed.restore")
+            Spacer()
+        }
+        .padding(Sp.md)
+        .background(FMColors.Background.bg1.ignoresSafeArea())
+        .navigationTitle("결제 실패")
+        .navigationBarTitleDisplayMode(.inline)
+    }
 }
 
 struct RefundRequestScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .refundRequest) }
+    @Environment(\.dismiss) private var dismiss
+    @State private var orderId: String = ""
+    @State private var reason: String = ""
+    @State private var isProcessing = false
+    @State private var statusMessage: String?
+
+    var body: some View {
+        Form {
+            Section(header: Text("주문 ID")) {
+                TextField("orders/abc-123 형식", text: $orderId)
+                    .autocapitalization(.none)
+                    .accessibilityIdentifier("refund.orderId")
+            }
+            Section(header: Text("환불 사유"), footer: Text("최대 2000자")) {
+                TextEditor(text: $reason)
+                    .frame(minHeight: 120)
+                    .accessibilityIdentifier("refund.reason")
+            }
+            if let statusMessage {
+                Section { Text(statusMessage).foregroundStyle(FMColors.Text.secondary) }
+            }
+            Section {
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if isProcessing {
+                        ProgressView()
+                    } else {
+                        Text("환불 요청 제출")
+                    }
+                }
+                .disabled(isProcessing || orderId.isEmpty || reason.isEmpty)
+                .accessibilityIdentifier("refund.submit")
+            }
+        }
+        .navigationTitle("환불 요청")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func submit() async {
+        isProcessing = true
+        defer { isProcessing = false }
+        do {
+            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("refundRequest")
+            _ = try await callable.call(["orderId": orderId, "reason": reason])
+            statusMessage = "환불 요청이 접수되었습니다. 24시간 내 검토합니다."
+            orderId = ""
+            reason = ""
+        } catch {
+            statusMessage = "오류: \(error.localizedDescription)"
+        }
+    }
 }
 
 struct MakerDashboardScreen: View {
     var body: some View { ScreenWorkflowScaffold(route: .makerDashboard) }
 }
 
+// MARK: - Payout placeholders (Phase 6+ — see ADR-0006)
+//
+// Closed-loop virtual currency 모델 채택 (ADR-0006). Phase 1~5에서 메이커는
+// moodit 안에서만 소비 가능한 코인으로 정산받고, 원화 출금은 미지원.
+// 본 화면들은 deep-link 도착 시에도 일관된 UX를 위해 placeholder로 유지.
+
 struct PayoutOnboardingScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .payoutOnboarding) }
+    var body: some View { closedLoopPayoutPlaceholder(title: "정산 연결") }
 }
 
 struct PayoutTaxInfoScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .payoutTaxInfo) }
+    var body: some View { closedLoopPayoutPlaceholder(title: "세금 정보") }
 }
 
 struct PayoutHistoryScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .payoutHistory) }
+    var body: some View { closedLoopPayoutPlaceholder(title: "정산 내역") }
 }
 
 struct EarningsWithdrawScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .earningsWithdraw) }
+    var body: some View { closedLoopPayoutPlaceholder(title: "출금 신청") }
+}
+
+@ViewBuilder
+@MainActor
+private func closedLoopPayoutPlaceholder(title: String) -> some View {
+    ScrollView {
+        VStack(alignment: .leading, spacing: Sp.lg) {
+            HStack(spacing: Sp.md) {
+                Image(systemName: "tray.full")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(FMColors.Accent.primary)
+                    .frame(width: 56, height: 56)
+                    .background(FMColors.Accent.bg, in: RoundedRectangle(cornerRadius: R.md))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("출금은 추후 지원 예정이에요")
+                        .fmTypography(.headline)
+                        .foregroundStyle(FMColors.Text.primary)
+                    Text("적립한 코인은 moodit 안에서 자유롭게 사용할 수 있어요.")
+                        .fmTypography(.subhead)
+                        .foregroundStyle(FMColors.Text.secondary)
+                }
+            }
+
+            FMCard {
+                VStack(alignment: .leading, spacing: Sp.sm) {
+                    Text("적립 코인 사용처")
+                        .fmTypography(.subhead)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Text.primary)
+                    bulletRow(icon: "camera.filters", text: "다른 메이커의 유료 필터 다운로드")
+                    bulletRow(icon: "sparkles", text: "Pro 멤버십 결제 (Phase 5+ 예정)")
+                    bulletRow(icon: "star.circle", text: "프로필 강조 / 우선 노출 슬롯 (Phase 5+ 예정)")
+                }
+            }
+
+            Text("원화 출금 기능은 Phase 6에서 메이커 누적 잔액과 운영 환경을 보고 다시 평가합니다. 자세한 정책은 ADR-0006(closed-loop virtual currency)에 기록되어 있어요.")
+                .fmTypography(.caption)
+                .foregroundStyle(FMColors.Text.tertiary)
+                .padding(.horizontal, Sp.xs)
+        }
+        .padding(Sp.md)
+        .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+    }
+    .background(FMColors.Background.bg1)
+    .navigationTitle(title)
+    .navigationBarTitleDisplayMode(.inline)
+    .accessibilityIdentifier("payout.placeholder.\(title)")
+}
+
+@MainActor
+private func bulletRow(icon: String, text: String) -> some View {
+    HStack(alignment: .top, spacing: Sp.sm) {
+        Image(systemName: icon)
+            .foregroundStyle(FMColors.Accent.primary)
+            .frame(width: 20)
+        Text(text)
+            .fmTypography(.body)
+            .foregroundStyle(FMColors.Text.secondary)
+        Spacer(minLength: 0)
+    }
 }
 
 // MARK: - Phase A shared helpers
