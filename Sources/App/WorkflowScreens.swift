@@ -14,6 +14,77 @@ import UserNotifications
 
 // MARK: - Camera / Download
 
+private enum SignedFilterPackageDownloader {
+    static func download(
+        from url: URL,
+        filterID: String,
+        onProgress: @escaping @Sendable (Double) -> Void
+    ) async throws -> URL {
+        let (bytes, response) = try await URLSession.shared.bytes(from: url)
+        if let http = response as? HTTPURLResponse,
+           !(200 ..< 300).contains(http.statusCode) {
+            throw URLError(.badServerResponse)
+        }
+
+        let directory = try packageDirectory()
+        let safeID = filterID.map { character -> Character in
+            character.isLetter || character.isNumber || character == "-" || character == "_" ? character : "_"
+        }
+        .map(String.init)
+        .joined()
+        let destination = directory.appendingPathComponent("\(safeID).fmpkg")
+        let temporary = directory.appendingPathComponent("\(safeID).fmpkg.download")
+        FileManager.default.createFile(atPath: temporary.path, contents: nil)
+        let handle = try FileHandle(forWritingTo: temporary)
+        var receivedBytes = 0
+        var buffer = Data()
+        let expectedBytes = response.expectedContentLength
+
+        do {
+            for try await byte in bytes {
+                try Task.checkCancellation()
+                buffer.append(byte)
+                receivedBytes += 1
+                if buffer.count >= 64 * 1024 {
+                    try handle.write(contentsOf: buffer)
+                    buffer.removeAll(keepingCapacity: true)
+                    reportProgress(receivedBytes: receivedBytes, expectedBytes: expectedBytes, onProgress: onProgress)
+                }
+            }
+            if !buffer.isEmpty {
+                try handle.write(contentsOf: buffer)
+            }
+            try handle.close()
+            if FileManager.default.fileExists(atPath: destination.path) {
+                try FileManager.default.removeItem(at: destination)
+            }
+            try FileManager.default.moveItem(at: temporary, to: destination)
+            onProgress(1)
+            return destination
+        } catch {
+            try? handle.close()
+            try? FileManager.default.removeItem(at: temporary)
+            throw error
+        }
+    }
+
+    private static func packageDirectory() throws -> URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let directory = base.appendingPathComponent("moodit/downloaded-packages", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory
+    }
+
+    private static func reportProgress(
+        receivedBytes: Int,
+        expectedBytes: Int64,
+        onProgress: @escaping @Sendable (Double) -> Void
+    ) {
+        guard expectedBytes > 0 else { return }
+        onProgress(min(0.98, Double(receivedBytes) / Double(expectedBytes)))
+    }
+}
+
 struct FilterDownloadProgressScreen: View {
     let filterID: String
 
@@ -206,26 +277,65 @@ struct FilterDownloadProgressScreen: View {
 
     @MainActor
     private func runDownload() async {
-        guard let filter else {
-            phase = .failed
+        guard let filterIDAsUUID = UUID(uuidString: filterID) else {
+            await markDownloaded()
             return
         }
-        if store.isDownloaded(filter) {
+        if store.downloadedFilterIDs.contains(filterIDAsUUID) {
+            progress = 1
+            phase = .completed
+            return
+        }
+        if let filter, store.isDownloaded(filter) {
             progress = 1
             phase = .completed
             return
         }
         phase = .downloading
-        for step in 1...6 {
-            try? await Task.sleep(nanoseconds: 130_000_000)
-            progress = Double(step) / 6
+
+        #if DEBUG
+        if isUITesting {
+            await markDownloaded()
+            return
         }
+        #endif
+
         do {
-            try await store.download(filter)
+            let detail = try await FilterDetailLoaderScreen.fetchDetail(filterId: filterID)
+            _ = try await SignedFilterPackageDownloader.download(
+                from: detail.signedDownloadURL,
+                filterID: filterID
+            ) { value in
+                Task { @MainActor in
+                    progress = value
+                }
+            }
+            try await markDownloadedAfterPackageFetch()
             FMHaptic.success.play()
             phase = .completed
         } catch {
             phase = .failed
+        }
+    }
+
+    @MainActor
+    private func markDownloaded() async {
+        phase = .downloading
+        do {
+            try await markDownloadedAfterPackageFetch()
+            FMHaptic.success.play()
+            progress = 1
+            phase = .completed
+        } catch {
+            phase = .failed
+        }
+    }
+
+    private func markDownloadedAfterPackageFetch() async throws {
+        if let filter {
+            try await store.download(filter)
+        } else {
+            try await store.download(filterID: filterID)
         }
     }
 }

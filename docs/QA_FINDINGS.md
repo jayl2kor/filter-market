@@ -52,6 +52,7 @@
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after FCM token auth retry (#222) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after Pro included paid-filter download path (#253) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after upload cover cancel dialog fix (#254) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after signed filter package download wiring (#252) |
 
 ## Remaining Manual QA Gates
 
@@ -80,6 +81,7 @@
 | `market.header.coinBalance` | Marketplace exposes wallet navigation through the balance pill. Product availability is still covered by StoreKit manual QA. | Verify logged-in wallet listener updates the pill and tapping opens `WalletScreen`. |
 | Profile username copy | Edit profile/settings/data export copy now uses "유저네임" instead of "핸들"; existing accessibility IDs remain `profile.edit.handle*` for selector stability. | Manual Korean copy pass before App Store screenshots. |
 | Filter detail download | Detail CTA now owns and cancels its download task and only transitions to completed after `store.download` succeeds. | Manual offline/Firebase permission-denied QA should verify the failure alert and no stale completed CTA after dismissal. |
+| Filter package download | FilterDownloadProgress now uses `signedDownloadURL` for UUID-based filters, streams bytes to `Application Support/moodit/downloaded-packages/<filterId>.fmpkg`, and only writes savedFilters after the package fetch succeeds. | Firebase/R2 QA should download a real large and small package, verify local file existence, progress behavior, retry on network failure, and offline apply wiring in the renderer path. |
 | Reviews list listener | Reviews Firestore listener is removed on disappear and now decodes `stars`, `helpfulCount`, and `isVerifiedDownload`. | Firebase seeded review QA should verify live updates after navigating away/back. |
 | Notification follow action | Follow notification action now writes a root `follows/{actor}_{target}` edge before marking the notification read. | Seed follow notification and verify count trigger/list update in Firebase. |
 | Root wallet/profile subscription | RootShell now starts the wallet/profile/auth listener on cold start, and MooditStore listener callbacks re-enter MainActor before publishing state. | Device/Firebase QA should verify cold-start balance, Pro status, profile handle onboarding, and notification preference state. |

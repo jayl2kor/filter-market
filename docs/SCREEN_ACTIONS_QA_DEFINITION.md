@@ -230,6 +230,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | Push device 등록 | 로그인 전 수신한 FCM token은 캐시하고 로그인 후 재저장 또는 token fetch 재시도 | 신규 사용자 첫 로그인 후 `/users/{uid}/devices/{deviceId}` 생성 확인 |
 | Pro 유료 필터 접근 | `isProActive && priceCoins > 0`이면 코인 구매 callable 없이 saved filter 동기화 | PaywallSingle에서 Pro 포함 라벨, 차감 없는 after-download 이동 확인 |
 | 업로드 취소 | `upload.cancel`은 저장 후 나가기/버리고 나가기/계속 작성의 3-way dialog | 저장/버리기 선택 시 화면 dismiss, 계속 작성은 stay |
+| 필터 패키지 다운로드 | UUID 기반 `filter.download`는 `signedDownloadURL`을 stream fetch 후 로컬 `.fmpkg` 저장 | 저장 성공 후에만 savedFilters marker 작성, 실패 시 retry 노출 |
 
 ## 8. Definition Gate Before QA
 
@@ -307,6 +308,7 @@ QA를 시작하기 전 반드시 아래 순서로 정의를 고정한다.
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after FCM token auth retry (#222) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after Pro included paid-filter download path (#253) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after upload cover cancel dialog fix (#254) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after signed filter package download wiring (#252) |
 
 ## 10. Definition of Done
 

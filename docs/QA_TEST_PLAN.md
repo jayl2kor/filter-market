@@ -130,6 +130,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 5.15 | ★ 평점 등록 (toolbar) | Auth-gated → AppRoute.rating(filterId:) |  |
 | 5.16 | "리뷰 작성" 버튼 (`social.reviews.compose`) | Auth-gated → AppRoute.reviewCompose(filterId:) |  |
 | 5.17 | "무료 다운로드" CTA (무료 필터) | downloadState transitions: ready→downloading→completed |  |
+| 5.17b | UUID 기반 실제 필터 다운로드 | `getFilterDetail.signedDownloadURL`로 `.fmpkg`를 `Application Support/moodit/downloaded-packages`에 저장하고 URLSession byte progress를 표시한 뒤 saved filter 동기화 |  |
 | 5.18 | "구매" CTA (유료 필터) | `PaywallSingleScreen` 진입, `filter.purchase.confirm` 또는 `filter.purchase.pro_upgrade` 선택 가능 |  |
 | 5.18b | Pro 활성 + 유료 필터 | Paywall 가격이 "Pro 멤버십에 포함"으로 표시되고 `filter.purchase.confirm`은 코인 차감/callable 없이 saved filter 동기화 후 after-download로 이동 |  |
 | 5.19 | "촬영하기" CTA (다운로드 후) | dismiss → 카메라로 |  |
