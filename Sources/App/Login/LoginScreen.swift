@@ -12,6 +12,7 @@ import SwiftUI
 /// 라이트 모드 풀스크린, 상단 60% 스페이서 + 중앙 로고 + 하단 인증 버튼 그룹.
 /// 실제 인증 흐름은 후속 Phase 에서 연결되며, 본 화면은 시각만 제공한다.
 struct LoginScreen: View {
+    @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
     @State private var loadingProvider: LoginProvider? = nil
     @State private var externalURL: ExternalURL?
     @State private var navigateToEmailLogin = false
@@ -308,8 +309,7 @@ struct LoginScreen: View {
     private func simulateAuth(provider: LoginProvider) {
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 1_200_000_000)
-            loadingProvider = nil
-            onAuthenticated?()
+            completeAuthentication()
         }
     }
 
@@ -348,10 +348,7 @@ struct LoginScreen: View {
                     accessToken: result.user.accessToken.tokenString
                 )
                 _ = try await Auth.auth().signIn(with: credential)
-                UserDefaults.standard.set(true, forKey: "isAuthenticated")
-                loadingProvider = nil
-                FMHaptic.success.play()
-                onAuthenticated?()
+                completeAuthentication()
             } catch {
                 loadingProvider = nil
                 #if DEBUG
@@ -359,6 +356,14 @@ struct LoginScreen: View {
                 #endif
             }
         }
+    }
+
+    @MainActor
+    private func completeAuthentication() {
+        isAuthenticated = true
+        loadingProvider = nil
+        FMHaptic.success.play()
+        onAuthenticated?()
     }
 
     /// 현재 키 윈도우의 root view controller — `GIDSignIn`은 presenting controller가 필요.
