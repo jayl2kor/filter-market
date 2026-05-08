@@ -46,7 +46,9 @@ struct FilterDownloadProgressScreen: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Sp.xs) {
-            Text(filterID)
+            // (#36) 사람이 읽을 수 있는 필터 제목만 노출 — UUID 문자열은 숨김.
+            // 매칭 실패 시 일반 헤더 사용.
+            Text(humanReadableTitle)
                 .fmTypography(.titleLarge)
                 .foregroundStyle(FMColors.Text.primary)
             Text(phase.description)
@@ -54,6 +56,13 @@ struct FilterDownloadProgressScreen: View {
                 .foregroundStyle(FMColors.Text.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// store에서 매칭되는 Filter의 title을 반환. UUID 형식이면 일반 헤더로 fallback.
+    private var humanReadableTitle: String {
+        if let f = filter { return f.title }
+        if UUID(uuidString: filterID) != nil { return "필터 다운로드" }
+        return filterID
     }
 
     private var progressCard: some View {
@@ -2599,6 +2608,10 @@ struct NotificationSettingsScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle("알림 설정")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: store.notificationPreferences) { _, _ in
+            // (#45) 토글 변경 시 Firestore 영속화 — listener가 다른 디바이스에도 반영.
+            store.persistNotificationPreferences()
+        }
     }
 
     private var systemCard: some View {
@@ -3098,6 +3111,11 @@ struct PaywallSingleScreen: View {
         do {
             let callable = Functions.functions(region: "asia-northeast3").httpsCallable("purchaseFilter")
             _ = try await callable.call(["filterId": filterID])
+            // (#31) 구매 성공 → 자동 다운로드 마크 + 잔액 차감 (낙관적). filterAfterDownload로 이동.
+            store.creditCoinsOptimistically(-priceCoins)  // 음수 가산으로 차감
+            if let filter = store.filter(matching: filterID) {
+                store.download(filter)
+            }
             didPurchase = true
         } catch let error as NSError where error.localizedDescription.contains("insufficient_balance") {
             showInsufficient = true
@@ -3108,10 +3126,12 @@ struct PaywallSingleScreen: View {
 }
 
 struct ProSubscriptionScreen: View {
+    @EnvironmentObject private var store: MooditStore
     @StateObject private var storeKit = StoreKitManager()
     @Environment(\.dismiss) private var dismiss
     @State private var purchaseError: String?
     @State private var processingProductID: String?
+    @State private var navigateToStatus = false
 
     var body: some View {
         ScrollView {
@@ -3138,6 +3158,9 @@ struct ProSubscriptionScreen: View {
         .alert("결제 오류", isPresented: errorBinding, actions: {
             Button("확인", role: .cancel) { purchaseError = nil }
         }, message: { Text(purchaseError ?? "") })
+        .navigationDestination(isPresented: $navigateToStatus) {
+            ProStatusScreen()
+        }
         .task {
             if storeKit.products.isEmpty {
                 await storeKit.loadProducts(ids: IAPProductIDs.proIDs)
@@ -3208,13 +3231,16 @@ struct ProSubscriptionScreen: View {
         let outcome = await storeKit.purchase(product)
         switch outcome {
         case .success:
-            dismiss()
+            // (#27) 낙관적 Pro 활성화 — listener 도착 전이라도 ProStatusScreen으로 즉시 이동.
+            store.markProActiveOptimistically()
+            navigateToStatus = true
         case .userCancelled:
             break
         case .pending:
             purchaseError = "결제가 보류 중입니다."
         case .failed(let message):
             purchaseError = message
+            store.lastPaymentErrorMessage = message  // (#41) PaymentFailedScreen 진입 시 활용
         }
     }
 
@@ -3572,6 +3598,10 @@ struct WalletTopupScreen: View {
         let outcome = await storeKit.purchase(product)
         switch outcome {
         case .success:
+            // (#29) 낙관적 잔액 증가 — listener 도착 전이라도 즉시 새 잔액 표시.
+            if let credit = IAPProductIDs.coinAmount(for: product.id) {
+                store.creditCoinsOptimistically(credit)
+            }
             dismiss()
         case .userCancelled:
             break
@@ -3579,6 +3609,7 @@ struct WalletTopupScreen: View {
             purchaseError = "결제가 보류 중입니다. 약관 승인 후 자동 완료됩니다."
         case .failed(let message):
             purchaseError = message
+            store.lastPaymentErrorMessage = message  // (#41) PaymentFailedScreen 진입 시 활용
         }
     }
 
@@ -3794,8 +3825,12 @@ struct InsufficientBalanceScreen: View {
 }
 
 struct PaymentFailedScreen: View {
-    @State private var lastErrorMessage: String = "결제가 처리되지 않았습니다."
+    @EnvironmentObject private var store: MooditStore
     @StateObject private var storeKit = StoreKitManager()
+    /// (#41) store.lastPaymentErrorMessage 우선, fallback은 일반 텍스트.
+    private var lastErrorMessage: String {
+        store.lastPaymentErrorMessage ?? "결제가 처리되지 않았습니다."
+    }
 
     var body: some View {
         VStack(spacing: Sp.lg) {
@@ -3825,6 +3860,10 @@ struct PaymentFailedScreen: View {
         .background(FMColors.Background.bg1.ignoresSafeArea())
         .navigationTitle("결제 실패")
         .navigationBarTitleDisplayMode(.inline)
+        .onDisappear {
+            // (#41 후속) 화면 떠날 때 에러 메시지 reset — 다음 진입 시 stale 에러 노출 방지.
+            store.lastPaymentErrorMessage = nil
+        }
     }
 }
 
@@ -3884,7 +3923,123 @@ struct RefundRequestScreen: View {
 }
 
 struct MakerDashboardScreen: View {
-    var body: some View { ScreenWorkflowScaffold(route: .makerDashboard) }
+    @StateObject private var profileStore = ProfileSelfStore()
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                if profileStore.myFilters.isEmpty {
+                    emptyState
+                } else {
+                    statsCard
+                    filterList
+                }
+            }
+            .padding(Sp.md)
+        }
+        .background(FMColors.Background.bg1.ignoresSafeArea())
+        .navigationTitle("메이커 대시보드")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { profileStore.start() }
+    }
+
+    @ViewBuilder
+    private var emptyState: some View {
+        VStack(spacing: Sp.lg) {
+            Spacer().frame(height: Sp.xxxl)
+            Image(systemName: "wand.and.stars")
+                .font(.system(size: 48))
+                .foregroundStyle(FMColors.Accent.primary)
+            Text("아직 등록한 필터가 없어요")
+                .font(Font.fmTitle)
+                .foregroundStyle(FMColors.Text.primary)
+            Text("필터를 만들어 마켓에 공유해보세요")
+                .font(Font.fmBody)
+                .foregroundStyle(FMColors.Text.secondary)
+            NavigationLink(value: AppRoute.editor) {
+                Text("필터 만들기")
+                    .font(Font.fmHeadline)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Sp.md)
+                    .background(FMColors.Accent.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: R.lg))
+            }
+            .accessibilityIdentifier("maker.dashboard.create")
+            .padding(.top, Sp.md)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private var statsCard: some View {
+        let totalDownloads = profileStore.myFilters.reduce(0) { $0 + $1.downloadCount }
+        let totalUseCount = profileStore.myFilters.reduce(0) { $0 + $1.useCount }
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            Text("통계")
+                .font(Font.fmCaption)
+                .foregroundStyle(FMColors.Text.secondary)
+            HStack(spacing: Sp.md) {
+                statTile(value: "\(profileStore.myFilters.count)", label: "필터")
+                statTile(value: totalDownloads.formatted(), label: "다운로드")
+                statTile(value: totalUseCount.formatted(), label: "사용")
+            }
+        }
+        .padding(Sp.md)
+        .background(FMColors.Background.bg2)
+        .clipShape(RoundedRectangle(cornerRadius: R.lg))
+    }
+
+    @ViewBuilder
+    private func statTile(value: String, label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(Font.fmTitle)
+                .foregroundStyle(FMColors.Text.primary)
+                .monospacedDigit()
+            Text(label)
+                .font(Font.fmCaption)
+                .foregroundStyle(FMColors.Text.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private var filterList: some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            Text("내 필터")
+                .font(Font.fmCaption)
+                .foregroundStyle(FMColors.Text.secondary)
+            VStack(spacing: 0) {
+                ForEach(Array(profileStore.myFilters.enumerated()), id: \.element.id) { index, filter in
+                    NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                        HStack(spacing: Sp.md) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(filter.title).font(Font.fmBody).foregroundStyle(FMColors.Text.primary)
+                                Text("\(filter.status.rawValue) · 다운로드 \(filter.downloadCount.formatted())")
+                                    .font(Font.fmCaption)
+                                    .foregroundStyle(FMColors.Text.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(FMColors.Text.tertiary)
+                        }
+                        .padding(Sp.md)
+                    }
+                    .buttonStyle(.plain)
+                    if index < profileStore.myFilters.count - 1 {
+                        Rectangle()
+                            .fill(FMColors.Border.subtle)
+                            .frame(height: 0.5)
+                            .padding(.leading, Sp.md)
+                    }
+                }
+            }
+            .background(FMColors.Background.bg2)
+            .clipShape(RoundedRectangle(cornerRadius: R.lg))
+        }
+    }
 }
 
 // MARK: - Payout placeholders (Phase 6+ — see ADR-0006)
