@@ -1,8 +1,10 @@
 # moodit — Navigation & Action Map
 
-> 버전: v1.0 · 작성일: 2026-05-06 · 상태: Active · **단일 진실원**
+> 버전: v1.1 · 작성일: 2026-05-09 · 상태: Active · **단일 진실원**
 >
 > 본 문서는 **모든 화면의 모든 버튼 액션**과 **화면 간 연결**을 규정한다. SwiftUI 구현 시 곧바로 매핑 가능한 형태로 작성됐다. 화면이 추가되거나 라우트가 바뀌면 본 문서를 먼저 갱신한 뒤 코드를 수정한다.
+>
+> 현재 구현/QA의 canonical screen registry는 [`SCREEN_ACTIONS_QA_DEFINITION.md`](./SCREEN_ACTIONS_QA_DEFINITION.md) §4이며, 본 문서는 목업 번호와 실제 SwiftUI route/action을 연결하는 상세 맵이다. SwiftUI에서 E2E가 필요한 버튼은 `accessibilityIdentifier`가 아래 Action ID와 일치해야 한다.
 
 ---
 
@@ -23,7 +25,7 @@
 ### 1.2 작성 규칙
 
 - 모든 버튼은 **stable Action ID**를 가진다 (`<group>.<verb>` 형식, 마침표 구분).
-- HTML 목업의 `<button>`/`<a>` 에는 `data-action="cam.shutter"` 속성을 붙여 추적 가능하게 한다.
+- HTML 목업의 `<button>`/`<a>` 에는 `data-action="camera.shutter"` 속성을 붙여 추적 가능하게 한다.
 - SwiftUI 구현 시 `enum AppAction`의 `case`로 1:1 매핑.
 - 조건부 분기는 단일 액션이 여러 target을 가질 수 있으며, 첫 번째 매칭이 우선.
 
@@ -38,8 +40,9 @@
 | `app.*` | 앱 전역 (탭 전환·딥링크) |
 | `auth.*` | 로그인·회원가입·계정삭제 |
 | `onboard.*` | 온보딩 carousel |
-| `cam.*` | 카메라 라이브 |
-| `capture.*` | 촬영 후 처리 |
+| `camera.*` | 카메라 라이브 |
+| `preview.*` | 촬영 후 처리 |
+| `cam.*` | 카메라 보조 route picker |
 | `photo.*` | 갤러리 후보정 |
 | `market.*` | 마켓 둘러보기·검색 |
 | `filter.*` | 필터 detail·다운로드·구매 |
@@ -60,7 +63,7 @@
 
 | Type | 의미 | SwiftUI API | 비고 |
 |---|---|---|---|
-| `navigate` | 같은 스택에서 push | `NavigationPath.append(Route.x)` 또는 `NavigationLink` | 표준 push |
+| `navigate` | 같은 스택에서 push | `NavigationPath.append(AppRoute.x)` 또는 `NavigationLink` | 표준 push |
 | `present-sheet` | bottom sheet (medium/large detents) | `.sheet(isPresented:)` + `.presentationDetents([.medium, .large])` | 가벼운 보조 |
 | `present-cover` | 풀스크린 모달 | `.fullScreenCover(isPresented:)` | 카메라·페이월 등 |
 | `present-alert` | iOS 알림 다이얼로그 | `.alert(_, isPresented:)` | 확인/취소 |
@@ -114,13 +117,15 @@ graph TD
   Launch -->|already onboarded| Login[02 Login]
   OB -->|next x4| Login
   OB -->|skip| Login
-  Login -->|Apple| Camera[03 Camera Live]
-  Login -->|Google| Camera
-  Login -->|Email| Camera
+  Login -->|auth.apple| Root[RootShell]
+  Login -->|auth.google| Root
+  Login -->|auth.email.continue| Email[02c Email Login]
+  Email -->|auth.signIn.submit/auth.signUp.submit| Root
   Login -->|guest| LoginGuest[02b Login Guest]
   LoginGuest -->|둘러보기| Market[06 Marketplace]
   Market -->|업로드/구매 시도| LoginIntercept[02 Login intercept]
-  Camera -->|cam.permission.priming| PermPriming[permissions/camera-priming]
+  Root -->|tab.shutter| Camera[03 Camera Live]
+  Camera -->|permission.camera.priming.allow| PermPriming[permissions/camera-priming]
   PermPriming -->|허용| Camera
   PermPriming -->|거부| PermDenied[permissions/camera-denied]
 ```
@@ -129,21 +134,21 @@ graph TD
 
 ```mermaid
 graph TD
-  Camera[03 Camera Live] -->|cam.gallery| PhotoImport[16 Photo Import]
-  Camera -->|cam.flip| Camera
-  Camera -->|cam.shutter| Capture[05 Capture Preview]
-  Camera -->|cam.aspect| AspectPicker[13 Aspect Picker]
-  Camera -->|cam.zoom_grid_flash| ZGF[14 Zoom/Grid/Flash HUD]
-  Camera -->|cam.timer.set| Timer[15 Timer Countdown]
-  Camera -->|cam.filter.swipe_l/r| Camera
+  Camera[03 Camera Live] -->|camera.openLibrary| PhotoImport[16 Photo Import]
+  Camera -->|camera.flip| Camera
+  Camera -->|camera.shutter| Capture[05 Capture Preview]
+  Camera -->|camera.aspectRatio| AspectPicker[13 Aspect Picker]
+  Camera -->|camera.zoom.* / camera.grid.toggle / camera.flash| Camera
+  Camera -->|camera.timer| Timer[15 Timer Countdown]
+  Camera -->|camera.filter.* / camera.filterIntensity| Camera
   Timer -->|countdown 끝| Capture
-  Capture -->|capture.save| Saved[Toast: 사진 저장]
-  Capture -->|capture.share| ShareSheet[modals/share-sheet]
-  Capture -->|capture.retake| Camera
-  Capture -->|capture.edit| PhotoEdit[17 Photo Edit]
+  Capture -->|preview.save| Saved[Toast: 사진 저장]
+  Capture -->|preview.share| ShareSheet[modals/share-sheet]
+  Capture -->|preview.retake| Camera
+  Capture -->|preview.edit| PhotoEdit[17 Photo Edit]
   PhotoImport -->|photo.import.next| PhotoEdit
-  PhotoEdit -->|photo.save| Saved
-  PhotoEdit -->|photo.share| ShareSheet
+  PhotoEdit -->|photo.edit.done| Saved
+  PhotoEdit -->|photo.edit.save_share| ShareSheet
 ```
 
 ### 3.3 마켓·구매
@@ -219,12 +224,13 @@ graph TD
 
 ```mermaid
 graph TD
-  Settings[10 Settings] -->|settings.profile.edit| Edit[21 Edit Profile]
-  Settings -->|settings.notifications| Notif[51 Notification Settings]
-  Settings -->|settings.blocked| Block[35 Block List]
-  Settings -->|settings.data_export| Export[53 Data Export]
-  Settings -->|settings.account.delete| Delete[20 Account Deletion]
-  Settings -->|settings.legal| External[external: 약관/개인정보 웹]
+  Settings[10 Settings] -->|settings.nav.프로필 편집| Edit[21 Edit Profile]
+  Settings -->|settings.nav.알림 설정| Notif[51 Notification Settings]
+  Settings -->|settings.nav.차단 목록| Block[35 Block List]
+  Settings -->|settings.nav.데이터 내보내기| Export[53 Data Export]
+  Settings -->|settings.nav.계정 삭제| Delete[20 Account Deletion]
+  Settings -->|settings.nav.도움말| Help[55 Help Center]
+  Help -->|help.terms/help.privacy/help.email| External[external: 약관/개인정보/메일]
   Delete -->|confirm| LogoutGoodbye[Toast: 처리됨<br/>→ replace-root: Login]
   Edit -->|save| Settings
   Notif -->|toggle| Notif
@@ -234,20 +240,19 @@ graph TD
 
 ```mermaid
 graph TD
-  Detail[07 Filter Detail] -->|detail.comments| Comments[23 Comments]
-  Detail -->|detail.report| Report[29 Report Form]
-  Detail -->|detail.share| ShareSheet[modals/share-sheet]
-  Comments -->|comment.add| Compose[23b Compose]
-  Comments -->|comment.author.tap| OtherProfile[09b Other Profile]
+  Detail[07 Filter Detail] -->|filter.detail.reviews| Reviews[23 Reviews]
+  Detail -->|report.submit flow| Report[29 Report Form]
+  Detail -->|filter.detail.share| ShareSheet[modals/share-sheet]
+  Reviews -->|social.reviews.compose| Compose[23b Review Compose]
+  Reviews -->|social.review.author/social.user.tap| OtherProfile[09b Other Profile]
   OtherProfile -->|profile.follow| OtherProfile
   OtherProfile -->|profile.followers| Followers[25 Followers]
   OtherProfile -->|profile.following| Following[26 Following]
-  OtherProfile -->|profile.report| Report
-  OtherProfile -->|profile.block| BlockConfirm[modals/confirmation-alert]
-  ModQueue[33 Mod Queue] -->|mod.item.tap| ModDetail[34 Mod Detail]
-  ModDetail -->|mod.approve| ModQueue
-  ModDetail -->|mod.reject| ModQueue
-  ModDetail -->|mod.takedown| ModQueue
+  OtherProfile -->|social.follow.toggle| OtherProfile
+  ModQueue[33 Mod Queue] -->|mod.queue.row| ModDetail[34 Mod Detail]
+  ModDetail -->|modDetail.approve| ModQueue
+  ModDetail -->|modDetail.reject| ModQueue
+  ModDetail -->|mod.detail.takedown| ModQueue
 ```
 
 ---
@@ -269,69 +274,65 @@ graph TD
 
 | Action ID | Label | Type | Target | Condition |
 |---|---|---|---|---|
-| `auth.signin.apple` | Apple로 로그인 | external-iap | (AuthenticationServices) | — |
-| `auth.signin.google` | Google로 로그인 | navigate | (Google sheet) | — |
-| `auth.signin.email` | 이메일로 계속 | navigate | (email form) | — |
-| `auth.guest` | 둘러보기 | replace-root | `06-marketplace-home.html` | — |
-| `auth.legal.tos` | 서비스 약관 | external-link | https://moodit.app/tos | — |
-| `auth.legal.privacy` | 개인정보 처리방침 | external-link | https://moodit.app/privacy | — |
+| `auth.apple` | Apple로 계속하기 | external-system | AuthenticationServices sheet | — |
+| `auth.google` | Google로 계속하기 | external-system | Google account picker | — |
+| `auth.email.continue` | 이메일로 계속 | navigate | `AppRoute.emailLogin` | — |
+| `auth.guest.continue` | 둘러보기 | replace-root | `06-marketplace-home.html` | — |
+| `auth.terms` | 약관/개인정보 | external-link | legal links | — |
 
 ### 4.3 `03-camera-live.html`
 
 | Action ID | Label | Type | Target | Condition |
 |---|---|---|---|---|
-| `cam.shutter` | (셔터) | navigate | `05-capture-preview.html` | `if:perm.camera.granted` |
-| `cam.shutter` | (셔터) | present-cover | `permissions/camera-priming.html` | `if:!perm.camera.granted` |
-| `cam.gallery` | 갤러리 | navigate | `16-photo-import.html` | `if:perm.photos.granted` |
-| `cam.flip` | 전후면 | mutate-state | — | — |
-| `cam.flash.toggle` | 플래시 | mutate-state | — | — |
-| `cam.aspect` | 비율 | navigate | `13-camera-aspect-picker.html` | — |
-| `cam.zoom.preset` | (.5/1/3) | mutate-state | — | — |
-| `cam.timer` | 타이머 | navigate | `15-camera-timer-countdown.html` | — |
-| `cam.filter.swipe_l` | (좌 스와이프) | mutate-state | — | — |
-| `cam.filter.swipe_r` | (우 스와이프) | mutate-state | — | — |
-| `cam.filter.intensity` | (강도 슬라이더) | mutate-state | — | — |
-| `cam.close` | 닫기 | tab-switch | `tab.market` | — |
+| `camera.shutter` | (셔터) | navigate | `05-capture-preview.html` | `if:perm.camera.granted` |
+| `camera.shutter` | (셔터) | present-cover | `permission.camera.priming` | `if:!perm.camera.granted` |
+| `camera.openLibrary` | 갤러리 | navigate | `AppRoute.photoImport` | `if:perm.photos.granted` |
+| `camera.flip` | 전후면 | mutate-state | — | — |
+| `camera.flash` | 플래시 | mutate-state | — | — |
+| `camera.aspectRatio` | 비율 | navigate | `AppRoute.cameraAspect` | — |
+| `camera.zoom.*` | 0.5x/1x/3x | mutate-state | — | — |
+| `camera.timer` | 타이머 | navigate | `AppRoute.cameraTimer` | — |
+| `camera.filter.*` | 필터 선택 | mutate-state | — | — |
+| `camera.filterIntensity` | 강도 슬라이더 | mutate-state | — | — |
+| `camera.grid.toggle` | 그리드 | mutate-state | — | — |
+| `camera.dismiss` | 닫기 | dismiss | — | — |
 
 ### 4.4 `05-capture-preview.html`
 
 | Action ID | Label | Type | Target | Condition |
 |---|---|---|---|---|
-| `capture.close` | 닫기 | dismiss | — | — |
-| `capture.share` | 공유 | share-link | (Universal Link + photo) | — |
-| `capture.retake` | 재촬영 | pop | `03-camera-live.html` | — |
-| `capture.change_filter` | 필터 변경 | present-sheet | filter list | — |
-| `capture.edit` | 편집 | navigate | `17-photo-edit.html` | — |
-| `capture.delete` | 삭제 | present-alert | confirmation-alert | — |
-| `capture.save` | 저장 | mutate-state + dismiss | (PhotoKit save) | `if:perm.photos.granted` |
+| `preview.dismiss` | 닫기 | dismiss | — | — |
+| `preview.more` | 더보기 | present-action | info/change filter/copy metadata | — |
+| `preview.share` | 공유 | share-link | (Universal Link + photo) | — |
+| `preview.retake` | 재촬영 | pop | `03-camera-live.html` | — |
+| `preview.changeFilter` | 필터 변경 | present-sheet | filter list | — |
+| `preview.edit` | 편집 | navigate | `17-photo-edit.html` | — |
+| `preview.discard` | 삭제 | present-alert | confirmation-alert | — |
+| `preview.save` | 저장 | mutate-state + dismiss | (PhotoKit save) | `if:perm.photos.granted` |
 
 ### 4.5 `06-marketplace-home.html`
 
 | Action ID | Label | Type | Target | Condition |
 |---|---|---|---|---|
-| `market.search.entry` | 검색 (필드/아이콘) | navigate | `08-search.html` | — |
-| `market.tab.foryou` | For You | mutate-state | (tab) | — |
-| `market.tab.following` | 팔로잉 | mutate-state | (tab) | — |
-| `market.category.tap` | (카테고리 칩) | navigate | `08-search.html?cat=xxx` | — |
-| `market.tile.tap` | (필터 카드) | navigate | `07-filter-detail.html?id=xxx` | — |
-| `market.collection.tap` | (컬렉션) | navigate | `30-favorites-collection.html?id=xxx` | — |
-| `app.tab.shutter` | (탭바 셔터) | present-cover | `03-camera-live.html` | — |
+| `tab.search` | 검색 탭 | tab-switch | `08-search.html` | — |
+| `market.trending.*` | 트렌딩 필터 | navigate | `07-filter-detail.html?id=xxx` | — |
+| `market.category.*` | 카테고리 칩 | navigate | `08-search.html?cat=xxx` | — |
+| `market.tile.*` | 필터 카드 | navigate | `07-filter-detail.html?id=xxx` | — |
+| `market.collection.*` | 컬렉션 | navigate | `30-favorites-collection.html?id=xxx` | — |
+| `tab.shutter` | (탭바 셔터) | present-cover | `03-camera-live.html` | — |
 
 ### 4.6 `07-filter-detail.html`
 
 | Action ID | Label | Type | Target | Condition |
 |---|---|---|---|---|
-| `filter.back` | 뒤로 | pop | — | — |
-| `filter.share` | 공유 | share-link | Universal Link | — |
-| `filter.author.tap` | (메이커 이름) | navigate | `09b-other-user-profile.html` | — |
+| `filter.detail.share` | 공유 | share-link | Universal Link | — |
+| `filter.detail.follow` | 메이커 팔로우 | mutate-state | — | — |
+| `filter.detail.reviews` | 리뷰 | navigate | `AppRoute.reviews(filterId:)` | — |
+| `filter.detail.tags` | 태그 영역 | navigate | `AppRoute.search(category:)` | — |
 | `filter.beforeafter.drag` | (슬라이더) | mutate-state | — | — |
-| `filter.like` | 좋아요 | mutate-state | — | `if:auth.signed` |
-| `filter.like` | 좋아요 | present-sheet | `02-login.html` | `if:auth.guest` |
-| `filter.comments` | 댓글 | navigate | `23-comments-list.html` | — |
-| `filter.report` | 신고 | navigate | `29-report-form.html` | — |
-| `filter.download` | 다운로드 | navigate | `07b-filter-download.html` | `if:filter.free OR if:has_pro OR if:owned` |
-| `filter.purchase` | (가격) 구매 | present-sheet | `37-paywall-single.html` | `if:filter.paid && !owned && balance>=price && !has_pro` |
-| `filter.purchase` | (가격) 구매 | present-sheet | `46-insufficient-balance.html` | `if:filter.paid && balance<price` |
+| `filter.detail.download` | 다운로드 | navigate | `07b-filter-download.html` | `if:filter.free OR if:has_pro OR if:owned` |
+| `filter.purchase.confirm` | (가격) 구매 | navigate | `07b-filter-download.html` | `if:filter.paid && balance>=price && !has_pro` |
+| `filter.purchase.pro_upgrade` | Pro 멤버십 | navigate | `38-paywall-subscription.html` | `if:filter.paid && !has_pro` |
 
 ### 4.7 `07b-filter-download.html` / `07c-filter-after-download.html`
 
@@ -349,67 +350,70 @@ graph TD
 | Action ID | Label | Type | Target | Condition |
 |---|---|---|---|---|
 | `search.cancel` | 취소 | pop | — | — |
-| `search.recent.tap` | (최근 검색어) | mutate-state | (필드 채움) | — |
-| `search.suggestion.tap` | (추천) | mutate-state | (필드 채움 + 즉시) | — |
-| `search.result.tile` | (결과 카드) | navigate | `07-filter-detail.html?id=xxx` | — |
-| `search.maker.tap` | (메이커) | navigate | `09b-other-user-profile.html` | — |
+| `search.recent.*` | 최근 검색어 | mutate-state | (필드 채움) | — |
+| `search.suggested.*` | 추천 검색어 | mutate-state | (필드 채움 + 즉시) | — |
+| `search.result.tile.*` | 결과 카드 | navigate | `07-filter-detail.html?id=xxx` | — |
+| `search.typing.tile.*` | 입력 중 결과 카드 | navigate | `07-filter-detail.html?id=xxx` | — |
+| `search.maker.*` | 메이커 | navigate | `09b-other-user-profile.html` | — |
 
 ### 4.9 `09-profile.html` (본인) / `09b-other-user-profile.html` (타인)
 
 | Action ID | Label | Type | Target | Condition |
 |---|---|---|---|---|
-| `profile.edit` | 편집 (본인) | navigate | `21-edit-profile.html` | own |
+| `profile.edit.open` | 편집 (본인) | navigate | `21-edit-profile.html` | own |
 | `profile.settings` | 설정 (본인) | navigate | `10-settings.html` | own |
-| `profile.wallet` | 지갑 | navigate | `43-wallet.html` | own |
-| `profile.my_filters` | 내 필터 | navigate | `50-my-filters.html` | own |
-| `profile.dashboard` | 대시보드 | navigate | `28-maker-dashboard.html` | own + maker |
+| `profile.shortcut.wallet` | 지갑 | navigate | `43-wallet.html` | own |
+| `profile.shortcut.myFilters` | 내 필터 | navigate | `50-my-filters.html` | own |
+| `profile.shortcut.dashboard` | 대시보드 | navigate | `28-maker-dashboard.html` | own + maker |
+| `profile.login` | 로그인 | navigate | `02-login.html` | guest |
 | `profile.followers` | 팔로워 | navigate | `25-followers-list.html` | — |
 | `profile.following` | 팔로잉 | navigate | `26-following-list.html` | — |
-| `profile.follow` | 팔로우 | mutate-state | — | other |
-| `profile.message` | 메시지 | (Phase 7+) | — | other |
-| `profile.share` | 공유 | share-link | Universal Link | other |
-| `profile.report` | 신고 | navigate | `29-report-form.html` | other |
-| `profile.block` | 차단 | present-alert | confirmation | other |
-| `profile.tile.tap` | (필터 카드) | navigate | `07-filter-detail.html?id=xxx` | — |
+| `social.follow.toggle` | 팔로우 | mutate-state | — | other |
+| `profile.share` | 공유 | share-link | Universal Link | other, future |
+| `profile.report` | 신고 | navigate | `29-report-form.html` | other, future |
+| `profile.block` | 차단 | present-alert | confirmation | other, future |
+| `profile.tile.*` | (필터 카드) | navigate | `07-filter-detail.html?id=xxx` | — |
 
 ### 4.10 `10-settings.html`
 
 | Action ID | Label | Type | Target | Condition |
 |---|---|---|---|---|
-| `settings.profile.edit` | 프로필 편집 | navigate | `21-edit-profile.html` | — |
-| `settings.notifications` | 알림 | navigate | `51-notification-settings.html` | — |
-| `settings.blocked` | 차단 사용자 | navigate | `35-block-list.html` | — |
-| `settings.wallet` | 지갑 | navigate | `43-wallet.html` | — |
-| `settings.pro` | Pro 멤버십 | navigate | `49-pro-status.html` | `if:has_pro` |
-| `settings.pro` | Pro 멤버십 | present-cover | `38-paywall-subscription.html` | `if:!has_pro` |
-| `settings.data_export` | 데이터 다운로드 | navigate | `53-data-export.html` | — |
-| `settings.account.delete` | 계정 삭제 | navigate | `20-account-deletion.html` | — |
-| `settings.signout` | 로그아웃 | present-alert | confirmation → replace-root `02-login.html` | — |
-| `settings.legal.tos` | 약관 | external-link | https://moodit.app/tos | — |
-| `settings.legal.privacy` | 개인정보 | external-link | https://moodit.app/privacy | — |
-| `settings.support` | 고객지원 | external-link | mailto:support@moodit.app | — |
+| `settings.nav.프로필 편집` | 프로필 편집 | navigate | `21-edit-profile.html` | — |
+| `settings.nav.알림 설정` | 알림 | navigate | `51-notification-settings.html` | — |
+| `settings.nav.차단 목록` | 차단 사용자 | navigate | `35-block-list.html` | — |
+| `settings.nav.지갑` | 지갑 | navigate | `43-wallet.html` | — |
+| `settings.nav.Pro 멤버십` | Pro 멤버십 | navigate | `38-paywall-subscription.html` or `49-pro-status.html` | auth state |
+| `settings.nav.데이터 내보내기` | 데이터 다운로드 | navigate | `53-data-export.html` | — |
+| `settings.nav.계정 삭제` | 계정 삭제 | navigate | `20-account-deletion.html` | — |
+| `settings.row.로그아웃` | 로그아웃 | present-alert | confirmation → replace-root `02-login.html` | — |
+| `settings.nav.도움말` | 도움말 | navigate | `AppRoute.helpCenter` | — |
+| `help.terms` | 약관 | external-link | https://moodit.app/terms | `settings.nav.도움말` 후 |
+| `help.privacy` | 개인정보 | external-link | https://moodit.app/privacy | `settings.nav.도움말` 후 |
+| `help.email` | 고객지원 | external-link | mailto:support@moodit.app | `settings.nav.도움말` 후 |
 
 ### 4.11 `13-15` 카메라 보조 (aspect/zoom/timer)
 
 | Action ID | Label | Type | Target |
 |---|---|---|---|
-| `cam.aspect.set` | (1:1/4:3/16:9) | dismiss + mutate-state | `03-camera-live.html` |
-| `cam.timer.set` | (OFF/3s/10s) | dismiss + mutate-state | `03-camera-live.html` |
+| `cam.aspect.set.1_1` | 1:1 | dismiss + mutate-state | `03-camera-live.html` |
+| `cam.aspect.set.4_3` | 4:3 | dismiss + mutate-state | `03-camera-live.html` |
+| `cam.aspect.set.16_9` | 16:9 | dismiss + mutate-state | `03-camera-live.html` |
+| `cam.timer.set.off` | OFF | dismiss + mutate-state | `03-camera-live.html` |
+| `cam.timer.set.3` | 3s | dismiss + mutate-state | `03-camera-live.html` |
+| `cam.timer.set.10` | 10s | dismiss + mutate-state | `03-camera-live.html` |
 | `cam.timer.cancel` | (카운트다운 취소) | dismiss | `03-camera-live.html` |
-| `cam.flash.set` | (OFF/AUTO/ON) | mutate-state | — |
-| `cam.grid.toggle` | 그리드 | mutate-state | — |
+| `camera.flash` | (OFF/AUTO/ON) | mutate-state | — |
+| `camera.grid.toggle` | 그리드 | mutate-state | — |
 
 ### 4.12 `16-photo-import.html` / `17-photo-edit.html`
 
 | Action ID | Label | Type | Target | Condition |
 |---|---|---|---|---|
-| `photo.import.cancel` | 취소 | dismiss | `03-camera-live.html` | — |
 | `photo.import.cell.tap` | (셀) | mutate-state | — | (선택 토글) |
 | `photo.import.next` | 필터 적용 (n) | navigate | `17-photo-edit.html` | n ≥ 1 |
-| `photo.edit.cancel` | 취소 | present-alert | discard confirmation | dirty |
 | `photo.edit.done` | 완료 | navigate | (저장 + 결과) | — |
-| `photo.edit.compare.drag` | (BA 슬라이더) | mutate-state | — | — |
 | `photo.edit.filter.tap` | (필터 칩) | mutate-state | — | — |
+| `photo.edit.filter.*` | (필터 칩 상세 ID) | mutate-state | — | — |
 | `photo.edit.intensity` | (강도) | mutate-state | — | — |
 | `photo.edit.save_share` | 저장 / 공유 | present-sheet | share-sheet | — |
 
@@ -417,11 +421,10 @@ graph TD
 
 | Action ID | Label | Type | Target |
 |---|---|---|---|
-| `saved.filter.apply` | (적용 아이콘) | replace-root | `03-camera-live.html?filter=xxx` |
-| `saved.filter.tap` | (행) | navigate | `07-filter-detail.html?id=xxx` |
-| `saved.search` | 검색 | navigate | `08-search.html?source=saved` |
-| `saved.tab.all/dl/fav/offline` | (세그) | mutate-state | — |
-| `builtin.filter.tap` | (타일) | navigate | `07-filter-detail.html?id=xxx` |
+| `saved.tile.*` | 저장 필터 카드 | navigate | `07-filter-detail.html?id=xxx` |
+| `saved.empty.cta` | 빈 상태 CTA | navigate | `08-search.html?source=saved` |
+| `builtin.filter.apply.*` | 기본 필터 적용 | replace-root | `03-camera-live.html?filter=xxx` |
+| `builtin.filter.info.*` | 기본 필터 정보 | navigate | `07-filter-detail.html?id=xxx` |
 | `builtin.manage` | 관리 | navigate | `50-my-filters.html` (메이커) |
 
 ### 4.14 `11/11b/11c/11d` 에디터
@@ -430,8 +433,8 @@ graph TD
 |---|---|---|---|
 | `editor.cancel` | 취소 | present-alert | discard or save draft |
 | `editor.next` | 계속 | navigate | `11d-editor-save-draft.html` (or upload) |
-| `editor.tab.lighting/color/detail/effects/lut` | (탭) | mutate-state | — |
 | `editor.param.slider` | (각 슬라이더) | mutate-state | — |
+| `editor.param.slider.*` | (개별 파라미터) | mutate-state | — |
 | `editor.compare.hold` | (PRESS HOLD) | mutate-state | — |
 | `editor.lut.import` | LUT 가져오기 | external-system | (Files app) |
 | `editor.lut.replace` | 교체 | external-system | (Files) |
@@ -444,7 +447,6 @@ graph TD
 |---|---|---|---|
 | `upload.cancel` | 취소 | present-alert | discard |
 | `upload.next` | 다음 | navigate | (다음 단계) |
-| `upload.prev` | 이전 | pop | — |
 | `upload.cover.add` | (사진 추가) | external-system | (PHPicker) |
 | `upload.cover.remove` | (×) | mutate-state | — |
 | `upload.cover.ba.toggle` | 자동 비포/애프터 | mutate-state | — |
@@ -485,12 +487,23 @@ graph TD
 
 | Action ID | Label | Type | Target |
 |---|---|---|---|
-| `social.comments.compose` | (입력 영역) | navigate | `23b-comments-compose.html` |
-| `social.comment.like` | ♥ | mutate-state | — |
-| `social.comment.reply` | 답글 | navigate | `23b-comments-compose.html?reply=xxx` |
-| `social.comment.author` | (이름) | navigate | `09b-other-user-profile.html` |
+| `social.reviews.filter` | 필터 미니카드 | navigate | `07-filter-detail.html?id=xxx` |
+| `social.reviews.compose` | 리뷰 작성 | navigate | `23b-review-compose.html` |
+| `social.review.helpful` | 도움이 돼요 | mutate-state | — |
+| `social.review.more` | 리뷰 더보기 | present-action | 신고/차단/복사 |
+| `social.review.more.report` | 리뷰 신고 | present-sheet | `29-report-form.html` |
+| `social.review.more.block` | 작성자 차단 | present-alert | confirmation |
+| `social.review.more.copy` | 텍스트 복사 | mutate-state | clipboard |
+| `social.review.author` | 작성자 | navigate | `09b-other-user-profile.html` |
 | `social.compose.send` | 게시 | dismiss | post + back to 23 |
+| `social.compose.input` | 리뷰 입력 | mutate-state | — |
+| `social.compose.insertMention` | 멘션 추가 | mutate-state | — |
+| `social.compose.attachImage` | 이미지 첨부 | external-system | PHPicker |
+| `social.compose.removeImage` | 첨부 제거 | mutate-state | — |
+| `social.compose.emojiToggle` | 이모지 팔레트 | mutate-state | — |
 | `social.rating.star` | (별) | mutate-state | — |
+| `social.rating.star.*` | 개별 별점 | mutate-state | — |
+| `social.rating.body` | 평점 본문 | mutate-state | — |
 | `social.rating.submit` | 평점 등록 | dismiss | post |
 
 ### 4.20 `25/26` 팔로워·팔로잉
@@ -506,8 +519,8 @@ graph TD
 |---|---|---|---|
 | `notif.settings` | 설정 | navigate | `51-notification-settings.html` |
 | `notif.tap` | (각 알림) | navigate | (item-specific deep link) |
-| `notif.filter.cat` | (카테고리 칩) | mutate-state | — |
-| `notif.follow.action` | (팔로우 버튼) | mutate-state | — |
+| `notif.cat.*` | (카테고리 칩) | mutate-state | — |
+| `notif.follow.action.*` | (팔로우 버튼) | mutate-state | — |
 
 ### 4.22 `28` 메이커 대시보드
 
@@ -521,10 +534,10 @@ graph TD
 
 | Action ID | Label | Type | Target |
 |---|---|---|---|
-| `social.report.cancel` | 취소 | dismiss | — |
-| `social.report.reason.set` | (라디오) | mutate-state | — |
-| `social.report.attach.add` | (+) | external-system | PHPicker |
-| `social.report.submit` | 신고 제출 | dismiss + present-alert | "감사합니다" |
+| `report.filterId` | 필터 ID | mutate-state | — |
+| `report.reason` | 신고 사유 | mutate-state | — |
+| `report.detail` | 상세 설명 | mutate-state | — |
+| `report.submit` | 신고 제출 | dismiss + present-alert | "감사합니다" |
 
 ### 4.24 `30` 즐겨찾기 컬렉션
 
@@ -540,8 +553,9 @@ graph TD
 |---|---|---|---|
 | `mod.queue.filter.tap` | (전체/자동/사용자/신규) | mutate-state | — |
 | `mod.queue.row` | (행) | navigate | `34-mod-detail.html?id=xxx` |
-| `mod.detail.approve` | 승인 | dismiss + back to queue | (TX) |
-| `mod.detail.reject` | 거부 | present-sheet | (사유 입력) → reject |
+| `modDetail.approve` | 승인 | dismiss + back to queue | (TX) |
+| `modDetail.reason` | 거부 사유 | mutate-state | — |
+| `modDetail.reject` | 거부 | present-sheet | (사유 입력) → reject |
 | `mod.detail.takedown` | Takedown | present-alert | confirm → takedown |
 
 ### 4.26 `35` 차단 목록
@@ -570,26 +584,27 @@ graph TD
 
 | Action ID | Label | Type | Target |
 |---|---|---|---|
-| `pro.subscribe` | 7일 무료 체험 | external-iap | StoreKit auto-renewable |
 | `pro.plan.toggle` | (월간/연간) | mutate-state | — |
+| `pro.subscribe.com.jayl2kor.moodit.pro.monthly` | 월간 Pro 시작 | external-iap | StoreKit auto-renewable |
+| `pro.subscribe.com.jayl2kor.moodit.pro.yearly` | 연간 Pro 시작 | external-iap | StoreKit auto-renewable |
 | `pro.cancel` | 멤버십 해지 | external-system | App Store 구독 관리 |
-| `pro.invoice` | 영수증 내려받기 | external-link | (이메일 또는 webview) |
-| `pro.payment_method` | 결제 수단 변경 | external-system | App Store |
+| `pro.invoice` | 영수증 및 환불 문의 | navigate | `54-refund-request.html` |
 
 ### 4.30 `43-wallet.html` / `44-wallet-topup.html` / `45-wallet-transactions.html` / `46-insufficient-balance.html` / `47-earnings-withdraw.html`
 
 | Action ID | Label | Type | Target |
 |---|---|---|---|
 | `wallet.topup` | 충전하기 | navigate | `44-wallet-topup.html` |
-| `wallet.gift` | 선물하기 | (Phase 7) | — |
 | `wallet.transactions` | 거래내역 / 모두 보기 | navigate | `45-wallet-transactions.html` |
 | `wallet.pro` | Pro 시작 | present-cover | `38-paywall-subscription.html` |
 | `wallet.pro.status` | Pro 상태 | navigate | `49-pro-status.html` (`if:has_pro`) |
-| `wallet.topup.package.select` | (패키지 카드) | external-iap | StoreKit `Product.purchase()` |
-| `wallet.topup.cancel` | 취소 | dismiss | — |
+| `wallet.topup.package.com.jayl2kor.moodit.coins.100` | 100 C 충전 | external-iap | StoreKit `Product.purchase()` |
+| `wallet.topup.package.com.jayl2kor.moodit.coins.550` | 550 C 충전 | external-iap | StoreKit `Product.purchase()` |
+| `wallet.topup.package.com.jayl2kor.moodit.coins.1200` | 1200 C 충전 | external-iap | StoreKit `Product.purchase()` |
+| `wallet.topup.package.com.jayl2kor.moodit.coins.3000` | 3000 C 충전 | external-iap | StoreKit `Product.purchase()` |
 | `wallet.topup.restore` | 복원 | external-iap | `Transaction.currentEntitlements` |
 | `wallet.tx.filter.cat` | (필터 칩) | mutate-state | — |
-| `wallet.insufficient.topup` | 충전 화면으로 | navigate | `44-wallet-topup.html` |
+| `insufficient.topup` | 충전 화면으로 | navigate | `44-wallet-topup.html` |
 | `wallet.insufficient.cancel` | 취소 | dismiss | — |
 | `wallet.refund_request` | 환불 요청 (45 row 길게) | present-sheet | `54-refund-request.html` |
 | `payout.bank.change` | 은행 변경 | external-stripe | Stripe Connect Express |
@@ -624,8 +639,7 @@ graph TD
 | Action ID | Label | Type | Target |
 |---|---|---|---|
 | `wallet.topup.retry` | 다시 시도 | dismiss + retry | (StoreKit) |
-| `wallet.topup.restore` | 이전 구매 복원 | external-iap | restore |
-| `wallet.topup.cancel` | 취소 | dismiss | — |
+| `payment.failed.restore` | 이전 구매 복원 | external-iap | restore |
 | `wallet.topup.support` | 고객지원에 문의 | external-link | mailto |
 
 ### 4.34 `53-data-export.html`
@@ -634,15 +648,15 @@ graph TD
 |---|---|---|---|
 | `settings.export.cat.toggle` | (체크박스) | mutate-state | — |
 | `settings.export.format` | JSON/CSV/HTML | mutate-state | — |
-| `settings.export.history.row` | (이전 요청) | present-sheet | detail |
 | `settings.export.submit` | 데이터 사본 요청 | dismiss + present-alert | "5월 10일까지 안내" |
 
 ### 4.35 `54-refund-request.html`
 
 | Action ID | Label | Type | Target |
 |---|---|---|---|
-| `wallet.refund.apple` | reportaproblem.apple.com 열기 | external-link | https://reportaproblem.apple.com |
-| `wallet.refund.moodit_form` | 사유 작성 (선택) | mutate-state | (textarea focus) |
+| `refund.orderId` | 주문 ID | mutate-state | — |
+| `refund.reason` | 환불 사유 | mutate-state | — |
+| `refund.submit` | 환불 요청 제출 | callable/mock-submit | — |
 
 ---
 
@@ -652,11 +666,11 @@ graph TD
 
 | Tab Index | Action ID | Label | Type | Target |
 |---|---|---|---|---|
-| 0 | `app.tab.market` | 마켓 | tab-switch | `06-marketplace-home.html` |
-| 1 | `app.tab.search` | 검색 | tab-switch | `08-search.html` |
-| 2 | `app.tab.shutter` | (셔터) | present-cover | `03-camera-live.html` |
-| 3 | `app.tab.saved` | 저장됨 | tab-switch | `18-saved-filters.html` |
-| 4 | `app.tab.profile` | 프로필 | tab-switch | `09-profile.html` |
+| 0 | `tab.market` | 마켓 | tab-switch | `06-marketplace-home.html` |
+| 1 | `tab.search` | 검색 | tab-switch | `08-search.html` |
+| 2 | `tab.shutter` | (셔터) | present-cover | `03-camera-live.html` |
+| 3 | `tab.saved` | 저장됨 | tab-switch | `18-saved-filters.html` |
+| 4 | `tab.profile` | 프로필 | tab-switch | `09-profile.html` |
 
 > 셔터는 일반 탭이 아니라 **모달 진입점**. 카메라 종료 시 이전 탭으로 복귀.
 
@@ -675,25 +689,27 @@ import Foundation
 /// NAVIGATION.md §4 의 모든 Action ID는 본 enum의 case와 1:1 매핑된다.
 enum AppAction: Hashable {
     // 인증
-    case authSigninApple
-    case authSigninGoogle
-    case authSigninEmail
-    case authGuest
+    case authApple
+    case authGoogle
+    case authEmailContinue
+    case authGuestContinue
     case authDeleteSubmit
 
     // 카메라
-    case camShutter
-    case camGallery
-    case camFlip
-    case camAspect
-    case camTimer
-    case camFilterSwipe(direction: SwipeDir)
+    case cameraShutter
+    case cameraOpenLibrary
+    case cameraFlip
+    case cameraAspectRatio
+    case cameraTimer
+    case cameraFilter(id: String)
+    case cameraFilterIntensity(Double)
 
     // 마켓 / 필터
-    case marketSearchEntry
+    case tabSearch
     case marketTileTap(filterId: String)
     case filterDownload(filterId: String)
-    case filterPurchase(filterId: String)
+    case filterPurchaseConfirm(filterId: String)
+    case filterPurchaseProUpgrade(filterId: String)
 
     // 지갑
     case walletTopup
@@ -704,36 +720,28 @@ enum AppAction: Hashable {
 
     // ... (§4 의 모든 Action ID 추가)
 }
-
-enum SwipeDir { case left, right }
 ```
 
-### 6.2 `Route` enum + `NavigationStack`
+### 6.2 `AppRoute` enum + `NavigationStack`
 
 ```swift
-/// 스택에 push되는 화면 식별자. NAVIGATION.md §4 target과 매핑.
-enum Route: Hashable {
-    case onboarding
-    case login(intercept: InterceptReason? = nil)
-    case marketplace
-    case search(initialQuery: String? = nil, category: FilterCategory? = nil)
-    case filterDetail(id: String)
-    case filterDownload(id: String)
-    case filterAfterDownload(id: String)
-    case wallet
-    case walletTopup
-    case walletTransactions
-    case walletInsufficient(filterId: String)
-    case payoutWithdraw
-    case proStatus
-    case myFilters
-    case filterRejected(filterId: String)
-    case settings
-    case notificationSettings
-    case dataExport
-    case accountDeletion
-    case otherProfile(uid: String)
-    // ... 등등
+/// 스택에 push되는 화면 식별자. 실제 구현명은 `Sources/App/AppNavigation.swift`의 `AppRoute`.
+enum AppRoute: Hashable {
+    case login, emailLogin
+    case search(initialQuery: String? = nil, category: String? = nil)
+    case filterDetail(id: String), filterDownload(id: String), filterAfterDownload(id: String)
+    case otherProfile(uid: String), settings, cameraAspect, cameraTimer, photoImport, photoEdit
+    case savedFilters, builtinFilters, editor, editorParameters, editorLUT, editorDraft
+    case uploadCover, uploadTags, uploadSubmit, uploadPending
+    case accountDeletion, editProfile, universalLinkLanding
+    case reviews(filterId: String), reviewCompose(filterId: String), rating(filterId: String)
+    case followers(uid: String), following(uid: String)
+    case notifications, notificationSettings, makerDashboard, reportForm, favoritesCollection
+    case forYou, followingFeed, modQueue, modDetail(id: String), blockList, remixFlow
+    case paywallSingle(filterId: String), proSubscription, ordersHistory
+    case payoutOnboarding, payoutTaxInfo, payoutHistory
+    case wallet, walletTopup, walletTransactions, insufficientBalance(filterId: String), earningsWithdraw
+    case filterRejected(id: String), proStatus, myFilters, paymentFailed, dataExport, refundRequest, helpCenter
 }
 
 @Observable
@@ -744,12 +752,12 @@ final class AppRouter {
 
     func dispatch(_ action: AppAction) {
         switch action {
-        case .marketTileTap(let id):       path.append(Route.filterDetail(id: id))
-        case .walletTopup:                  path.append(Route.walletTopup)
-        case .filterDownload(let id):       path.append(Route.filterDownload(id: id))
-        case .filterPurchase(let id):       presentedSheet = .paywall(filterId: id)
-        case .camShutter:                   presentedCover = .camera
-        case .authGuest:                    /* replace-root: AuthState.guest */
+        case .marketTileTap(let id):       path.append(AppRoute.filterDetail(id: id))
+        case .walletTopup:                 path.append(AppRoute.walletTopup)
+        case .filterDownload(let id):      path.append(AppRoute.filterDownload(id: id))
+        case .filterPurchaseConfirm(let id): path.append(AppRoute.filterDownload(id: id))
+        case .cameraShutter:                presentedCover = .camera
+        case .authGuestContinue:            /* replace-root: AuthState.guest */
         // ...
         }
     }
@@ -822,7 +830,7 @@ struct RootShell: View {
 extension View {
     /// NavigationStack의 `.navigationDestination`을 한 곳에서 정의.
     func withAppRoutes() -> some View {
-        navigationDestination(for: Route.self) { route in
+        navigationDestination(for: AppRoute.self) { route in
             switch route {
             case .filterDetail(let id):   FilterDetailScreen(id: id)
             case .filterDownload(let id): FilterDownloadScreen(id: id)
@@ -852,7 +860,7 @@ extension AppRouter {
             return
         }
         if filter.priceCoins == 0 || auth.hasPro || wallet.owns(filterId) {
-            path.append(Route.filterDownload(id: filterId))
+            path.append(AppRoute.filterDownload(id: filterId))
             return
         }
         if wallet.balance >= filter.priceCoins {
@@ -866,7 +874,7 @@ extension AppRouter {
 
 ### 6.5 Universal Link / Deep Link
 
-`Route` 가 `Hashable`이면 OnOpen URL에서 디코딩 후 `path.append` 가능.
+`AppRoute` 가 `Hashable`이면 OnOpen URL에서 디코딩 후 `path.append` 가능.
 
 ```swift
 @main
@@ -879,7 +887,7 @@ struct MooditApp: App {
                 .onOpenURL { url in
                     if let route = DeepLinkParser.parse(url) {
                         router.path = NavigationPath()
-                        router.path.append(Route.universalLinkLanding(route: route))
+                        router.path.append(AppRoute.universalLinkLanding)
                     }
                 }
         }

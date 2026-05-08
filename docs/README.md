@@ -11,6 +11,8 @@
 | 제품 요구사항 | [PRD.md](./PRD.md) | Current |
 | 개발 환경 셋업 | [SETUP.md](./SETUP.md) | Current |
 | 네비게이션/버튼 액션 매핑 | [NAVIGATION.md](./NAVIGATION.md) | Current |
+| 화면/액션 QA 정의 | [SCREEN_ACTIONS_QA_DEFINITION.md](./SCREEN_ACTIONS_QA_DEFINITION.md) | Current |
+| QA 결과/잔여 게이트 | [QA_FINDINGS.md](./QA_FINDINGS.md) | Current |
 
 진행 상태를 판단할 때는 `PHASE_ROADMAP_STATUS.md`를 우선한다. 다른 계획 문서는 세부 설계나 과거 결정의 reference로 본다.
 
@@ -60,6 +62,8 @@
 | [PERMISSIONS_FLOW.md](./PERMISSIONS_FLOW.md) | 권한 흐름 |
 | [I18N_MIGRATION.md](./I18N_MIGRATION.md) | i18n 마이그레이션 |
 | [REVIEWS_MIGRATION.md](./REVIEWS_MIGRATION.md) | Comments → Reviews 전환 결정 |
+| [SCREEN_ACTIONS_QA_DEFINITION.md](./SCREEN_ACTIONS_QA_DEFINITION.md) | 전체 화면, 액션 ID, QA 우선순위 정의 |
+| [QA_FINDINGS.md](./QA_FINDINGS.md) | 자동 QA 결과와 남은 실기기/외부 서비스 검증 게이트 |
 
 ### Engineering / Ops
 
@@ -103,4 +107,3 @@
 3. 화면 라우팅과 버튼 흐름은 `NAVIGATION.md`를 기준으로 둔다.
 4. 과거 계획 문서는 삭제하지 않고 `Legacy` 또는 `Superseded`로 표시한다.
 5. 새 문서를 추가하기 전 기존 Current 문서에 섹션으로 넣을 수 있는지 먼저 확인한다.
-

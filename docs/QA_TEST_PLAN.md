@@ -8,6 +8,7 @@
 
 ## 0. 사용법
 
+0. QA 시작 전 [SCREEN_ACTIONS_QA_DEFINITION.md](./SCREEN_ACTIONS_QA_DEFINITION.md)를 먼저 확인해 화면 ID, route, required action, 우선순위를 고정한다.
 1. 본 문서를 인쇄 또는 분할 화면으로 띄우고 한 손에 iPhone, 다른 손에 체크박스.
 2. **§1 환경 준비**부터 순서대로 — 권한 / 인증 / 시드 데이터 상태가 후속 테스트에 영향.
 3. 각 행의 **PASS / FAIL** 칸에 결과 기록. FAIL은 §15 버그 리포트 템플릿으로.
@@ -17,6 +18,9 @@
 ### 빌드 / 인스톨
 
 ```bash
+# 자동 회귀: unit + P0CoreActionTests + Phase A/D + ActionSurfaceSmokeTests AppUITests
+./scripts/test.sh
+
 # 시뮬레이터 (Push 미지원, 카메라 미지원, Metal 가능)
 ./scripts/build.sh
 
@@ -46,7 +50,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 1.3 | 사진 라이브러리 권한 | "마음에 드는 필터로 찍은 사진을…" 메시지 |  |
 | 1.4 | 위치 권한 (선택) | "촬영한 사진의 EXIF 에 위치를…" 메시지 |  |
 | 1.5 | 알림 권한 | "moodit"이(가) 알림을 보내고자 합니다. (실기기만) |  |
-| 1.6 | 🔴 BROKEN: GoogleService-Info.plist 누락 시 | Firebase 기능은 비활성, 앱은 크래시 안 함 |  |
+| 1.6 | `GoogleService-Info.plist` 포함 확인 | Firebase 초기화 후 크래시 없이 로그인 화면 진입. Google 계정 picker/credential 교환은 수동 QA 게이트 |  |
 
 **Reset to baseline**: 설정 > moodit > 데이터 및 저장공간 → "앱 삭제" → 재설치.
 
@@ -123,7 +127,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 5.13 | ★ 평점 등록 (toolbar) | Auth-gated → AppRoute.rating(filterId:) |  |
 | 5.14 | "리뷰 작성" 버튼 (`social.reviews.compose`) | Auth-gated → AppRoute.reviewCompose(filterId:) |  |
 | 5.15 | "무료 다운로드" CTA (무료 필터) | downloadState transitions: ready→downloading→completed |  |
-| 5.16 | "구매" CTA (유료 필터) | 🔴 BROKEN: paywallSingle 미연결 |  |
+| 5.16 | "구매" CTA (유료 필터) | `PaywallSingleScreen` 진입, `filter.purchase.confirm` 또는 `filter.purchase.pro_upgrade` 선택 가능 |  |
 | 5.17 | "촬영하기" CTA (다운로드 후) | dismiss → 카메라로 |  |
 | 5.18 | 다운로드 진행 중 추가 탭 | no-op (재요청 불가) |  |
 
@@ -233,13 +237,14 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 |---|---|---|---|
 | 8.1.1 | 닫기 (`preview.dismiss`) | onRetake() + dismiss |  |
 | 8.1.2 | ··· more (`preview.more`) | ConfirmationDialog: 사진 정보 / 다른 필터로 적용 / 메타데이터 복사 / 취소 |  |
-| 8.1.3 | "저장" | onSave → photoLibrarySaver.savePhoto |  |
-| 8.1.4 | "공유" | onShare → ShareSheet (mock) |  |
-| 8.1.5 | "재촬영" | onRetake → CameraScreen으로 |  |
-| 8.1.6 | "필터 변경" | onChangeFilter (필터 선택 UI 또는 카메라로) |  |
-| 8.1.7 | "삭제" | confirmation dialog |  |
-| 8.1.8 | 삭제 확인 alert "삭제" | onDiscard 호출 |  |
-| 8.1.9 | 삭제 확인 alert "취소" | dialog dismiss |  |
+| 8.1.3 | "저장" (`preview.save`) | onSave → photoLibrarySaver.savePhoto |  |
+| 8.1.4 | "공유" (`preview.share`) | onShare → ShareSheet (mock) |  |
+| 8.1.5 | "재촬영" (`preview.retake`) | onRetake → CameraScreen으로 |  |
+| 8.1.6 | "필터 변경" (`preview.changeFilter`) | onChangeFilter (필터 선택 UI 또는 카메라로) |  |
+| 8.1.7 | "편집" (`preview.edit`) | 편집 플로우 진입 |  |
+| 8.1.8 | "삭제" (`preview.discard`) | confirmation dialog |  |
+| 8.1.9 | 삭제 확인 alert "삭제" | onDiscard 호출 |  |
+| 8.1.10 | 삭제 확인 alert "취소" | dialog dismiss |  |
 
 ### 8.2 PhotoImportScreen — `AppRoute.photoImport`
 
@@ -368,7 +373,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 
 ## 12. Settings
 
-`AppRoute.settings`. 어머니의 프로필카드부터 하단까지 순서대로.
+`AppRoute.settings`. 프로필 카드부터 하단까지 순서대로.
 
 | # | Element | Expected | PASS/FAIL |
 |---|---|---|---|
@@ -384,9 +389,9 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 12.10 | 다운로드 관리 row | → AppRoute.savedFilters |  |
 | 12.11 | 민감 콘텐츠 picker | sensitiveFilter (off/soft/strong) |  |
 | 12.12 | 차단 사용자 row | → AppRoute.blockList |  |
-| 12.13 | 도움말 row | → AppRoute.refundRequest |  |
-| 12.14 | 이용약관 row | SafariView로 https://moodit.app/terms |  |
-| 12.15 | 개인정보처리방침 row | SafariView로 https://moodit.app/privacy |  |
+| 12.13 | 도움말 row (`settings.nav.도움말`) | → AppRoute.helpCenter |  |
+| 12.14 | 이용약관 row (`settings.row.이용약관`) | SafariView로 https://moodit.app/terms |  |
+| 12.15 | 개인정보처리방침 row (`settings.row.개인정보처리방침`) | SafariView로 https://moodit.app/privacy |  |
 | 12.16 | 버전 row | 비인터랙티브 |  |
 | 12.17 | 모더레이션 큐 (admin/moderator only — `settings.admin.section` 안에 표시) | → AppRoute.modQueue. 일반 유저는 운영 섹션 자체가 안 보임. |  |
 | 12.18 | 공유 링크 테스트 (admin/moderator only) | → AppRoute.universalLinkLanding |  |
@@ -422,20 +427,25 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 13.2.3 | `.wallet` | 거래내역 | → walletTransactions |  |
 | 13.2.4 | `.wallet` | Pro 구독 | → proSubscription |  |
 | 13.2.5 | `.wallet` | 메이커 출금 진입점 | ❌ 제거됨 (ADR-0006 closed-loop) — wallet primary actions에 노출 안 됨 |  |
-| 13.2.6 | `.walletTopup` | 300C 패키지 | StoreKit purchase (sandbox) |  |
-| 13.2.7 | `.walletTopup` | 900C 패키지 | StoreKit purchase (sandbox) |  |
-| 13.2.8 | `.walletTopup` | 이전 구매 복원 | restoreCompletedTransactions |  |
-| 13.2.9 | `.walletTopup` | 결제 실패 보기 demo | → paymentFailed |  |
-| 13.2.10 | `.proSubscription` | 월간/연간 toggle | 가격 표시 변경 |  |
-| 13.2.11 | `.proSubscription` | 7일 무료 체험 | StoreKit subscription |  |
-| 13.2.12 | `.proSubscription` | 영수증 button | → refundRequest |  |
-| 13.2.13 | `.paymentFailed` | "다시 시도" | 🔴 BROKEN: retry 미연결 |  |
-| 13.2.14 | `.refundRequest` | 환불 입력 | mock 제출 |  |
-| 13.2.15 | `.insufficientBalance(filterId:)` | 충전하기 → walletTopup |  |
-| 13.2.16 | `.payoutOnboarding` | Closed-loop placeholder (`payout.placeholder.정산 연결`) — "추후 지원 예정" + 적립 코인 사용처 안내. ADR-0006 정책. |  |
-| 13.2.17 | `.payoutTaxInfo` | Closed-loop placeholder (`payout.placeholder.세금 정보`) — 출금 미지원으로 세금 폼 불필요 |  |
-| 13.2.18 | `.payoutHistory` | 정산 내역 | mock 표시 |  |
-| 13.2.19 | `.earningsWithdraw` | Closed-loop placeholder (`payout.placeholder.출금 신청`) — Phase 6+ 후보 |  |
+| 13.2.6 | `.walletTopup` | `wallet.topup.package.com.jayl2kor.moodit.coins.100` | 100C StoreKit purchase (sandbox/local StoreKit config 필요) |  |
+| 13.2.7 | `.walletTopup` | `wallet.topup.package.com.jayl2kor.moodit.coins.550` | 550C StoreKit purchase (sandbox/local StoreKit config 필요) |  |
+| 13.2.8 | `.walletTopup` | `wallet.topup.package.com.jayl2kor.moodit.coins.1200` | 1200C StoreKit purchase (sandbox/local StoreKit config 필요) |  |
+| 13.2.9 | `.walletTopup` | `wallet.topup.package.com.jayl2kor.moodit.coins.3000` | 3000C StoreKit purchase (sandbox/local StoreKit config 필요) |  |
+| 13.2.10 | `.walletTopup` | `wallet.topup.restore` | StoreKit restore purchase (sandbox/local StoreKit config 필요) |  |
+| 13.2.11 | `.walletTopup` | `wallet.topup.failed_demo` | → paymentFailed |  |
+| 13.2.12 | `.proSubscription` | `pro.plan.toggle` | 월간/연간 가격 표시 변경 |  |
+| 13.2.13 | `.proSubscription` | `pro.subscribe.com.jayl2kor.moodit.pro.monthly` | 월간 Pro StoreKit subscription (sandbox/local StoreKit config 필요) |  |
+| 13.2.14 | `.proSubscription` | `pro.subscribe.com.jayl2kor.moodit.pro.yearly` | 연간 Pro StoreKit subscription (sandbox/local StoreKit config 필요) |  |
+| 13.2.15 | `.proSubscription` | `pro.invoice` | → refundRequest |  |
+| 13.2.16 | `.paymentFailed` | `wallet.topup.retry` | → walletTopup |  |
+| 13.2.17 | `.paymentFailed` | `payment.failed.restore` | StoreKit restore purchase (sandbox/local StoreKit config 필요) |  |
+| 13.2.18 | `.paymentFailed` | `wallet.topup.support` | mailto 고객지원 열림 |  |
+| 13.2.19 | `.refundRequest` | 환불 입력 | mock 제출 |  |
+| 13.2.20 | `.insufficientBalance(filterId:)` | 충전하기 → walletTopup |  |
+| 13.2.21 | `.payoutOnboarding` | Closed-loop placeholder (`payout.placeholder.정산 연결`) — "추후 지원 예정" + 적립 코인 사용처 안내. ADR-0006 정책. |  |
+| 13.2.22 | `.payoutTaxInfo` | Closed-loop placeholder (`payout.placeholder.세금 정보`) — 출금 미지원으로 세금 폼 불필요 |  |
+| 13.2.23 | `.payoutHistory` | 정산 내역 | mock 표시 |  |
+| 13.2.24 | `.earningsWithdraw` | Closed-loop placeholder (`payout.placeholder.출금 신청`) — Phase 6+ 후보 |  |
 
 ### 13.3 Moderation (Admin only) / Reports
 
@@ -557,14 +567,14 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 
 | 영역 | 미구현 / 부분 구현 |
 |---|---|
-| Auth | Google Sign In ✅ FIXED in batch 6; Email + Password ✅ FIXED in batch 7; ToS/Privacy SafariView ✅ FIXED in batch 2 |
+| Auth | GoogleService-Info.plist 포함됨. Google/Apple external auth sheet와 credential exchange는 수동 QA 게이트; Email + Password ✅ FIXED; ToS/Privacy SafariView ✅ FIXED |
 | Marketplace | 컬렉션 진입 wiring, pull-to-refresh, long-press |
 | FilterDetail | Share sheet, 태그 점프, 유료 paywallSingle |
 | Review compose | image ✅ FIXED in batch 3 (PHPicker); @ + emoji ✅ FIXED in batch 4 |
 | Camera | 권한 거부 시 안내 화면 |
 | Editor | LUT Files picker |
 | Upload | ✅ FIXED in batch 10 — R2 presigned PUT (lib/r2.ts) + uploadInit/Finalize Cloud Functions + iOS FilterPackageUploader. UploadTOSSubmitScreen UI wiring은 후속 이슈. |
-| Wallet | StoreKit 실 결제 와이어링 (#14 외부 의존성); payout / Stripe Connect ❌ Won't fix in Phase 1~5 (ADR-0006 closed-loop currency) |
+| Wallet | StoreKit 상품 액션은 정의/노출됨. 실제 purchase/restore/cancel은 sandbox 또는 local `.storekit` config 필요; payout / Stripe Connect ❌ Won't fix in Phase 1~5 (ADR-0006 closed-loop currency) |
 | Push | ✅ FIXED in batch 3 — `PushRegistration.userNotificationCenter(_:didReceive:)` → `UniversalLinkParser.route(forPushUserInfo:)` → `MooditStore.pendingDeepLinkRoute` |
 | Moderation | admin claim 부트스트랩 ✅ FIXED in batch 8 (`tools/bootstrap-admin.mjs` + `setRole` Cloud Function + Settings role-claim visibility); ModerationQueueScreen 실 wiring은 별도 이슈 |
 | Universal Link | ✅ FIXED in batch 3 — `UniversalLinkParser` + RootShell `.onOpenURL` + sheet 라우팅 (20/20 unit tests pass) |
