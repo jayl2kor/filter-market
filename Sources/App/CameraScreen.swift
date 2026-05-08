@@ -239,7 +239,7 @@ struct CameraScreen: View {
                 .accessibilityIdentifier("camera.dismiss")
             }
 
-            // 모드 라벨 (현재는 AUTO 고정 — 후속 phase 에서 노출/수동 등으로 확장).
+            // 현재는 실제 조작 컨트롤이 아닌 노출 상태 정보로만 표시한다.
             modePill
 
             Spacer(minLength: Sp.xs)
@@ -268,13 +268,8 @@ struct CameraScreen: View {
                 .tracking(0.4)
         }
         .foregroundStyle(FMColors.Text.inverse)
-        .padding(.horizontal, Sp.sm)
-        .padding(.vertical, 6)
-        .background(.ultraThinMaterial.opacity(0.7), in: Capsule())
-        .overlay {
-            Capsule()
-                .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
-        }
+        .shadow(color: .black.opacity(0.65), radius: 2, y: 1)
+        .accessibilityLabel("자동 노출 모드")
         .colorScheme(.dark)
     }
 
@@ -300,10 +295,10 @@ struct CameraScreen: View {
                 .foregroundStyle(FMColors.Text.inverse)
                 .frame(minWidth: 44, minHeight: 44)
                 .padding(.horizontal, Sp.xs)
-                .background(.ultraThinMaterial.opacity(0.7), in: Capsule())
+                .background(Color.black.opacity(0.64), in: Capsule())
                 .overlay {
                     Capsule()
-                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                        .strokeBorder(Color.white.opacity(0.28), lineWidth: 1)
                 }
                 .colorScheme(.dark)
         }
@@ -326,15 +321,30 @@ struct CameraScreen: View {
                 }
             }
         } label: {
-            Text(store.cameraTimerOption.label)
-                .font(.system(size: 12, weight: .semibold).monospacedDigit())
-                .foregroundStyle(FMColors.Text.inverse)
+            HStack(spacing: 4) {
+                Image(systemName: "timer")
+                    .font(.system(size: 13, weight: .semibold))
+                Text(store.cameraTimerOption.label)
+                    .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+                .foregroundStyle(store.cameraTimerOption == .off ? FMColors.Text.inverse.opacity(0.78) : FMColors.Accent.primary)
                 .frame(minWidth: 44, minHeight: 44)
                 .padding(.horizontal, Sp.xs)
-                .background(.ultraThinMaterial.opacity(0.7), in: Capsule())
+                .background(Color.black.opacity(0.64), in: Capsule())
                 .overlay {
                     Capsule()
-                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                        .fill(store.cameraTimerOption == .off ? Color.clear : FMColors.Accent.primary.opacity(0.18))
+                }
+                .overlay {
+                    Capsule()
+                        .strokeBorder(
+                            store.cameraTimerOption == .off
+                                ? Color.white.opacity(0.28)
+                                : FMColors.Accent.primary.opacity(0.65),
+                            lineWidth: 1
+                        )
                 }
                 .colorScheme(.dark)
         }
@@ -380,7 +390,7 @@ struct CameraScreen: View {
                 .foregroundStyle(store.cameraFlashMode == .off ? FMColors.Text.inverse : FMColors.Accent.primary)
                 .padding(.horizontal, Sp.xs + 2)
                 .frame(minWidth: 54, minHeight: 44)
-                .background(.ultraThinMaterial.opacity(0.7), in: Capsule())
+                .background(Color.black.opacity(0.64), in: Capsule())
                 .overlay {
                     Capsule()
                         .fill(store.cameraFlashMode == .off ? Color.clear : FMColors.Accent.primary.opacity(0.18))
@@ -389,7 +399,7 @@ struct CameraScreen: View {
                     Capsule()
                         .strokeBorder(
                             store.cameraFlashMode == .off
-                                ? Color.white.opacity(0.12)
+                                ? Color.white.opacity(0.28)
                                 : FMColors.Accent.primary.opacity(0.65),
                             lineWidth: 1
                         )
@@ -411,7 +421,7 @@ struct CameraScreen: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(isActive ? FMColors.Accent.primary : FMColors.Text.inverse)
                 .frame(width: 44, height: 44)
-                .background(.ultraThinMaterial.opacity(0.7), in: Circle())
+                .background(Color.black.opacity(0.64), in: Circle())
                 .overlay {
                     Circle()
                         .fill(isActive ? FMColors.Accent.primary.opacity(0.18) : Color.clear)
@@ -419,7 +429,7 @@ struct CameraScreen: View {
                 .overlay {
                     Circle()
                         .strokeBorder(
-                            isActive ? FMColors.Accent.primary.opacity(0.65) : Color.white.opacity(0.12),
+                            isActive ? FMColors.Accent.primary.opacity(0.65) : Color.white.opacity(0.28),
                             lineWidth: 1
                         )
                 }
@@ -476,7 +486,8 @@ struct CameraScreen: View {
                 swipeHint(label: neighbours.next.title, leading: false)
             }
             .padding(.horizontal, Sp.sm)
-            .frame(maxHeight: .infinity, alignment: .center)
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .padding(.bottom, 260)
             .allowsHitTesting(false)
         }
     }
