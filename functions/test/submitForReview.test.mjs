@@ -70,4 +70,14 @@ describe("applySubmitForReview", () => {
       (err) => err && err.code === "failed-precondition",
     );
   });
+
+  it("rejects filters with invalid price tier", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/f-1": { authorUid: "u-1", status: "pending_review_pre", priceCoins: 999 },
+    });
+    await assert.rejects(
+      () => applySubmitForReview("u-1", { filterId: "f-1", ...validTos }, { firestore }),
+      (err) => err && err.code === "internal" && /invalid priceCoins tier/.test(err.message),
+    );
+  });
 });

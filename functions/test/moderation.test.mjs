@@ -56,6 +56,15 @@ function makeFakeFirestore(initial = {}) {
   return {
     _data: data,
     collection(name) { return collectionRef(name); },
+    async runTransaction(fn) {
+      return fn({
+        async get(ref) { return ref.get(); },
+        set(ref, payload, opts) {
+          const merged = opts && opts.merge ? data.get(ref._path) : undefined;
+          data.set(ref._path, { ...(merged ?? {}), ...payload });
+        },
+      });
+    },
   };
 }
 
@@ -76,6 +85,16 @@ describe("applyApproveFilter", () => {
     await assert.rejects(
       () => applyApproveFilter({ filterId: "f-1" }, { firestore }),
       (err) => err && err.code === "failed-precondition",
+    );
+  });
+
+  it("rejects invalid price tier on approval", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/f-1": { status: "pending_review", priceCoins: 999 },
+    });
+    await assert.rejects(
+      () => applyApproveFilter({ filterId: "f-1" }, { firestore }),
+      (err) => err && err.code === "internal" && /invalid priceCoins tier/.test(err.message),
     );
   });
 
@@ -156,6 +175,20 @@ describe("applyReportFilter", () => {
     );
     assert.equal(result.ok, true);
     assert.ok(result.reportId);
+  });
+
+  it("rate limits filter reports", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/f-1": { status: "approved", reportCount: 0 },
+    });
+    for (let i = 0; i < 30; i += 1) {
+      await applyReportFilter("u-1", { filterId: "f-1", reasonCode: `spam-${i}` }, { firestore });
+    }
+
+    await assert.rejects(
+      () => applyReportFilter("u-1", { filterId: "f-1", reasonCode: "over-limit" }, { firestore }),
+      (err) => err && err.code === "resource-exhausted" && /rate_limited/.test(err.message),
+    );
   });
 
   it("rejects missing filter", async () => {

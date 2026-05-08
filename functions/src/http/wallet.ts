@@ -14,6 +14,8 @@ import { defineSecret } from "firebase-functions/params";
 import { getFirestore, FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth.js";
+import { allow, Buckets, type Bucket } from "../lib/ratelimit.js";
+import { isValidPriceTier } from "../lib/pricing.js";
 import {
   type AppleTransactionInfo,
   verifyAppleReceipt,
@@ -26,6 +28,16 @@ const region = "asia-northeast3";
 const APP_APPLE_ID = defineSecret("APP_APPLE_ID");
 const APP_STORE_ENV = defineSecret("APP_STORE_ENV");
 const appleSecrets = [APP_APPLE_ID, APP_STORE_ENV];
+
+async function enforceRateLimit(db: Firestore, bucket: Bucket, key: string): Promise<void> {
+  const result = await allow(undefined, bucket, key, { firestore: db });
+  if (!result.allowed) {
+    throw new HttpsError("resource-exhausted", "rate_limited", {
+      limit: result.limit,
+      resetAt: result.resetAt,
+    });
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // purchaseFilter
@@ -57,6 +69,7 @@ export async function applyPurchaseFilter(
   }
   const { filterId } = parsed.data;
   const db = deps.firestore ?? getFirestore();
+  await enforceRateLimit(db, Buckets.walletPurchase, uid);
 
   return db.runTransaction(async (tx: Transaction) => {
     const filterRef = db.collection("filters").doc(filterId);
@@ -69,8 +82,8 @@ export async function applyPurchaseFilter(
       throw new HttpsError("failed-precondition", `filter not available (status=${filterData.status})`);
     }
     const price = (filterData.priceCoins as number | undefined) ?? 0;
-    if (price < 0) {
-      throw new HttpsError("internal", "filter has invalid priceCoins");
+    if (!isValidPriceTier(price)) {
+      throw new HttpsError("internal", `invalid priceCoins tier: ${price}`);
     }
 
     const balanceRef = db.collection("users").doc(uid)
@@ -166,6 +179,8 @@ export async function applyCreditCoinsFromIAP(
   if (!amount) {
     throw new HttpsError("invalid-argument", `unknown_product: ${productId}`);
   }
+  const db = deps.firestore ?? getFirestore();
+  await enforceRateLimit(db, Buckets.walletIAP, uid);
 
   // (Tier1-1) 기본 검증기는 Apple App Store Server Library JWS verifier.
   // 테스트는 deps.verifyReceipt를 명시적 주입.
@@ -175,7 +190,6 @@ export async function applyCreditCoinsFromIAP(
     throw new HttpsError("permission-denied", "receipt_verification_failed");
   }
 
-  const db = deps.firestore ?? getFirestore();
   return db.runTransaction(async (tx: Transaction) => {
     const receiptRef = db.collection("walletReceipts").doc(originalTransactionId);
     const receiptSnap = await tx.get(receiptRef);
@@ -360,6 +374,7 @@ export async function applyRefundRequest(
   }
   const { orderId, reason } = parsed.data;
   const db = deps.firestore ?? getFirestore();
+  await enforceRateLimit(db, Buckets.walletRefund, uid);
   const ref = db.collection("users").doc(uid).collection("refundRequests").doc();
   await ref.set({
     orderId,

@@ -65,7 +65,8 @@ describe("applyPurchaseFilter", () => {
     firestore = makeFakeFirestore({
       "filters/free-1": { title: "Free", status: "approved", priceCoins: 0 },
       "filters/paid-1": { title: "Paid", status: "approved", priceCoins: 50 },
-      "filters/expensive-1": { title: "Expensive", status: "approved", priceCoins: 1000 },
+      "filters/expensive-1": { title: "Expensive", status: "approved", priceCoins: 120 },
+      "filters/invalid-tier-1": { title: "Invalid Tier", status: "approved", priceCoins: 1000 },
       "filters/pending-1": { title: "Pending", status: "pending_review", priceCoins: 50 },
     });
   });
@@ -93,6 +94,26 @@ describe("applyPurchaseFilter", () => {
     await assert.rejects(
       () => applyPurchaseFilter("u-1", { filterId: "expensive-1" }, { firestore }),
       (err) => err && err.code === "failed-precondition" && /insufficient_balance/.test(err.message),
+    );
+  });
+
+  it("rejects filters outside the allowed price tier whitelist", async () => {
+    firestore._data.set("users/u-1/wallet/balance", { value: 2000 });
+    await assert.rejects(
+      () => applyPurchaseFilter("u-1", { filterId: "invalid-tier-1" }, { firestore }),
+      (err) => err && err.code === "internal" && /invalid priceCoins tier/.test(err.message),
+    );
+  });
+
+  it("rate limits purchase attempts", async () => {
+    firestore._data.set("users/u-1/wallet/balance", { value: 2000 });
+    for (let i = 0; i < 30; i += 1) {
+      await applyPurchaseFilter("u-1", { filterId: "paid-1" }, { firestore });
+    }
+
+    await assert.rejects(
+      () => applyPurchaseFilter("u-1", { filterId: "paid-1" }, { firestore }),
+      (err) => err && err.code === "resource-exhausted" && /rate_limited/.test(err.message),
     );
   });
 
@@ -176,6 +197,32 @@ describe("applyCreditCoinsFromIAP", () => {
       ),
       (err) => err && err.code === "permission-denied",
     );
+  });
+
+  it("rate limits IAP credit attempts before receipt verification", async () => {
+    let verifierCalls = 0;
+    const verifyReceipt = async () => {
+      verifierCalls += 1;
+      return true;
+    };
+
+    for (let i = 0; i < 10; i += 1) {
+      await applyCreditCoinsFromIAP(
+        "u-1",
+        { ...validInput, originalTransactionId: `tx-${i}` },
+        { firestore, verifyReceipt },
+      );
+    }
+
+    await assert.rejects(
+      () => applyCreditCoinsFromIAP(
+        "u-1",
+        { ...validInput, originalTransactionId: "tx-over-limit" },
+        { firestore, verifyReceipt },
+      ),
+      (err) => err && err.code === "resource-exhausted" && /rate_limited/.test(err.message),
+    );
+    assert.equal(verifierCalls, 10);
   });
 
   it("validates payload", async () => {
@@ -289,6 +336,18 @@ describe("applyRefundRequest", () => {
     await assert.rejects(
       () => applyRefundRequest("u-1", { orderId: "ord-1", reason: "" }, { firestore }),
       (err) => err && err.code === "invalid-argument",
+    );
+  });
+
+  it("rate limits refund requests", async () => {
+    const firestore = makeFakeFirestore({});
+    for (let i = 0; i < 5; i += 1) {
+      await applyRefundRequest("u-1", { orderId: `ord-${i}`, reason: "wrong charge" }, { firestore });
+    }
+
+    await assert.rejects(
+      () => applyRefundRequest("u-1", { orderId: "ord-over-limit", reason: "wrong charge" }, { firestore }),
+      (err) => err && err.code === "resource-exhausted" && /rate_limited/.test(err.message),
     );
   });
 });

@@ -16,6 +16,7 @@ import { getFirestore, FieldValue, type Firestore } from "firebase-admin/firesto
 import { z } from "zod";
 import { requireAuth } from "../lib/auth.js";
 import { loadR2Config, presignPut, presignGet, headWithChecksum } from "../lib/r2.js";
+import { isValidPriceTier } from "../lib/pricing.js";
 
 // region: kept consistent across all functions for low cross-region latency.
 const region = "asia-northeast3";
@@ -286,6 +287,10 @@ export async function applySubmitForReview(
   }
   if (data.status !== "pending_review_pre") {
     throw new HttpsError("failed-precondition", `expected pending_review_pre, got ${data.status}`);
+  }
+  const price = (data.priceCoins as number | undefined) ?? 0;
+  if (!isValidPriceTier(price)) {
+    throw new HttpsError("internal", `invalid priceCoins tier: ${price}`);
   }
   await ref.update({
     status: "pending_review",

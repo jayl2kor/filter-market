@@ -62,6 +62,7 @@
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after MetalPreviewRenderer texture race/cache flush fix (#196/#197) |
 | 2026-05-09 | `xcodebuild ... -only-testing:FilterEngineTests test` | PASS after Camera/FilterEngine residual safety fixes (#210) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after ReviewCompose validation/stars/error-state fix (#244 partial, #153/#155) |
+| 2026-05-09 | `npm --prefix functions test` | PASS, 75 tests after Firestore rate limit and price tier backend hardening (#174/#172) |
 
 ## Remaining Manual QA Gates
 
@@ -121,6 +122,7 @@
 | Active editor draft autosave | The in-progress editor draft now persists per uid to local UserDefaults and `/users/{uid}/editorDrafts/current`, restoring after cold start/relogin and syncing metadata across devices. Logout clears in-memory state but keeps the saved draft for the same uid. | QA should edit name/parameters/tags, force-quit, relaunch, and verify the editor restores. Then login on a second device and verify the remote current draft appears; direct signature photo bytes remain local-only until image storage wiring. |
 | Editor preview responsiveness | Editor parameter preview now uses a 16ms render delay, downscales user reference images to an 800px preview input, renders directly to `CGImage` for preview, and only shows the spinner during the first render so slider updates do not get covered by a central loader. | Manual QA should drag all parameter sliders continuously and verify the preview updates without the old 250ms wait or center ProgressView. Full GPU/MTKView preview remains a later optimization candidate. |
 | App Check | Callable Cloud Functions now enforce App Check and iOS registers AppCheckDebugProviderFactory in DEBUG / AppAttestProviderFactory in release. | Register debug tokens in Firebase Console for dev devices/CI before exercising callable flows. |
+| Backend rate limit and price tiers | Cloud Functions now use Firestore-backed rate limit counters for purchase, IAP credit, refund request, and report callables; filter priceCoins is validated against allowed tiers at submit, approval, and purchase. | Production QA should monitor `_ratelimit` write volume/cost and verify invalid tier migrations fail before publication or purchase. |
 | Wallet security rules | Wallet, ledger, entitlements, Pro status, and refund request subcollections are owner-read/server-write only. | Emulator rules tests pass; production Firebase rules deploy remains a release gate. |
 | Pro subscription verifier | Pro receipts are now idempotent, owner-scoped, and expired/revoked JWS metadata maps to inactive Pro state. | StoreKit sandbox renewal/cancel manual QA remains required. |
 | Notifications inbox | Notification rows now compute relative time/buckets from `createdAt`, expose literal Korean labels instead of unresolved keys, support older-page loading, and surface markRead/follow errors. | Firebase QA should seed 100+ notifications and verify load-more, badge count, read state, and follow edge writes. |

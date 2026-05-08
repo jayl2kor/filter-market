@@ -9,6 +9,8 @@ import type { CallableRequest } from "firebase-functions/v2/https";
 import { getFirestore, FieldValue, type Firestore } from "firebase-admin/firestore";
 import { z } from "zod";
 import { requireAuth, requireModerator } from "../lib/auth.js";
+import { allow, Buckets, type Bucket } from "../lib/ratelimit.js";
+import { isValidPriceTier } from "../lib/pricing.js";
 
 const region = "asia-northeast3";
 
@@ -31,6 +33,16 @@ export interface ApproveResult { ok: true; filterId: string; status: "approved" 
 export interface RejectResult { ok: true; filterId: string; status: "rejected" }
 export interface UndoModerationResult { ok: true; filterId: string; status: "pending_review" }
 
+async function enforceRateLimit(db: Firestore, bucket: Bucket, key: string): Promise<void> {
+  const result = await allow(undefined, bucket, key, { firestore: db });
+  if (!result.allowed) {
+    throw new HttpsError("resource-exhausted", "rate_limited", {
+      limit: result.limit,
+      resetAt: result.resetAt,
+    });
+  }
+}
+
 /** Pure logic — exported for unit tests. */
 export async function applyApproveFilter(
   rawData: unknown,
@@ -50,6 +62,10 @@ export async function applyApproveFilter(
   const status = snap.data()?.status;
   if (status !== "pending_review" && status !== "pending_review_pre") {
     throw new HttpsError("failed-precondition", `not in review queue (status=${status})`);
+  }
+  const price = (snap.data()?.priceCoins as number | undefined) ?? 0;
+  if (!isValidPriceTier(price)) {
+    throw new HttpsError("internal", `invalid priceCoins tier: ${price}`);
   }
   await ref.update({
     status: "approved",
@@ -145,6 +161,7 @@ export async function applyReportFilter(
   }
   const { filterId, reasonCode, detail } = parsed.data;
   const db = deps.firestore ?? getFirestore();
+  await enforceRateLimit(db, Buckets.filtersReport, uid);
   const filterRef = db.collection("filters").doc(filterId);
   const filterSnap = await filterRef.get();
   if (!filterSnap.exists) {
@@ -175,6 +192,7 @@ export async function applyReportReview(
   }
   const { filterId, reviewId, authorUid, reasonCode, detail } = parsed.data;
   const db = deps.firestore ?? getFirestore();
+  await enforceRateLimit(db, Buckets.filtersReport, uid);
   const reviewRef = db.collection("filters").doc(filterId).collection("reviews").doc(reviewId);
   const reviewSnap = await reviewRef.get();
   if (!reviewSnap.exists) {
@@ -213,6 +231,7 @@ export async function applyReportUser(
     throw new HttpsError("failed-precondition", "cannot report self");
   }
   const db = deps.firestore ?? getFirestore();
+  await enforceRateLimit(db, Buckets.filtersReport, uid);
   const userRef = db.collection("users").doc(targetUid);
   const userSnap = await userRef.get();
   if (!userSnap.exists) {
