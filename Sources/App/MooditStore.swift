@@ -404,8 +404,10 @@ final class MooditStore: ObservableObject {
         guard authStateHandle == nil else { return } // idempotent
         authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self else { return }
-            Telemetry.setUserId(user?.uid)
-            self.attachWalletListeners(uid: user?.uid)
+            Task { @MainActor in
+                Telemetry.setUserId(user?.uid)
+                self.attachWalletListeners(uid: user?.uid)
+            }
         }
     }
 
@@ -445,50 +447,58 @@ final class MooditStore: ObservableObject {
             .collection("wallet").document("balance")
             .addSnapshotListener { [weak self] snapshot, _ in
                 guard let self else { return }
-                let value = (snapshot?.data()?["value"] as? Int) ?? 0
-                self.coinBalance = value
+                Task { @MainActor in
+                    let value = (snapshot?.data()?["value"] as? Int) ?? 0
+                    self.coinBalance = value
+                }
             }
         proStatusListener = db.collection("users").document(uid)
             .collection("proStatus").document("status")
             .addSnapshotListener { [weak self] snapshot, _ in
                 guard let self else { return }
-                let active = (snapshot?.data()?["active"] as? Bool) ?? false
-                self.isProActive = active
+                Task { @MainActor in
+                    let active = (snapshot?.data()?["active"] as? Bool) ?? false
+                    self.isProActive = active
+                }
             }
         userDocListener = db.collection("users").document(uid)
             .addSnapshotListener { [weak self] snapshot, _ in
                 guard let self else { return }
-                self.hasLoadedProfile = true  // (#47) 첫 snapshot 도착 신호
-                guard let data = snapshot?.data() else { return }
-                self.editableProfile = EditableProfile(
-                    displayName: (data["displayName"] as? String) ?? self.editableProfile.displayName,
-                    handle: (data["handle"] as? String) ?? self.editableProfile.handle,
-                    bio: (data["bio"] as? String) ?? self.editableProfile.bio,
-                    website: (data["website"] as? String) ?? self.editableProfile.website,
-                    makerPageVisible: (data["makerPageVisible"] as? Bool) ?? self.editableProfile.makerPageVisible,
-                    photoSharingAllowed: (data["photoSharingAllowed"] as? Bool) ?? self.editableProfile.photoSharingAllowed,
-                    avatarVariant: (data["avatarVariant"] as? Int) ?? self.editableProfile.avatarVariant,
-                    avatarImageData: self.editableProfile.avatarImageData
-                )
+                Task { @MainActor in
+                    self.hasLoadedProfile = true  // (#47) 첫 snapshot 도착 신호
+                    guard let data = snapshot?.data() else { return }
+                    self.editableProfile = EditableProfile(
+                        displayName: (data["displayName"] as? String) ?? self.editableProfile.displayName,
+                        handle: (data["handle"] as? String) ?? self.editableProfile.handle,
+                        bio: (data["bio"] as? String) ?? self.editableProfile.bio,
+                        website: (data["website"] as? String) ?? self.editableProfile.website,
+                        makerPageVisible: (data["makerPageVisible"] as? Bool) ?? self.editableProfile.makerPageVisible,
+                        photoSharingAllowed: (data["photoSharingAllowed"] as? Bool) ?? self.editableProfile.photoSharingAllowed,
+                        avatarVariant: (data["avatarVariant"] as? Int) ?? self.editableProfile.avatarVariant,
+                        avatarImageData: self.editableProfile.avatarImageData
+                    )
+                }
             }
         // (#45) /users/{uid}/notificationPreferences/main listener — 사용자 토글 변경 즉시 반영.
         notificationPrefsListener = db.collection("users").document(uid)
             .collection("notificationPreferences").document("main")
             .addSnapshotListener { [weak self] snapshot, _ in
                 guard let self else { return }
-                guard let data = snapshot?.data() else { return }
-                self.notificationPreferences = NotificationPreferences(
-                    systemEnabled: (data["systemEnabled"] as? Bool) ?? self.notificationPreferences.systemEnabled,
-                    social: (data["social"] as? Bool) ?? self.notificationPreferences.social,
-                    reviews: (data["reviews"] as? Bool) ?? self.notificationPreferences.reviews,
-                    marketplace: (data["marketplace"] as? Bool) ?? self.notificationPreferences.marketplace,
-                    creator: (data["creator"] as? Bool) ?? self.notificationPreferences.creator,
-                    wallet: (data["wallet"] as? Bool) ?? self.notificationPreferences.wallet,
-                    product: (data["product"] as? Bool) ?? self.notificationPreferences.product,
-                    quietHoursEnabled: (data["quietHoursEnabled"] as? Bool) ?? self.notificationPreferences.quietHoursEnabled,
-                    quietStart: (data["quietStart"] as? String) ?? self.notificationPreferences.quietStart,
-                    quietEnd: (data["quietEnd"] as? String) ?? self.notificationPreferences.quietEnd
-                )
+                Task { @MainActor in
+                    guard let data = snapshot?.data() else { return }
+                    self.notificationPreferences = NotificationPreferences(
+                        systemEnabled: (data["systemEnabled"] as? Bool) ?? self.notificationPreferences.systemEnabled,
+                        social: (data["social"] as? Bool) ?? self.notificationPreferences.social,
+                        reviews: (data["reviews"] as? Bool) ?? self.notificationPreferences.reviews,
+                        marketplace: (data["marketplace"] as? Bool) ?? self.notificationPreferences.marketplace,
+                        creator: (data["creator"] as? Bool) ?? self.notificationPreferences.creator,
+                        wallet: (data["wallet"] as? Bool) ?? self.notificationPreferences.wallet,
+                        product: (data["product"] as? Bool) ?? self.notificationPreferences.product,
+                        quietHoursEnabled: (data["quietHoursEnabled"] as? Bool) ?? self.notificationPreferences.quietHoursEnabled,
+                        quietStart: (data["quietStart"] as? String) ?? self.notificationPreferences.quietStart,
+                        quietEnd: (data["quietEnd"] as? String) ?? self.notificationPreferences.quietEnd
+                    )
+                }
             }
         // (#24) /users/{uid}/savedFilters — 1회 로드해서 downloadedFilterIDs로 합침.
         // 다른 디바이스에서 다운로드한 필터도 SavedScreen에 표시.
@@ -765,7 +775,9 @@ final class MooditStore: ObservableObject {
         }
     }
 
-    func markAccountDeletionRequested() {
+    func markAccountDeletionRequested() async throws {
+        let callable = Functions.functions(region: "asia-northeast3").httpsCallable("deleteAccount")
+        _ = try await callable.call([:] as [String: Any])
         accountDeletionRequestedAt = Date()
     }
 

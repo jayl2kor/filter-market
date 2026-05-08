@@ -43,6 +43,7 @@ struct RootShell: View {
         .environmentObject(store)
         .task {
             await store.load()
+            store.subscribeToWallet()
             PushRegistration.shared.deepLinkHandler = { [weak store] route in
                 store?.pendingDeepLinkRoute = route
             }

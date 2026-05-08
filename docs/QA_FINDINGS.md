@@ -40,6 +40,7 @@
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after QA doc update/current issue batch |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after P0/P1 issue batch (#185/#186/#187/#188/#189/#190/#192/#207/#203) |
 | 2026-05-09 | `xcodebuild ... -only-testing:FilterEngineTests/CubeLUTParserTests -only-testing:MarketplaceTests/SocialRepositoriesTests test` | PASS, LUT size cap and self-block guard covered |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after P0 state/account deletion batch (#140/#147/#227) |
 
 ## Remaining Manual QA Gates
 
@@ -69,5 +70,7 @@
 | Filter detail download | Detail CTA now owns and cancels its download task and only transitions to completed after `store.download` succeeds. | Manual offline/Firebase permission-denied QA should verify the failure alert and no stale completed CTA after dismissal. |
 | Reviews list listener | Reviews Firestore listener is removed on disappear and now decodes `stars`, `helpfulCount`, and `isVerifiedDownload`. | Firebase seeded review QA should verify live updates after navigating away/back. |
 | Notification follow action | Follow notification action now writes a root `follows/{actor}_{target}` edge before marking the notification read. | Seed follow notification and verify count trigger/list update in Firebase. |
+| Root wallet/profile subscription | RootShell now starts the wallet/profile/auth listener on cold start, and MooditStore listener callbacks re-enter MainActor before publishing state. | Device/Firebase QA should verify cold-start balance, Pro status, profile handle onboarding, and notification preference state. |
+| Account deletion | Account deletion confirmation now calls the `deleteAccount` Cloud Function before showing the receipt and signs out after success. | Manual Firebase QA should verify `users/{uid}` soft-delete fields and failure alert behavior. |
 | Payout | Current screens are marked `MockOnly`; automated QA verifies placeholder surfaces, not real Stripe payout behavior. | Keep hidden/controlled until payout backend scope is defined. |
 | Firebase-backed mutations | Several screens expose state and action contracts, but production write/read behavior still depends on real Firebase setup. | Run manual QA with seeded Firebase project before release. |

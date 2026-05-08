@@ -1004,6 +1004,8 @@ struct AccountDeletionScreen: View {
     @State private var confirmation = ""
     @State private var showDeleteAlert = false
     @State private var didRequestDeletion = false
+    @State private var isDeletingAccount = false
+    @State private var deletionErrorMessage: String?
 
     private var expectedHandle: String {
         store.editableProfile.displayHandle
@@ -1042,8 +1044,15 @@ struct AccountDeletionScreen: View {
             destructiveTitle: "삭제 요청",
             isPresented: $showDeleteAlert
         ) {
-            store.markAccountDeletionRequested()
-            didRequestDeletion = true
+            requestAccountDeletion()
+        }
+        .alert("삭제 요청 실패", isPresented: Binding(
+            get: { deletionErrorMessage != nil },
+            set: { if !$0 { deletionErrorMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(deletionErrorMessage ?? "")
         }
     }
 
@@ -1081,7 +1090,7 @@ struct AccountDeletionScreen: View {
             FMButton("계정 영구 삭제", icon: "trash", variant: .primary, size: .lg) {
                 showDeleteAlert = true
             }
-            .disabled(!isConfirmationValid)
+            .disabled(!isConfirmationValid || isDeletingAccount)
             .accessibilityIdentifier("auth.delete.submit")
 
             FMButton("취소", variant: .secondary, size: .lg) {
@@ -1103,6 +1112,26 @@ struct AccountDeletionScreen: View {
                 Text("보안 확인과 정산 상태 점검 후 계정 삭제 절차가 진행됩니다.")
                     .fmTypography(.body)
                     .foregroundStyle(FMColors.Text.secondary)
+            }
+        }
+    }
+
+    private func requestAccountDeletion() {
+        guard !isDeletingAccount else { return }
+        isDeletingAccount = true
+        Task {
+            do {
+                try await store.markAccountDeletionRequested()
+                try? Auth.auth().signOut()
+                await MainActor.run {
+                    didRequestDeletion = true
+                    isDeletingAccount = false
+                }
+            } catch {
+                await MainActor.run {
+                    deletionErrorMessage = error.localizedDescription
+                    isDeletingAccount = false
+                }
             }
         }
     }

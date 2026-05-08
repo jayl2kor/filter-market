@@ -371,7 +371,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | # | ID | Expected | PASS/FAIL |
 |---|---|---|---|
 | 11.3.1 | `auth.delete.confirm.input` | 핸들 입력 시 submit enable |  |
-| 11.3.2 | ⚠️ `auth.delete.submit` | 영구 삭제 확인 alert + 삭제 실행 |  |
+| 11.3.2 | ⚠️ `auth.delete.submit` | 영구 삭제 확인 alert → `deleteAccount` Cloud Function 성공 후 receipt 표시 + signOut. 실패 시 alert |  |
 | 11.3.3 | 핸들 안 맞을 때 submit 시도 | disabled |  |
 
 ### 11.4 DataExportScreen / NotificationSettingsScreen
