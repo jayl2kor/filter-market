@@ -185,11 +185,11 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | # | Element (ID) | Expected action | PASS/FAIL |
 |---|---|-----------------|-----------|
 | 6.3.1 | 별 1~5 (`social.rating.star.1`~`.5`) | rating 갱신, 햅틱 |  |
-| 6.3.2 | rating 변화에 따른 라벨 | "아쉬워요"~"최고예요!" |  |
+| 6.3.2 | rating 변화에 따른 라벨 | 초기값 "별점을 선택해주세요"; 선택 후 "아쉬워요"~"최고예요!" |  |
 | 6.3.3 | 태그 칩 (자연스러움 / 강도 조절 / 등) | selectedTags 토글 |  |
 | 6.3.4 | 본문 텍스트 (`social.rating.body`) | 입력 가능 |  |
 | 6.3.5 | "건너뛰기" (FMButton secondary) | dismiss |  |
-| 6.3.6 | "평점 등록" (`social.rating.submit`) | 햅틱 + dismiss (mock) |  |
+| 6.3.6 | "평점 등록" (`social.rating.submit`) | 별점 미선택 시 disabled. 선택 후 Firestore ratings upsert, 실패 시 inline error |  |
 | 6.3.7 | (게스트 진입) | "로그인하고 평점 남기기" CTA → AppRoute.login |  |
 
 ---

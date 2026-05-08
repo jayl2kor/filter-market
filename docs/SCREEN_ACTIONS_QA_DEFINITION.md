@@ -234,6 +234,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | 데이터 내보내기 이력 | `settings.export`는 `/users/{uid}/exportRequests` listener를 단일 출처로 사용 | backend status/downloadURL 갱신이 화면 이력에 자동 반영 |
 | 메이커 draft 리스트 | `maker.myFilters`는 `/users/{uid}/makerDrafts` listener를 단일 출처로 사용 | draft 저장/상태 변경이 재시작/다른 디바이스에서 복원 |
 | Deep link destination | `DeepLinkDestination`은 모든 `AppRoute` case를 실제 화면으로 매핑하고 raw enum fallback을 노출하지 않음 | 새 route 추가 시 컴파일 단계에서 switch 누락 확인 |
+| 평점 폼 기본값 | `reviews.rating`은 빈 상태로 시작하고 별점 선택 전 submit 불가 | placeholder/글자수 제한/error 표시 확인 |
 
 ## 8. Definition Gate Before QA
 
@@ -317,6 +318,7 @@ QA를 시작하기 전 반드시 아래 순서로 정의를 고정한다.
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after makerDrafts listener/write wiring (#251) |
 | 2026-05-09 | `npm --prefix functions run test:rules` | PASS after makerDrafts owner rules (#251), 15 tests |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after DeepLinkDestination full AppRoute coverage (#246) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after rating form default/validation fix (#245) |
 
 ## 10. Definition of Done
 

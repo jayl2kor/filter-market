@@ -633,17 +633,21 @@ struct RatingFormScreen: View {
     @Environment(\.dismiss) private var dismiss
 
     let filterID: String
-    @State private var rating = 5
-    @State private var selectedTags: Set<String> = ["자연스러움", "강도 조절 좋음"]
-    @State private var reviewBody = "필름 카페 사진에 정말 잘 어울려요. 강도 80%가 베스트."
+    @State private var rating = 0
+    @State private var selectedTags: Set<String> = []
+    @State private var reviewBody = ""
+    @State private var errorMessage: String?
 
     private let tags = ["자연스러움", "강도 조절 좋음", "카페 잘 어울림", "셀카 좋음", "여행", "실내 광원"]
+    private let bodyLimit = 280
 
     /// (#28) Firestore /filters/{id}/ratings/{uid}에 평점 + 코멘트 저장.
     /// uid 키로 1개만 — 재제출 시 덮어쓰기.
     private func submitRating() async {
+        guard rating > 0 else { return }
         guard let uid = Auth.auth().currentUser?.uid else {
             FMHaptic.warning.play()
+            errorMessage = "로그인이 필요합니다."
             return
         }
         let payload: [String: Any] = [
@@ -663,6 +667,7 @@ struct RatingFormScreen: View {
             dismiss()
         } catch {
             FMHaptic.warning.play()
+            errorMessage = "평점 등록 실패: \(error.localizedDescription)"
         }
     }
 
@@ -713,10 +718,10 @@ struct RatingFormScreen: View {
                 }
             }
 
-            Text(ratingLabel)
+            Text(rating == 0 ? "별점을 선택해주세요" : ratingLabel)
                 .fmTypography(.headline)
                 .fontWeight(.bold)
-                .foregroundStyle(FMColors.Accent.primary)
+                .foregroundStyle(rating == 0 ? FMColors.Text.secondary : FMColors.Accent.primary)
 
             FlowLayout(spacing: 6) {
                 ForEach(tags, id: \.self) { tag in
@@ -730,16 +735,38 @@ struct RatingFormScreen: View {
                 }
             }
 
-            TextEditor(text: $reviewBody)
-                .font(.body)
-                .scrollContentBackground(.hidden)
-                .frame(minHeight: 88)
-                .padding(Sp.xs)
-                .background(FMColors.Background.bg1, in: RoundedRectangle(cornerRadius: R.md))
-                .overlay {
-                    RoundedRectangle(cornerRadius: R.md).strokeBorder(FMColors.Border.default, lineWidth: 1)
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: limitedReviewBody)
+                    .font(.body)
+                    .scrollContentBackground(.hidden)
+                    .frame(minHeight: 88)
+                    .padding(Sp.xs)
+                    .background(FMColors.Background.bg1, in: RoundedRectangle(cornerRadius: R.md))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: R.md).strokeBorder(FMColors.Border.default, lineWidth: 1)
+                    }
+                    .accessibilityIdentifier("social.rating.body")
+                if reviewBody.isEmpty {
+                    Text("이 필터에 대한 의견을 남겨주세요 (선택)")
+                        .font(.body)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                        .padding(.horizontal, Sp.sm)
+                        .padding(.vertical, Sp.sm)
                 }
-                .accessibilityIdentifier("social.rating.body")
+            }
+
+            HStack {
+                if let errorMessage {
+                    Text(errorMessage)
+                        .fmTypography(.caption)
+                        .foregroundStyle(FMColors.Semantic.error)
+                }
+                Spacer()
+                Text("\(reviewBody.count) / \(bodyLimit)")
+                    .fmTypography(.caption)
+                    .foregroundStyle(FMColors.Text.tertiary)
+                    .monospacedDigit()
+            }
 
             HStack(spacing: Sp.xs) {
                 FMButton("건너뛰기", variant: .secondary, size: .lg) {
@@ -748,6 +775,7 @@ struct RatingFormScreen: View {
                 FMButton("평점 등록", variant: .primary, size: .lg) {
                     Task { await submitRating() }
                 }
+                .disabled(rating == 0)
                 .accessibilityIdentifier("social.rating.submit")
             }
         }
@@ -776,12 +804,20 @@ struct RatingFormScreen: View {
 
     private var ratingLabel: String {
         switch rating {
+        case 0: "별점을 선택해주세요"
         case 1: "아쉬워요"
         case 2: "조금 아쉬워요"
         case 3: "괜찮아요"
         case 4: "좋아요"
         default: "최고예요!"
         }
+    }
+
+    private var limitedReviewBody: Binding<String> {
+        Binding(
+            get: { reviewBody },
+            set: { reviewBody = String($0.prefix(bodyLimit)) }
+        )
     }
 }
 
