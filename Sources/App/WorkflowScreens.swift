@@ -5876,17 +5876,27 @@ private func workflowDivider() -> some View {
 }
 
 private func workflowDateString(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "ko_KR")
-    formatter.dateFormat = "yyyy. M. d. HH:mm"
-    return formatter.string(from: date)
+    DateFormatter.workflowDate.string(from: date)
 }
 
 private func workflowTimeString(_ date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "ko_KR")
-    formatter.dateFormat = "HH:mm"
-    return formatter.string(from: date)
+    DateFormatter.workflowTime.string(from: date)
+}
+
+private extension DateFormatter {
+    static let workflowDate: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "yyyy. M. d. HH:mm"
+        return formatter
+    }()
+
+    static let workflowTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
 }
 
 private func parameterTitle(_ key: String) -> String {
