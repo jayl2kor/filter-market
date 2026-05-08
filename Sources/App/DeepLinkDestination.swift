@@ -94,8 +94,8 @@ struct DeepLinkDestination: View {
             OrdersHistoryScreen()
         case .paymentFailed:
             PaymentFailedScreen()
-        case .refundRequest:
-            RefundRequestScreen()
+        case .refundRequest(let orderId):
+            RefundRequestScreen(prefilledOrderId: orderId)
         case .proStatus:
             ProStatusScreen()
         case .proSubscription:

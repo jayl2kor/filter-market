@@ -35,7 +35,7 @@ struct HelpCenterScreen: View {
                         }
                     }
                     divider
-                    NavigationLink(value: AppRoute.refundRequest) {
+                    NavigationLink(value: AppRoute.refundRequest(orderId: nil)) {
                         contactRowLabel(
                             icon: "arrow.uturn.backward.circle",
                             title: "환불 요청",

@@ -468,7 +468,9 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 13.2.16 | `.paymentFailed` | `wallet.topup.retry` | → walletTopup |  |
 | 13.2.17 | `.paymentFailed` | `payment.failed.restore` | StoreKit restore purchase (sandbox/local StoreKit config 필요) |  |
 | 13.2.18 | `.paymentFailed` | `wallet.topup.support` | mailto 고객지원 열림 |  |
-| 13.2.19 | `.refundRequest` | 환불 입력 | mock 제출 |  |
+| 13.2.19 | `.refundRequest(orderId: nil)` | `refund.orderId`, `refund.reason`, `refund.submit` | 주문 ID 직접 입력, 사유 2000자 제한/카운터, 제출 성공 후 자동 dismiss |  |
+| 13.2.19a | `.ordersHistory` | `orders.refund_request.<orderId>` | 선택한 주문 ID가 `RefundRequestScreen`에 read-only prefill로 표시됨 |  |
+| 13.2.19b | `.walletTransactions` / `.ordersHistory` | `wallet.refund_request` | 주문 ID 미지정 환불 요청 화면으로 이동 |  |
 | 13.2.20 | `.insufficientBalance(filterId:)` | `filterId`를 유지한 상태로 충전하기 → walletTopup. 잔액이 `requiredCoins` 이상이 되면 자동 구매 재시도, 또는 `insufficient.purchase.retry`로 수동 재시도 후 `filterAfterDownload` 진입 |  |
 | 13.2.21 | `.payoutOnboarding` | Closed-loop placeholder (`payout.placeholder.정산 연결`) — "추후 지원 예정" + 적립 코인 사용처 안내. ADR-0006 정책. |  |
 | 13.2.22 | `.payoutTaxInfo` | Closed-loop placeholder (`payout.placeholder.세금 정보`) — 출금 미지원으로 세금 폼 불필요 |  |

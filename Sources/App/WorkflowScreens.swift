@@ -4286,7 +4286,7 @@ struct ProSubscriptionScreen: View {
 
     @ViewBuilder
     private var invoiceLink: some View {
-        NavigationLink(value: AppRoute.refundRequest) {
+        NavigationLink(value: AppRoute.refundRequest(orderId: nil)) {
             HStack {
                 Image(systemName: "doc.text.magnifyingglass")
                 Text("영수증 및 환불 문의")
@@ -4425,7 +4425,7 @@ struct ProStatusScreen: View {
 
     @ViewBuilder
     private var invoiceLink: some View {
-        NavigationLink(value: AppRoute.refundRequest) {
+        NavigationLink(value: AppRoute.refundRequest(orderId: nil)) {
             HStack {
                 Image(systemName: "doc.text.magnifyingglass")
                 Text("영수증 및 환불 문의")
@@ -4452,36 +4452,50 @@ struct OrdersHistoryScreen: View {
                 FMEmptyState(.emptyMarket)
                     .padding(.horizontal, Sp.md)
                     .accessibilityIdentifier("orders.empty")
-                orderSupportActions
-                    .padding(.horizontal, Sp.md)
-                    .padding(.top, Sp.md)
             } else {
                 List {
                     ForEach(orders) { entry in
-                        HStack {
-                            Image(systemName: "cart.fill")
-                                .foregroundStyle(FMColors.Text.secondary)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.relatedItemTitle ?? "필터 구매").font(Font.fmBody)
-                                Text(entry.createdAt, style: .date).font(Font.fmCaption)
-                                    .foregroundStyle(FMColors.Text.tertiary)
-                            }
-                            Spacer()
-                            Text("\(entry.amount.formatted())")
-                                .font(Font.fmHeadline)
-                                .foregroundStyle(FMColors.Text.primary)
-                        }
+                        orderRow(entry)
                     }
                 }
                 .listStyle(.plain)
                 .refreshable { await ledger.refresh() }
             }
+            orderSupportActions
+                .padding(.horizontal, Sp.md)
+                .padding(.vertical, Sp.md)
             Spacer(minLength: 0)
         }
         .background(FMColors.Background.bg1.ignoresSafeArea())
         .navigationTitle("주문 내역")
         .navigationBarTitleDisplayMode(.inline)
         .task { ledger.start() }
+    }
+
+    private func orderRow(_ entry: WalletLedgerEntry) -> some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            HStack {
+                Image(systemName: "cart.fill")
+                    .foregroundStyle(FMColors.Text.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entry.relatedItemTitle ?? "필터 구매").font(Font.fmBody)
+                    Text(entry.createdAt, style: .date).font(Font.fmCaption)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                }
+                Spacer()
+                Text("\(entry.amount.formatted())")
+                    .font(Font.fmHeadline)
+                    .foregroundStyle(FMColors.Text.primary)
+            }
+
+            NavigationLink(value: AppRoute.refundRequest(orderId: entry.id)) {
+                Label("이 주문 환불 요청", systemImage: "arrow.uturn.backward.circle")
+                    .font(Font.fmCaption)
+                    .foregroundStyle(FMColors.Accent.primary)
+            }
+            .accessibilityIdentifier("orders.refund_request.\(entry.id)")
+        }
+        .padding(.vertical, Sp.xs)
     }
 
     @ViewBuilder
@@ -4493,7 +4507,7 @@ struct OrdersHistoryScreen: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("wallet.transactions")
 
-            NavigationLink(value: AppRoute.refundRequest) {
+            NavigationLink(value: AppRoute.refundRequest(orderId: nil)) {
                 workflowRouteRow("환불 요청", icon: "arrow.uturn.backward.circle")
             }
             .buttonStyle(.plain)
@@ -4989,7 +5003,7 @@ struct WalletTransactionsScreen: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("orders.history")
 
-            NavigationLink(value: AppRoute.refundRequest) {
+            NavigationLink(value: AppRoute.refundRequest(orderId: nil)) {
                 workflowRouteRow("환불 요청", icon: "arrow.uturn.backward.circle")
             }
             .buttonStyle(.plain)
@@ -5304,15 +5318,36 @@ struct RefundRequestScreen: View {
     @State private var isProcessing = false
     @State private var statusMessage: String?
 
+    private let prefilledOrderId: String?
+    private let maxReasonLength = 2_000
+
+    init(prefilledOrderId: String? = nil) {
+        self.prefilledOrderId = prefilledOrderId
+        _orderId = State(initialValue: prefilledOrderId ?? "")
+    }
+
     var body: some View {
         Form {
             Section(header: Text("주문 ID")) {
-                TextField("orders/abc-123 형식", text: $orderId)
-                    .autocapitalization(.none)
+                if let prefilledOrderId {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(prefilledOrderId)
+                            .font(Font.fmCaption)
+                            .foregroundStyle(FMColors.Text.primary)
+                            .textSelection(.enabled)
+                        Text("주문 내역에서 선택한 주문입니다.")
+                            .font(Font.fmCaption)
+                            .foregroundStyle(FMColors.Text.tertiary)
+                    }
                     .accessibilityIdentifier("refund.orderId")
+                } else {
+                    TextField("orders/abc-123 형식", text: $orderId)
+                        .autocapitalization(.none)
+                        .accessibilityIdentifier("refund.orderId")
+                }
             }
-            Section(header: Text("환불 사유"), footer: Text("최대 2000자")) {
-                TextEditor(text: $reason)
+            Section(header: Text("환불 사유"), footer: reasonFooter) {
+                TextEditor(text: reasonBinding)
                     .frame(minHeight: 120)
                     .accessibilityIdentifier("refund.reason")
             }
@@ -5329,7 +5364,7 @@ struct RefundRequestScreen: View {
                         Text("환불 요청 제출")
                     }
                 }
-                .disabled(isProcessing || orderId.isEmpty || reason.isEmpty)
+                .disabled(isProcessing || normalizedOrderId.isEmpty || normalizedReason.isEmpty || reason.count > maxReasonLength)
                 .accessibilityIdentifier("refund.submit")
             }
         }
@@ -5337,15 +5372,42 @@ struct RefundRequestScreen: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
+    private var normalizedOrderId: String {
+        orderId.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var normalizedReason: String {
+        reason.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var reasonBinding: Binding<String> {
+        Binding(
+            get: { reason },
+            set: { reason = String($0.prefix(maxReasonLength)) }
+        )
+    }
+
+    private var reasonFooter: some View {
+        HStack {
+            Text("최대 2000자")
+            Spacer()
+            Text("\(reason.count) / \(maxReasonLength)")
+                .monospacedDigit()
+                .foregroundStyle(reason.count > 1_900 ? FMColors.Semantic.warning : FMColors.Text.tertiary)
+        }
+    }
+
     private func submit() async {
         isProcessing = true
         defer { isProcessing = false }
         do {
             let callable = Functions.functions(region: "asia-northeast3").httpsCallable("refundRequest")
-            _ = try await callable.call(["orderId": orderId, "reason": reason])
+            _ = try await callable.call(["orderId": normalizedOrderId, "reason": normalizedReason])
             statusMessage = "환불 요청이 접수되었습니다. 24시간 내 검토합니다."
             orderId = ""
             reason = ""
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            dismiss()
         } catch {
             statusMessage = "오류: \(error.localizedDescription)"
         }

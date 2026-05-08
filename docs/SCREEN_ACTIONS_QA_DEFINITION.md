@@ -128,8 +128,8 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | `wallet.transactions` | `AppRoute.walletTransactions` | `WalletTransactionsScreen` | Partial | `wallet.transactions.row.*`, `wallet.transactions.empty`, `wallet.tx.filter.cat`, `orders.history`, `wallet.refund_request` |
 | `wallet.insufficient` | `AppRoute.insufficientBalance(filterId:)` | `InsufficientBalanceScreen` | Partial | `insufficient.topup`, `wallet.insufficient.cancel` |
 | `wallet.paymentFailed` | `AppRoute.paymentFailed` | `PaymentFailedScreen` | Partial | `wallet.topup.retry`, `payment.failed.restore`, `wallet.topup.support` |
-| `wallet.refund` | `AppRoute.refundRequest` | `RefundRequestScreen` | Partial | `refund.orderId`, `refund.reason`, `refund.submit` |
-| `orders.history` | `AppRoute.ordersHistory` | `OrdersHistoryScreen` | Partial | `orders.empty`, `wallet.transactions`, `wallet.refund_request` |
+| `wallet.refund` | `AppRoute.refundRequest(orderId:)` | `RefundRequestScreen` | Partial, Needs Firebase QA | `refund.orderId`, `refund.reason`, `refund.submit`; direct entry accepts manual order ID, order-scoped entry pre-fills a read-only order ID; reason is capped at 2000 chars and successful submit dismisses |
+| `orders.history` | `AppRoute.ordersHistory` | `OrdersHistoryScreen` | Partial, Needs Firebase QA | `orders.empty`, `wallet.transactions`, `wallet.refund_request`, `orders.refund_request.<orderId>` |
 | `pro.subscription` | `AppRoute.proSubscription` | `ProSubscriptionScreen` | Partial, Blocked on StoreKit sandbox | `pro.subscribe.com.jayl2kor.moodit.pro.monthly`, `pro.subscribe.com.jayl2kor.moodit.pro.yearly`, `pro.plan.toggle`, `pro.invoice` |
 | `pro.status` | `AppRoute.proStatus` | `ProStatusScreen` | Partial | `pro.cancel`, `pro.invoice` |
 

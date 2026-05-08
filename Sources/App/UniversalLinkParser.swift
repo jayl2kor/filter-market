@@ -122,7 +122,7 @@ enum UniversalLinkParser {
             // Coin purchase notification — open wallet ledger.
             return .walletTransactions
         case "refund":
-            return .refundRequest
+            return .refundRequest(orderId: nil)
         case "proSubscription":
             return .proStatus
         default:

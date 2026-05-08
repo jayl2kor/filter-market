@@ -65,7 +65,7 @@ enum AppRoute: Hashable {
     case myFilters
     case paymentFailed
     case dataExport
-    case refundRequest
+    case refundRequest(orderId: String?)
     case helpCenter
 }
 
@@ -267,8 +267,8 @@ extension View {
             case .dataExport:
                 DataExportScreen()
 
-            case .refundRequest:
-                RefundRequestScreen()
+            case .refundRequest(let orderId):
+                RefundRequestScreen(prefilledOrderId: orderId)
 
             case .helpCenter:
                 HelpCenterScreen()
@@ -641,19 +641,19 @@ extension AppRoute {
                 .init("pro.plan.toggle", "월간/연간 전환", systemImage: "arrow.left.arrow.right"),
                 .init("pro.subscribe.\(IAPProductIDs.proMonthly)", "월간 Pro 시작", systemImage: "sparkles"),
                 .init("pro.subscribe.\(IAPProductIDs.proYearly)", "연간 Pro 시작", systemImage: "sparkles"),
-                .init("pro.invoice", "영수증", systemImage: "doc.text", target: .refundRequest)
+                .init("pro.invoice", "영수증", systemImage: "doc.text", target: .refundRequest(orderId: nil))
             ]
 
         case .proStatus:
             [
                 .init("pro.cancel", "App Store 구독 관리", systemImage: "gearshape", externalURL: URL(string: "https://apps.apple.com/account/subscriptions")!),
-                .init("pro.invoice", "영수증 / 환불 안내", systemImage: "doc.text", target: .refundRequest)
+                .init("pro.invoice", "영수증 / 환불 안내", systemImage: "doc.text", target: .refundRequest(orderId: nil))
             ]
 
         case .ordersHistory:
             [
                 .init("wallet.transactions", "거래 내역", systemImage: "list.bullet.rectangle", target: .walletTransactions),
-                .init("wallet.refund_request", "환불 요청", systemImage: "arrow.uturn.backward.circle", target: .refundRequest)
+                .init("wallet.refund_request", "환불 요청", systemImage: "arrow.uturn.backward.circle", target: .refundRequest(orderId: nil))
             ]
 
         case .wallet:
@@ -679,7 +679,7 @@ extension AppRoute {
             [
                 .init("wallet.tx.filter.cat", "거래 유형 필터", systemImage: "line.3.horizontal.decrease.circle"),
                 .init("orders.history", "주문 내역", systemImage: "cart", target: .ordersHistory),
-                .init("wallet.refund_request", "환불 요청", systemImage: "arrow.uturn.backward.circle", target: .refundRequest)
+                .init("wallet.refund_request", "환불 요청", systemImage: "arrow.uturn.backward.circle", target: .refundRequest(orderId: nil))
             ]
 
         case .insufficientBalance:
