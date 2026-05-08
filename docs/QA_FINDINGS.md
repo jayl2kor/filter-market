@@ -55,6 +55,8 @@
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after signed filter package download wiring (#252) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after data export listener wiring (#250) |
 | 2026-05-09 | `npm --prefix functions run test:rules` | PASS after exportRequests owner create/read rules (#250), 14 tests |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after makerDrafts listener/write wiring (#251) |
+| 2026-05-09 | `npm --prefix functions run test:rules` | PASS after makerDrafts owner rules (#251), 15 tests |
 
 ## Remaining Manual QA Gates
 
@@ -89,6 +91,7 @@
 | Root wallet/profile subscription | RootShell now starts the wallet/profile/auth listener on cold start, and MooditStore listener callbacks re-enter MainActor before publishing state. | Device/Firebase QA should verify cold-start balance, Pro status, profile handle onboarding, and notification preference state. |
 | Account deletion | Account deletion confirmation now calls the `deleteAccount` Cloud Function before showing the receipt and signs out after success. | Manual Firebase QA should verify `users/{uid}` soft-delete fields and failure alert behavior. |
 | Data export requests | DataExportScreen now reads `/users/{uid}/exportRequests` through a listener, maps backend statuses/download URLs into the history list, and rules allow owner create/read only. | Backend QA should update an export request to `ready` with `downloadURL` and verify the button appears across app restart/second device. |
+| Maker drafts list | Maker draft metadata now syncs through `/users/{uid}/makerDrafts`, and MyFilters repopulates from a listener after restart/second-device login. Direct signature sample photo bytes are not stored in this metadata doc. | Firebase QA should save multiple drafts, force-quit/relogin, verify MyFilters restoration, then confirm image binary persistence once Storage upload wiring is added. |
 | App Check | Callable Cloud Functions now enforce App Check and iOS registers AppCheckDebugProviderFactory in DEBUG / AppAttestProviderFactory in release. | Register debug tokens in Firebase Console for dev devices/CI before exercising callable flows. |
 | Wallet security rules | Wallet, ledger, entitlements, Pro status, and refund request subcollections are owner-read/server-write only. | Emulator rules tests pass; production Firebase rules deploy remains a release gate. |
 | Pro subscription verifier | Pro receipts are now idempotent, owner-scoped, and expired/revoked JWS metadata maps to inactive Pro state. | StoreKit sandbox renewal/cancel manual QA remains required. |

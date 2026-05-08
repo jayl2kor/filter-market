@@ -336,6 +336,41 @@ const suite = describe(
       );
     });
 
+    it("allows owners to sync maker drafts only under their uid", async () => {
+      const owner = env.authenticatedContext("u-maker-draft");
+      const stranger = env.authenticatedContext(STRANGER_UID);
+      const ref = owner.firestore().doc("users/u-maker-draft/makerDrafts/draft-1");
+
+      await assertSucceeds(
+        ref.set({
+          name: "Draft One",
+          summary: "Soft tone",
+          category: "cinematic",
+          tags: ["soft"],
+          parameterValues: { exposure: 0.1 },
+          coverCount: 1,
+          beforeAfterEnabled: true,
+          tosOriginal: false,
+          tosPolicy: false,
+          tosCommercial: false,
+          status: "draft",
+          updatedAt: new Date(),
+        })
+      );
+      await assertSucceeds(
+        ref.set({ status: "pending", name: "Draft One", category: "cinematic" }, { merge: true })
+      );
+      await assertSucceeds(ref.get());
+      await assertFails(stranger.firestore().doc("users/u-maker-draft/makerDrafts/draft-1").get());
+      await assertFails(
+        owner.firestore().doc("users/u-maker-draft/makerDrafts/draft-2").set({
+          name: "Invalid",
+          category: "cinematic",
+          status: "archived",
+        })
+      );
+    });
+
     it("scopes block edges to the calling actor", async () => {
       const actor = env.authenticatedContext("u-blocker");
       await assertSucceeds(

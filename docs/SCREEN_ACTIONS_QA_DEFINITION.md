@@ -232,6 +232,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | 업로드 취소 | `upload.cancel`은 저장 후 나가기/버리고 나가기/계속 작성의 3-way dialog | 저장/버리기 선택 시 화면 dismiss, 계속 작성은 stay |
 | 필터 패키지 다운로드 | UUID 기반 `filter.download`는 `signedDownloadURL`을 stream fetch 후 로컬 `.fmpkg` 저장 | 저장 성공 후에만 savedFilters marker 작성, 실패 시 retry 노출 |
 | 데이터 내보내기 이력 | `settings.export`는 `/users/{uid}/exportRequests` listener를 단일 출처로 사용 | backend status/downloadURL 갱신이 화면 이력에 자동 반영 |
+| 메이커 draft 리스트 | `maker.myFilters`는 `/users/{uid}/makerDrafts` listener를 단일 출처로 사용 | draft 저장/상태 변경이 재시작/다른 디바이스에서 복원 |
 
 ## 8. Definition Gate Before QA
 
@@ -312,6 +313,8 @@ QA를 시작하기 전 반드시 아래 순서로 정의를 고정한다.
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after signed filter package download wiring (#252) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after data export listener wiring (#250) |
 | 2026-05-09 | `npm --prefix functions run test:rules` | PASS after exportRequests owner create/read rules (#250), 14 tests |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after makerDrafts listener/write wiring (#251) |
+| 2026-05-09 | `npm --prefix functions run test:rules` | PASS after makerDrafts owner rules (#251), 15 tests |
 
 ## 10. Definition of Done
 

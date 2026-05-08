@@ -382,6 +382,7 @@ final class MooditStore: ObservableObject {
     private var savedFiltersListener: ListenerRegistration?
     private var favoritesListener: ListenerRegistration?
     private var exportRequestsListener: ListenerRegistration?
+    private var makerDraftsListener: ListenerRegistration?
     private var authStateHandle: AuthStateDidChangeListenerHandle?
     private var optimisticCoinReconcileTask: Task<Void, Never>?
     private var notificationPreferencesSaveTask: Task<Void, Never>?
@@ -432,6 +433,7 @@ final class MooditStore: ObservableObject {
         savedFiltersListener?.remove()
         favoritesListener?.remove()
         exportRequestsListener?.remove()
+        makerDraftsListener?.remove()
         notificationPreferencesSaveTask?.cancel()
         walletListener = nil
         proStatusListener = nil
@@ -440,6 +442,7 @@ final class MooditStore: ObservableObject {
         savedFiltersListener = nil
         favoritesListener = nil
         exportRequestsListener = nil
+        makerDraftsListener = nil
         optimisticCoinReconcileTask?.cancel()
         optimisticCoinReconcileTask = nil
         notificationPreferencesSaveTask = nil
@@ -562,6 +565,17 @@ final class MooditStore: ObservableObject {
                     self.exportRequests = snapshot?.documents.compactMap(Self.decodeExportRequest) ?? []
                 }
             }
+
+        makerDraftsListener = db.collection("users").document(uid)
+            .collection("makerDrafts")
+            .order(by: "updatedAt", descending: true)
+            .limit(to: 100)
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self else { return }
+                Task { @MainActor in
+                    self.makerFilters = snapshot?.documents.compactMap(Self.decodeMakerDraft) ?? []
+                }
+            }
     }
 
     private static func decodeExportRequest(_ document: QueryDocumentSnapshot) -> DataExportRequest? {
@@ -598,6 +612,34 @@ final class MooditStore: ObservableObject {
         default:
             return rawStatus
         }
+    }
+
+    private static func decodeMakerDraft(_ document: QueryDocumentSnapshot) -> MakerFilterDraft? {
+        let data = document.data()
+        guard let id = UUID(uuidString: document.documentID) else { return nil }
+        let categoryRaw = (data["category"] as? String) ?? FilterCategory.cinematic.rawValue
+        let statusRaw = (data["status"] as? String) ?? MakerFilterStatus.draft.rawValue
+        let signatureKindRaw = data["signatureSampleKind"] as? String
+        return MakerFilterDraft(
+            id: id,
+            name: (data["name"] as? String) ?? "",
+            summary: (data["summary"] as? String) ?? "",
+            category: FilterCategory(rawValue: categoryRaw) ?? .cinematic,
+            tags: data["tags"] as? [String] ?? [],
+            parameterValues: data["parameterValues"] as? [String: Double] ?? [:],
+            lutFileName: data["lutFileName"] as? String,
+            coverCount: (data["coverCount"] as? Int) ?? 0,
+            signatureSampleKind: signatureKindRaw.flatMap(EditorReferenceSampleKind.init(rawValue:)),
+            signatureSamplePhotoData: nil,
+            beforeAfterEnabled: (data["beforeAfterEnabled"] as? Bool) ?? false,
+            tosOriginal: (data["tosOriginal"] as? Bool) ?? false,
+            tosPolicy: (data["tosPolicy"] as? Bool) ?? false,
+            tosCommercial: (data["tosCommercial"] as? Bool) ?? false,
+            status: MakerFilterStatus(rawValue: statusRaw) ?? .draft,
+            updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue() ?? Date(),
+            submittedAt: (data["submittedAt"] as? Timestamp)?.dateValue(),
+            firestoreFilterId: data["firestoreFilterId"] as? String
+        )
     }
 
     var selectedFilter: Filter? {
@@ -1154,6 +1196,7 @@ final class MooditStore: ObservableObject {
         guard let index = makerFilters.firstIndex(where: { $0.id == draft.id }) else { return }
         makerFilters[index].status = .draft
         makerFilters[index].updatedAt = Date()
+        persistMakerDraft(makerFilters[index])
     }
 
     private func upsertMakerFilter(_ draft: MakerFilterDraft) {
@@ -1162,6 +1205,49 @@ final class MooditStore: ObservableObject {
         } else {
             makerFilters.insert(draft, at: 0)
         }
+        persistMakerDraft(draft)
+    }
+
+    private func persistMakerDraft(_ draft: MakerFilterDraft) {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        var payload: [String: Any] = [
+            "name": draft.name,
+            "summary": draft.summary,
+            "category": draft.category.rawValue,
+            "tags": draft.tags,
+            "parameterValues": draft.parameterValues,
+            "coverCount": draft.coverCount,
+            "beforeAfterEnabled": draft.beforeAfterEnabled,
+            "tosOriginal": draft.tosOriginal,
+            "tosPolicy": draft.tosPolicy,
+            "tosCommercial": draft.tosCommercial,
+            "status": draft.status.rawValue,
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+        if let lutFileName = draft.lutFileName {
+            payload["lutFileName"] = lutFileName
+        }
+        if let signatureSampleKind = draft.signatureSampleKind {
+            payload["signatureSampleKind"] = signatureSampleKind.rawValue
+        }
+        if let submittedAt = draft.submittedAt {
+            payload["submittedAt"] = Timestamp(date: submittedAt)
+        }
+        if let firestoreFilterId = draft.firestoreFilterId {
+            payload["firestoreFilterId"] = firestoreFilterId
+        }
+        Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("makerDrafts").document(draft.id.uuidString)
+            .setData(payload, merge: true) { [weak self] error in
+                guard let error else { return }
+                Task { @MainActor in
+                    self?.lastSubmitErrorMessage = "메이커 초안 저장 실패: \(error.localizedDescription)"
+                }
+            }
     }
 
     func filter(matching routeID: String) -> Filter? {
