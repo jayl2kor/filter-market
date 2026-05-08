@@ -25,7 +25,7 @@ enum CameraTimerOption: Int, CaseIterable, Identifiable, Hashable {
     }
 }
 
-enum EditorReferenceSampleKind: String, CaseIterable, Identifiable, Hashable {
+enum EditorReferenceSampleKind: String, CaseIterable, Identifiable, Hashable, Codable {
     case portrait
     case landscape
     case indoor
@@ -225,7 +225,7 @@ enum UploadStep: String, CaseIterable, Identifiable {
     }
 }
 
-enum MakerFilterStatus: String, CaseIterable, Identifiable {
+enum MakerFilterStatus: String, CaseIterable, Identifiable, Codable {
     case all
     case live
     case pending
@@ -245,7 +245,7 @@ enum MakerFilterStatus: String, CaseIterable, Identifiable {
     }
 }
 
-struct MakerFilterDraft: Identifiable, Equatable {
+struct MakerFilterDraft: Identifiable, Equatable, Codable {
     var id: UUID = UUID()
     var name: String
     var summary: String
@@ -322,6 +322,22 @@ struct MakerFilterDraft: Identifiable, Equatable {
             && tosPolicy
             && tosCommercial
     }
+
+    var hasUserContent: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !tags.isEmpty
+            || !parameterValues.isEmpty
+            || lutFileName != nil
+            || coverCount > 0
+            || signatureSampleKind != nil
+            || signatureSamplePhotoData != nil
+            || beforeAfterEnabled
+            || tosOriginal
+            || tosPolicy
+            || tosCommercial
+            || firestoreFilterId != nil
+    }
 }
 
 @MainActor
@@ -352,7 +368,12 @@ final class MooditStore: ObservableObject {
             ForegroundNotificationPolicy.shared.update(preferences: notificationPreferences)
         }
     }
-    @Published var editorDraft = MakerFilterDraft.empty
+    @Published var editorDraft = MakerFilterDraft.empty {
+        didSet {
+            guard !isApplyingRemoteEditorDraft else { return }
+            scheduleEditorDraftPersistence()
+        }
+    }
     @Published var editorImportedLUT: LUT3D?
     @Published var editorImportedLUTRevision = 0
     @Published var uploadStep: UploadStep = .cover
@@ -383,9 +404,13 @@ final class MooditStore: ObservableObject {
     private var favoritesListener: ListenerRegistration?
     private var exportRequestsListener: ListenerRegistration?
     private var makerDraftsListener: ListenerRegistration?
+    private var editorDraftListener: ListenerRegistration?
     private var authStateHandle: AuthStateDidChangeListenerHandle?
     private var optimisticCoinReconcileTask: Task<Void, Never>?
     private var notificationPreferencesSaveTask: Task<Void, Never>?
+    private var editorDraftSaveTask: Task<Void, Never>?
+    private var currentUserID: String?
+    private var isApplyingRemoteEditorDraft = false
     /// Universal Link / push tap에서 도착한 라우트. RootShell이 관찰해 표시한다.
     /// 한 번 처리되면 nil로 리셋한다.
     @Published var pendingDeepLinkRoute: AppRoute?
@@ -426,6 +451,7 @@ final class MooditStore: ObservableObject {
     }
 
     private func attachWalletListeners(uid: String?) {
+        persistEditorDraftLocallyForCurrentUser()
         walletListener?.remove()
         proStatusListener?.remove()
         userDocListener?.remove()
@@ -434,7 +460,9 @@ final class MooditStore: ObservableObject {
         favoritesListener?.remove()
         exportRequestsListener?.remove()
         makerDraftsListener?.remove()
+        editorDraftListener?.remove()
         notificationPreferencesSaveTask?.cancel()
+        editorDraftSaveTask?.cancel()
         walletListener = nil
         proStatusListener = nil
         userDocListener = nil
@@ -443,9 +471,12 @@ final class MooditStore: ObservableObject {
         favoritesListener = nil
         exportRequestsListener = nil
         makerDraftsListener = nil
+        editorDraftListener = nil
         optimisticCoinReconcileTask?.cancel()
         optimisticCoinReconcileTask = nil
         notificationPreferencesSaveTask = nil
+        editorDraftSaveTask = nil
+        currentUserID = uid
 
         guard let uid else {
             // 로그아웃 / 미로그인 — 본인 스코프 모든 상태 즉시 정리.
@@ -455,6 +486,7 @@ final class MooditStore: ObservableObject {
             return
         }
         hasLoadedProfile = false  // (#47) 새 uid attach 시 — 다음 snapshot이 도착하면 true
+        restoreEditorDraftFromDisk(uid: uid)
         let db = Firestore.firestore()
         // Auth.currentUser의 displayName/email 즉시 사용해 editableProfile 부분 채움.
         if let authUser = Auth.auth().currentUser {
@@ -576,6 +608,22 @@ final class MooditStore: ObservableObject {
                     self.makerFilters = snapshot?.documents.compactMap(Self.decodeMakerDraft) ?? []
                 }
             }
+
+        editorDraftListener = db.collection("users").document(uid)
+            .collection("editorDrafts").document("current")
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self else { return }
+                Task { @MainActor in
+                    guard let snapshot, snapshot.exists, let draft = Self.decodeMakerDraft(id: snapshot.documentID, data: snapshot.data() ?? [:]) else {
+                        return
+                    }
+                    guard draft.updatedAt >= self.editorDraft.updatedAt || !self.editorDraft.hasUserContent else { return }
+                    self.isApplyingRemoteEditorDraft = true
+                    self.editorDraft = draft
+                    self.isApplyingRemoteEditorDraft = false
+                    self.persistEditorDraftToDisk(uid: uid, draft: draft)
+                }
+            }
     }
 
     private static func decodeExportRequest(_ document: QueryDocumentSnapshot) -> DataExportRequest? {
@@ -615,8 +663,12 @@ final class MooditStore: ObservableObject {
     }
 
     private static func decodeMakerDraft(_ document: QueryDocumentSnapshot) -> MakerFilterDraft? {
-        let data = document.data()
-        guard let id = UUID(uuidString: document.documentID) else { return nil }
+        decodeMakerDraft(id: document.documentID, data: document.data())
+    }
+
+    private static func decodeMakerDraft(id documentID: String, data: [String: Any]) -> MakerFilterDraft? {
+        let id = UUID(uuidString: documentID) ?? (data["id"] as? String).flatMap(UUID.init(uuidString:))
+        guard let id else { return nil }
         let categoryRaw = (data["category"] as? String) ?? FilterCategory.cinematic.rawValue
         let statusRaw = (data["status"] as? String) ?? MakerFilterStatus.draft.rawValue
         let signatureKindRaw = data["signatureSampleKind"] as? String
@@ -1248,6 +1300,115 @@ final class MooditStore: ObservableObject {
                     self?.lastSubmitErrorMessage = "메이커 초안 저장 실패: \(error.localizedDescription)"
                 }
             }
+    }
+
+    private func scheduleEditorDraftPersistence() {
+        guard let uid = currentUserID else { return }
+        let draft = editorDraft
+        if draft.hasUserContent {
+            persistEditorDraftToDisk(uid: uid, draft: draft)
+        } else {
+            removeEditorDraftFromDisk(uid: uid)
+        }
+
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        editorDraftSaveTask?.cancel()
+        editorDraftSaveTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            guard !Task.isCancelled else { return }
+            await self?.persistEditorDraftRemote(uid: uid, draft: draft)
+        }
+    }
+
+    private func persistEditorDraftRemote(uid: String, draft: MakerFilterDraft) async {
+        let ref = Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("editorDrafts").document("current")
+        do {
+            if draft.hasUserContent {
+                try await ref.setData(editorDraftPayload(draft), merge: true)
+            } else {
+                try await ref.delete()
+            }
+        } catch {
+            await MainActor.run { [weak self] in
+                self?.lastSubmitErrorMessage = "에디터 초안 동기화 실패: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func editorDraftPayload(_ draft: MakerFilterDraft) -> [String: Any] {
+        var payload: [String: Any] = [
+            "id": draft.id.uuidString,
+            "name": draft.name,
+            "summary": draft.summary,
+            "category": draft.category.rawValue,
+            "tags": draft.tags,
+            "parameterValues": draft.parameterValues,
+            "coverCount": draft.coverCount,
+            "beforeAfterEnabled": draft.beforeAfterEnabled,
+            "tosOriginal": draft.tosOriginal,
+            "tosPolicy": draft.tosPolicy,
+            "tosCommercial": draft.tosCommercial,
+            "status": draft.status.rawValue,
+            "updatedAt": Timestamp(date: draft.updatedAt)
+        ]
+        if let lutFileName = draft.lutFileName {
+            payload["lutFileName"] = lutFileName
+        } else {
+            payload["lutFileName"] = FieldValue.delete()
+        }
+        if let signatureSampleKind = draft.signatureSampleKind {
+            payload["signatureSampleKind"] = signatureSampleKind.rawValue
+        } else {
+            payload["signatureSampleKind"] = FieldValue.delete()
+        }
+        if let submittedAt = draft.submittedAt {
+            payload["submittedAt"] = Timestamp(date: submittedAt)
+        } else {
+            payload["submittedAt"] = FieldValue.delete()
+        }
+        if let firestoreFilterId = draft.firestoreFilterId {
+            payload["firestoreFilterId"] = firestoreFilterId
+        } else {
+            payload["firestoreFilterId"] = FieldValue.delete()
+        }
+        return payload
+    }
+
+    private func persistEditorDraftLocallyForCurrentUser() {
+        guard let currentUserID, editorDraft.hasUserContent else { return }
+        persistEditorDraftToDisk(uid: currentUserID, draft: editorDraft)
+    }
+
+    private func restoreEditorDraftFromDisk(uid: String) {
+        guard let data = UserDefaults.standard.data(forKey: editorDraftDiskKey(uid: uid)),
+              let draft = try? JSONDecoder().decode(MakerFilterDraft.self, from: data),
+              draft.hasUserContent else {
+            return
+        }
+        isApplyingRemoteEditorDraft = true
+        editorDraft = draft
+        isApplyingRemoteEditorDraft = false
+    }
+
+    private func persistEditorDraftToDisk(uid: String, draft: MakerFilterDraft) {
+        guard draft.hasUserContent else {
+            removeEditorDraftFromDisk(uid: uid)
+            return
+        }
+        guard let data = try? JSONEncoder().encode(draft) else { return }
+        UserDefaults.standard.set(data, forKey: editorDraftDiskKey(uid: uid))
+    }
+
+    private func removeEditorDraftFromDisk(uid: String) {
+        UserDefaults.standard.removeObject(forKey: editorDraftDiskKey(uid: uid))
+    }
+
+    private func editorDraftDiskKey(uid: String) -> String {
+        "moodit.editorDraft.\(uid)"
     }
 
     func filter(matching routeID: String) -> Filter? {

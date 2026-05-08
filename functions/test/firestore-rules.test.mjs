@@ -377,6 +377,30 @@ const suite = describe(
       );
     });
 
+    it("allows owners to sync the current editor draft only under their uid", async () => {
+      const owner = env.authenticatedContext("u-editor-draft");
+      const stranger = env.authenticatedContext(STRANGER_UID);
+      const ref = owner.firestore().doc("users/u-editor-draft/editorDrafts/current");
+
+      await assertSucceeds(
+        ref.set({
+          id: "draft-id",
+          name: "Working draft",
+          summary: "autosaved editor state",
+          category: "cinematic",
+          tags: ["film"],
+          parameterValues: { exposure: 0.1 },
+          coverCount: 1,
+          status: "draft",
+          updatedAt: new Date(),
+        })
+      );
+      await assertSucceeds(ref.get());
+      await assertSucceeds(ref.update({ name: "Updated draft" }));
+      await assertFails(stranger.firestore().doc("users/u-editor-draft/editorDrafts/current").get());
+      await assertSucceeds(ref.delete());
+    });
+
     it("allows owners to sync review helpful edges only under their uid", async () => {
       const owner = env.authenticatedContext("u-helpful");
       const stranger = env.authenticatedContext(STRANGER_UID);

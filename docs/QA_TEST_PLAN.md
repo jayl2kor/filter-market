@@ -315,7 +315,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 10.2.12 | `editor.lut.replace` | LUT 교체 |  |
 | 10.2.13 | `editor.draft.save` | 초안 저장 → AppRoute.myFilters |  |
 | 10.2.14 | `editor.draft.publish` | 바로 → AppRoute.uploadCover |  |
-| 10.2.15 | draft 재진입/재시작 | `/users/{uid}/makerDrafts` listener로 저장한 draft 리스트가 MyFilters에 복원됨. 직접 선택한 signature photo 바이너리는 Storage 후속 범위 |  |
+| 10.2.15 | draft 재진입/재시작 | 작업 중인 `editorDraft`는 uid별 UserDefaults + `/users/{uid}/editorDrafts/current`에 autosave. force-quit/cold start/로그아웃 후 동일 uid 재로그인 시 복원. 저장된 draft 리스트는 `/users/{uid}/makerDrafts` listener로 MyFilters에 복원. 직접 선택한 signature photo 바이너리는 로컬 복원만 지원하며 Storage 후속 범위 |  |
 
 ### 10.3 Upload Workflow
 

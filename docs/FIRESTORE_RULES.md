@@ -309,6 +309,9 @@ match /users/{uid}/makerDrafts/{draftId} {
     && request.resource.data.category is string;
   allow delete: if isOwner(uid);
 }
+match /users/{uid}/editorDrafts/{draftId} {
+  allow read, create, update, delete: if isOwner(uid);
+}
 match /users/{uid}/reviewHelpful/{edgeId} {
   allow read: if isOwner(uid);
   allow create: if isOwner(uid)

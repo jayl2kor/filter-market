@@ -181,6 +181,10 @@ service cloud.firestore {
         allow delete: if isOwner(uid);
       }
 
+      match /editorDrafts/{draftId} {
+        allow read, create, update, delete: if isOwner(uid);
+      }
+
       match /reviewHelpful/{edgeId} {
         allow read: if isOwner(uid);
         allow create: if isOwner(uid)
