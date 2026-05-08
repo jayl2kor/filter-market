@@ -121,6 +121,7 @@
 		95492EEEFCD60CA2E64666A5 /* ReduceMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCF82BA88FE8A0FCB5612ACD /* ReduceMotion.swift */; };
 		961ABCB37D04DAAE1F581E72 /* LUTSamplerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49CE763E3DE75A81BBBA35B /* LUTSamplerTests.swift */; };
 		9958D4572EDCEF827C6DBB2C /* Models.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 17B1469C92033DB00AD14607 /* Models.framework */; };
+		9E4321FB8333C902B57E641F /* FMStateViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54FF1EF5F211CEFF7C33C325 /* FMStateViews.swift */; };
 		9E741D7E42757E5EC2821E84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A5351CED6F1DF3CD977446C4 /* Assets.xcassets */; };
 		9F86C29BA2A7D32C3C4EB4D9 /* FirestoreFilterRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D6F0C2A387F95021D67B35 /* FirestoreFilterRepository.swift */; };
 		A12055B87246709AC7474F31 /* Fmpkg.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17C1878DBAA4BB102E0AA50 /* Fmpkg.swift */; };
@@ -456,6 +457,7 @@
 		4D46D8C89CB9BF63BDCE4444 /* LUTBake.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LUTBake.swift; sourceTree = "<group>"; };
 		4EEC78598BE99A55639D3D0C /* FMShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMShareSheet.swift; sourceTree = "<group>"; };
 		51BABF7665EEE2454036ED73 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
+		54FF1EF5F211CEFF7C33C325 /* FMStateViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMStateViews.swift; sourceTree = "<group>"; };
 		55E2E24B6C4331B4623F6E78 /* EmailLoginScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailLoginScreen.swift; sourceTree = "<group>"; };
 		55E4166718CCDBCEA85DADDC /* Storage.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Storage.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		570D327A92B40713FAFE85FC /* Radius.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Radius.swift; sourceTree = "<group>"; };
@@ -844,6 +846,7 @@
 				FE0E964CBD9F708F068F5A6D /* FMSegmentedControl.swift */,
 				D351682BABF67206F22ADF96 /* FMSkeleton.swift */,
 				EC3E2D13CC029413A91CB862 /* FMSlider.swift */,
+				54FF1EF5F211CEFF7C33C325 /* FMStateViews.swift */,
 				5F157A7967B7CAA4E81A9BF0 /* FMSwipeIndicator.swift */,
 				5B95877146902AAE4EAF654C /* FMTabBar.swift */,
 				6AEA95103FCC901375C8028B /* FMTag.swift */,
@@ -1740,6 +1743,7 @@
 				278A17624F20B2C4950E510E /* FMShareSheet.swift in Sources */,
 				E5A927C13962D039D99E6E41 /* FMSkeleton.swift in Sources */,
 				FDCEFC4AF5F6FD447A54BA78 /* FMSlider.swift in Sources */,
+				9E4321FB8333C902B57E641F /* FMStateViews.swift in Sources */,
 				0CF3D50FF1F87B3D46E99207 /* FMSwipeIndicator.swift in Sources */,
 				119F59048DD73F241EA0B082 /* FMTabBar.swift in Sources */,
 				3929B1C85F666BE00171F8A5 /* FMTag.swift in Sources */,
