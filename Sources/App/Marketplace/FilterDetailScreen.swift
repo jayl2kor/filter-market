@@ -43,10 +43,10 @@ struct FilterDetailScreen: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            scrollContent
-            ctaBar
-        }
+        scrollContent
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                ctaBar
+            }
         .background(FMColors.Background.bg0)
         .navigationBarBackButtonHidden(true)
         .toolbar {
@@ -101,7 +101,6 @@ struct FilterDetailScreen: View {
 
                 reviewsSection
                     .padding(.horizontal, Sp.md)
-                    .padding(.bottom, 100)
             }
             .padding(.bottom, Sp.xl)
         }
