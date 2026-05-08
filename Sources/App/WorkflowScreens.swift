@@ -3518,6 +3518,7 @@ struct ReportFormScreen: View {
 struct ModerationQueueScreen: View {
     @State private var pendingFilters: [Models.Filter] = []
     @State private var isLoading = false
+    @State private var listener: ListenerRegistration?
 
     var body: some View {
         Group {
@@ -3546,7 +3547,11 @@ struct ModerationQueueScreen: View {
         .background(FMColors.Background.bg1.ignoresSafeArea())
         .navigationTitle("검수 큐")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .task { attachListener() }
+        .onDisappear {
+            listener?.remove()
+            listener = nil
+        }
     }
 
     private func load() async {
@@ -3567,17 +3572,65 @@ struct ModerationQueueScreen: View {
             pendingFilters = []
         }
     }
+
+    private func attachListener() {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        listener?.remove()
+        isLoading = true
+        listener = Firestore.firestore()
+            .collection("filters")
+            .whereField("status", isEqualTo: "pending_review")
+            .order(by: "createdAt", descending: true)
+            .limit(to: 100)
+            .addSnapshotListener { snapshot, _ in
+                let filters = snapshot?.documents.compactMap { FirestoreFilterRepository.decode($0) } ?? []
+                Task { @MainActor in
+                    pendingFilters = filters
+                    isLoading = false
+                }
+            }
+    }
 }
 
 struct ModerationDetailScreen: View {
     let itemID: String
 
+    @Environment(\.dismiss) private var dismiss
+    @State private var filter: Models.Filter?
+    @State private var filterDescription: String?
     @State private var isProcessing = false
+    @State private var isLoading = false
+    @State private var hasCompletedAction = false
     @State private var statusMessage: String?
     @State private var rejectReason: String = ""
+    @State private var lastAction: ModerationAction?
+    @State private var dismissTask: Task<Void, Never>?
 
     var body: some View {
         Form {
+            if isLoading {
+                Section {
+                    HStack {
+                        ProgressView()
+                        Text("검수 정보를 불러오는 중")
+                            .foregroundStyle(FMColors.Text.secondary)
+                    }
+                }
+            }
+
+            if let filter {
+                previewSection(filter)
+                metadataSection(filter)
+                engineSection(filter)
+            } else {
+                Section(header: Text("필터 정보")) {
+                    Text(itemID.isEmpty ? "필터 ID가 없습니다." : "필터 정보를 불러올 수 없습니다.")
+                        .foregroundStyle(FMColors.Text.secondary)
+                }
+            }
+
             Section(header: Text("필터 ID")) {
                 Text(itemID).font(Font.fmCaption).foregroundStyle(FMColors.Text.secondary)
             }
@@ -3587,7 +3640,7 @@ struct ModerationDetailScreen: View {
                 } label: {
                     if isProcessing { ProgressView() } else { Text("승인 (Approve)") }
                 }
-                .disabled(itemID.isEmpty || isProcessing)
+                .disabled(itemID.isEmpty || filter == nil || isProcessing || hasCompletedAction)
                 .accessibilityIdentifier("modDetail.approve")
             }
             Section(header: Text("거부 사유")) {
@@ -3598,15 +3651,29 @@ struct ModerationDetailScreen: View {
                 } label: {
                     if isProcessing { ProgressView() } else { Text("거부 (Reject)").foregroundStyle(FMColors.Semantic.error) }
                 }
-                .disabled(itemID.isEmpty || rejectReason.isEmpty || isProcessing)
+                .disabled(itemID.isEmpty || filter == nil || rejectReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isProcessing || hasCompletedAction)
                 .accessibilityIdentifier("modDetail.reject")
             }
             if let statusMessage {
-                Section { Text(statusMessage).foregroundStyle(FMColors.Text.secondary) }
+                Section {
+                    Text(statusMessage).foregroundStyle(FMColors.Text.secondary)
+                    if lastAction != nil {
+                        Button("되돌리기") {
+                            Task { await undoLastAction() }
+                        }
+                        .disabled(isProcessing)
+                        .accessibilityIdentifier("modDetail.undo")
+                    }
+                }
             }
         }
         .navigationTitle("검수 상세")
         .navigationBarTitleDisplayMode(.inline)
+        .task { await loadDetail() }
+        .onDisappear {
+            dismissTask?.cancel()
+            dismissTask = nil
+        }
     }
 
     private func approve() async {
@@ -3615,7 +3682,7 @@ struct ModerationDetailScreen: View {
         do {
             let callable = Functions.functions(region: "asia-northeast3").httpsCallable("approveFilter")
             _ = try await callable.call(["filterId": itemID])
-            statusMessage = "승인 완료"
+            completeAction(.approved)
         } catch {
             statusMessage = "오류: \(error.localizedDescription)"
         }
@@ -3626,11 +3693,170 @@ struct ModerationDetailScreen: View {
         defer { isProcessing = false }
         do {
             let callable = Functions.functions(region: "asia-northeast3").httpsCallable("rejectFilter")
-            _ = try await callable.call(["filterId": itemID, "reason": rejectReason])
-            statusMessage = "거부 완료"
+            let reason = rejectReason.trimmingCharacters(in: .whitespacesAndNewlines)
+            _ = try await callable.call(["filterId": itemID, "reason": reason])
+            completeAction(.rejected)
             rejectReason = ""
         } catch {
             statusMessage = "오류: \(error.localizedDescription)"
+        }
+    }
+
+    private func undoLastAction() async {
+        dismissTask?.cancel()
+        dismissTask = nil
+        isProcessing = true
+        defer { isProcessing = false }
+        do {
+            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("undoModerationDecision")
+            _ = try await callable.call(["filterId": itemID])
+            hasCompletedAction = false
+            lastAction = nil
+            statusMessage = "되돌렸습니다. 다시 검수할 수 있습니다."
+            await loadDetail()
+        } catch {
+            statusMessage = "되돌리기 실패: \(error.localizedDescription)"
+            scheduleDismiss()
+        }
+    }
+
+    private func completeAction(_ action: ModerationAction) {
+        hasCompletedAction = true
+        lastAction = action
+        statusMessage = "\(action.label) 완료. 5초 안에 되돌릴 수 있습니다."
+        scheduleDismiss()
+    }
+
+    private func scheduleDismiss() {
+        dismissTask?.cancel()
+        dismissTask = Task {
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run { dismiss() }
+        }
+    }
+
+    private func loadDetail() async {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        guard !itemID.isEmpty else { return }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let snapshot = try await Firestore.firestore()
+                .collection("filters").document(itemID)
+                .getDocument()
+            filter = FirestoreFilterRepository.decode(snapshot)
+            filterDescription = snapshot.data()?["description"] as? String
+                ?? snapshot.data()?["summary"] as? String
+        } catch {
+            statusMessage = "필터 정보 로드 실패: \(error.localizedDescription)"
+        }
+    }
+
+    private func previewSection(_ filter: Models.Filter) -> some View {
+        Section(header: Text("콘텐츠 미리보기")) {
+            HStack(spacing: Sp.sm) {
+                moderationPreviewTile(title: "커버", url: filter.coverURL, fallbackTitle: filter.title, category: filter.category.rawValue)
+                moderationPreviewTile(title: "시그니처 샘플", url: filter.signatureSampleURL ?? filter.coverURL, fallbackTitle: filter.title, category: filter.category.rawValue)
+            }
+            if let filterDescription, !filterDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(filterDescription)
+                    .font(Font.fmBody)
+                    .foregroundStyle(FMColors.Text.primary)
+            }
+        }
+    }
+
+    private func metadataSection(_ filter: Models.Filter) -> some View {
+        Section(header: Text("필터 메타데이터")) {
+            moderationInfoRow("제목", filter.title)
+            moderationInfoRow("메이커", "\(filter.author.displayName) · \(filter.author.uid)")
+            moderationInfoRow("카테고리", filter.category.rawValue)
+            moderationInfoRow("상태", filter.status.rawValue)
+            moderationInfoRow("가격", filter.priceCoins > 0 ? "\(filter.priceCoins) 코인" : "무료")
+            moderationInfoRow("다운로드", "\(filter.downloadCount > 0 ? filter.downloadCount : filter.useCount)")
+            if let ratingAvg = filter.ratingAvg {
+                moderationInfoRow("평점", String(format: "%.1f", ratingAvg))
+            }
+            if let createdAt = filter.createdAt {
+                moderationInfoRow("제출일", createdAt.formatted(date: .abbreviated, time: .shortened))
+            }
+            if !filter.tags.isEmpty {
+                Text(filter.tags.map { $0.hasPrefix("#") ? $0 : "#\($0)" }.joined(separator: " "))
+                    .font(Font.fmCaption)
+                    .foregroundStyle(FMColors.Text.secondary)
+            }
+        }
+    }
+
+    private func engineSection(_ filter: Models.Filter) -> some View {
+        Section(header: Text("엔진 / 패키지")) {
+            moderationInfoRow("엔진", filter.engine.type.rawValue)
+            moderationInfoRow("버전", filter.version)
+            moderationInfoRow("최소 앱", filter.engine.minAppVersion)
+            moderationInfoRow("최소 iOS", filter.engine.minIOSVersion)
+            if let lutSize = filter.engine.lutSize {
+                moderationInfoRow("LUT", "\(lutSize)^3")
+            }
+            if let lutFile = filter.engine.lutFile, !lutFile.isEmpty {
+                moderationInfoRow("LUT 파일", lutFile)
+            }
+        }
+    }
+
+    private func moderationInfoRow(_ title: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(Font.fmCaption)
+                .foregroundStyle(FMColors.Text.tertiary)
+            Spacer()
+            Text(value)
+                .font(Font.fmCaption)
+                .foregroundStyle(FMColors.Text.primary)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+
+    private func moderationPreviewTile(title: String, url: URL?, fallbackTitle: String, category: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ZStack {
+                if let url {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        default:
+                            FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: fallbackTitle, category: category))
+                        }
+                    }
+                } else {
+                    FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: fallbackTitle, category: category))
+                }
+            }
+            .frame(height: 120)
+            .clipShape(RoundedRectangle(cornerRadius: R.md))
+            .overlay {
+                RoundedRectangle(cornerRadius: R.md)
+                    .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+            }
+
+            Text(title)
+                .font(Font.fmCaption)
+                .foregroundStyle(FMColors.Text.secondary)
+        }
+    }
+}
+
+private enum ModerationAction {
+    case approved
+    case rejected
+
+    var label: String {
+        switch self {
+        case .approved: "승인"
+        case .rejected: "거부"
         }
     }
 }

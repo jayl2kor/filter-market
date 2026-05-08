@@ -115,8 +115,8 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 
 | Screen ID | Route / Entry | SwiftUI | 상태 | Required actions |
 |---|---|---|---|---|
-| `mod.queue` | `AppRoute.modQueue` | `ModerationQueueScreen` | Partial | `modqueue.empty`, `mod.queue.filter.tap`, `mod.queue.row` |
-| `mod.detail` | `AppRoute.modDetail(id:)` | `ModerationDetailScreen` | Partial | `modDetail.approve`, `modDetail.reason`, `modDetail.reject`, `mod.detail.takedown` |
+| `mod.queue` | `AppRoute.modQueue` | `ModerationQueueScreen` | Implemented, NeedsFirebaseQA | `modqueue.empty`, `mod.queue.filter.tap`, `mod.queue.row` |
+| `mod.detail` | `AppRoute.modDetail(id:)` | `ModerationDetailScreen` | Implemented, NeedsFirebaseQA | filter metadata/preview, `modDetail.approve`, `modDetail.reason`, `modDetail.reject`, `modDetail.undo`, `mod.detail.takedown` |
 | `mod.rejected` | `AppRoute.filterRejected(id:)` | `FilterRejectedScreen` | Implemented | `mod.rejected.review`, `mod.rejected.detail`, `mod.rejected.support`, `mod.rejected.appeal`, `mod.rejected.cancel`, `mod.rejected.edit` |
 
 ### 4.7 Wallet / Payment / Pro

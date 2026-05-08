@@ -19,6 +19,9 @@ const rejectSchema = z.object({
   filterId: z.string().min(1).max(128),
   reason: z.string().min(1).max(2000),
 });
+const undoSchema = z.object({
+  filterId: z.string().min(1).max(128),
+});
 
 export interface ModerationDeps {
   firestore?: Firestore;
@@ -26,6 +29,7 @@ export interface ModerationDeps {
 
 export interface ApproveResult { ok: true; filterId: string; status: "approved" }
 export interface RejectResult { ok: true; filterId: string; status: "rejected" }
+export interface UndoModerationResult { ok: true; filterId: string; status: "pending_review" }
 
 /** Pure logic — exported for unit tests. */
 export async function applyApproveFilter(
@@ -83,6 +87,35 @@ export async function applyRejectFilter(
   return { ok: true, filterId, status: "rejected" };
 }
 
+export async function applyUndoModerationDecision(
+  rawData: unknown,
+  deps: ModerationDeps = {},
+): Promise<UndoModerationResult> {
+  const parsed = undoSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId } = parsed.data;
+  const db = deps.firestore ?? getFirestore();
+  const ref = db.collection("filters").doc(filterId);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    throw new HttpsError("not-found", `filter ${filterId} not found`);
+  }
+  const status = snap.data()?.status;
+  if (status !== "approved" && status !== "rejected") {
+    throw new HttpsError("failed-precondition", `no completed moderation decision to undo (status=${status})`);
+  }
+  await ref.update({
+    status: "pending_review",
+    publishedAt: FieldValue.delete(),
+    rejectedAt: FieldValue.delete(),
+    rejectionReason: FieldValue.delete(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+  return { ok: true, filterId, status: "pending_review" };
+}
+
 const reportSchema = z.object({
   filterId: z.string().min(1).max(128),
   reasonCode: z.string().min(1).max(64),
@@ -127,4 +160,9 @@ export const approveFilter = onCall({ region, cors: true, enforceAppCheck: true 
 export const rejectFilter = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
   requireModerator(req);
   return applyRejectFilter(req.data);
+});
+
+export const undoModerationDecision = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
+  requireModerator(req);
+  return applyUndoModerationDecision(req.data);
 });

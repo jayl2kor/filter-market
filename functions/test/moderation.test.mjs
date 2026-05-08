@@ -9,6 +9,7 @@ import {
   applyApproveFilter,
   applyRejectFilter,
   applyReportFilter,
+  applyUndoModerationDecision,
 } from "../lib/http/moderation.js";
 
 function makeFakeFirestore(initial = {}) {
@@ -106,6 +107,36 @@ describe("applyRejectFilter", () => {
     await assert.rejects(
       () => applyRejectFilter({ filterId: "f-1", reason: "" }, { firestore }),
       (err) => err && err.code === "invalid-argument",
+    );
+  });
+});
+
+describe("applyUndoModerationDecision", () => {
+  it("transitions approved → pending_review", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/f-1": { status: "approved", title: "T" },
+    });
+    const result = await applyUndoModerationDecision({ filterId: "f-1" }, { firestore });
+    assert.equal(result.status, "pending_review");
+    assert.equal(firestore._data.get("filters/f-1").status, "pending_review");
+  });
+
+  it("transitions rejected → pending_review", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/f-1": { status: "rejected", rejectionReason: "policy" },
+    });
+    const result = await applyUndoModerationDecision({ filterId: "f-1" }, { firestore });
+    assert.equal(result.status, "pending_review");
+    assert.equal(firestore._data.get("filters/f-1").status, "pending_review");
+  });
+
+  it("rejects pending filters without a completed decision", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/f-1": { status: "pending_review" },
+    });
+    await assert.rejects(
+      () => applyUndoModerationDecision({ filterId: "f-1" }, { firestore }),
+      (err) => err && err.code === "failed-precondition",
     );
   });
 });

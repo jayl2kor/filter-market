@@ -479,10 +479,12 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 
 | # | Route | Element | Expected | PASS/FAIL |
 |---|---|---|---|---|
-| 13.3.1 | `.modQueue` | 큐 필터 메뉴 | 상태별 필터 |  |
+| 13.3.1 | `.modQueue` | 큐 필터 메뉴 | `filters` listener로 `pending_review` 목록 실시간 반영 |  |
 | 13.3.2 | `.modQueue` | 큐 row | → modDetail(id:) |  |
-| 13.3.3 | `.modDetail` | 승인 button | mock approve |  |
-| 13.3.4 | `.modDetail` | 거부 button | → filterRejected(id:) |  |
+| 13.3.3 | `.modDetail` | 콘텐츠/메타데이터 | cover/signature sample, 제목, 메이커, 카테고리, 태그, 가격, 엔진/LUT 정보 표시 |  |
+| 13.3.4 | `.modDetail` | 승인 button (`modDetail.approve`) | `approveFilter` callable, 중복 호출 disabled, 5초 후 큐로 복귀 |  |
+| 13.3.4b | `.modDetail` | 되돌리기 (`modDetail.undo`) | 승인/거부 후 5초 내 `undoModerationDecision` callable, 상태 `pending_review` 복구 |  |
+| 13.3.4c | `.modDetail` | 거부 button (`modDetail.reject`) | 1~2000자 사유로 `rejectFilter` callable, 중복 호출 disabled, 5초 후 큐로 복귀 |  |
 | 13.3.5 | `.modDetail` | 게시 중단 | confirmation → takedown |  |
 | 13.3.6 | `.blockList` | 세그먼트 (차단/뮤트) | 리스트 변경 |  |
 | 13.3.7 | `.blockList` | 차단 해제 | row 제거 |  |

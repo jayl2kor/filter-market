@@ -609,6 +609,7 @@ extension AppRoute {
                 .init("modDetail.approve", "승인", systemImage: "checkmark.seal"),
                 .init("modDetail.reason", "거부 사유", systemImage: "square.and.pencil"),
                 .init("modDetail.reject", "거부", systemImage: "xmark.seal", target: .filterRejected(id: id)),
+                .init("modDetail.undo", "되돌리기", systemImage: "arrow.uturn.backward"),
                 .init("mod.detail.takedown", "Takedown", systemImage: "trash")
             ]
 
