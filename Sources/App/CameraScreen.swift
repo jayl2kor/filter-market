@@ -27,6 +27,7 @@ struct CameraScreen: View {
     @State private var cameraPermissionState: PermissionCoordinator.Status = .notDetermined
     @State private var isPhotoImportPresented = false
     @State private var countdownValue: Int?
+    @State private var countdownTask: Task<Void, Never>?
     /// 셔터 → `controller.capture` 가 nil 을 반환했을 때의 사용자용 에러 메시지.
     /// `.fmAlert` 의 `isPresented` 와 binding 되며, 닫힐 때 nil 로 리셋된다.
     @State private var captureError: String?
@@ -123,12 +124,15 @@ struct CameraScreen: View {
                     }
                 }
             case .background, .inactive:
+                cancelCountdown()
                 controller.stop()
             @unknown default:
+                cancelCountdown()
                 controller.stop()
             }
         }
         .onDisappear {
+            cancelCountdown()
             controller.stop()
         }
         .fullScreenCover(item: $captureResult) { result in
@@ -740,7 +744,8 @@ struct CameraScreen: View {
             // 셔터.
             Button {
                 FMHaptic.medium.play()
-                Task { await captureWithOptionalTimer() }
+                countdownTask?.cancel()
+                countdownTask = Task { await captureWithOptionalTimer() }
             } label: {
                 ZStack {
                     Circle()
@@ -823,22 +828,30 @@ struct CameraScreen: View {
         .transition(.opacity)
         .allowsHitTesting(true)
         .onTapGesture {
-            countdownValue = nil
+            cancelCountdown()
         }
     }
 
     @MainActor
     private func captureWithOptionalTimer() async {
-        guard !controller.isCapturing else { return }
+        defer {
+            countdownValue = nil
+            countdownTask = nil
+        }
+        guard !controller.isCapturing, scenePhase == .active else { return }
         let seconds = store.cameraTimerOption.rawValue
         if seconds > 0 {
             for value in stride(from: seconds, through: 1, by: -1) {
                 countdownValue = value
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                guard countdownValue != nil else { return }
+                do {
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled, countdownValue != nil, scenePhase == .active else { return }
             }
-            countdownValue = nil
         }
+        guard !Task.isCancelled, scenePhase == .active else { return }
         let result = await controller.capture(filter: store.selectedFilter)
         if let result {
             captureResult = result
@@ -848,6 +861,13 @@ struct CameraScreen: View {
                 ? "촬영에 실패했어요"
                 : controller.statusMessage
         }
+    }
+
+    @MainActor
+    private func cancelCountdown() {
+        countdownTask?.cancel()
+        countdownTask = nil
+        countdownValue = nil
     }
 }
 

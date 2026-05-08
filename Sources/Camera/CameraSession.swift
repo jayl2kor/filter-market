@@ -206,15 +206,17 @@ public final class CameraSession: NSObject, @unchecked Sendable {
 
                 do {
                     try configureIfNeeded()
-                    if !captureSession.isRunning {
-                        captureSession.startRunning()
+                    guard captureSession.isRunning else {
+                        continuation.resume(throwing: CameraSessionError.sessionUnavailable)
+                        return
                     }
 
                     let settings = AVCapturePhotoSettings()
                     let settingsID = settings.uniqueID
-                    let delegate = PhotoCaptureDelegate(settingsID: settingsID) { [weak self] result in
-                        self?.sessionQueue.async {
-                            self?.photoCaptureDelegates[settingsID] = nil
+                    let session = self
+                    let delegate = PhotoCaptureDelegate(settingsID: settingsID) { result in
+                        session.sessionQueue.async {
+                            session.photoCaptureDelegates[settingsID] = nil
                         }
                         continuation.resume(with: result)
                     }

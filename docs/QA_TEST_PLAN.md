@@ -222,6 +222,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 7.14 | 프리뷰 탭 (focus) | FocusReticle 850ms 표시 |  |
 | 7.15 | 좌우 드래그 | 필터 좌/우 전환 |  |
 | 7.16 | timer 카운트다운 중 화면 탭 | 카운트다운 취소 |  |
+| 7.16a | timer 카운트다운 중 background/inactive | 카운트다운 task 취소, `countdownValue` nil, background capture 발생 안 함 |  |
 | 7.17 | 캡처 실패 (시뮬레이터) | "촬영 실패" 알럿 |  |
 | 7.18 | 카메라 권한 거부 후 진입 | `CameraPermissionDenied` 표시: "카메라 권한이 꺼져있어요" + "설정 열기" 버튼 |  |
 | 7.19 | 7.18에서 "설정 열기" 탭 | iOS 설정 앱 → moodit 권한 페이지로 이동 |  |
