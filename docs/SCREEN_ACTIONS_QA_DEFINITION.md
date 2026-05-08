@@ -226,6 +226,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | StoreKit/Google/Apple sign-in은 sandbox/실기기 의존 | 시뮬레이터만으로 검증 불가 | 실기기 QA checklist 별도 표시 |
 | 저장/즐겨찾기 사용자 상태 | `/users/{uid}/savedFilters`, `/users/{uid}/favorites` snapshot listener가 단일 출처 | 동일 uid 재실행/다른 디바이스 동기화와 실패 rollback 확인 |
 | 알림 설정 동기화 | 사용자 입력만 debounced Firestore write를 예약하고 remote snapshot은 재저장하지 않음 | 빠른 토글 6개 변경 후 최종 상태 1회성 반영, listener write loop 없음 |
+| Foreground push 표시 | `PushRegistration` foreground delegate가 notificationPreferences와 quiet hours를 적용 | 카테고리 OFF/quiet hours 중에는 banner/sound 없이 badge만 허용 |
 
 ## 8. Definition Gate Before QA
 
@@ -299,6 +300,7 @@ QA를 시작하기 전 반드시 아래 순서로 정의를 고정한다.
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after saved/favorites/wallet reconcile batch (#219/#220/#249) |
 | 2026-05-09 | `npm --prefix functions run test:rules` | PASS after savedFilters/favorites owner rules, 13 tests |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after notification settings debounce/system permission batch (#247/#248) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after foreground push preference gate (#223) |
 
 ## 10. Definition of Done
 

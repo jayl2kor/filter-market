@@ -6,6 +6,135 @@ import Foundation
 import UIKit
 import UserNotifications
 
+final class ForegroundNotificationPolicy: @unchecked Sendable {
+    static let shared = ForegroundNotificationPolicy()
+
+    private enum Category {
+        case system
+        case social
+        case reviews
+        case marketplace
+        case creator
+        case wallet
+        case product
+    }
+
+    private let lock = NSLock()
+    private var preferences = NotificationPreferences()
+
+    private init() {}
+
+    func update(preferences: NotificationPreferences) {
+        lock.lock()
+        self.preferences = preferences
+        lock.unlock()
+    }
+
+    func presentationOptions(
+        for userInfo: [AnyHashable: Any],
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> UNNotificationPresentationOptions {
+        lock.lock()
+        let current = preferences
+        lock.unlock()
+
+        let category = category(for: userInfo)
+        guard current.systemEnabled else { return [.badge] }
+        guard isCategoryEnabled(category, preferences: current) else { return [.badge] }
+        if category != .system, isQuietTime(now: now, calendar: calendar, preferences: current) {
+            return [.badge]
+        }
+        return [.banner, .badge, .sound]
+    }
+
+    private func category(for userInfo: [AnyHashable: Any]) -> Category {
+        let rawKind = stringValue(for: "kind", in: userInfo)
+            ?? stringValue(for: "type", in: userInfo)
+            ?? stringValue(for: "category", in: userInfo)
+            ?? "system"
+        switch rawKind.lowercased() {
+        case "follow", "followrequest", "newfollower", "like", "liked", "mention":
+            return .social
+        case "review", "reviews", "comment", "makerreply", "rating":
+            return .reviews
+        case "download", "downloads", "recommendation", "collection", "marketplace", "filter":
+            return .marketplace
+        case "creator", "maker", "moderation", "approved", "rejected", "upload":
+            return .creator
+        case "wallet", "payment", "refund", "purchase", "pro", "subscription":
+            return .wallet
+        case "product", "news", "event", "announcement":
+            return .product
+        default:
+            return .system
+        }
+    }
+
+    private func stringValue(for key: String, in userInfo: [AnyHashable: Any]) -> String? {
+        if let value = userInfo[key] as? String {
+            return value
+        }
+        if let value = userInfo[AnyHashable(key)] as? String {
+            return value
+        }
+        return nil
+    }
+
+    private func isCategoryEnabled(_ category: Category, preferences: NotificationPreferences) -> Bool {
+        switch category {
+        case .system:
+            return preferences.systemEnabled
+        case .social:
+            return preferences.social
+        case .reviews:
+            return preferences.reviews
+        case .marketplace:
+            return preferences.marketplace
+        case .creator:
+            return preferences.creator
+        case .wallet:
+            return preferences.wallet
+        case .product:
+            return preferences.product
+        }
+    }
+
+    private func isQuietTime(
+        now: Date,
+        calendar: Calendar,
+        preferences: NotificationPreferences
+    ) -> Bool {
+        guard preferences.quietHoursEnabled else { return false }
+        guard
+            let start = minutes(from: preferences.quietStart),
+            let end = minutes(from: preferences.quietEnd)
+        else { return false }
+
+        let components = calendar.dateComponents([.hour, .minute], from: now)
+        let current = (components.hour ?? 0) * 60 + (components.minute ?? 0)
+        if start == end {
+            return false
+        }
+        if start < end {
+            return current >= start && current < end
+        }
+        return current >= start || current < end
+    }
+
+    private func minutes(from value: String) -> Int? {
+        let parts = value.split(separator: ":")
+        guard
+            parts.count == 2,
+            let hour = Int(parts[0]),
+            let minute = Int(parts[1]),
+            (0...23).contains(hour),
+            (0...59).contains(minute)
+        else { return nil }
+        return hour * 60 + minute
+    }
+}
+
 /// Centralizes APNs + FCM registration and per-device token persistence.
 ///
 /// Lifecycle:
@@ -157,13 +286,17 @@ extension PushRegistration: MessagingDelegate {
 // MARK: - UNUserNotificationCenterDelegate
 
 extension PushRegistration: UNUserNotificationCenterDelegate {
-    /// Foreground delivery — show banner + sound while the app is open.
+    /// Foreground delivery — respect app notification preferences while the app is open.
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler([.banner, .badge, .sound])
+        completionHandler(
+            ForegroundNotificationPolicy.shared.presentationOptions(
+                for: notification.request.content.userInfo
+            )
+        )
     }
 
     /// Tap handling — parses the FCM payload via UniversalLinkParser and

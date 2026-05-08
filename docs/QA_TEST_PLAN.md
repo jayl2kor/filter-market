@@ -438,6 +438,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 13.1.12 | 100건 초과 알림 | `notif.loadMore`로 다음 페이지 fetch, 중복 없이 이전 알림 추가 |  |
 | 13.1.13 | 시간 라벨 | 앱을 오래 켜둬도 `createdAt` 기준으로 분/시간/일 라벨과 그룹 재계산 |  |
 | 13.1.14 | 앱 badge | unread count 기준으로 badge count 갱신 |  |
+| 13.1.15 | Foreground push | `kind`별 notificationPreferences 카테고리와 quiet hours를 존중. 차단된 카테고리/quiet hours 중에는 badge만 허용 |  |
 
 ### 13.2 Wallet / Pro / Payment
 

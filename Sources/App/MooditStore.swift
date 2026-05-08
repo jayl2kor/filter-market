@@ -346,7 +346,11 @@ final class MooditStore: ObservableObject {
     /// 데이터 내보내기 요청 이력 — 진짜 데이터는 Firestore /users/{uid}/exportRequests에서 들어와야 함.
     /// (이전: 2개 하드코딩 mock 잔재 — 사용자가 요청한 적 없는 export 이력이 노출되는 문제 해결)
     @Published var exportRequests: [DataExportRequest] = []
-    @Published var notificationPreferences = NotificationPreferences()
+    @Published var notificationPreferences = NotificationPreferences() {
+        didSet {
+            ForegroundNotificationPolicy.shared.update(preferences: notificationPreferences)
+        }
+    }
     @Published var editorDraft = MakerFilterDraft.empty
     @Published var editorImportedLUT: LUT3D?
     @Published var editorImportedLUTRevision = 0
@@ -778,6 +782,7 @@ final class MooditStore: ObservableObject {
         accountDeletionRequestedAt = nil
         downloadedFilterIDs = []
         favoriteFilterIDs = []
+        notificationPreferences = NotificationPreferences()
         importedPhotoData = nil
         editorReferencePhotoData = nil
         editorReferencePhotoRevision = 0

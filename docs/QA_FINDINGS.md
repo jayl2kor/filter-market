@@ -48,6 +48,7 @@
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after saved/favorites/wallet reconcile batch (#219/#220/#249) |
 | 2026-05-09 | `npm --prefix functions run test:rules` | PASS after savedFilters/favorites owner rules, 13 tests |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after notification settings debounce/system permission batch (#247/#248) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after foreground push preference gate (#223) |
 
 ## Remaining Manual QA Gates
 
@@ -84,6 +85,7 @@
 | Pro subscription verifier | Pro receipts are now idempotent, owner-scoped, and expired/revoked JWS metadata maps to inactive Pro state. | StoreKit sandbox renewal/cancel manual QA remains required. |
 | Notifications inbox | Notification rows now compute relative time/buckets from `createdAt`, expose literal Korean labels instead of unresolved keys, support older-page loading, and surface markRead/follow errors. | Firebase QA should seed 100+ notifications and verify load-more, badge count, read state, and follow edge writes. |
 | Notification settings | Category and quiet-hours changes now save through user-input bindings with an 800ms debounce, while remote listener snapshots only update local state. The system card reads actual iOS notification authorization status. | Manual QA should toggle several categories quickly and verify one final Firestore document state, then change iOS notification permission in Settings and confirm the card refreshes on return. |
+| Foreground push gating | Foreground push presentation now maps `kind`/`type`/`category` payloads to notification preferences and suppresses banner/sound during disabled categories or quiet hours. | Device/APNs QA should send foreground pushes for like/review/wallet/system kinds with preferences on/off and quiet hours spanning the current time. |
 | Saved/favorites state | Saved filters and favorites now sync through `/users/{uid}/savedFilters` and `/users/{uid}/favorites` snapshot listeners with optimistic rollback on failed remove/favorite writes. | Firebase QA should verify download, favorite toggle, remove download, app relaunch, and second-device sync under the same uid. |
 | Wallet optimistic reconcile | Coin credit optimism now falls back to a direct wallet balance reload if the listener does not reconcile within 10 seconds. | StoreKit/Firebase QA should verify top-up UI immediately changes, then converges to `/users/{uid}/wallet/balance.value`. |
 | Payout | Current screens are marked `MockOnly`; automated QA verifies placeholder surfaces, not real Stripe payout behavior. | Keep hidden/controlled until payout backend scope is defined. |
