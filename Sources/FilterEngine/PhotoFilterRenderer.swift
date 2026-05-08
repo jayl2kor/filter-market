@@ -129,6 +129,25 @@ public final class PhotoFilterRenderer {
         vignette: Float = 0,
         cropAspectRatio: PhotoCropAspectRatio? = nil
     ) throws -> Data {
+        let outputImage = try renderImage(
+            from: originalData,
+            sourceLUT: sourceLUT,
+            intensity: intensity,
+            grain: grain,
+            vignette: vignette,
+            cropAspectRatio: cropAspectRatio
+        )
+        return try encodeJPEG(outputImage)
+    }
+
+    public func renderImage(
+        from originalData: Data,
+        sourceLUT: LUT3D,
+        intensity: FilterIntensity = .full,
+        grain: Float = 0,
+        vignette: Float = 0,
+        cropAspectRatio: PhotoCropAspectRatio? = nil
+    ) throws -> CGImage {
         guard !originalData.isEmpty else {
             throw PhotoFilterRendererError.invalidImageData
         }
@@ -147,8 +166,7 @@ public final class PhotoFilterRenderer {
         pixelBuffer.applySpatialAdjustments(grain: grain, vignette: vignette)
 
         let filteredImage = try pixelBuffer.makeImage()
-        let outputImage = try crop(filteredImage, aspectRatio: cropAspectRatio)
-        return try encodeJPEG(outputImage)
+        return try crop(filteredImage, aspectRatio: cropAspectRatio)
     }
 
     private func makeLUT(for filter: RenderFilter) -> LUT3D {

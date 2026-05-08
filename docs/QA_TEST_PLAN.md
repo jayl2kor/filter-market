@@ -310,7 +310,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 10.2.6 | `editor.reference.photo.pick` | PhotosPicker 표시, 사용자 선택 이미지를 1280px 장변 JPEG로 normalize 후 preview source로 사용 |  |
 | 10.2.7 | `editor.reference.photo.clear` | 사용자 reference photo 제거, 시스템 sample source로 복귀 |  |
 | 10.2.8 | `editor.reference.sample.<kind>` | portrait/landscape/indoor/lifestyle 임시 샘플 중 하나 선택, 사용자 photo가 있으면 clear 후 선택 적용 |  |
-| 10.2.9 | `editor.param.slider` | 노출/대비/채도/그레인/비네트 값 변경, 250ms debounce 후 preview 재렌더 |  |
+| 10.2.9 | `editor.param.slider` | 노출/대비/채도/그레인/비네트 값 변경, 16ms render delay 후 800px preview input + CGImage direct render로 갱신. 중앙 ProgressView로 사진을 가리지 않음 |  |
 | 10.2.10 | `editor.compare.hold` | 손을 누르고 있을 동안 비포 표시 |  |
 | 10.2.11 | `editor.lut.import` | UIDocumentPicker 표시 (.cube 파일 선택), 파싱 성공 시 LUT 카드와 preview 갱신, 실패 시 에러 alert |  |
 | 10.2.12 | `editor.lut.replace` | LUT 교체 |  |

@@ -1844,12 +1844,13 @@ private struct EditorReferencePreview: View {
             }
             .padding(Sp.md)
 
-            if isRendering {
+            if isRendering && renderedImage == nil {
                 ProgressView()
                     .tint(FMColors.Accent.primary)
-                    .padding(Sp.md)
+                    .padding(Sp.sm)
                     .background(.regularMaterial, in: Capsule())
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                    .padding(Sp.sm)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
         }
         .frame(maxWidth: .infinity)
@@ -1895,15 +1896,14 @@ private struct EditorReferencePreview: View {
 
     @MainActor
     private func scheduleRender() async {
-        try? await Task.sleep(nanoseconds: 250_000_000)
+        try? await Task.sleep(nanoseconds: 16_000_000)
         guard !Task.isCancelled else { return }
         await render()
     }
 
     @MainActor
     private func render() async {
-        let referenceData = store.editorReferencePhotoData
-            ?? EditorReferenceSampleImage.makeJPEGData(kind: store.editorReferenceSampleKind)
+        let referenceData = previewReferenceData()
         sourceImage = UIImage(data: referenceData)
 
         let sourceLUT = store.editorImportedLUT
@@ -1916,11 +1916,11 @@ private struct EditorReferencePreview: View {
         defer { isRendering = false }
 
         do {
-            let renderedData = try await Task.detached(priority: .userInitiated) {
+            let renderedCGImage = try await Task.detached(priority: .userInitiated) {
                 let bakedLUT = LUTBake.bake(sourceLUT: sourceLUT, parameters: parameters)
                 let renderer = PhotoFilterRenderer(jpegCompressionQuality: 0.86)
-                return try renderer.renderJPEG(
-                    to: referenceData,
+                return try renderer.renderImage(
+                    from: referenceData,
                     sourceLUT: bakedLUT,
                     intensity: .full,
                     grain: grain,
@@ -1928,10 +1928,19 @@ private struct EditorReferencePreview: View {
                     cropAspectRatio: nil
                 )
             }.value
-            renderedImage = UIImage(data: renderedData)
+            renderedImage = UIImage(cgImage: renderedCGImage)
         } catch {
             renderedImage = sourceImage
         }
+    }
+
+    private func previewReferenceData() -> Data {
+        if let data = store.editorReferencePhotoData,
+           let image = UIImage(data: data),
+           let resized = EditorReferenceSampleImage.normalizedJPEGData(from: image, maxLongEdge: 800) {
+            return resized
+        }
+        return EditorReferenceSampleImage.makeJPEGData(kind: store.editorReferenceSampleKind)
     }
 }
 

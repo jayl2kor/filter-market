@@ -111,6 +111,19 @@ final class PhotoFilterRendererTests: XCTestCase {
         XCTAssertGreaterThan(center.blue, corner.blue + 0.18)
     }
 
+    func testRenderImageAvoidsJPEGRoundTripForPreview() throws {
+        let inputData = try makeSolidPNG(color: TestColor(red: 0.42, green: 0.42, blue: 0.42), width: 8, height: 6)
+        let renderer = PhotoFilterRenderer(jpegCompressionQuality: 1)
+
+        let output = try renderer.renderImage(
+            from: inputData,
+            sourceLUT: LUT3D.identity(size: 5)
+        )
+
+        XCTAssertEqual(output.width, 8)
+        XCTAssertEqual(output.height, 6)
+    }
+
     func testRenderJPEGWithGrainIsDeterministic() throws {
         let inputData = try makeSolidPNG(color: TestColor(red: 0.42, green: 0.42, blue: 0.42), width: 24, height: 24)
         let renderer = PhotoFilterRenderer(jpegCompressionQuality: 1)
