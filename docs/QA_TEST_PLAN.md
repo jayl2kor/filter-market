@@ -326,6 +326,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 10.3.5 | uploadCover | `upload.signature.sample.<kind>` | portrait/landscape/indoor/lifestyle 임시 샘플 중 하나를 시그니처 샘플 슬롯으로 선택 |  |
 | 10.3.6 | uploadCover | `upload.signature.clear` | 직접 사진/시스템 샘플 선택 초기화 |  |
 | 10.3.7 | uploadCover | `upload.next` | → uploadTags |  |
+| 10.3.7b | uploadCover | `upload.cancel` | alert: 초안 저장하고 나가기=draft save+dismiss, 초안 버리고 나가기=reset+dismiss, 계속 작성=stay |  |
 | 10.3.8 | uploadTags | `upload.tag.add` | 태그 추가 시트 |  |
 | 10.3.9 | uploadTags | `upload.cat.tap` | 카테고리 picker |  |
 | 10.3.10 | uploadTags | `upload.next` | → uploadSubmit |  |

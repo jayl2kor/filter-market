@@ -2383,6 +2383,7 @@ struct EditorDraftSaveScreen: View {
 
 struct UploadCoverScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @Environment(\.dismiss) private var dismiss
     @State private var showCancelAlert = false
     @State private var selectedSignatureItem: PhotosPickerItem?
     @State private var signatureLoadError: String?
@@ -2422,8 +2423,17 @@ struct UploadCoverScreen: View {
             }
         }
         .alert("업로드를 취소할까요?", isPresented: $showCancelAlert) {
-            Button("초안 저장") { store.saveEditorDraft() }
-            Button("취소", role: .cancel) {}
+            Button("초안 저장하고 나가기") {
+                store.saveEditorDraft()
+                dismiss()
+            }
+            Button("초안 버리고 나가기", role: .destructive) {
+                store.resetEditorDraft()
+                dismiss()
+            }
+            Button("계속 작성", role: .cancel) {}
+        } message: {
+            Text("작성한 내용을 임시저장하면 다음에 이어 쓸 수 있어요.")
         }
         .onChange(of: selectedSignatureItem) { _, item in
             Task { await loadSignatureSample(from: item) }
