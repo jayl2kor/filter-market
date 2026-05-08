@@ -227,6 +227,8 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 7.18 | 카메라 권한 거부 후 진입 | `CameraPermissionDenied` 표시: "카메라 권한이 꺼져있어요" + "설정 열기" 버튼 |  |
 | 7.19 | 7.18에서 "설정 열기" 탭 | iOS 설정 앱 → moodit 권한 페이지로 이동 |  |
 | 7.20 | 카메라 권한 미요청 (notDetermined) | `CameraPermissionPriming` 표시: "카메라 사용 안내" + "허용" CTA |  |
+| 7.21 | rapid filter switching | 필터를 1초 내 10회 이상 빠르게 전환해도 마지막 선택 필터가 라이브 프리뷰에 적용되고 프레임 단위 stuck/rollback 없음 |  |
+| 7.22 | preview memory plateau | Instruments Allocations/Metal System Trace 기준 5분 카메라 프리뷰 후 `CVMetalTextureCache`/texture 객체가 지속 누적되지 않음. background 진입 시 renderer stop/flush 후 foreground 복귀 정상 |  |
 
 ### 7.x CameraAspectPickerScreen — `AppRoute.cameraAspect`
 | # | ID | Expected | PASS/FAIL |

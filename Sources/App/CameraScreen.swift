@@ -1047,9 +1047,11 @@ private final class CameraPreviewController: ObservableObject {
     }
 
     func stop() {
-        guard isRunning else { return }
-        isRunning = false
-        cameraSession.stop()
+        if isRunning {
+            isRunning = false
+            cameraSession.stop()
+        }
+        renderer.stop()
         stopMetricsPolling()
         if renderer.isAvailable {
             statusMessage = "Camera paused"

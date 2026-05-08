@@ -1,5 +1,6 @@
 @preconcurrency import CoreMedia
 @preconcurrency import CoreVideo
+import Dispatch
 import Metal
 import MetalKit
 import QuartzCore
@@ -28,9 +29,13 @@ public final class MetalPreviewRenderer: NSObject, @unchecked Sendable {
     private var uniforms = PreviewUniforms(intensity: 0.65, frameAspectRatio: 1, drawableAspectRatio: 1)
 
     private let lock = NSLock()
+    private let textureCacheLock = NSLock()
+    private let textureBuildQueue = DispatchQueue(label: "app.moodit.metal-preview.texture-build")
     private var currentFrame: CameraFrameTextures?
     private var metrics = RenderMetrics()
     private var frameCount = 0
+    private var textureCacheFrameCount = 0
+    private var textureGeneration: UInt64 = 0
     private var fpsWindowStart = CACurrentMediaTime()
 
     public convenience override init() {
@@ -80,23 +85,28 @@ public final class MetalPreviewRenderer: NSObject, @unchecked Sendable {
 
         lock.lock()
         let shouldReloadTexture = activeConfiguration?.filter != configuration.filter
-        lock.unlock()
-
-        let texture: MTLTexture?
-        if shouldReloadTexture {
-            texture = makeLUTTexture(device: device, filter: configuration.filter)
-            guard texture != nil else { return }
-        } else {
-            texture = nil
-        }
-
-        lock.lock()
         activeConfiguration = configuration
         uniforms.intensity = configuration.intensity.value
-        if let texture {
-            lutTexture = texture
+        let generation: UInt64?
+        if shouldReloadTexture {
+            textureGeneration &+= 1
+            generation = textureGeneration
+        } else {
+            generation = nil
         }
         lock.unlock()
+
+        guard shouldReloadTexture, let generation else { return }
+
+        textureBuildQueue.async { [weak self, device, filter = configuration.filter, generation] in
+            guard let self, let texture = self.makeLUTTexture(device: device, filter: filter) else { return }
+
+            self.lock.lock()
+            defer { self.lock.unlock() }
+
+            guard self.textureGeneration == generation, self.activeConfiguration?.filter == filter else { return }
+            self.lutTexture = texture
+        }
     }
 
     private func currentIntensity() -> Float {
@@ -137,6 +147,23 @@ public final class MetalPreviewRenderer: NSObject, @unchecked Sendable {
         lock.unlock()
     }
 
+    public func stop() {
+        lock.lock()
+        currentFrame = nil
+        lock.unlock()
+
+        flushTextureCache()
+    }
+
+    private func flushTextureCache() {
+        textureCacheLock.lock()
+        defer { textureCacheLock.unlock() }
+
+        if let textureCache {
+            CVMetalTextureCacheFlush(textureCache, 0)
+        }
+    }
+
     private static func makePipelineState(device: MTLDevice) throws -> MTLRenderPipelineState {
         let bundle = Bundle(for: MetalPreviewRenderer.self)
         let library = (try? device.makeDefaultLibrary(bundle: bundle)) ?? (try? device.makeLibrary(source: ShaderSources.basicYUV, options: nil))
@@ -162,6 +189,9 @@ public final class MetalPreviewRenderer: NSObject, @unchecked Sendable {
         guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
             throw MetalPreviewError.missingImageBuffer
         }
+        textureCacheLock.lock()
+        defer { textureCacheLock.unlock() }
+
         guard let textureCache else {
             throw MetalPreviewError.cannotCreateTextureCache
         }
@@ -260,9 +290,10 @@ extension MetalPreviewRenderer: MTKViewDelegate {
 
     private func recordFrame(cpuFrameMS: Double, gpuFrameMS: Double) {
         lock.lock()
-        defer { lock.unlock() }
 
         frameCount += 1
+        textureCacheFrameCount = (textureCacheFrameCount + 1) % 60
+        let shouldFlushTextureCache = textureCacheFrameCount == 0
         let now = CACurrentMediaTime()
         let elapsed = now - fpsWindowStart
 
@@ -278,6 +309,11 @@ extension MetalPreviewRenderer: MTKViewDelegate {
             lastGPUFrameTimeMS: gpuFrameMS,
             lastCPUFrameTimeMS: cpuFrameMS
         )
+        lock.unlock()
+
+        if shouldFlushTextureCache {
+            flushTextureCache()
+        }
     }
 }
 
