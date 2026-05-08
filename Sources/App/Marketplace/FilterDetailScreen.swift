@@ -282,11 +282,11 @@ struct FilterDetailScreen: View {
             Text(isFollowing ? "팔로잉" : "팔로우")
                 .fmTypography(.caption)
                 .fontWeight(.semibold)
-                .padding(.horizontal, Sp.sm + 2)
-                .padding(.vertical, Sp.xxs + 2)
-                .foregroundStyle(isFollowing ? FMColors.Text.secondary : FMColors.Accent.primary)
+                .padding(.horizontal, Sp.md)
+                .frame(minHeight: 44)
+                .foregroundStyle(isFollowing ? FMColors.Text.secondary : .white)
                 .background(
-                    isFollowing ? FMColors.Background.bg2 : FMColors.Accent.bg,
+                    isFollowing ? FMColors.Background.bg2 : FMColors.Accent.primary,
                     in: RoundedRectangle(cornerRadius: R.md)
                 )
                 .overlay {
@@ -297,9 +297,11 @@ struct FilterDetailScreen: View {
                         )
                 }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TagPressStyle())
         .accessibilityIdentifier("filter.detail.follow")
-        .accessibilityLabel(isFollowing ? "팔로잉 중" : "팔로우")
+        .accessibilityLabel(isFollowing ? "팔로잉" : "팔로우")
+        .accessibilityValue(isFollowing ? "선택됨" : "미선택")
+        .accessibilityHint(isFollowing ? "이 메이커 팔로우를 해제합니다" : "이 메이커를 팔로우합니다")
     }
 
     // MARK: - Stats
@@ -554,19 +556,26 @@ struct FilterDetailScreen: View {
                 }
                 FMHaptic.light.play()
             } label: {
-                Image(systemName: isLiked ? "heart.fill" : "heart")
-                    .font(.system(size: 18, weight: .medium))
+                VStack(spacing: 2) {
+                    Image(systemName: isLiked ? "heart.fill" : "heart")
+                        .font(.system(size: 17, weight: .semibold))
+                    Text(formattedCount(likeDisplayCount))
+                        .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
                     .foregroundStyle(isLiked ? FMColors.Accent.primary : FMColors.Text.primary)
                     .frame(width: 52, height: 52)
-                    .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+                    .background(isLiked ? FMColors.Accent.bg : FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
                     .overlay {
                         RoundedRectangle(cornerRadius: R.md)
                             .strokeBorder(isLiked ? FMColors.Accent.primary : FMColors.Border.default, lineWidth: 1)
                     }
             }
-            .accessibilityLabel("좋아요")
+            .buttonStyle(TagPressStyle())
+            .accessibilityLabel(isLiked ? "좋아요 취소" : "좋아요")
             .accessibilityIdentifier("filter.detail.like")
-            .accessibilityValue(isLiked ? "on" : "off")
+            .accessibilityValue("\(likeDisplayCount)개")
 
             if downloadState == .ready {
                 NavigationLink(value: mock.isPaid ? AppRoute.paywallSingle(filterId: filterRouteID) : AppRoute.filterDownload(id: filterRouteID)) {
@@ -669,6 +678,10 @@ struct FilterDetailScreen: View {
             return store.isFavorite(filter)
         }
         return didLikeMockFilter
+    }
+
+    private var likeDisplayCount: Int {
+        mock.likeCount + (isLiked ? 1 : 0)
     }
 
     private func searchQuery(forTag tag: String) -> String {

@@ -73,6 +73,7 @@
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after camera preview unavailable empty state and import fallback (#135) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after caching workflow date/time formatters (#179) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after FilterDetail share/description/tag interaction polish (#116/#138/#146) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after FilterDetail like/follow affordance polish (#115/#117) |
 
 ## Remaining Manual QA Gates
 
@@ -143,6 +144,7 @@
 | Camera preview unavailable state | CameraPreviewController now publishes a preview-unavailable state when the session fails to start. CameraScreen shows a centered error/empty state with a photo-library import CTA instead of leaving a black viewfinder with only grid lines. | Simulator QA should verify `camera.unavailable` appears when hardware preview is unavailable; device QA should confirm normal camera preview hides the fallback. |
 | Workflow date/time formatting | `workflowDateString` and `workflowTimeString` now use shared static formatter instances instead of allocating a new `DateFormatter` on every row render. | Visual QA should confirm dates still render as `yyyy. M. d. HH:mm` and times as `HH:mm` in My Filters, data export, upload review, and wallet/order surfaces. |
 | Filter detail interaction polish | The share button now uses a 44pt target with label/hint, long descriptions default to 4 lines with a more/collapse toggle, and hashtag chips reserve a 44pt tap area with press scale, haptic, and search accessibility hints. | Manual QA should verify long copy expansion/collapse, tag search routing, and toolbar contrast in light/dark appearances. |
+| Filter detail like/follow affordance | The maker follow button now has a 44pt target, filled inactive state, selected accessibility value, and press feedback. The bottom like CTA now shows the like count, active tint, dynamic label/value, and scale feedback. | Firebase QA should confirm follow/favorite backend semantics and rollback/toast behavior once production mutations are wired. |
 | Wallet security rules | Wallet, ledger, entitlements, Pro status, and refund request subcollections are owner-read/server-write only. | Emulator rules tests pass; production Firebase rules deploy remains a release gate. |
 | Pro subscription verifier | Pro receipts are now idempotent, owner-scoped, and expired/revoked JWS metadata maps to inactive Pro state. | StoreKit sandbox renewal/cancel manual QA remains required. |
 | Notifications inbox | Notification rows now compute relative time/buckets from `createdAt`, expose literal Korean labels instead of unresolved keys, support older-page loading, and surface markRead/follow errors. | Firebase QA should seed 100+ notifications and verify load-more, badge count, read state, and follow edge writes. |
