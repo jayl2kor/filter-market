@@ -79,7 +79,11 @@ public final class StoreKitManager: ObservableObject {
             case .success(let verification):
                 switch verification {
                 case .verified(let transaction):
-                    _ = await creditBackend(transaction: transaction, productId: product.id, jws: verification.jwsRepresentation)
+                    let synced = await creditBackend(transaction: transaction, productId: product.id, jws: verification.jwsRepresentation)
+                    guard synced else {
+                        Telemetry.log(.iapFailed, parameters: ["product_id": product.id, "reason": "backend_sync_failed"])
+                        return .failed(lastError ?? "서버 동기화 실패")
+                    }
                     purchasedProductIDs.insert(product.id)
                     await transaction.finish()
                     Telemetry.log(.iapSucceeded, parameters: ["product_id": product.id])
@@ -108,9 +112,17 @@ public final class StoreKitManager: ObservableObject {
 
     /// 복원 — Pro 구독 entitlement / 미반영된 코인 receipts를 다시 동기화.
     public func restore() async {
+        lastCoinCreditResult = nil
         for await result in StoreKit.Transaction.currentEntitlements {
             if case .verified(let transaction) = result {
-                purchasedProductIDs.insert(transaction.productID)
+                let synced = await creditBackend(
+                    transaction: transaction,
+                    productId: transaction.productID,
+                    jws: result.jwsRepresentation
+                )
+                if synced {
+                    purchasedProductIDs.insert(transaction.productID)
+                }
             }
         }
     }
@@ -130,8 +142,9 @@ public final class StoreKitManager: ObservableObject {
     }
 
     private func handleBackgroundTransaction(_ transaction: StoreKit.Transaction, jws: String) async {
-        // 갱신 / 환불 / 백그라운드 푸시 시 도착하는 트랜잭션은 즉시 finish + 서버 동기화.
-        _ = await creditBackend(transaction: transaction, productId: transaction.productID, jws: jws)
+        // Finish only after backend sync succeeds so StoreKit can retry transient failures.
+        let synced = await creditBackend(transaction: transaction, productId: transaction.productID, jws: jws)
+        guard synced else { return }
         purchasedProductIDs.insert(transaction.productID)
         await transaction.finish()
     }
@@ -139,11 +152,14 @@ public final class StoreKitManager: ObservableObject {
     // MARK: - Backend bridge
 
     /// StoreKit 검증된 트랜잭션 → Firebase Functions callable 호출.
-    /// 실패해도 사용자에게는 noisy하게 보이지 않고 lastError만 갱신 — 사용자는 이미 결제 완료 후이므로.
-    private func creditBackend(transaction: StoreKit.Transaction, productId: String, jws: String) async -> CoinCreditResult? {
+    /// Returns true only when the backend accepted the transaction. Callers must not
+    /// finish StoreKit transactions on false so StoreKit can retry later.
+    @discardableResult
+    private func creditBackend(transaction: StoreKit.Transaction, productId: String, jws: String) async -> Bool {
         let callableName = IAPProductIDs.isProSubscription(productId)
             ? "proSubscriptionUpdate"
             : "creditCoinsFromIAP"
+        let isProSubscription = IAPProductIDs.isProSubscription(productId)
         let callable = Functions.functions(region: region).httpsCallable(callableName)
         do {
             let result = try await callable.call([
@@ -151,15 +167,18 @@ public final class StoreKitManager: ObservableObject {
                 "productId": productId,
                 "signedJWS": jws
             ])
-            guard !IAPProductIDs.isProSubscription(productId),
-                  let coinResult = parseCoinCreditResult(result.data) else {
-                return nil
+            guard !isProSubscription else {
+                return true
+            }
+            guard let coinResult = parseCoinCreditResult(result.data) else {
+                lastError = "서버 응답을 해석하지 못했어요."
+                return false
             }
             lastCoinCreditResult = coinResult
-            return coinResult
+            return true
         } catch {
             lastError = "서버 동기화 실패: \(error.localizedDescription)"
-            return nil
+            return false
         }
     }
 
