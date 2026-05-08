@@ -34,7 +34,7 @@ struct SavedScreen: View {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: Sp.sm) {
                             ForEach(store.libraryFilters) { filter in
-                                NavigationLink(value: AppRoute.filterDetail(id: filter.title)) {
+                                NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
                                     FMFilterTile(data: tileData(for: filter))
                                 }
                                 .buttonStyle(.plain)

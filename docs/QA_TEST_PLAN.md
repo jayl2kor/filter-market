@@ -283,7 +283,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 |---|---|---|---|
 | 9.1 | 빈 상태 | "다운로드한 필터가 없어요" + "마켓 둘러보기" CTA |  |
 | 9.2 | "마켓 둘러보기" CTA | → AppRoute (no specific) |  |
-| 9.3 | 다운로드된 타일 (`saved.tile.<UUID>`) | → AppRoute.filterDetail |  |
+| 9.3 | 다운로드된 타일 (`saved.tile.<UUID>`) | → AppRoute.filterDetail. route id는 표시 title이 아니라 `filter.id.uuidString` |  |
 | 9.4 | "기본 필터" (toolbar) | → AppRoute.builtinFilters |  |
 | 9.5 | First-appear skeleton | 약 0.5s 후 실데이터로 교체 |  |
 | 9.6 | 다운로드 직후 앱 재실행 | `/users/{uid}/savedFilters` listener로 같은 필터가 다시 표시 |  |

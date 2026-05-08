@@ -1047,7 +1047,7 @@ struct BuiltinFilterLibraryScreen: View {
                 LazyVGrid(columns: columns, spacing: Sp.sm) {
                     ForEach(store.filters) { filter in
                         VStack(alignment: .leading, spacing: Sp.sm) {
-                            NavigationLink(value: AppRoute.filterDetail(id: filter.title)) {
+                            NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
                                 FMFilterTile(data: tileData(for: filter))
                             }
                             .buttonStyle(.plain)
@@ -1058,7 +1058,7 @@ struct BuiltinFilterLibraryScreen: View {
                                     isCameraPresented = true
                                 }
                                 .accessibilityIdentifier("builtin.filter.apply.\(filter.id.uuidString)")
-                                NavigationLink(value: AppRoute.filterDetail(id: filter.title)) {
+                                NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
                                     Image(systemName: "info.circle")
                                         .font(.system(size: 16, weight: .semibold))
                                         .foregroundStyle(FMColors.Text.primary)
