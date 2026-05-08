@@ -33,16 +33,31 @@ enum SensitiveFilterLevel: String, CaseIterable, Identifiable, Hashable {
 /// 라이트 그레이 (`bg/1`) 위에 흰 카드 그룹을 겹침.
 struct SettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: MooditStore
 
-    // 카메라
-    @State private var defaultAspectRatio: SettingsAspectRatio = .fourThree
-    @State private var showGrid = true
-    @State private var shutterSound = false
-    @State private var saveOriginal = true
+    // 카메라 (#22 — UserDefaults 영속화)
+    @AppStorage("settings.cam.defaultAspectRatio") private var defaultAspectRatioRaw: String = SettingsAspectRatio.fourThree.rawValue
+    @AppStorage("settings.cam.showGrid") private var showGrid: Bool = true
+    @AppStorage("settings.cam.shutterSound") private var shutterSound: Bool = false
+    @AppStorage("settings.cam.saveOriginal") private var saveOriginal: Bool = true
 
-    // 알림
-    @State private var pushNotifications = true
-    @State private var sensitiveFilter: SensitiveFilterLevel = .strong
+    private var defaultAspectRatio: Binding<SettingsAspectRatio> {
+        Binding(
+            get: { SettingsAspectRatio(rawValue: defaultAspectRatioRaw) ?? .fourThree },
+            set: { defaultAspectRatioRaw = $0.rawValue }
+        )
+    }
+
+    // 알림 (#22 — UserDefaults 영속화)
+    @AppStorage("settings.notif.push") private var pushNotifications: Bool = true
+    @AppStorage("settings.notif.sensitiveFilter") private var sensitiveFilterRaw: String = SensitiveFilterLevel.strong.rawValue
+
+    private var sensitiveFilter: Binding<SensitiveFilterLevel> {
+        Binding(
+            get: { SensitiveFilterLevel(rawValue: sensitiveFilterRaw) ?? .strong },
+            set: { sensitiveFilterRaw = $0.rawValue }
+        )
+    }
 
     // 다이얼로그
     @State private var showLogoutAlert = false
@@ -258,6 +273,13 @@ struct SettingsScreen: View {
     /// Firebase가 미설정인 경우(GoogleService-Info.plist 누락 시뮬레이터 등)에도
     /// 로컬 isAuthenticated만 false로 떨어지도록 안전하게 처리한다.
     private func performSignOut() {
+        // (#48) signOut 흐름 race 제거 — listener teardown 먼저, 그 사이 stale snapshot 노출 방지.
+        // 1. 현재 사용자의 디바이스 토큰 doc 삭제 (#23) — Auth.signOut() 전에 uid를 잡아야 함.
+        if FirebaseApp.app() != nil, let uid = Auth.auth().currentUser?.uid {
+            PushRegistration.shared.unregisterCurrentDevice(uid: uid)
+        }
+        // 2. Auth.signOut() — store의 authStateDidChangeListener가 attachWalletListeners(uid: nil) 호출 →
+        //    모든 listener teardown + resetUserScopedState 자동 진행. 이중 cleanup race 제거.
         if FirebaseApp.app() != nil {
             do {
                 try Auth.auth().signOut()
@@ -265,7 +287,12 @@ struct SettingsScreen: View {
                 #if DEBUG
                 print("[Settings] signOut failed: \(error.localizedDescription)")
                 #endif
+                // signOut 실패 시 fallback으로 명시 reset.
+                store.resetUserScopedState()
             }
+        } else {
+            // Firebase 미구성 환경 (시뮬레이터 등) — 명시 reset.
+            store.resetUserScopedState()
         }
         isAuthenticated = false
         dismiss()
@@ -275,16 +302,24 @@ struct SettingsScreen: View {
 
     private var profileCard: some View {
         HStack(spacing: Sp.md) {
-            FMAvatar(initials: "JS", size: .md)
+            FMAvatar(initials: store.editableProfile.initials, size: .md)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("jisoo.films")
+                Text(store.editableProfile.displayName.isEmpty
+                     ? store.editableProfile.handle.isEmpty ? "사용자" : store.editableProfile.handle
+                     : store.editableProfile.displayName)
                     .fmTypography(.headline)
                     .foregroundStyle(FMColors.Text.primary)
 
-                Text("필터 24개 · 팔로워 1.2K")
-                    .fmTypography(.subhead)
-                    .foregroundStyle(FMColors.Text.secondary)
+                if !store.editableProfile.handle.isEmpty {
+                    Text(store.editableProfile.displayHandle)
+                        .fmTypography(.subhead)
+                        .foregroundStyle(FMColors.Text.secondary)
+                } else {
+                    Text("핸들을 설정하세요")
+                        .fmTypography(.subhead)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                }
             }
 
             Spacer(minLength: 0)
@@ -491,7 +526,7 @@ struct SettingsScreen: View {
 
             Spacer(minLength: Sp.xs)
 
-            Picker("기본 비율", selection: $defaultAspectRatio) {
+            Picker("기본 비율", selection: defaultAspectRatio) {
                 ForEach(SettingsAspectRatio.allCases) { option in
                     Text(option.rawValue).tag(option)
                 }
@@ -501,7 +536,7 @@ struct SettingsScreen: View {
         }
         .padding(.horizontal, Sp.md)
         .frame(minHeight: 52)
-        .accessibilityLabel("기본 비율, 현재 \(defaultAspectRatio.rawValue)")
+        .accessibilityLabel("기본 비율, 현재 \(defaultAspectRatio.wrappedValue.rawValue)")
     }
 
     private var sensitiveFilterRow: some View {
@@ -517,7 +552,7 @@ struct SettingsScreen: View {
 
             Spacer(minLength: Sp.xs)
 
-            Picker("민감 콘텐츠 필터링", selection: $sensitiveFilter) {
+            Picker("민감 콘텐츠 필터링", selection: sensitiveFilter) {
                 ForEach(SensitiveFilterLevel.allCases) { option in
                     Text(option.rawValue).tag(option)
                 }
@@ -527,7 +562,7 @@ struct SettingsScreen: View {
         }
         .padding(.horizontal, Sp.md)
         .frame(minHeight: 52)
-        .accessibilityLabel("민감한 콘텐츠 필터링, 현재 \(sensitiveFilter.rawValue)")
+        .accessibilityLabel("민감한 콘텐츠 필터링, 현재 \(sensitiveFilter.wrappedValue.rawValue)")
     }
 
     // MARK: - Footer
