@@ -103,6 +103,37 @@ final class P0CoreActionTests: XCTestCase {
         assertExists("settings.nav.계정 삭제")
     }
 
+    func testProfilePushedSettingsProfileInfoNavigates() {
+        launch(route: "profile", isAuthenticated: true)
+
+        tap("profile.settings", timeout: 6)
+        assertExists("settings.nav.프로필 편집", timeout: 4)
+
+        tap("settings.nav.프로필 편집")
+        assertExists("profile.edit.save", timeout: 4)
+        assertExists("profile.edit.name")
+    }
+
+    func testProfilePushedSettingsWalletNavigates() {
+        launch(route: "profile", isAuthenticated: true)
+
+        tap("profile.settings", timeout: 6)
+        assertExists("settings.nav.지갑", timeout: 4)
+
+        tap("settings.nav.지갑")
+        assertExists("wallet.balance", timeout: 4)
+    }
+
+    func testProfilePushedSettingsHelpNavigates() {
+        launch(route: "profile", isAuthenticated: true)
+
+        tap("profile.settings", timeout: 6)
+        assertExists("settings.nav.도움말", timeout: 4)
+
+        tap("settings.nav.도움말")
+        assertExists("help.faq.coin", timeout: 4)
+    }
+
     private func launch(route: String? = nil, isAuthenticated: Bool = false) {
         app = XCUIApplication()
         app.launchArguments = [

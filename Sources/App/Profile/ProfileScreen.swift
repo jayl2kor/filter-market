@@ -39,7 +39,6 @@ struct ProfileScreen: View {
     private let otherUid: String?
     @State private var selectedSection: ProfileSection = .myFilters
     @State private var hasAppeared = false
-    @State private var navigateToSettings = false
     @State private var navigateToLogin = false
     @State private var shareSheetPayload: SharePayload?
     @State private var fetchedOtherUser: ProfileUser?
@@ -236,9 +235,6 @@ struct ProfileScreen: View {
             }
             .toolbarBackground(FMColors.Background.bg0, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .navigationDestination(isPresented: $navigateToSettings) {
-                SettingsScreen()
-            }
             .appRouteDestinations()
         }
         .task {
@@ -536,9 +532,7 @@ struct ProfileScreen: View {
     // MARK: - Toolbar
 
     private var settingsButton: some View {
-        Button {
-            navigateToSettings = true
-        } label: {
+        NavigationLink(value: AppRoute.settings) {
             Image(systemName: "gearshape")
                 .font(.system(size: IconSize.lg - 4, weight: .regular))
                 .foregroundStyle(FMColors.Text.primary)

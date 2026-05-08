@@ -240,7 +240,6 @@ struct SettingsScreen: View {
         ) {
             performSignOut()
         }
-        .appRouteDestinations()
     }
 
     /// `role` custom claim ∈ {"admin", "moderator"} 인지 검사.
