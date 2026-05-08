@@ -80,7 +80,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | `social.followers` | `AppRoute.followers(uid:)` | `FollowersListScreen` | Implemented, NeedsFirebaseQA | `social.user.row`, `social.user.tap`, `social.follow.toggle`, empty state |
 | `social.following` | `AppRoute.following(uid:)` | `FollowingListScreen` | Implemented, NeedsFirebaseQA | `social.user.row`, `social.user.tap`, `social.follow.toggle`, empty state |
 | `social.forYou` | `AppRoute.forYou` | `ForYouFeedScreen` | Implemented, NeedsFirebaseQA | `market.tile.tap` (UUID route), `market.maker.tap`, `social.foryou.hero.apply` (UUID route), `social.foryou.hero.save` (`MooditStore.toggleFavorite`), `social.foryou.maker.follow`, `social.foryou.empty` |
-| `social.followingFeed` | `AppRoute.followingFeed` | `FollowingFeedScreen` | Partial | `market.tile.tap`, `profile.following`, `social.following.newFilter`, `social.following.post.like`, `social.following.post.reviews`, `social.following.post.save` |
+| `social.followingFeed` | `AppRoute.followingFeed` | `FollowingFeedScreen` | Implemented, NeedsFirebaseQA | `market.tile.tap` (UUID route), `profile.following`, `social.following.newFilter` (latest followed filter), `social.following.post.like` (`feedActions`), `social.following.post.reviews`, `social.following.post.save` (`favorites`), `social.following.post.more`, `social.following.post.hide` |
 | `social.blockList` | `AppRoute.blockList` | `BlockListScreen` | Partial | `social.block.tab`, `social.block.toggle`, `blocklist.empty` |
 | `social.report` | `AppRoute.reportForm` | `ReportFormScreen` | Partial | `report.filterId`, `report.reason`, `report.detail`, `report.submit` |
 

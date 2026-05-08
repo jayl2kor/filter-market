@@ -598,7 +598,9 @@ extension AppRoute {
         case .followingFeed:
             [
                 .init("market.tile.tap", "팔로잉 필터 열기", systemImage: "camera.filters", target: .filterDetail(id: "Honey Glow")),
-                .init("profile.following", "팔로잉 목록", systemImage: "person.2", target: .following(uid: "me"))
+                .init("profile.following", "팔로잉 목록", systemImage: "person.2", target: .following(uid: "me")),
+                .init("social.following.post.more", "피드 옵션", systemImage: "ellipsis"),
+                .init("social.following.post.hide", "피드에서 숨기기", systemImage: "eye.slash")
             ]
 
         case .modQueue:

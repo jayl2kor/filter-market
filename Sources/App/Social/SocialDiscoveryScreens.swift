@@ -1636,17 +1636,21 @@ struct ForYouFeedScreen: View {
 }
 
 struct FollowingFeedScreen: View {
-    // 프로덕션은 /users/{uid}/feed Firestore listener (별도 작업)에서 채워짐.
-    // UI 테스트(-ui-testing): 기존 mock fallback.
-    @State private var posts: [SocialPost] = isUITesting ? SocialPost.mock : []
-    @State private var likedPostIDs: Set<UUID> = []
-    @State private var savedPostIDs: Set<UUID> = []
+    @EnvironmentObject private var store: MooditStore
+    @State private var posts: [FollowingFeedPost] = []
+    @State private var likedFilterIDs: Set<String> = []
+    @State private var hiddenFilterIDs: Set<String> = []
+    @State private var followsListener: ListenerRegistration?
+    @State private var feedActionsListener: ListenerRegistration?
+    @State private var moreMenuPost: FollowingFeedPost?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Sp.md) {
                 discoveryHeader(active: .following)
-                newFilterCard
+                if let latestPost = posts.first {
+                    newFilterCard(latestPost)
+                }
                 if posts.isEmpty {
                     FMEmptyState(.emptyMarket)
                         .padding(.vertical, Sp.lg)
@@ -1671,23 +1675,56 @@ struct FollowingFeedScreen: View {
                 .accessibilityLabel("알림")
             }
         }
+        .confirmationDialog(
+            "피드 옵션",
+            isPresented: Binding(
+                get: { moreMenuPost != nil },
+                set: { if !$0 { moreMenuPost = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: moreMenuPost
+        ) { post in
+            Button("피드에서 숨기기", role: .destructive) {
+                Task { await hidePost(post) }
+            }
+            .accessibilityIdentifier("social.following.post.hide")
+
+            Button("필터 ID 복사") {
+                UIPasteboard.general.string = post.filter.id.uuidString
+                FMHaptic.success.play()
+            }
+
+            Button("취소", role: .cancel) {}
+        } message: { post in
+            Text(post.filter.title)
+        }
+        .task {
+            await store.load()
+            attachFeedListeners()
+        }
+        .onDisappear {
+            followsListener?.remove()
+            followsListener = nil
+            feedActionsListener?.remove()
+            feedActionsListener = nil
+        }
     }
 
-    private var newFilterCard: some View {
-        NavigationLink(value: AppRoute.filterDetail(id: "Tokyo Night")) {
+    private func newFilterCard(_ post: FollowingFeedPost) -> some View {
+        NavigationLink(value: AppRoute.filterDetail(id: post.filter.id.uuidString)) {
             HStack(spacing: Sp.sm) {
-                FMFilterCoverArt(motif: .cinematic)
+                followingFilterCover(post.filter)
                     .frame(width: 60, height: 75)
                     .clipShape(RoundedRectangle(cornerRadius: R.md))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Alex 새 필터 게시")
+                    Text("\(post.authorName) 새 필터 게시")
                         .font(.system(size: 10, weight: .bold))
                         .tracking(0.4)
                         .foregroundStyle(FMColors.Accent.primary)
-                    Text("Tokyo Night")
+                    Text(post.filter.title)
                         .fmTypography(.headline)
                         .foregroundStyle(FMColors.Text.primary)
-                    Text("시네마틱 · 1시간 전 · ↓ \(formattedDownloadCount(0))")
+                    Text("\(post.filter.category.displayTitle) · \(post.time) · ↓ \(formattedDownloadCount(post.downloadCount))")
                         .fmTypography(.caption)
                         .foregroundStyle(FMColors.Text.secondary)
                 }
@@ -1710,12 +1747,12 @@ struct FollowingFeedScreen: View {
         .accessibilityIdentifier("social.following.newFilter")
     }
 
-    private func postCard(_ post: SocialPost) -> some View {
+    private func postCard(_ post: FollowingFeedPost) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: Sp.sm) {
                 avatar(initials: post.initials, colors: post.avatarColors, size: 36)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(post.author)
+                    Text(post.authorName)
                         .fmTypography(.subhead)
                         .fontWeight(.semibold)
                         .foregroundStyle(FMColors.Text.primary)
@@ -1724,16 +1761,19 @@ struct FollowingFeedScreen: View {
                         .foregroundStyle(FMColors.Text.tertiary)
                 }
                 Spacer()
-                Button {} label: {
+                Button {
+                    moreMenuPost = post
+                } label: {
                     Image(systemName: "ellipsis")
                         .foregroundStyle(FMColors.Text.secondary)
                 }
+                .accessibilityIdentifier("social.following.post.more")
             }
             .padding(Sp.md)
 
             ZStack(alignment: .bottomLeading) {
-                FMFilterCoverArt(motif: post.motif)
-                Text("\(post.filterName) · \(post.intensity)% · ↓ \(formattedDownloadCount(post.downloadCount))")
+                followingFilterCover(post.filter)
+                Text("\(post.filter.title) · \(post.intensity)% · ↓ \(formattedDownloadCount(post.downloadCount))")
                     .fmTypography(.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(.white)
@@ -1746,14 +1786,14 @@ struct FollowingFeedScreen: View {
 
             HStack(spacing: Sp.md) {
                 Button {
-                    toggle(&likedPostIDs, id: post.id)
+                    Task { await toggleLike(post) }
                 } label: {
-                    Label("\(post.likeCount + (likedPostIDs.contains(post.id) && !post.isLiked ? 1 : 0))", systemImage: likedPostIDs.contains(post.id) ? "heart.fill" : "heart")
+                    Label("\(post.likeCount + (likedFilterIDs.contains(post.id) ? 1 : 0))", systemImage: likedFilterIDs.contains(post.id) ? "heart.fill" : "heart")
                 }
-                .foregroundStyle(likedPostIDs.contains(post.id) ? FMColors.Semantic.error : FMColors.Text.secondary)
+                .foregroundStyle(likedFilterIDs.contains(post.id) ? FMColors.Semantic.error : FMColors.Text.secondary)
                 .accessibilityIdentifier("social.following.post.like")
 
-                NavigationLink(value: AppRoute.reviews(filterId: post.filterName)) {
+                NavigationLink(value: AppRoute.reviews(filterId: post.filter.id.uuidString)) {
                     Label("\(post.reviewCount)", systemImage: "bubble.left")
                 }
                 .accessibilityIdentifier("social.following.post.reviews")
@@ -1764,9 +1804,9 @@ struct FollowingFeedScreen: View {
 
                 Spacer()
                 Button {
-                    toggle(&savedPostIDs, id: post.id)
+                    store.toggleFavorite(post.filter)
                 } label: {
-                    Image(systemName: savedPostIDs.contains(post.id) ? "bookmark.fill" : "bookmark")
+                    Image(systemName: store.isFavorite(post.filter) ? "bookmark.fill" : "bookmark")
                 }
                 .accessibilityIdentifier("social.following.post.save")
             }
@@ -1790,13 +1830,140 @@ struct FollowingFeedScreen: View {
         }
     }
 
-    private func toggle(_ set: inout Set<UUID>, id: UUID) {
-        if set.contains(id) {
-            set.remove(id)
+    @ViewBuilder
+    private func followingFilterCover(_ filter: Filter) -> some View {
+        if let coverURL = filter.coverURL {
+            AsyncImage(url: coverURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFill()
+                default:
+                    FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filter.title, category: filter.category.rawValue))
+                }
+            }
         } else {
-            set.insert(id)
+            FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filter.title, category: filter.category.rawValue))
         }
-        FMHaptic.selection.play()
+    }
+
+    private func attachFeedListeners() {
+        guard !isUITesting else {
+            posts = SocialPost.mock.compactMap { $0.toFollowingFeedPost(store: store) }
+            return
+        }
+        guard let uid = Auth.auth().currentUser?.uid else {
+            posts = []
+            return
+        }
+
+        followsListener?.remove()
+        followsListener = Firestore.firestore().collection("follows")
+            .whereField("actorUid", isEqualTo: uid)
+            .addSnapshotListener { snapshot, _ in
+                let targetUIDs = Array(Set((snapshot?.documents ?? []).compactMap { $0.data()["targetUid"] as? String }))
+                Task {
+                    let loadedPosts = await loadPosts(for: targetUIDs)
+                    await MainActor.run {
+                        posts = loadedPosts.filter { !hiddenFilterIDs.contains($0.id) }
+                    }
+                }
+            }
+
+        feedActionsListener?.remove()
+        feedActionsListener = Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("feedActions")
+            .addSnapshotListener { snapshot, _ in
+                let docs = snapshot?.documents ?? []
+                let liked = Set(docs.filter { ($0.data()["liked"] as? Bool) == true }.map(\.documentID))
+                let hidden = Set(docs.filter { ($0.data()["hidden"] as? Bool) == true }.map(\.documentID))
+                Task { @MainActor in
+                    likedFilterIDs = liked
+                    hiddenFilterIDs = hidden
+                    posts.removeAll { hidden.contains($0.id) }
+                }
+            }
+    }
+
+    private func loadPosts(for targetUIDs: [String]) async -> [FollowingFeedPost] {
+        guard !targetUIDs.isEmpty else { return [] }
+        let db = Firestore.firestore()
+        var loaded: [FollowingFeedPost] = []
+        for uid in targetUIDs.prefix(25) {
+            do {
+                let snapshot = try await db.collection("filters")
+                    .whereField("authorUid", isEqualTo: uid)
+                    .whereField("status", isEqualTo: FilterStatus.approved.rawValue)
+                    .order(by: "createdAt", descending: true)
+                    .limit(to: 5)
+                    .getDocuments()
+                loaded.append(contentsOf: snapshot.documents.compactMap { doc in
+                    FirestoreFilterRepository.decode(doc).map { filter in
+                        FollowingFeedPost(filter: filter)
+                    }
+                })
+            } catch {
+                continue
+            }
+        }
+        return loaded.sorted { lhs, rhs in
+            (lhs.filter.createdAt ?? .distantPast) > (rhs.filter.createdAt ?? .distantPast)
+        }
+    }
+
+    private func toggleLike(_ post: FollowingFeedPost) async {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            if likedFilterIDs.contains(post.id) {
+                likedFilterIDs.remove(post.id)
+            } else {
+                likedFilterIDs.insert(post.id)
+            }
+            return
+        }
+        let willLike = !likedFilterIDs.contains(post.id)
+        if willLike {
+            likedFilterIDs.insert(post.id)
+        } else {
+            likedFilterIDs.remove(post.id)
+        }
+        do {
+            try await Firestore.firestore()
+                .collection("users").document(uid)
+                .collection("feedActions").document(post.id)
+                .setData([
+                    "filterId": post.id,
+                    "liked": willLike,
+                    "updatedAt": FieldValue.serverTimestamp()
+                ], merge: true)
+        } catch {
+            if willLike {
+                likedFilterIDs.remove(post.id)
+            } else {
+                likedFilterIDs.insert(post.id)
+            }
+        }
+    }
+
+    private func hidePost(_ post: FollowingFeedPost) async {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            posts.removeAll { $0.id == post.id }
+            return
+        }
+        hiddenFilterIDs.insert(post.id)
+        posts.removeAll { $0.id == post.id }
+        do {
+            try await Firestore.firestore()
+                .collection("users").document(uid)
+                .collection("feedActions").document(post.id)
+                .setData([
+                    "filterId": post.id,
+                    "hidden": true,
+                    "updatedAt": FieldValue.serverTimestamp()
+                ], merge: true)
+        } catch {
+            hiddenFilterIDs.remove(post.id)
+            posts.insert(post, at: 0)
+        }
     }
 }
 
@@ -2131,6 +2298,38 @@ private struct ForYouMaker: Identifiable {
     }
 }
 
+private struct FollowingFeedPost: Identifiable {
+    let filter: Filter
+    let caption: String?
+
+    var id: String { filter.id.uuidString }
+    var authorName: String { filter.author.displayName }
+    var handle: String { "@\(filter.author.displayName)" }
+    var initials: String {
+        let prefix = filter.author.displayName.prefix(2)
+        return prefix.isEmpty ? "MK" : String(prefix).uppercased()
+    }
+    var avatarColors: [Color] { [FMColors.Category.portrait, FMColors.Category.mood] }
+    var time: String { filter.createdAt.map(Self.relativeTimeString) ?? "방금" }
+    var intensity: Int { 100 }
+    var downloadCount: Int { filter.downloadCount > 0 ? filter.downloadCount : filter.useCount }
+    var likeCount: Int { 0 }
+    var reviewCount: Int { 0 }
+
+    init(filter: Filter, caption: String? = nil) {
+        self.filter = filter
+        self.caption = caption
+    }
+
+    private static func relativeTimeString(_ date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        if interval < 60 { return "방금" }
+        if interval < 3600 { return "\(Int(interval / 60))분 전" }
+        if interval < 86_400 { return "\(Int(interval / 3600))시간 전" }
+        return "\(Int(interval / 86_400))일 전"
+    }
+}
+
 private struct SocialPost: Identifiable {
     let id = UUID()
     let author: String
@@ -2179,4 +2378,31 @@ private struct SocialPost: Identifiable {
             caption: nil
         )
     ]
+}
+
+private extension SocialPost {
+    @MainActor
+    func toFollowingFeedPost(store: MooditStore) -> FollowingFeedPost? {
+        if let existing = store.filter(matching: filterName) {
+            return FollowingFeedPost(filter: existing, caption: caption)
+        }
+        let fallbackFilter = Filter(
+            id: UUID(),
+            title: filterName,
+            version: "1.0.0",
+            author: FilterAuthor(uid: handle.replacingOccurrences(of: "@", with: ""), displayName: author),
+            category: .cinematic,
+            engine: FilterEngineDescriptor(type: .lutParams, minAppVersion: "1.0.0", minIOSVersion: "17.0", lutSize: 33, lutFile: nil),
+            useCount: downloadCount,
+            createdAt: Date(),
+            status: .approved,
+            priceCoins: 0,
+            coverURL: nil,
+            signatureSampleURL: nil,
+            ratingAvg: nil,
+            downloadCount: downloadCount,
+            tags: []
+        )
+        return FollowingFeedPost(filter: fallbackFilter, caption: caption)
+    }
 }

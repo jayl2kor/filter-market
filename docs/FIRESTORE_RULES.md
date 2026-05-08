@@ -312,6 +312,9 @@ match /users/{uid}/makerDrafts/{draftId} {
 match /users/{uid}/editorDrafts/{draftId} {
   allow read, create, update, delete: if isOwner(uid);
 }
+match /users/{uid}/feedActions/{filterId} {
+  allow read, create, update, delete: if isOwner(uid);
+}
 match /users/{uid}/reviewHelpful/{edgeId} {
   allow read: if isOwner(uid);
   allow create: if isOwner(uid)

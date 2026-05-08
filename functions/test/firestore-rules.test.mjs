@@ -401,6 +401,25 @@ const suite = describe(
       await assertSucceeds(ref.delete());
     });
 
+    it("allows owners to sync following feed actions only under their uid", async () => {
+      const owner = env.authenticatedContext("u-feed-actions");
+      const stranger = env.authenticatedContext(STRANGER_UID);
+      const ref = owner.firestore().doc("users/u-feed-actions/feedActions/filter-1");
+
+      await assertSucceeds(
+        ref.set({
+          filterId: "filter-1",
+          liked: true,
+          hidden: false,
+          updatedAt: new Date(),
+        })
+      );
+      await assertSucceeds(ref.get());
+      await assertSucceeds(ref.update({ hidden: true }));
+      await assertFails(stranger.firestore().doc("users/u-feed-actions/feedActions/filter-1").get());
+      await assertSucceeds(ref.delete());
+    });
+
     it("allows owners to sync review helpful edges only under their uid", async () => {
       const owner = env.authenticatedContext("u-helpful");
       const stranger = env.authenticatedContext(STRANGER_UID);

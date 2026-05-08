@@ -539,6 +539,15 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 5. rail 카드 탭 → 각 필터 UUID 상세 진입, maker spotlight는 실제 필터 author 기반 노출
 - **PASS 기준**: "Amber Café" 같은 고정 hero/reason이 노출되지 않고, 빈 필터 응답이면 `social.foryou.empty` CTA만 노출
 
+### 14.3c Following Feed
+1. Firebase `follows/{uid}_{makerUid}` edge와 maker의 approved `/filters` 문서 seed
+2. FollowingFeed 진입 → 최신 followed filter가 `social.following.newFilter`와 post row로 표시
+3. `social.following.newFilter` / post 리뷰 버튼 탭 → filter UUID 기반 상세/리뷰 화면 진입
+4. `social.following.post.like` 탭 → `/users/{uid}/feedActions/{filterId}.liked` 저장, 재진입 후 유지
+5. `social.following.post.save` 탭 → `/users/{uid}/favorites/{filterId}` 저장, 재진입 후 bookmark 유지
+6. `social.following.post.more` → "피드에서 숨기기" → `feedActions.hidden=true`, 재진입 후 숨김 유지
+- **PASS 기준**: "Alex 새 필터 게시 / Tokyo Night" 고정 카드가 production에 노출되지 않고, follow 활동이 없으면 빈 상태만 표시
+
 ### 14.4 Push Notification (실기기 + Firebase Console)
 1. 실기기 첫 실행, 알림 권한 수락
 2. Xcode 콘솔에서 `[Push] Persisted FCM token for device <UUID>` 확인
