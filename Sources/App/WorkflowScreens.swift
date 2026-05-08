@@ -5092,11 +5092,17 @@ struct WalletTransactionsScreen: View {
 }
 
 struct InsufficientBalanceScreen: View {
+    @EnvironmentObject private var store: MooditStore
     @Environment(\.dismiss) private var dismiss
 
     let filterID: String
     var requiredCoins: Int = 0
     var currentBalance: Int = 0
+
+    @State private var isRetryingPurchase = false
+    @State private var didCompletePurchase = false
+    @State private var purchaseError: String?
+    @State private var didAutoRetry = false
 
     var body: some View {
         VStack(spacing: Sp.lg) {
@@ -5108,21 +5114,46 @@ struct InsufficientBalanceScreen: View {
                 .font(Font.fmTitle)
                 .foregroundStyle(FMColors.Text.primary)
             if requiredCoins > 0 {
-                let shortfall = max(requiredCoins - currentBalance, 0)
+                let shortfall = max(requiredCoins - displayedBalance, 0)
                 Text("\(shortfall.formatted())코인 부족")
                     .font(Font.fmBody)
-                    .foregroundStyle(FMColors.Text.secondary)
+                    .foregroundStyle(shortfall == 0 ? FMColors.Accent.primary : FMColors.Text.secondary)
+                Text("현재 잔액 \(displayedBalance.formatted())코인 · 필터 \(filterIDLabel)")
+                    .font(Font.fmCaption)
+                    .foregroundStyle(FMColors.Text.tertiary)
             }
-            NavigationLink(value: AppRoute.walletTopup) {
-                Text("충전하기")
-                    .font(Font.fmHeadline)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Sp.md)
-                    .background(FMColors.Accent.primary)
-                    .clipShape(RoundedRectangle(cornerRadius: R.lg))
+            VStack(spacing: Sp.sm) {
+                if canRetryPurchase {
+                    FMButton(
+                        "지금 구매하기",
+                        icon: "creditcard.fill",
+                        variant: .primary,
+                        size: .lg,
+                        isLoading: isRetryingPurchase
+                    ) {
+                        Task { await retryPurchase() }
+                    }
+                    .disabled(isRetryingPurchase)
+                    .accessibilityIdentifier("insufficient.purchase.retry")
+                }
+
+                NavigationLink(value: AppRoute.walletTopup) {
+                    Text(canRetryPurchase ? "추가 충전하기" : "충전하기")
+                        .font(Font.fmHeadline)
+                        .foregroundStyle(canRetryPurchase ? FMColors.Accent.primary : .white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Sp.md)
+                        .background(canRetryPurchase ? FMColors.Background.bg2 : FMColors.Accent.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: R.lg))
+                        .overlay {
+                            if canRetryPurchase {
+                                RoundedRectangle(cornerRadius: R.lg)
+                                    .strokeBorder(FMColors.Border.default, lineWidth: 1)
+                            }
+                        }
+                }
+                .accessibilityIdentifier("insufficient.topup")
             }
-            .accessibilityIdentifier("insufficient.topup")
             Button("취소") {
                 dismiss()
             }
@@ -5135,6 +5166,68 @@ struct InsufficientBalanceScreen: View {
         .background(FMColors.Background.bg1.ignoresSafeArea())
         .navigationTitle("잔액 부족")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $didCompletePurchase) {
+            FilterAfterDownloadScreen(filterID: filterID)
+        }
+        .alert("구매 오류", isPresented: errorBinding, actions: {
+            Button("확인", role: .cancel) { purchaseError = nil }
+        }, message: { Text(purchaseError ?? "") })
+        .task {
+            store.subscribeToWallet()
+            await retryIfBalanceIsReady()
+        }
+        .onChange(of: store.coinBalance) { _, _ in
+            Task { await retryIfBalanceIsReady() }
+        }
+    }
+
+    private var displayedBalance: Int {
+        store.coinBalance == 0 && currentBalance > 0 ? currentBalance : store.coinBalance
+    }
+
+    private var canRetryPurchase: Bool {
+        requiredCoins > 0 && displayedBalance >= requiredCoins
+    }
+
+    private var filterIDLabel: String {
+        UUID(uuidString: filterID) == nil ? filterID : String(filterID.prefix(8))
+    }
+
+    private var errorBinding: Binding<Bool> {
+        Binding(get: { purchaseError != nil }, set: { if !$0 { purchaseError = nil } })
+    }
+
+    private func retryIfBalanceIsReady() async {
+        guard canRetryPurchase, !didAutoRetry, !isRetryingPurchase, !didCompletePurchase else { return }
+        didAutoRetry = true
+        await retryPurchase()
+    }
+
+    private func retryPurchase() async {
+        guard !isRetryingPurchase, canRetryPurchase else { return }
+        isRetryingPurchase = true
+        defer { isRetryingPurchase = false }
+        do {
+            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("purchaseFilter")
+            _ = try await callable.call(["filterId": filterID])
+            store.creditCoinsOptimistically(-requiredCoins)
+            if let filter = store.filter(matching: filterID) {
+                try? await store.download(filter)
+            } else {
+                try? await store.download(filterID: filterID)
+            }
+            Telemetry.log(.filterPurchaseSucceeded, parameters: ["filter_id": filterID, "price_coins": requiredCoins, "source": "insufficient_balance_retry"])
+            didCompletePurchase = true
+        } catch let error as NSError where error.localizedDescription.contains("insufficient_balance") {
+            didAutoRetry = false
+            Telemetry.log(.filterPurchaseInsufficient, parameters: ["filter_id": filterID, "price_coins": requiredCoins, "balance": store.coinBalance])
+            purchaseError = "아직 코인이 부족합니다."
+        } catch {
+            didAutoRetry = false
+            Telemetry.log(.filterPurchaseFailed, parameters: ["filter_id": filterID, "reason": "insufficient_retry_error"])
+            Telemetry.record(error: error, context: ["where": "insufficientBalanceRetry", "filter_id": filterID])
+            purchaseError = error.localizedDescription
+        }
     }
 }
 

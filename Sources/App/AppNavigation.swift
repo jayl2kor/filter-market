@@ -679,6 +679,7 @@ extension AppRoute {
 
         case .insufficientBalance:
             [
+                .init("insufficient.purchase.retry", "지금 구매하기", systemImage: "creditcard"),
                 .init("insufficient.topup", "충전 화면으로", systemImage: "plus.circle", target: .walletTopup),
                 .init("wallet.insufficient.cancel", "취소", systemImage: "xmark")
             ]

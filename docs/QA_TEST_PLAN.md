@@ -469,7 +469,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 13.2.17 | `.paymentFailed` | `payment.failed.restore` | StoreKit restore purchase (sandbox/local StoreKit config 필요) |  |
 | 13.2.18 | `.paymentFailed` | `wallet.topup.support` | mailto 고객지원 열림 |  |
 | 13.2.19 | `.refundRequest` | 환불 입력 | mock 제출 |  |
-| 13.2.20 | `.insufficientBalance(filterId:)` | 충전하기 → walletTopup |  |
+| 13.2.20 | `.insufficientBalance(filterId:)` | `filterId`를 유지한 상태로 충전하기 → walletTopup. 잔액이 `requiredCoins` 이상이 되면 자동 구매 재시도, 또는 `insufficient.purchase.retry`로 수동 재시도 후 `filterAfterDownload` 진입 |  |
 | 13.2.21 | `.payoutOnboarding` | Closed-loop placeholder (`payout.placeholder.정산 연결`) — "추후 지원 예정" + 적립 코인 사용처 안내. ADR-0006 정책. |  |
 | 13.2.22 | `.payoutTaxInfo` | Closed-loop placeholder (`payout.placeholder.세금 정보`) — 출금 미지원으로 세금 폼 불필요 |  |
 | 13.2.23 | `.payoutHistory` | 정산 내역 | mock 표시 |  |
