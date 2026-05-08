@@ -415,7 +415,7 @@ extension AppRoute {
                 .init("filter.apply", "카메라로 적용", systemImage: "camera.fill", target: .filterAfterDownload(id: id))
             ]
 
-        case .filterAfterDownload(let id):
+        case .filterAfterDownload:
             [
                 .init("filter.apply", "카메라로 적용", systemImage: "camera.fill"),
                 .init("filter.favorite.toggle", "즐겨찾기 토글", systemImage: "heart"),
@@ -507,7 +507,7 @@ extension AppRoute {
 
         case .accountDeletion:
             [
-                .init("auth.delete.confirm.input", "핸들 확인 입력", systemImage: "keyboard"),
+                .init("auth.delete.confirm.input", "유저네임 확인 입력", systemImage: "keyboard"),
                 .init("auth.delete.submit", "계정 영구 삭제", systemImage: "trash"),
                 .init("auth.delete.cancel", "취소", systemImage: "xmark")
             ]
@@ -515,7 +515,7 @@ extension AppRoute {
         case .editProfile:
             [
                 .init("profile.edit.avatar.change", "사진 변경", systemImage: "person.crop.circle.badge.plus"),
-                .init("profile.edit.handle.check", "핸들 중복 확인", systemImage: "checkmark.seal"),
+                .init("profile.edit.handle.check", "유저네임 중복 확인", systemImage: "checkmark.seal"),
                 .init("profile.edit.save", "저장", systemImage: "checkmark")
             ]
 
@@ -844,7 +844,7 @@ struct ScreenWorkflowScaffold: View {
                 FMTextField(
                     "입력값",
                     text: $textValue,
-                    placeholder: "핸들, 태그, 금액, 사유 등"
+                    placeholder: "유저네임, 태그, 금액, 사유 등"
                 )
             }
         }

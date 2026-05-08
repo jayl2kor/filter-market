@@ -60,9 +60,9 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 
 | Screen ID | Route / Entry | SwiftUI | 상태 | Required actions |
 |---|---|---|---|---|
-| `market.home` | root tab `market` | `MarketplaceScreen` | Partial, NeedsE2E | `market.trending.*`, `market.category.*`, `market.tile.*`, `market.collection.*`, `market.loadError.retry`, notification button |
+| `market.home` | root tab `market` | `MarketplaceScreen` | Partial, NeedsE2E | `market.header.coinBalance`, `market.trending.*`, `market.category.*`, `market.tile.*`, `market.collection.*`, `market.loadError.retry`, notification button |
 | `market.search` | root tab `search`, `AppRoute.search` | `SearchScreen` | Implemented, NeedsE2E | `search.recent.*`, `search.suggested.*`, `search.maker.*`, `search.typing.tile.*`, `search.result.tile.*` |
-| `filter.detail` | `AppRoute.filterDetail(id:)` | `FilterDetailLoaderScreen` or `FilterDetailScreen` | Partial | `filter.detail.share`, `filter.detail.tag.*`, maker profile, follow toggle, CTA download/purchase, reviews link |
+| `filter.detail` | `AppRoute.filterDetail(id:)` | `FilterDetailLoaderScreen` or `FilterDetailScreen` | Partial, NeedsE2E | `filter.detail.share`, `filter.detail.like`, `filter.detail.sample.gallery`, `filter.detail.sample.signature`, `filter.detail.sample.reference.*`, `filter.detail.tag.*`, maker profile, follow toggle, CTA download/purchase, review/download/like count, reviews link |
 | `filter.download` | `AppRoute.filterDownload(id:)` | `FilterDownloadProgressScreen` | Partial | `filter.download.cancel`, `filter.download.retry`, `filter.download.completed.next`, `filter.apply` |
 | `filter.afterDownload` | `AppRoute.filterAfterDownload(id:)` | `FilterAfterDownloadScreen` | Partial | `filter.apply`, `filter.favorite.toggle`, `filter.collection.add`, `filter.remove` |
 | `filter.builtin` | `AppRoute.builtinFilters` | `BuiltinFilterLibraryScreen` | Implemented | `builtin.filter.tap`, `builtin.filter.apply.*`, `builtin.filter.info.*`, `builtin.manage` |
@@ -77,8 +77,8 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | `reviews.list` | `AppRoute.reviews(filterId:)` | `ReviewsListScreen` | Implemented, NeedsE2E | `social.reviews.filter`, `social.reviews.compose`, `social.rating.open`, `social.review.author`, `social.review.helpful`, `social.review.more`, `social.review.more.report`, `social.review.more.block`, `social.review.more.copy` |
 | `reviews.compose` | `AppRoute.reviewCompose(filterId:)` | `ReviewComposeScreen` | Implemented, NeedsE2E | `social.compose.input`, `social.compose.send`, `social.review.makerReply`, `social.compose.insertMention`, `social.compose.attachImage`, `social.compose.removeImage`, `social.compose.emojiToggle`, `social.compose.emoji.*` |
 | `reviews.rating` | `AppRoute.rating(filterId:)` | `RatingFormScreen` | Implemented, NeedsE2E | `social.rating.star`, `social.rating.star.*`, `social.rating.body`, `social.rating.submit` |
-| `social.followers` | `AppRoute.followers(uid:)` | `FollowersListScreen` | Implemented | `social.user.row`, `social.user.tap`, `social.follow.toggle` |
-| `social.following` | `AppRoute.following(uid:)` | `FollowingListScreen` | Implemented | `social.user.row`, `social.user.tap`, `social.follow.toggle` |
+| `social.followers` | `AppRoute.followers(uid:)` | `FollowersListScreen` | Implemented, NeedsFirebaseQA | `social.user.row`, `social.user.tap`, `social.follow.toggle`, empty state |
+| `social.following` | `AppRoute.following(uid:)` | `FollowingListScreen` | Implemented, NeedsFirebaseQA | `social.user.row`, `social.user.tap`, `social.follow.toggle`, empty state |
 | `social.forYou` | `AppRoute.forYou` | `ForYouFeedScreen` | Partial | `market.tile.tap`, `market.maker.tap`, `social.foryou.hero.apply`, `social.foryou.hero.save`, `social.foryou.maker.follow` |
 | `social.followingFeed` | `AppRoute.followingFeed` | `FollowingFeedScreen` | Partial | `market.tile.tap`, `profile.following`, `social.following.newFilter`, `social.following.post.like`, `social.following.post.reviews`, `social.following.post.save` |
 | `social.blockList` | `AppRoute.blockList` | `BlockListScreen` | Partial | `social.block.tab`, `social.block.toggle`, `blocklist.empty` |
@@ -99,11 +99,11 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 
 | Screen ID | Route / Entry | SwiftUI | 상태 | Required actions |
 |---|---|---|---|---|
-| `editor.main` | `AppRoute.editor` | `FilterEditorScreen` | Partial | `editor.cancel`, `editor.params`, `editor.lut`, `editor.draft`, `editor.next`, `editor.compare.hold` |
-| `editor.parameters` | `AppRoute.editorParameters` | `EditorParametersScreen` | Partial | `editor.param.slider.*`, `editor.param.slider`, `editor.compare.hold`, `editor.next` |
-| `editor.lut` | `AppRoute.editorLUT` | `EditorLUTImportScreen` | Partial | `editor.lut.import`, `editor.lut.replace`, `editor.next` |
+| `editor.main` | `AppRoute.editor` | `FilterEditorScreen` | Partial | `editor.preview`, `editor.reference.photo.pick`, `editor.reference.photo.clear`, `editor.reference.sample.*`, `editor.cancel`, `editor.params`, `editor.lut`, `editor.draft`, `editor.next`, `editor.compare.hold` |
+| `editor.parameters` | `AppRoute.editorParameters` | `EditorParametersScreen` | Partial | `editor.preview`, `editor.param.slider.*`, `editor.param.slider`, `editor.compare.hold`, `editor.next` |
+| `editor.lut` | `AppRoute.editorLUT` | `EditorLUTImportScreen` | Partial | `editor.preview`, `editor.lut.import`, `editor.lut.replace`, `editor.next` |
 | `editor.draft` | `AppRoute.editorDraft` | `EditorDraftSaveScreen` | Partial | `editor.draft.name`, `editor.draft.description`, `editor.draft.save`, `editor.draft.publish` |
-| `upload.cover` | `AppRoute.uploadCover` | `UploadCoverScreen` | Partial | `upload.cover.add`, `upload.cover.remove`, `upload.cover.ba.toggle`, `upload.next`, `upload.cancel` |
+| `upload.cover` | `AppRoute.uploadCover` | `UploadCoverScreen` | Partial | `upload.cover.add`, `upload.cover.remove`, `upload.signature.preview`, `upload.signature.photo.pick`, `upload.signature.sample.*`, `upload.signature.clear`, `upload.cover.ba.toggle`, `upload.next`, `upload.cancel` |
 | `upload.tags` | `AppRoute.uploadTags` | `UploadTagsCategoryScreen` | Partial | `upload.tag.add`, `upload.tag.remove`, `upload.cat.tap.*`, `upload.cat.tap`, `upload.next` |
 | `upload.submit` | `AppRoute.uploadSubmit` | `UploadTOSSubmitScreen` | Partial | `upload.tos.toggle`, `upload.submit` |
 | `upload.pending` | `AppRoute.uploadPending` | `UploadPendingReviewScreen` | Partial | `upload.pending.view_filter`, `upload.pending.dismiss` |
@@ -218,6 +218,9 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 |---|---|---|
 | action 문서와 실제 `accessibilityIdentifier`가 다시 어긋날 수 있음 | E2E selector 실패 가능 | 새 화면/버튼 변경 시 `NAVIGATION.md`, 본 문서, `AppRoute.primaryActions`를 함께 갱신 |
 | mock route id가 title 문자열인 곳 존재 | Firestore document id와 불일치 가능 | 실제 UUID filter에서 상세/리뷰/다운로드 확인 |
+| 프로필 avatar 변경 | 현재 QA 대상은 PhotosPicker 선택과 로컬 preview/persist 경로이며, 원격 Storage 업로드/URL 배포는 별도 백엔드 작업 필요 | 선택 이미지가 EditProfile/Profile에 반영되는지 확인하고, 릴리스 전 Storage 업로드 이슈 분리 |
+| 팔로우 리스트 | Firestore root `follows` edge와 `users/{uid}` profile/count listener를 사용 | 실제 Firebase seed에서 followers/following row, count, toggle round-trip 확인 |
+| 상세 backend metadata | `getFilterDetail`이 tags, samples, reviews, review/like/download count, userHasLiked를 내려주는 계약으로 확장 | 실제 filter 문서와 subcollection seed에서 detail UI count/preview 표시 확인 |
 | Push 권한 요청이 앱 시작 시 발생 가능 | 첫 실행 UX 회귀 | Onboarding/Login 전 알림 prompt 발생 여부 |
 | Payout은 closed-loop coin 정책상 후순위 | 불필요한 진입점 노출 위험 | 사용자가 볼 수 있는 entry point인지 확인 |
 | StoreKit/Google/Apple sign-in은 sandbox/실기기 의존 | 시뮬레이터만으로 검증 불가 | 실기기 QA checklist 별도 표시 |
@@ -253,7 +256,7 @@ QA를 시작하기 전 반드시 아래 순서로 정의를 고정한다.
 | 2026-05-08 | `P0CoreActionTests` | Login/email auth contract, root tab shell guest flow, profile/settings/wallet/edit entrypoints, settings data/help entrypoints |
 | 2026-05-08 | `PhaseAE2ETests` | Marketplace download/apply/camera, camera HUD, built-in filters, photo edit, deep links |
 | 2026-05-08 | `PhaseDE2ETests` | Reviews, rating, guest auth gate, follow lists, For You/following feed social actions |
-| 2026-05-09 | `ActionSurfaceSmokeTests` | Maker/editor/upload, account/data rights, notifications, reports, collections, moderation, wallet/commerce, wallet transactions/order/refund, Pro plan/invoice, payout placeholders, search, filter detail/download/paywall/after-download, universal link landing, edit profile, help center, capture preview, permission priming/denied action contracts |
+| 2026-05-09 | `ActionSurfaceSmokeTests` | Maker/editor/upload including reference photo preview and signature sample controls, account/data rights, notifications, reports, collections, moderation, wallet/commerce, wallet transactions/order/refund, Pro plan/invoice, payout placeholders, search, filter detail sample gallery/download/paywall/after-download, universal link landing, edit profile, help center, capture preview, permission priming/denied action contracts |
 
 ## 9.2 Latest Verification
 
@@ -277,6 +280,15 @@ QA를 시작하기 전 반드시 아래 순서로 정의를 고정한다.
 | 2026-05-09 | `./scripts/test.sh` | PASS after StoreKit action fallback, unit suites + 26 AppUITests, xcresult `Test-moodit-2026.05.09_01-33-17-+0900.xcresult` |
 | 2026-05-09 | `NAVIGATION.md` stale mockup action ID audit | PASS, current SwiftUI route/action names aligned |
 | 2026-05-09 | `./scripts/test.sh` | PASS after definition alignment, unit suites + 26 AppUITests, xcresult `Test-moodit-2026.05.09_01-56-02-+0900.xcresult` |
+| 2026-05-09 | `xcodebuild ... -only-testing:FilterEngineTests/PhotoFilterRendererTests` | PASS, editor reference preview renderer regression, xcresult `Test-moodit-2026.05.09_03-12-31-+0900.xcresult` |
+| 2026-05-09 | `xcodebuild ... -only-testing:ModelsTests/FilterManifestTests` | PASS, `signatureSampleURL` decode coverage, xcresult `Test-moodit-2026.05.09_03-27-46-+0900.xcresult` |
+| 2026-05-09 | `xcodebuild ... -only-testing:AppUITests/ActionSurfaceSmokeTests/testMakerEditorAndUploadSurfaces -only-testing:AppUITests/ActionSurfaceSmokeTests/testMarketplaceSupportPermissionAndPreviewSurfaces` | PASS, editor reference controls, upload signature controls, detail sample gallery, xcresult `Test-moodit-2026.05.09_03-29-09-+0900.xcresult` |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after #55/#57 |
+| 2026-05-09 | `npm run build` in `functions` + `node --test test/getFilterDetail.test.mjs` | PASS, Cloud Function detail response includes `signatureSampleURL` |
+| 2026-05-09 | `npm --prefix functions test` | PASS after filter detail metadata expansion, 57 tests |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after QA doc update/current issue batch |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after P0/P1 issue batch (#185/#186/#187/#188/#189/#190/#192/#207/#203) |
+| 2026-05-09 | `xcodebuild ... -only-testing:FilterEngineTests/CubeLUTParserTests -only-testing:MarketplaceTests/SocialRepositoriesTests test` | PASS, LUT size cap and self-block guard covered |
 
 ## 10. Definition of Done
 

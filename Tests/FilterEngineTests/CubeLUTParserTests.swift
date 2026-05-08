@@ -148,6 +148,21 @@ final class CubeLUTParserTests: XCTestCase {
         }
     }
 
+    func testRejectsThreeDSizeAboveMemoryPolicyLimit() {
+        let source = """
+        LUT_3D_SIZE 65
+        0.0 0.0 0.0
+        """
+
+        XCTAssertThrowsError(try CubeLUTParser.parse(source)) { error in
+            guard case CubeLUTParser.ParseError.sizeOutOfRange(_, let size, let allowed) = error else {
+                return XCTFail("Expected sizeOutOfRange, got \(error)")
+            }
+            XCTAssertEqual(size, 65)
+            XCTAssertEqual(allowed, CubeLUTParser.threeDSizeRange)
+        }
+    }
+
     func testRejectsDuplicateSizeHeader() {
         let source = """
         LUT_3D_SIZE 2

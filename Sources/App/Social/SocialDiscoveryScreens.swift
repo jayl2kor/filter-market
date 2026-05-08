@@ -70,6 +70,10 @@ struct ReviewsListScreen: View {
             guard !isUITesting else { return }
             attachReviewsListener()
         }
+        .onDisappear {
+            reviewsListener?.remove()
+            reviewsListener = nil
+        }
     }
 
     /// /filters/{filterID}/reviews.order(by: createdAt desc).limit(50) listener.
@@ -82,11 +86,13 @@ struct ReviewsListScreen: View {
             .limit(to: 50)
             .addSnapshotListener { snapshot, _ in
                 let docs = snapshot?.documents ?? []
-                self.reviews = docs.compactMap { doc -> SocialReview? in
+                let decoded = docs.compactMap { doc -> SocialReview? in
                     let data = doc.data()
                     let body = data["body"] as? String ?? ""
                     let authorUid = data["authorUid"] as? String ?? "unknown"
-                    let authorName = data["authorName"] as? String ?? "사용자"
+                    let authorName = data["authorDisplayName"] as? String
+                        ?? data["authorName"] as? String
+                        ?? "사용자"
                     let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
                     let initials = String(authorName.prefix(2)).uppercased()
                     let interval = Date().timeIntervalSince(createdAt)
@@ -102,14 +108,25 @@ struct ReviewsListScreen: View {
                         avatarColors: [Color(hex: 0xF3DCC4), Color(hex: 0xD4A482)],
                         time: timeStr,
                         body: body,
-                        stars: 0,
-                        helpfulCount: 0,
+                        stars: Self.intField(data["stars"], default: Self.intField(data["rating"], default: 0)),
+                        helpfulCount: Self.intField(data["helpfulCount"], default: 0),
                         isHelpful: false,
-                        isVerifiedDownload: false,
+                        isVerifiedDownload: data["isVerifiedDownload"] as? Bool ?? false,
                         makerReply: nil
                     )
                 }
+                Task { @MainActor in
+                    self.reviews = decoded
+                }
             }
+    }
+
+    private static func intField(_ value: Any?, default defaultValue: Int) -> Int {
+        if let int = value as? Int { return int }
+        if let number = value as? NSNumber { return number.intValue }
+        if let double = value as? Double { return Int(double) }
+        if let string = value as? String, let int = Int(string) { return int }
+        return defaultValue
     }
 
     private var filterMiniCard: some View {
@@ -814,6 +831,15 @@ private struct FollowListScreen: View {
     let userID: String
     @Binding var query: String
     @Binding var users: [SocialUser]
+    @State private var titleHandle: String = ""
+    @State private var followerCount: Int = 0
+    @State private var followingCount: Int = 0
+    @State private var listListener: ListenerRegistration?
+    @State private var profileListener: ListenerRegistration?
+
+    private var normalizedUserID: String {
+        userID.replacingOccurrences(of: "@", with: "")
+    }
 
     private var filteredUsers: [SocialUser] {
         let normalized = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -830,14 +856,23 @@ private struct FollowListScreen: View {
             list
         }
         .background(FMColors.Background.bg1)
-        .navigationTitle(userID == "me" ? "@me" : "@sample.maker")
+        .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            attachRealtimeData()
+        }
+        .onDisappear {
+            listListener?.remove()
+            profileListener?.remove()
+            listListener = nil
+            profileListener = nil
+        }
     }
 
     private var segment: some View {
         HStack(spacing: 0) {
-            segmentLink(title: "팔로워 2,418", route: .followers(uid: userID), isActive: mode == .followers)
-            segmentLink(title: "팔로잉 86", route: .following(uid: userID), isActive: mode == .following)
+            segmentLink(title: "팔로워 \(followerCount.formatted())", route: .followers(uid: userID), isActive: mode == .followers)
+            segmentLink(title: "팔로잉 \(followingCount.formatted())", route: .following(uid: userID), isActive: mode == .following)
         }
         .overlay(alignment: .bottom) {
             Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
@@ -882,7 +917,11 @@ private struct FollowListScreen: View {
     private var list: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                if mode == .following {
+                if filteredUsers.isEmpty {
+                    FMEmptyState(.emptyMarket)
+                        .padding(.vertical, Sp.lg)
+                        .accessibilityIdentifier(mode == .followers ? "social.followers.empty" : "social.following.empty")
+                } else if mode == .following {
                     groupLabel("최근 활동 있음")
                     ForEach(filteredUsers.filter { $0.newFilterCount > 0 }) { user in
                         userRow(user)
@@ -947,9 +986,7 @@ private struct FollowListScreen: View {
 
     private func followButton(_ user: SocialUser) -> some View {
         Button {
-            guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
-            users[index].relationship = users[index].relationship.toggled
-            FMHaptic.selection.play()
+            Task { await toggleFollow(user) }
         } label: {
             Text(user.relationship.label)
                 .fmTypography(.subhead)
@@ -965,6 +1002,107 @@ private struct FollowListScreen: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("social.follow.toggle")
+    }
+
+    private var navigationTitle: String {
+        if !titleHandle.isEmpty { return titleHandle }
+        if userID == "me" { return "@me" }
+        return normalizedUserID.hasPrefix("@") ? normalizedUserID : "@\(normalizedUserID)"
+    }
+
+    private func attachRealtimeData() {
+        guard !isUITesting else {
+            followerCount = SocialUser.followers.count
+            followingCount = SocialUser.following.count
+            titleHandle = userID == "me" ? "@me" : "@sample.maker"
+            return
+        }
+        let db = Firestore.firestore()
+        profileListener?.remove()
+        profileListener = db.collection("users").document(normalizedUserID)
+            .addSnapshotListener { snapshot, _ in
+                let data = snapshot?.data() ?? [:]
+                let handle = (data["handle"] as? String) ?? ""
+                titleHandle = handle.isEmpty ? "@\(normalizedUserID.prefix(8))" : (handle.hasPrefix("@") ? handle : "@\(handle)")
+                followerCount = (data["followerCount"] as? Int) ?? 0
+                followingCount = (data["followingCount"] as? Int) ?? 0
+            }
+
+        listListener?.remove()
+        let field = mode == .followers ? "targetUid" : "actorUid"
+        listListener = db.collection("follows")
+            .whereField(field, isEqualTo: normalizedUserID)
+            .limit(to: 100)
+            .addSnapshotListener { snapshot, _ in
+                let docs = snapshot?.documents ?? []
+                Task {
+                    let loaded = await loadUsers(for: docs)
+                    await MainActor.run {
+                        users = loaded
+                    }
+                }
+            }
+    }
+
+    private func loadUsers(for docs: [QueryDocumentSnapshot]) async -> [SocialUser] {
+        let db = Firestore.firestore()
+        var result: [SocialUser] = []
+        for doc in docs {
+            let data = doc.data()
+            guard let uid = (mode == .followers ? data["actorUid"] : data["targetUid"]) as? String else {
+                continue
+            }
+            do {
+                let profile = try await db.collection("users").document(uid).getDocument().data() ?? [:]
+                let name = (profile["displayName"] as? String) ?? String(uid.prefix(8))
+                let handleRaw = (profile["handle"] as? String) ?? String(uid.prefix(8))
+                let handle = handleRaw.hasPrefix("@") ? handleRaw : "@\(handleRaw)"
+                result.append(SocialUser(
+                    uid: uid,
+                    name: name,
+                    handle: handle,
+                    initials: String(name.prefix(2)).uppercased(),
+                    avatarColors: [FMColors.Category.portrait, FMColors.Category.mood],
+                    filterCount: (profile["filterCount"] as? Int) ?? 0,
+                    role: (profile["roleLabel"] as? String) ?? "",
+                    badge: nil,
+                    newFilterCount: 0,
+                    relationship: .notFollowing
+                ))
+            } catch {
+                continue
+            }
+        }
+        return result.sorted { $0.handle < $1.handle }
+    }
+
+    @MainActor
+    private func toggleFollow(_ user: SocialUser) async {
+        guard let actorUid = Auth.auth().currentUser?.uid, let targetUid = user.uid, actorUid != targetUid else {
+            guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
+            users[index].relationship = users[index].relationship.toggled
+            FMHaptic.selection.play()
+            return
+        }
+        guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
+        let next = users[index].relationship.toggled
+        users[index].relationship = next
+        FMHaptic.selection.play()
+
+        let edgeRef = Firestore.firestore().collection("follows").document("\(actorUid)_\(targetUid)")
+        do {
+            if next == .notFollowing {
+                try await edgeRef.delete()
+            } else {
+                try await edgeRef.setData([
+                    "actorUid": actorUid,
+                    "targetUid": targetUid,
+                    "createdAt": FieldValue.serverTimestamp()
+                ], merge: true)
+            }
+        } catch {
+            users[index].relationship = user.relationship
+        }
     }
 
     private func groupLabel(_ text: String) -> some View {
@@ -983,6 +1121,10 @@ private struct FollowListScreen: View {
 struct ForYouFeedScreen: View {
     @State private var followedMakerIDs: Set<UUID> = []
     @State private var savedHero = false
+
+    private var spotlightMakers: [SocialUser] {
+        isUITesting ? SocialUser.spotlight : []
+    }
 
     var body: some View {
         ScrollView {
@@ -1117,36 +1259,44 @@ struct ForYouFeedScreen: View {
             Text("새로 떠오르는 메이커")
                 .fmTypography(.headline)
                 .foregroundStyle(FMColors.Text.primary)
-            ForEach(SocialUser.spotlight) { user in
-                HStack(spacing: Sp.sm) {
-                    avatar(initials: user.initials, colors: user.avatarColors, size: 48)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(user.name + " · " + user.role)
-                            .fmTypography(.callout)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(FMColors.Text.primary)
-                        Text(user.meta)
-                            .fmTypography(.caption)
-                            .foregroundStyle(FMColors.Text.tertiary)
+            if spotlightMakers.isEmpty {
+                Text("아직 추천할 실제 메이커 데이터가 없어요.")
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Text.tertiary)
+                    .padding(.vertical, Sp.xs)
+                    .accessibilityIdentifier("social.foryou.makers.empty")
+            } else {
+                ForEach(spotlightMakers) { user in
+                    HStack(spacing: Sp.sm) {
+                        avatar(initials: user.initials, colors: user.avatarColors, size: 48)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(user.name + " · " + user.role)
+                                .fmTypography(.callout)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(FMColors.Text.primary)
+                            Text(user.meta)
+                                .fmTypography(.caption)
+                                .foregroundStyle(FMColors.Text.tertiary)
+                        }
+                        Spacer()
+                        Button {
+                            toggleFollow(user.id)
+                        } label: {
+                            Text(followedMakerIDs.contains(user.id) ? "팔로잉" : "팔로우")
+                                .fmTypography(.subhead)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(followedMakerIDs.contains(user.id) ? FMColors.Text.primary : FMColors.Text.inverse)
+                                .padding(.horizontal, Sp.md)
+                                .frame(height: 32)
+                                .background(followedMakerIDs.contains(user.id) ? FMColors.Background.bg1 : FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
+                        }
+                        .accessibilityIdentifier("social.foryou.maker.follow")
                     }
-                    Spacer()
-                    Button {
-                        toggleFollow(user.id)
-                    } label: {
-                        Text(followedMakerIDs.contains(user.id) ? "팔로잉" : "팔로우")
-                            .fmTypography(.subhead)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(followedMakerIDs.contains(user.id) ? FMColors.Text.primary : FMColors.Text.inverse)
-                            .padding(.horizontal, Sp.md)
-                            .frame(height: 32)
-                            .background(followedMakerIDs.contains(user.id) ? FMColors.Background.bg1 : FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
+                    .padding(Sp.sm)
+                    .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.lg))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: R.lg).strokeBorder(FMColors.Border.subtle, lineWidth: 1)
                     }
-                    .accessibilityIdentifier("social.foryou.maker.follow")
-                }
-                .padding(Sp.sm)
-                .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.lg))
-                .overlay {
-                    RoundedRectangle(cornerRadius: R.lg).strokeBorder(FMColors.Border.subtle, lineWidth: 1)
                 }
             }
         }
@@ -1459,7 +1609,7 @@ private struct SocialReview: Identifiable {
     let isVerifiedDownload: Bool
     let makerReply: SocialMakerReply?
 
-    nonisolated(unsafe) static let mock: [SocialReview] = [
+    static let mock: [SocialReview] = [
         SocialReview(
             name: "민지",
             handle: "@minji.lab",
@@ -1523,6 +1673,7 @@ private struct SocialReview: Identifiable {
 
 private struct SocialUser: Identifiable {
     var id = UUID()
+    var uid: String?
     let name: String
     let handle: String
     let initials: String

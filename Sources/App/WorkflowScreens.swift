@@ -219,9 +219,13 @@ struct FilterDownloadProgressScreen: View {
             try? await Task.sleep(nanoseconds: 130_000_000)
             progress = Double(step) / 6
         }
-        store.download(filter)
-        FMHaptic.success.play()
-        phase = .completed
+        do {
+            try await store.download(filter)
+            FMHaptic.success.play()
+            phase = .completed
+        } catch {
+            phase = .failed
+        }
     }
 }
 
@@ -1128,6 +1132,7 @@ struct EditProfileScreen: View {
     /// (이전: EditableProfile.preview = 강지수 — 사용자 본인 데이터로 자동 채워지도록 수정)
     @State private var draft = EditableProfile.empty
     @State private var handleStatus: HandleStatus = .available
+    @State private var isAvatarPickerPresented = false
 
     private enum HandleStatus {
         case unchecked
@@ -1137,10 +1142,10 @@ struct EditProfileScreen: View {
 
         var message: String {
             switch self {
-            case .unchecked: "핸들 중복 확인이 필요합니다."
+            case .unchecked: "유저네임 중복 확인이 필요합니다."
             case .checking: "확인 중..."
-            case .available: "사용 가능한 핸들입니다."
-            case .unavailable: "이미 사용 중인 핸들입니다."
+            case .available: "사용 가능한 유저네임입니다."
+            case .unavailable: "이미 사용 중인 유저네임입니다."
             }
         }
 
@@ -1187,21 +1192,19 @@ struct EditProfileScreen: View {
             draft = store.editableProfile
             handleStatus = .available
         }
+        .sheet(isPresented: $isAvatarPickerPresented) {
+            PhotoPicker { image in
+                draft.avatarImageData = image.normalizedJPEGData(maxDimension: 512)
+            }
+        }
     }
 
     private var avatarEditor: some View {
         VStack(spacing: Sp.sm) {
             ZStack(alignment: .bottomTrailing) {
-                Circle()
-                    .fill(avatarGradient)
-                    .frame(width: 104, height: 104)
-                    .overlay {
-                        Text(draft.initials)
-                            .fmTypography(.titleLarge)
-                            .foregroundStyle(.white)
-                    }
+                avatarPreview
                 Button {
-                    draft.avatarVariant = (draft.avatarVariant + 1) % 4
+                    isAvatarPickerPresented = true
                 } label: {
                     Image(systemName: "camera.fill")
                         .font(.system(size: 15, weight: .semibold))
@@ -1212,7 +1215,7 @@ struct EditProfileScreen: View {
                 .accessibilityIdentifier("profile.edit.avatar.change")
             }
             Button("사진 변경") {
-                draft.avatarVariant = (draft.avatarVariant + 1) % 4
+                isAvatarPickerPresented = true
             }
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(FMColors.Accent.primary)
@@ -1220,14 +1223,37 @@ struct EditProfileScreen: View {
         .frame(maxWidth: .infinity)
     }
 
+    @ViewBuilder
+    private var avatarPreview: some View {
+        if let data = draft.avatarImageData, let image = UIImage(data: data) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 104, height: 104)
+                .clipShape(Circle())
+        } else {
+            Circle()
+                .fill(avatarGradient)
+                .frame(width: 104, height: 104)
+                .overlay {
+                    Text(draft.initials)
+                        .fmTypography(.titleLarge)
+                        .foregroundStyle(.white)
+                }
+        }
+    }
+
     private var formFields: some View {
         VStack(alignment: .leading, spacing: Sp.md) {
             FMTextField("이름", text: $draft.displayName, placeholder: "표시 이름")
                 .accessibilityIdentifier("profile.edit.name")
             VStack(alignment: .leading, spacing: Sp.xxs) {
-                HStack(spacing: Sp.xs) {
-                    FMTextField(
-                        "핸들",
+                Text("유저네임")
+                    .fmTypography(.caption)
+                    .foregroundStyle(FMColors.Text.secondary)
+                HStack(alignment: .center, spacing: Sp.xs) {
+                    TextField(
+                        "your.username",
                         text: Binding(
                             get: { draft.handle },
                             set: {
@@ -1236,9 +1262,19 @@ struct EditProfileScreen: View {
                                     .lowercased()
                                 handleStatus = .unchecked
                             }
-                        ),
-                        placeholder: "your.handle"
+                        )
                     )
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(Font.fmBody)
+                    .foregroundStyle(FMColors.Text.primary)
+                    .padding(.horizontal, Sp.sm)
+                    .frame(height: 44)
+                    .background(FMColors.Background.bg0, in: RoundedRectangle(cornerRadius: R.md))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: R.md)
+                            .strokeBorder(FMColors.Border.default, lineWidth: 1)
+                    }
                     .accessibilityIdentifier("profile.edit.handle")
                     Button {
                         checkHandle()
@@ -1312,6 +1348,22 @@ struct EditProfileScreen: View {
     private func save() {
         store.saveProfile(draft)
         dismiss()
+    }
+}
+
+private extension UIImage {
+    func normalizedJPEGData(maxDimension: CGFloat) -> Data? {
+        let longest = max(size.width, size.height)
+        let scale = longest > maxDimension ? maxDimension / longest : 1
+        let targetSize = CGSize(width: size.width * scale, height: size.height * scale)
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
+        let rendered = renderer.image { _ in
+            draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+        return rendered.jpegData(compressionQuality: 0.82)
     }
 }
 
@@ -3580,7 +3632,7 @@ struct PaywallSingleScreen: View {
             // (#31) 구매 성공 → 자동 다운로드 마크 + 잔액 차감 (낙관적). filterAfterDownload로 이동.
             store.creditCoinsOptimistically(-priceCoins)  // 음수 가산으로 차감
             if let filter = store.filter(matching: filterID) {
-                store.download(filter)
+                try? await store.download(filter)
             }
             Telemetry.log(.filterPurchaseSucceeded, parameters: ["filter_id": filterID, "price_coins": priceCoins])
             didPurchase = true

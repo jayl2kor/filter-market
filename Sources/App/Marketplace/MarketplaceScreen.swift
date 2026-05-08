@@ -77,6 +77,29 @@ struct MarketplaceScreen: View {
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
 
+            NavigationLink(value: AppRoute.wallet) {
+                HStack(spacing: 4) {
+                    Image(systemName: "circle.hexagongrid.fill")
+                        .font(.system(size: IconSize.sm, weight: .semibold))
+                        .foregroundStyle(FMColors.Accent.primary)
+                    Text(store.coinBalance.formatted())
+                        .fmTypography(.subhead)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Text.primary)
+                        .monospacedDigit()
+                }
+                .padding(.horizontal, Sp.sm)
+                .frame(height: 44)
+                .background(FMColors.Background.bg2, in: Capsule())
+                .overlay {
+                    Capsule()
+                        .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("market.header.coinBalance")
+            .accessibilityLabel("코인 잔액 \(store.coinBalance)개, 지갑 열기")
+
             NavigationLink(value: AppRoute.notifications) {
                 Image(systemName: "bell")
                     .font(.system(size: IconSize.lg, weight: .regular))

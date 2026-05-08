@@ -11,10 +11,13 @@ function makeFakeFirestore(initialDocs = {}) {
   const data = new Map(Object.entries(initialDocs));
   const docRef = (path) => ({
     _path: path,
+    collection(name) { return collectionRef(`${path}/${name}`); },
     async get() {
       const record = data.get(path);
       return {
         exists: record !== undefined,
+        id: path.split("/").at(-1),
+        ref: docRef(path),
         data: () => record,
       };
     },
@@ -22,6 +25,23 @@ function makeFakeFirestore(initialDocs = {}) {
   const collectionRef = (path) => ({
     _path: path,
     doc(id) { return docRef(`${path}/${id}`); },
+    where() { return this; },
+    orderBy() { return this; },
+    limit() { return this; },
+    async get() {
+      const prefix = `${path}/`;
+      const docs = [];
+      for (const [docPath, record] of data.entries()) {
+        if (!docPath.startsWith(prefix)) continue;
+        const remainder = docPath.slice(prefix.length);
+        if (remainder.includes("/")) continue;
+        docs.push({
+          id: remainder,
+          data: () => record,
+        });
+      }
+      return { docs, size: docs.length };
+    },
   });
   return {
     collection(name) { return collectionRef(name); },
@@ -41,8 +61,31 @@ describe("applyGetFilterDetail", () => {
         priceCoins: 0,
         coverURL: "https://cdn.test/cover.jpg",
         signatureSampleURL: "https://cdn.test/signature.jpg",
+        reviewCount: 1,
+        likeCount: 12,
+        sampleCount: 1,
+        tags: ["mood", "warm"],
         objectKey: "filters/u-1/abc-123.fmpkg",
         author: { uid: "u-1", displayName: "Alex" },
+      },
+      "filters/abc-123/reviews/reviewer-1": {
+        authorUid: "reviewer-1",
+        authorDisplayName: "Soojin",
+        stars: 5,
+        body: "Great warm tone.",
+        isVerifiedDownload: true,
+        helpfulCount: 2,
+        status: "active",
+      },
+      "filters/abc-123/samples/sample-1": {
+        kind: "signature",
+        categoryHint: "portrait",
+        coverURL: "https://cdn.test/sample.jpg",
+        thumbnailURL: "https://cdn.test/sample-thumb.jpg",
+        featured: true,
+      },
+      "filters/abc-123/likes/u-current": {
+        createdAt: 1,
       },
     });
     let presignedKey = null;
@@ -53,7 +96,7 @@ describe("applyGetFilterDetail", () => {
 
     const result = await applyGetFilterDetail(
       { filterId: "abc-123" },
-      { firestore, presignGetURL },
+      { firestore, presignGetURL, uid: "u-current" },
     );
 
     assert.equal(presignedKey, "filters/u-1/abc-123.fmpkg");
@@ -63,6 +106,14 @@ describe("applyGetFilterDetail", () => {
     assert.equal(result.filter.useCount, 42);
     assert.equal(result.filter.coverURL, "https://cdn.test/cover.jpg");
     assert.equal(result.filter.signatureSampleURL, "https://cdn.test/signature.jpg");
+    assert.equal(result.filter.reviewCount, 1);
+    assert.equal(result.filter.likeCount, 12);
+    assert.deepEqual(result.filter.tags, ["mood", "warm"]);
+    assert.equal(result.samples.length, 1);
+    assert.equal(result.samples[0].coverURL, "https://cdn.test/sample.jpg");
+    assert.equal(result.reviews.length, 1);
+    assert.equal(result.reviews[0].authorDisplayName, "Soojin");
+    assert.equal(result.userHasLiked, true);
     assert.equal(result.filter.author.uid, "u-1");
     assert.equal(result.filter.author.displayName, "Alex");
     assert.equal(result.signedDownloadURL, "https://r2.test/signed?key=filters%2Fu-1%2Fabc-123.fmpkg");

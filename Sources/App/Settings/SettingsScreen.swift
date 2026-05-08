@@ -315,7 +315,7 @@ struct SettingsScreen: View {
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Text.secondary)
                 } else {
-                    Text("핸들을 설정하세요")
+                    Text("유저네임을 설정하세요")
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Text.tertiary)
                 }

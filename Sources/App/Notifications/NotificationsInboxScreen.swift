@@ -1,4 +1,6 @@
 import DesignSystem
+import FirebaseAuth
+import FirebaseFirestore
 import SwiftUI
 
 /// 27 Notifications Inbox — `mockups/screens/27-notifications-inbox.html` 정합.
@@ -8,6 +10,7 @@ import SwiftUI
 struct NotificationsInboxScreen: View {
     @State private var category: NotificationCategory = .all
     @StateObject private var store = NotificationsInboxStore()
+    @State private var followErrorMessage: String?
     // 프로덕션: store.items (Firestore listener) 사용.
     // UI 테스트 (-ui-testing 런치 인자): 기존 mock 데이터로 fallback해 시드 가능 상태 유지. (#30)
     private var items: [NotificationItem] {
@@ -39,6 +42,15 @@ struct NotificationsInboxScreen: View {
             }
         }
         .task { store.start() }
+        .onDisappear { store.stop() }
+        .alert("팔로우 실패", isPresented: Binding(
+            get: { followErrorMessage != nil },
+            set: { if !$0 { followErrorMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(followErrorMessage ?? "")
+        }
     }
 
     // MARK: - Category strip
@@ -280,7 +292,42 @@ struct NotificationsInboxScreen: View {
     }
 
     private func acceptFollow(_ item: NotificationItem) {
-        markRead(item)
+        guard case .followRequest(let actorUid) = item.kind else { return }
+        Task {
+            do {
+                try await followBack(actorUid: actorUid)
+                await MainActor.run {
+                    markRead(item)
+                }
+            } catch {
+                await MainActor.run {
+                    followErrorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    private func followBack(actorUid: String) async throws {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard uid != actorUid else { return }
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            Firestore.firestore()
+                .collection("follows").document("\(uid)_\(actorUid)")
+                .setData([
+                    "actorUid": uid,
+                    "targetUid": actorUid,
+                    "createdAt": FieldValue.serverTimestamp()
+                ], merge: true) { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+        }
     }
 }
 

@@ -75,6 +75,7 @@ struct EditableProfile: Equatable {
     var makerPageVisible: Bool
     var photoSharingAllowed: Bool
     var avatarVariant: Int
+    var avatarImageData: Data?
 
     /// Preview / Xcode SwiftUI Preview 전용 — 실제 앱에서는 사용하지 않음.
     static let preview = EditableProfile(
@@ -84,7 +85,8 @@ struct EditableProfile: Equatable {
         website: "https://example.com",
         makerPageVisible: true,
         photoSharingAllowed: false,
-        avatarVariant: 0
+        avatarVariant: 0,
+        avatarImageData: nil
     )
 
     /// 비로그인 / 로딩 중 placeholder. 실제 displayName/handle 은 Firebase Auth + Firestore 에서 채워짐.
@@ -95,7 +97,8 @@ struct EditableProfile: Equatable {
         website: "",
         makerPageVisible: true,
         photoSharingAllowed: false,
-        avatarVariant: 0
+        avatarVariant: 0,
+        avatarImageData: nil
     )
 
     var displayHandle: String {
@@ -146,7 +149,7 @@ enum DataExportCategory: String, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .account: "이메일, 가입일, 인증 메타"
-        case .profile: "표시 이름, 핸들, 바이오, 링크"
+        case .profile: "표시 이름, 유저네임, 바이오, 링크"
         case .marketplace: "다운로드, 좋아요, 리뷰, 댓글"
         case .wallet: "Coin 잔액, 주문, 환불 요청"
         case .activity: "검색, 알림, 설정 변경 이력"
@@ -434,7 +437,8 @@ final class MooditStore: ObservableObject {
                 website: editableProfile.website,
                 makerPageVisible: editableProfile.makerPageVisible,
                 photoSharingAllowed: editableProfile.photoSharingAllowed,
-                avatarVariant: editableProfile.avatarVariant
+                avatarVariant: editableProfile.avatarVariant,
+                avatarImageData: editableProfile.avatarImageData
             )
         }
         walletListener = db.collection("users").document(uid)
@@ -463,7 +467,8 @@ final class MooditStore: ObservableObject {
                     website: (data["website"] as? String) ?? self.editableProfile.website,
                     makerPageVisible: (data["makerPageVisible"] as? Bool) ?? self.editableProfile.makerPageVisible,
                     photoSharingAllowed: (data["photoSharingAllowed"] as? Bool) ?? self.editableProfile.photoSharingAllowed,
-                    avatarVariant: (data["avatarVariant"] as? Int) ?? self.editableProfile.avatarVariant
+                    avatarVariant: (data["avatarVariant"] as? Int) ?? self.editableProfile.avatarVariant,
+                    avatarImageData: self.editableProfile.avatarImageData
                 )
             }
         // (#45) /users/{uid}/notificationPreferences/main listener — 사용자 토글 변경 즉시 반영.
@@ -617,6 +622,39 @@ final class MooditStore: ObservableObject {
         }
     }
 
+    private func persistSavedFilterAsync(filterId: Filter.ID, save: Bool) async throws {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let ref = Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("savedFilters").document(filterId.uuidString)
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            if save {
+                ref.setData([
+                    "filterId": filterId.uuidString,
+                    "savedAt": FieldValue.serverTimestamp()
+                ], merge: true) { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            } else {
+                ref.delete { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+    }
+
     /// 로그아웃 / 사용자 전환 시 본인 스코프 데이터 일괄 초기화 (#17).
     /// `Auth.signOut()` 호출 직후 또는 attachWalletListeners(uid: nil)에서 사용.
     func resetUserScopedState() {
@@ -638,6 +676,10 @@ final class MooditStore: ObservableObject {
         selectedMakerStatus = .all
         makerFilters = []
         exportRequests = []
+        selectedFilterID = nil
+        hasLoadedProfile = false
+        lastPaymentErrorMessage = nil
+        lastSubmitErrorMessage = nil
     }
 
     func select(_ filter: Filter) {
@@ -645,10 +687,10 @@ final class MooditStore: ObservableObject {
         downloadedFilterIDs.insert(filter.id)
     }
 
-    func download(_ filter: Filter) {
-        downloadedFilterIDs.insert(filter.id)
+    func download(_ filter: Filter) async throws {
         // (#24) /users/{uid}/savedFilters/{filterId} Firestore 동기화 — 앱 재시작/다른 디바이스에서도 유지.
-        persistSavedFilter(filterId: filter.id, save: true)
+        try await persistSavedFilterAsync(filterId: filter.id, save: true)
+        downloadedFilterIDs.insert(filter.id)
     }
 
     func removeDownload(_ filter: Filter) {

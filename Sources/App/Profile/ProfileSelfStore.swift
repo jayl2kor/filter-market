@@ -41,6 +41,21 @@ final class ProfileSelfStore: ObservableObject {
         }
     }
 
+    func stop() {
+        myFiltersListener?.remove()
+        savedListener?.remove()
+        capturesListener?.remove()
+        userDocListener?.remove()
+        myFiltersListener = nil
+        savedListener = nil
+        capturesListener = nil
+        userDocListener = nil
+        if let authHandle {
+            Auth.auth().removeStateDidChangeListener(authHandle)
+            self.authHandle = nil
+        }
+    }
+
     private func attach(authUser: User?) {
         myFiltersListener?.remove()
         savedListener?.remove()

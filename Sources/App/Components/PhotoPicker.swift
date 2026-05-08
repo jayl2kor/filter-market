@@ -8,7 +8,7 @@ import UIKit
 /// `PHPicker` is the recommended API since iOS 14 — it runs out-of-process
 /// and surfaces only what the user explicitly chooses.
 struct PhotoPicker: UIViewControllerRepresentable {
-    let onPick: (UIImage) -> Void
+    let onPick: @MainActor (UIImage) -> Void
 
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
@@ -28,9 +28,9 @@ struct PhotoPicker: UIViewControllerRepresentable {
     }
 
     final class Coordinator: NSObject, PHPickerViewControllerDelegate {
-        let onPick: (UIImage) -> Void
+        let onPick: @MainActor (UIImage) -> Void
 
-        init(onPick: @escaping (UIImage) -> Void) {
+        init(onPick: @escaping @MainActor (UIImage) -> Void) {
             self.onPick = onPick
         }
 

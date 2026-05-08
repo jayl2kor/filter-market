@@ -1,4 +1,5 @@
 import DesignSystem
+import FirebaseAuth
 import FirebaseFirestore
 import Models
 import SwiftUI
@@ -221,9 +222,6 @@ struct ProfileScreen: View {
             }
             .background(FMColors.Background.bg0)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Color.clear.frame(width: 28, height: 28)
-                }
                 ToolbarItem(placement: .principal) {
                     Text(user.handle)
                         .fmTypography(.headline)
@@ -242,6 +240,9 @@ struct ProfileScreen: View {
             await loadOtherProfile()
             // hasAppeared 즉시 true — 데이터 listener가 도착하면 자동 갱신. (#18 hardcoded 250ms sleep 제거)
             hasAppeared = true
+        }
+        .onDisappear {
+            profileStore.stop()
         }
         .sheet(item: $shareSheetPayload) { payload in
             ShareSheet(activityItems: payload.items)
@@ -288,12 +289,12 @@ struct ProfileScreen: View {
             }
             .buttonStyle(.plain)
             statDivider
-            NavigationLink(value: AppRoute.followers(uid: user.handle)) {
+            NavigationLink(value: AppRoute.followers(uid: followListUserID)) {
                 statContent(value: user.followerCount, label: "팔로워")
             }
             .buttonStyle(.plain)
             statDivider
-            NavigationLink(value: AppRoute.following(uid: user.handle)) {
+            NavigationLink(value: AppRoute.following(uid: followListUserID)) {
                 statContent(value: user.followingCount, label: "팔로잉")
             }
             .buttonStyle(.plain)
@@ -309,6 +310,12 @@ struct ProfileScreen: View {
                 .fill(FMColors.Border.subtle)
                 .frame(height: 1)
         }
+    }
+
+    private var followListUserID: String {
+        if let otherUid { return otherUid }
+        if let uid = Auth.auth().currentUser?.uid { return uid }
+        return user.handle.replacingOccurrences(of: "@", with: "")
     }
 
     @ViewBuilder

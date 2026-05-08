@@ -18,6 +18,7 @@ public struct Filter: Identifiable, Codable, Equatable, Sendable {
     public let signatureSampleURL: URL?
     public let ratingAvg: Double?
     public let downloadCount: Int
+    public let tags: [String]
 
     public init(
         id: UUID,
@@ -33,7 +34,8 @@ public struct Filter: Identifiable, Codable, Equatable, Sendable {
         coverURL: URL? = nil,
         signatureSampleURL: URL? = nil,
         ratingAvg: Double? = nil,
-        downloadCount: Int = 0
+        downloadCount: Int = 0,
+        tags: [String] = []
     ) {
         self.id = id
         self.title = title
@@ -49,11 +51,12 @@ public struct Filter: Identifiable, Codable, Equatable, Sendable {
         self.signatureSampleURL = signatureSampleURL
         self.ratingAvg = ratingAvg
         self.downloadCount = downloadCount
+        self.tags = tags
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, title, version, author, category, engine
-        case useCount, createdAt, status, priceCoins, coverURL, signatureSampleURL, ratingAvg, downloadCount
+        case useCount, createdAt, status, priceCoins, coverURL, signatureSampleURL, ratingAvg, downloadCount, tags
     }
 
     public init(from decoder: Decoder) throws {
@@ -72,6 +75,7 @@ public struct Filter: Identifiable, Codable, Equatable, Sendable {
         signatureSampleURL = try c.decodeIfPresent(URL.self, forKey: .signatureSampleURL)
         ratingAvg = try c.decodeIfPresent(Double.self, forKey: .ratingAvg)
         downloadCount = try c.decodeIfPresent(Int.self, forKey: .downloadCount) ?? 0
+        tags = try c.decodeIfPresent([String].self, forKey: .tags) ?? []
     }
 }
 

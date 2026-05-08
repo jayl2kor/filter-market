@@ -33,9 +33,9 @@ public enum CubeLUTParser {
         case valueNotFinite(line: Int)
     }
 
-    /// 3D LUT size limits — Adobe's spec is 2..256, but moodit caps at 64 in practice.
-    /// We accept up to 256 here; downstream code can reject larger sizes by policy.
-    static let threeDSizeRange: ClosedRange<Int> = 2 ... 256
+    /// 3D LUT size limits. Adobe's spec allows larger LUTs, but accepting 256^3
+    /// rows can allocate hundreds of MB from a single untrusted file.
+    static let threeDSizeRange: ClosedRange<Int> = 2 ... 64
 
     /// 1D LUT size limits.
     static let oneDSizeRange: ClosedRange<Int> = 2 ... 65_536

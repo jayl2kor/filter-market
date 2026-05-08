@@ -317,6 +317,7 @@ const getFilterDetailSchema = z.object({
 export interface GetFilterDetailDeps {
   firestore?: Firestore;
   presignGetURL?: (objectKey: string) => Promise<{ url: string; expiresAt: number }>;
+  uid?: string;
 }
 
 export interface FilterDetailResponse {
@@ -332,9 +333,31 @@ export interface FilterDetailResponse {
     coverURL: string | null;
     signatureSampleURL: string | null;
     ratingAvg: number | null;
+    reviewCount: number;
+    likeCount: number;
+    sampleCount: number;
+    tags: string[];
     createdAt: number | null;
     author: { uid: string; displayName: string };
   };
+  samples: Array<{
+    id: string;
+    kind: string;
+    categoryHint: string | null;
+    coverURL: string | null;
+    thumbnailURL: string | null;
+  }>;
+  reviews: Array<{
+    id: string;
+    authorUid: string;
+    authorDisplayName: string;
+    stars: number;
+    body: string;
+    isVerifiedDownload: boolean;
+    helpfulCount: number;
+    createdAt: number | null;
+  }>;
+  userHasLiked: boolean;
   signedDownloadURL: string;
   expiresAt: number;
 }
@@ -383,6 +406,19 @@ export async function applyGetFilterDetail(
       typeof (createdAtRaw as { toMillis: unknown }).toMillis === "function"
       ? (createdAtRaw as { toMillis: () => number }).toMillis()
       : null;
+  const samplesSnap = await snap.ref.collection("samples")
+    .orderBy("featured", "desc")
+    .orderBy("createdAt", "desc")
+    .limit(12)
+    .get();
+  const reviewsSnap = await snap.ref.collection("reviews")
+    .where("status", "in", ["active", "published"])
+    .orderBy("createdAt", "desc")
+    .limit(3)
+    .get();
+  const userHasLiked = deps.uid
+    ? (await snap.ref.collection("likes").doc(deps.uid).get()).exists
+    : false;
 
   return {
     filter: {
@@ -397,12 +433,43 @@ export async function applyGetFilterDetail(
       coverURL: (data.coverURL as string | null) ?? null,
       signatureSampleURL: (data.signatureSampleURL as string | null) ?? null,
       ratingAvg: (data.ratingAvg as number | null) ?? null,
+      reviewCount: (data.reviewCount as number) ?? 0,
+      likeCount: (data.likeCount as number) ?? 0,
+      sampleCount: (data.sampleCount as number) ?? samplesSnap.size,
+      tags: Array.isArray(data.tags) ? data.tags.filter((tag): tag is string => typeof tag === "string") : [],
       createdAt,
       author: {
         uid: author.uid ?? (data.authorUid as string | undefined) ?? "unknown",
         displayName: author.displayName ?? "Unknown",
       },
     },
+    samples: samplesSnap.docs.map((sample) => {
+      const s = sample.data();
+      return {
+        id: sample.id,
+        kind: (s.kind as string | undefined) ?? "user",
+        categoryHint: (s.categoryHint as string | null) ?? null,
+        coverURL: (s.coverURL as string | null) ?? null,
+        thumbnailURL: (s.thumbnailURL as string | null) ?? null,
+      };
+    }),
+    reviews: reviewsSnap.docs.map((review) => {
+      const r = review.data();
+      const reviewCreatedAt = readMillis(r.createdAt);
+      return {
+        id: review.id,
+        authorUid: (r.authorUid as string | undefined) ?? review.id,
+        authorDisplayName: (r.authorDisplayName as string | undefined)
+          ?? (r.authorHandle as string | undefined)
+          ?? "사용자",
+        stars: (r.stars as number | undefined) ?? 0,
+        body: (r.body as string | undefined) ?? "",
+        isVerifiedDownload: (r.isVerifiedDownload as boolean | undefined) ?? false,
+        helpfulCount: (r.helpfulCount as number | undefined) ?? 0,
+        createdAt: reviewCreatedAt,
+      };
+    }),
+    userHasLiked,
     signedDownloadURL,
     expiresAt,
   };
@@ -413,8 +480,8 @@ export const getFilterDetail = onCall(
   { region, cors: true, secrets: r2Secrets },
   async (req: CallableRequest) => {
     // (#46) 유료 필터 R2 presigned URL을 비인증 사용자에게 노출하지 않도록 인증 강제.
-    requireAuth(req);
-    return applyGetFilterDetail(req.data);
+    const uid = requireAuth(req);
+    return applyGetFilterDetail(req.data, { uid });
   },
 );
 

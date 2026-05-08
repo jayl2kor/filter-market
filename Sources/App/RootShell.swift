@@ -104,7 +104,10 @@ struct RootShell: View {
         case .market:
             MarketplaceScreen()
         case .search:
-            SearchScreen()
+            NavigationStack {
+                SearchScreen()
+                    .appRouteDestinations()
+            }
         case .shutter:
             // 도달하지 않음 — fullScreenCover 로 처리.
             MarketplaceScreen()

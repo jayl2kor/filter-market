@@ -7,6 +7,7 @@
       "uid": "preview-maker",
       "displayName": "Alex"
     },
+    "tags": ["mood", "golden", "warm", "daily"],
     "category": "cinematic",
     "engine": {
       "type": "lut+params",
@@ -24,6 +25,7 @@
       "uid": "maker-portra",
       "displayName": "Mina"
     },
+    "tags": ["portrait", "skin", "soft", "daily"],
     "category": "portrait",
     "engine": {
       "type": "lut+params",
@@ -41,6 +43,7 @@
       "uid": "maker-night",
       "displayName": "Joon"
     },
+    "tags": ["night", "moody", "cinematic", "city"],
     "category": "moody",
     "engine": {
       "type": "lut+params",
@@ -58,6 +61,7 @@
       "uid": "maker-cafe",
       "displayName": "Nora"
     },
+    "tags": ["cafe", "cream", "food", "warm"],
     "category": "food",
     "engine": {
       "type": "lut+params",
@@ -75,6 +79,7 @@
       "uid": "maker-trip",
       "displayName": "Leo"
     },
+    "tags": ["travel", "airy", "bright", "daily"],
     "category": "travel",
     "engine": {
       "type": "lut+params",

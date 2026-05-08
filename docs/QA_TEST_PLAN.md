@@ -1,7 +1,7 @@
 # moodit QA Test Plan
 
 > 작성: 2026-05-07 KST
-> 대상 빌드: 기준 커밋 `52d2502` + Ralph 세션 작업 (Reviews migration / Fmpkg / Push registration / Repository protocols)
+> 대상 빌드: 기준 커밋 `15237a6` + QA issue batch 반영
 > 목적: 모든 사용자 도달 가능 화면의 모든 인터랙티브 요소를 1:1로 검증.
 
 ---
@@ -103,6 +103,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 4.8 | 컬렉션 캐러셀 (`market.collection.<title>`) | 컬렉션별 SearchScreen으로 (initialCategory = 컬렉션 이름) |  |
 | 4.9 | 그리드 타일 long-press | 미구현 (no-op) |  |
 | 4.10 | Pull-to-refresh | `store.load()` 재호출, 스피너 표시 후 데이터 갱신 |  |
+| 4.11 | 코인 잔액 pill (`market.header.coinBalance`) | → AppRoute.wallet. 로그인 지갑 listener가 있으면 현재 coinBalance 표시 |  |
 
 ---
 
@@ -120,16 +121,21 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 5.6 | 메이커 핸들 (@jisoo.films) | → AppRoute.otherProfile(uid:) |  |
 | 5.7 | "팔로우" 버튼 | isFollowing 토글 → "팔로잉"으로 변경 |  |
 | 5.8 | "팔로잉" 버튼 | isFollowing 토글 → "팔로우"로 변경 |  |
-| 5.9 | 태그 칩 (`filter.detail.tag.<tag>`) | → AppRoute.search(category: tag) — 검색에서 해당 태그 자동 필터링 |  |
-| 5.10 | 샘플 그리드 이미지 | 비인터랙티브 (preview) |  |
-| 5.11 | 리뷰 섹션 헤더 "리뷰 → \(N개)" | → AppRoute.reviews(filterId:) |  |
-| 5.12 | 리뷰 row (3개 미리보기) | 비인터랙티브 (avatar는 별도 wiring 없음) |  |
-| 5.13 | ★ 평점 등록 (toolbar) | Auth-gated → AppRoute.rating(filterId:) |  |
-| 5.14 | "리뷰 작성" 버튼 (`social.reviews.compose`) | Auth-gated → AppRoute.reviewCompose(filterId:) |  |
-| 5.15 | "무료 다운로드" CTA (무료 필터) | downloadState transitions: ready→downloading→completed |  |
-| 5.16 | "구매" CTA (유료 필터) | `PaywallSingleScreen` 진입, `filter.purchase.confirm` 또는 `filter.purchase.pro_upgrade` 선택 가능 |  |
-| 5.17 | "촬영하기" CTA (다운로드 후) | dismiss → 카메라로 |  |
-| 5.18 | 다운로드 진행 중 추가 탭 | no-op (재요청 불가) |  |
+| 5.9 | 태그 칩 (`filter.detail.tag.<tag>`) | → AppRoute.search(initialQuery: "#tag") — 검색에서 title/author/category/tags 기준으로 해당 태그 자동 필터링 |  |
+| 5.10 | 샘플 갤러리 컨테이너 (`filter.detail.sample.gallery`) | 가로 스크롤 갤러리 표시. `signatureSampleURL` 또는 `coverURL`이 있으면 첫 슬롯에 메이커 시그니처/커버 샘플 표시 |  |
+| 5.11 | 메이커 시그니처 샘플 (`filter.detail.sample.signature`) | URL 이미지 로드 성공 시 실제 이미지, 실패/로딩 시 카테고리 placeholder 표시 |  |
+| 5.12 | 시스템 reference 샘플 (`filter.detail.sample.reference.portrait/landscape/indoor/lifestyle`) | 4개 reference가 항상 표시되고, 카테고리 LUT 적용 결과가 progressive render/cache 후 표시. 실패 시 원본 reference fallback |  |
+| 5.13 | 리뷰 섹션 헤더 "리뷰 → \(N개)" | → AppRoute.reviews(filterId:) |  |
+| 5.14 | 리뷰 row (3개 미리보기) | 비인터랙티브 (avatar는 별도 wiring 없음) |  |
+| 5.15 | ★ 평점 등록 (toolbar) | Auth-gated → AppRoute.rating(filterId:) |  |
+| 5.16 | "리뷰 작성" 버튼 (`social.reviews.compose`) | Auth-gated → AppRoute.reviewCompose(filterId:) |  |
+| 5.17 | "무료 다운로드" CTA (무료 필터) | downloadState transitions: ready→downloading→completed |  |
+| 5.18 | "구매" CTA (유료 필터) | `PaywallSingleScreen` 진입, `filter.purchase.confirm` 또는 `filter.purchase.pro_upgrade` 선택 가능 |  |
+| 5.19 | "촬영하기" CTA (다운로드 후) | dismiss → 카메라로 |  |
+| 5.20 | 다운로드 진행 중 추가 탭 | no-op (재요청 불가) |  |
+| 5.21 | 좋아요 CTA (`filter.detail.like`) | 실제 필터는 favorite store 토글, mock detail은 local liked state 토글. 접근성 value가 on/off로 변경 |  |
+| 5.22 | 다운로드/좋아요/리뷰 카운트 | Firestore detail response의 `downloadCount`, `likeCount`, `reviewCount`를 그대로 표시. mock 추정값으로 대체하지 않음 |  |
+| 5.23 | 다운로드 실패/화면 이탈 | 실패 시 완료 상태로 전환하지 않고 실패 alert 표시. 진행 중 dismiss 시 download task 취소 |  |
 
 ---
 
@@ -151,6 +157,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 6.1.10 | ★ Rating (toolbar) | Auth-gated → AppRoute.rating |  |
 | 6.1.11 | ··· more (`social.review.more`) | ConfirmationDialog: 신고 / 작성자 차단 / 텍스트 복사 / 취소 |  |
 | 6.1.12 | (게스트) "로그인하고 리뷰 남기기" empty state | → AppRoute.login |  |
+| 6.1.13 | 화면 이탈 | Firestore reviews listener 정리, 재진입 시 중복 listener 없이 최신 목록 attach |  |
 
 ### 6.2 ReviewComposeScreen — `AppRoute.reviewCompose(filterId:)`
 
@@ -294,12 +301,16 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 10.2.2 | `editor.lut` | → AppRoute.editorLUT |  |
 | 10.2.3 | `editor.draft` | → AppRoute.editorDraft |  |
 | 10.2.4 | `editor.next` | 다음 단계 (→uploadCover) |  |
-| 10.2.5 | `editor.param.slider` | 노출/대비/채도 |  |
-| 10.2.6 | `editor.compare.hold` | 손을 누르고 있을 동안 비포 |  |
-| 10.2.7 | `editor.lut.import` | UIDocumentPicker 표시 (.cube 파일 선택), 파싱 성공 시 LUT 카드 갱신, 실패 시 에러 alert |  |
-| 10.2.8 | `editor.lut.replace` | LUT 교체 |  |
-| 10.2.9 | `editor.draft.save` | 초안 저장 → AppRoute.myFilters |  |
-| 10.2.10 | `editor.draft.publish` | 바로 → AppRoute.uploadCover |  |
+| 10.2.5 | `editor.preview` | 현재 draft category/LUT/parameter를 적용한 reference preview 표시. 렌더 실패 시 원본/gradient fallback |  |
+| 10.2.6 | `editor.reference.photo.pick` | PhotosPicker 표시, 사용자 선택 이미지를 1280px 장변 JPEG로 normalize 후 preview source로 사용 |  |
+| 10.2.7 | `editor.reference.photo.clear` | 사용자 reference photo 제거, 시스템 sample source로 복귀 |  |
+| 10.2.8 | `editor.reference.sample.<kind>` | portrait/landscape/indoor/lifestyle 임시 샘플 중 하나 선택, 사용자 photo가 있으면 clear 후 선택 적용 |  |
+| 10.2.9 | `editor.param.slider` | 노출/대비/채도/그레인/비네트 값 변경, 250ms debounce 후 preview 재렌더 |  |
+| 10.2.10 | `editor.compare.hold` | 손을 누르고 있을 동안 비포 표시 |  |
+| 10.2.11 | `editor.lut.import` | UIDocumentPicker 표시 (.cube 파일 선택), 파싱 성공 시 LUT 카드와 preview 갱신, 실패 시 에러 alert |  |
+| 10.2.12 | `editor.lut.replace` | LUT 교체 |  |
+| 10.2.13 | `editor.draft.save` | 초안 저장 → AppRoute.myFilters |  |
+| 10.2.14 | `editor.draft.publish` | 바로 → AppRoute.uploadCover |  |
 
 ### 10.3 Upload Workflow
 
@@ -307,15 +318,19 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 |---|---|---|---|---|
 | 10.3.1 | uploadCover | `upload.cover.add` | photo picker → 커버 |  |
 | 10.3.2 | uploadCover | `upload.cover.ba.toggle` | 비포/애프터 자동 |  |
-| 10.3.3 | uploadCover | `upload.next` | → uploadTags |  |
-| 10.3.4 | uploadTags | `upload.tag.add` | 태그 추가 시트 |  |
-| 10.3.5 | uploadTags | `upload.cat.tap` | 카테고리 picker |  |
-| 10.3.6 | uploadTags | `upload.next` | → uploadSubmit |  |
-| 10.3.7 | uploadSubmit | `upload.tos.toggle` | TOS 토글 |  |
-| 10.3.8 | uploadSubmit | `upload.submit` | TOS off일 때 disabled, on이면 → uploadPending |  |
-| 10.3.9 | uploadPending | `upload.pending.view_filter` | → AppRoute.myFilters |  |
-| 10.3.10 | uploadPending | `upload.pending.dismiss` | dismiss |  |
-| 10.3.11 | (전체) | Cloud Function `uploadInit` (Firestore draft 생성 + R2 presigned PUT URL 발급) → 클라이언트 PUT (FilterPackageUploader) → `uploadFinalize` (R2 HEAD로 size/sha256 검증, status → `pending_review_pre`). UI ↔ Function 호출은 별도 이슈로 추적. |  |
+| 10.3.3 | uploadCover | `upload.signature.preview` | 선택한 시그니처 샘플 미리보기. 직접 사진 또는 시스템 sample kind가 없으면 category gradient placeholder |  |
+| 10.3.4 | uploadCover | `upload.signature.photo.pick` | PhotosPicker 표시, 사용자 사진을 normalize 후 시그니처 샘플 슬롯에 반영 |  |
+| 10.3.5 | uploadCover | `upload.signature.sample.<kind>` | portrait/landscape/indoor/lifestyle 임시 샘플 중 하나를 시그니처 샘플 슬롯으로 선택 |  |
+| 10.3.6 | uploadCover | `upload.signature.clear` | 직접 사진/시스템 샘플 선택 초기화 |  |
+| 10.3.7 | uploadCover | `upload.next` | → uploadTags |  |
+| 10.3.8 | uploadTags | `upload.tag.add` | 태그 추가 시트 |  |
+| 10.3.9 | uploadTags | `upload.cat.tap` | 카테고리 picker |  |
+| 10.3.10 | uploadTags | `upload.next` | → uploadSubmit |  |
+| 10.3.11 | uploadSubmit | `upload.tos.toggle` | TOS 토글 |  |
+| 10.3.12 | uploadSubmit | `upload.submit` | TOS off일 때 disabled, on이면 → uploadPending |  |
+| 10.3.13 | uploadPending | `upload.pending.view_filter` | → AppRoute.myFilters |  |
+| 10.3.14 | uploadPending | `upload.pending.dismiss` | dismiss |  |
+| 10.3.15 | (전체) | Cloud Function `uploadInit` (Firestore draft 생성 + R2 presigned PUT URL 발급, `signatureSampleURL` 필드 보존) → 클라이언트 PUT (FilterPackageUploader) → `uploadFinalize` (R2 HEAD로 size/sha256 검증, status → `pending_review_pre`). UI ↔ Function 호출과 실제 시그니처 이미지 R2 업로드는 별도 이슈로 추적. |  |
 
 ### 10.4 RemixFlow / MakerDashboard / ReportForm
 
@@ -347,8 +362,8 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 
 | # | ID | Expected | PASS/FAIL |
 |---|---|---|---|
-| 11.2.1 | `profile.edit.avatar.change` | photo picker → avatar 갱신 |  |
-| 11.2.2 | `profile.edit.handle.check` | 핸들 중복 확인 (mock) |  |
+| 11.2.1 | `profile.edit.avatar.change` | PhotosPicker → 선택 이미지를 512px 장변 JPEG로 normalize, avatar preview 갱신 |  |
+| 11.2.2 | `profile.edit.handle.check` | 유저네임 중복 확인 (mock). UI 문구는 "핸들"이 아니라 "유저네임" |  |
 | 11.2.3 | `profile.edit.save` | 저장 + dismiss |  |
 
 ### 11.3 AccountDeletionScreen — `.accountDeletion`
@@ -415,7 +430,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 13.1.7 | `notif.tap` row 탭 | markRead, 배경 변화 |  |
 | 13.1.8 | row 좌측 아이콘 | item.gradient 표시 |  |
 | 13.1.9 | review/like/download 알림 우측 thumb | → AppRoute.filterDetail |  |
-| 13.1.10 | followRequest 알림 | "수락" 버튼 → markRead |  |
+| 13.1.10 | followRequest 알림 | "팔로우" 버튼 → root `follows/{currentUid}_{actorUid}` write 성공 후 markRead. 실패 시 alert |  |
 | 13.1.11 | 빈 상태 | "알림이 없어요" |  |
 
 ### 13.2 Wallet / Pro / Payment
@@ -569,11 +584,11 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 |---|---|
 | Auth | GoogleService-Info.plist 포함됨. Google/Apple external auth sheet와 credential exchange는 수동 QA 게이트; Email + Password ✅ FIXED; ToS/Privacy SafariView ✅ FIXED |
 | Marketplace | 컬렉션 진입 wiring, pull-to-refresh, long-press |
-| FilterDetail | Share sheet, 태그 점프, 유료 paywallSingle |
+| FilterDetail | Share sheet, 태그 점프, 유료 paywallSingle, sample gallery visual correctness/cache re-entry는 수동 확인 |
 | Review compose | image ✅ FIXED in batch 3 (PHPicker); @ + emoji ✅ FIXED in batch 4 |
 | Camera | 권한 거부 시 안내 화면 |
-| Editor | LUT Files picker |
-| Upload | ✅ FIXED in batch 10 — R2 presigned PUT (lib/r2.ts) + uploadInit/Finalize Cloud Functions + iOS FilterPackageUploader. UploadTOSSubmitScreen UI wiring은 후속 이슈. |
+| Editor | reference PhotosPicker와 LUT Files picker는 진입점/렌더 경로 자동 검증 완료, 실제 OS picker 선택은 수동 QA |
+| Upload | ✅ FIXED in batch 10 — R2 presigned PUT (lib/r2.ts) + uploadInit/Finalize Cloud Functions + iOS FilterPackageUploader. Signature sample UI와 `signatureSampleURL` 보존은 완료, 실제 signature image R2 upload wiring은 후속 이슈. |
 | Wallet | StoreKit 상품 액션은 정의/노출됨. 실제 purchase/restore/cancel은 sandbox 또는 local `.storekit` config 필요; payout / Stripe Connect ❌ Won't fix in Phase 1~5 (ADR-0006 closed-loop currency) |
 | Push | ✅ FIXED in batch 3 — `PushRegistration.userNotificationCenter(_:didReceive:)` → `UniversalLinkParser.route(forPushUserInfo:)` → `MooditStore.pendingDeepLinkRoute` |
 | Moderation | admin claim 부트스트랩 ✅ FIXED in batch 8 (`tools/bootstrap-admin.mjs` + `setRole` Cloud Function + Settings role-claim visibility); ModerationQueueScreen 실 wiring은 별도 이슈 |

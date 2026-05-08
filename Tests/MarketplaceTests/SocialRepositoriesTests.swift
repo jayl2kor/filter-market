@@ -70,6 +70,18 @@ final class SocialRepositoriesTests: XCTestCase {
         }
     }
 
+    func testBlockRejectsSelfTarget() async {
+        let repo = InMemoryFollowRepository()
+        do {
+            _ = try await repo.block(actor: "a", target: "a", now: now)
+            XCTFail("Should reject self-block")
+        } catch let error as InMemoryFollowRepository.FollowError {
+            XCTAssertEqual(error, .selfTarget)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     func testBlockingTargetUnfollowsBothDirections() async throws {
         let repo = InMemoryFollowRepository()
         _ = try await repo.follow(actor: "a", target: "b", now: now)

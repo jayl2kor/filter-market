@@ -49,29 +49,26 @@ struct SearchScreen: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                searchTopBar
+        VStack(spacing: 0) {
+            searchTopBar
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        switch phase {
-                        case .browsing:
-                            browsingContent
-                        case .typing:
-                            typingContent
-                        case .results:
-                            resultsContent
-                        }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    switch phase {
+                    case .browsing:
+                        browsingContent
+                    case .typing:
+                        typingContent
+                    case .results:
+                        resultsContent
                     }
-                    .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
                 }
-                .scrollDismissesKeyboard(.interactively)
+                .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
             }
-            .background(FMColors.Background.bg0)
-            .appRouteDestinations()
-            .toolbar(.hidden, for: .navigationBar)
+            .scrollDismissesKeyboard(.interactively)
         }
+        .background(FMColors.Background.bg0)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             // 첫 진입 시 자연스러운 focus.
             try? await Task.sleep(nanoseconds: 200_000_000)
@@ -436,26 +433,30 @@ struct SearchScreen: View {
 
     private var filteredFilters: [Filter] {
         guard !query.isEmpty else { return [] }
-        let lower = query.lowercased()
+        let normalized = normalizedSearchToken(query)
         // 컬렉션 분기는 카테고리 필터로만 — 결과 비어있으면 FMEmptyState(.noSearchResults).
         if let initialCategory, initialCategory == "컬렉션" {
             return store.newFiltersList
         }
         return store.filters.filter { f in
             guard f.status == .approved else { return false }
-            return f.title.lowercased().contains(lower)
-                || f.author.displayName.lowercased().contains(lower)
+            return f.title.lowercased().contains(normalized)
+                || f.author.displayName.lowercased().contains(normalized)
+                || f.category.rawValue.lowercased().contains(normalized)
+                || f.tags.contains { $0.lowercased().contains(normalized) }
         }
     }
 
     private var filteredMakers: [PopularMaker] {
         guard !query.isEmpty else { return [] }
-        let lower = query.lowercased()
+        let lower = normalizedSearchToken(query)
         return popularMakers.filter { $0.handle.lowercased().contains(lower) }
     }
 
     private var popularMakers: [PopularMaker] {
-        let approved = store.filters.filter { $0.status == .approved }
+        let approved = store.filters.filter {
+            $0.status == .approved && !Self.systemSeedAuthorUIDs.contains($0.author.uid)
+        }
         let grouped = Dictionary(grouping: approved) { $0.author.uid }
 
         return grouped.compactMap { uid, filters -> PopularMaker? in
@@ -485,6 +486,21 @@ struct SearchScreen: View {
         }
         .prefix(5)
         .map { $0 }
+    }
+
+    private static let systemSeedAuthorUIDs: Set<String> = [
+        "preview-maker",
+        "maker-night",
+        "maker-trip",
+        "maker-portra",
+        "maker-cafe"
+    ]
+
+    private func normalizedSearchToken(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+            .lowercased()
     }
 
     private func cancelSearch() {

@@ -143,11 +143,24 @@ struct FilterDetailResponse {
     let coverURL: URL?
     let signatureSampleURL: URL?
     let ratingAvg: Double?
+    let reviewCount: Int
+    let likeCount: Int
+    let sampleCount: Int
+    let tags: [String]
     let createdAt: Date?
     let authorUid: String
     let authorDisplayName: String
+    let reviews: [ReviewPreview]
     let signedDownloadURL: URL
     let expiresAt: Date
+
+    struct ReviewPreview {
+        let authorDisplayName: String
+        let stars: Int
+        let body: String
+        let isVerifiedDownload: Bool
+        let createdAt: Date?
+    }
 
     init(json dict: [String: Any]) throws {
         guard let filterDict = dict["filter"] as? [String: Any] else {
@@ -170,6 +183,10 @@ struct FilterDetailResponse {
         self.coverURL = (filterDict["coverURL"] as? String).flatMap { URL(string: $0) }
         self.signatureSampleURL = (filterDict["signatureSampleURL"] as? String).flatMap { URL(string: $0) }
         self.ratingAvg = filterDict["ratingAvg"] as? Double
+        self.reviewCount = (filterDict["reviewCount"] as? Int) ?? 0
+        self.likeCount = (filterDict["likeCount"] as? Int) ?? 0
+        self.sampleCount = (filterDict["sampleCount"] as? Int) ?? 0
+        self.tags = (filterDict["tags"] as? [String]) ?? []
         if let createdAtMs = filterDict["createdAt"] as? Double, createdAtMs > 0 {
             self.createdAt = Date(timeIntervalSince1970: createdAtMs / 1000)
         } else {
@@ -178,6 +195,21 @@ struct FilterDetailResponse {
         let authorDict = (filterDict["author"] as? [String: Any]) ?? [:]
         self.authorUid = (authorDict["uid"] as? String) ?? "unknown"
         self.authorDisplayName = (authorDict["displayName"] as? String) ?? "Unknown"
+        self.reviews = ((dict["reviews"] as? [[String: Any]]) ?? []).map { reviewDict in
+            let createdAt: Date?
+            if let createdAtMs = reviewDict["createdAt"] as? Double, createdAtMs > 0 {
+                createdAt = Date(timeIntervalSince1970: createdAtMs / 1000)
+            } else {
+                createdAt = nil
+            }
+            return ReviewPreview(
+                authorDisplayName: (reviewDict["authorDisplayName"] as? String) ?? "사용자",
+                stars: (reviewDict["stars"] as? Int) ?? 0,
+                body: (reviewDict["body"] as? String) ?? "",
+                isVerifiedDownload: (reviewDict["isVerifiedDownload"] as? Bool) ?? false,
+                createdAt: createdAt
+            )
+        }
         self.signedDownloadURL = signedURL
         let expiresAtSeconds = (dict["expiresAt"] as? Double) ?? 0
         self.expiresAt = Date(timeIntervalSince1970: expiresAtSeconds)
@@ -194,18 +226,38 @@ struct FilterDetailResponse {
             categoryLabel: priceCoins > 0 ? "유료 필터 · \(priceCoins) 코인" : "무료 필터",
             downloadCount: downloadCount > 0 ? downloadCount : useCount,
             rating: ratingAvg ?? 0,
-            reviewCount: max(0, useCount / 10),
-            likeCount: useCount,
+            reviewCount: reviewCount,
+            likeCount: likeCount,
             description: "Cloud Function `getFilterDetail` 응답을 기반으로 표시되는 실제 필터입니다.",
-            tags: [],
+            tags: tags.map { $0.hasPrefix("#") ? $0 : "#\($0)" },
             coverURL: coverURL,
             signatureSampleURL: signatureSampleURL,
             filterCategory: FilterCategory(rawValue: category) ?? .cinematic,
-            reviews: [],
+            reviews: reviews.map { review in
+                FilterDetailMock.Review(
+                    initials: String(review.authorDisplayName.prefix(2)).uppercased(),
+                    avatarTint: FMColors.Category.portrait,
+                    name: review.authorDisplayName,
+                    timeAgo: review.createdAt.map(Self.relativeTimeString) ?? "방금",
+                    body: review.body,
+                    stars: review.stars,
+                    isVerifiedDownload: review.isVerifiedDownload
+                )
+            },
             categoryHint: FMColors.Category.cinematic,
             isPaid: priceCoins > 0,
             priceLabel: priceCoins > 0 ? "\(priceCoins) 코인" : nil
         )
+    }
+
+    private static func relativeTimeString(_ date: Date) -> String {
+        let seconds = max(0, Int(Date().timeIntervalSince(date)))
+        if seconds < 60 { return "방금" }
+        let minutes = seconds / 60
+        if minutes < 60 { return "\(minutes)분" }
+        let hours = minutes / 60
+        if hours < 24 { return "\(hours)시간" }
+        return "\(hours / 24)일"
     }
 }
 

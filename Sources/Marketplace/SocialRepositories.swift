@@ -185,6 +185,7 @@ public actor InMemoryFollowRepository: FollowRepository {
     }
 
     public func block(actor: String, target: String, now: Date) async throws -> BlockEdge {
+        guard actor != target else { throw FollowError.selfTarget }
         let edge = BlockEdge(actorUid: actor, targetUid: target, createdAt: now)
         blocks[edgeKey(actor, target)] = edge
         // Block also unfollows in both directions to match docs/REVIEWS_MIGRATION.md §3.

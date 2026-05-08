@@ -27,6 +27,15 @@ final class NotificationsInboxStore: ObservableObject {
         }
     }
 
+    func stop() {
+        listener?.remove()
+        listener = nil
+        if let authHandle {
+            Auth.auth().removeStateDidChangeListener(authHandle)
+            self.authHandle = nil
+        }
+    }
+
     private func attach(uid: String?) {
         listener?.remove()
         listener = nil

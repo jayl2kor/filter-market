@@ -19,7 +19,10 @@ struct FilterDetailScreen: View {
 
     @State private var sliderProgress: CGFloat = 0.5
     @State private var downloadState: DownloadState = .ready
+    @State private var downloadTask: Task<Void, Never>?
+    @State private var downloadErrorMessage: String?
     @State private var isFollowing: Bool = false
+    @State private var didLikeMockFilter = false
     @State private var sharePayload: SharePayload?
 
     init(filter: Filter, mock: FilterDetailMock? = nil) {
@@ -56,6 +59,18 @@ struct FilterDetailScreen: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .sheet(item: $sharePayload) { payload in
             ShareSheet(activityItems: payload.items)
+        }
+        .onDisappear {
+            downloadTask?.cancel()
+            downloadTask = nil
+        }
+        .alert("다운로드 실패", isPresented: Binding(
+            get: { downloadErrorMessage != nil },
+            set: { if !$0 { downloadErrorMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(downloadErrorMessage ?? "")
         }
     }
 
@@ -96,20 +111,7 @@ struct FilterDetailScreen: View {
     private var beforeAfterSection: some View {
         GeometryReader { geo in
             ZStack {
-                // BEFORE — 더 어두운 placeholder
-                LinearGradient(
-                    colors: [
-                        FMColors.Background.bg3,
-                        FMColors.Background.bg1
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .overlay {
-                    Image(systemName: "photo")
-                        .font(.system(size: 56, weight: .ultraLight))
-                        .foregroundStyle(FMColors.Text.tertiary)
-                }
+                beforeHeroLayer
 
                 // AFTER — mock 의 카테고리 색을 반영한 그라디언트
                 LinearGradient(
@@ -128,6 +130,13 @@ struct FilterDetailScreen: View {
                 .mask(alignment: .leading) {
                     Rectangle()
                         .frame(width: max(0, geo.size.width * sliderProgress))
+                }
+                .overlay {
+                    LinearGradient(
+                        colors: [.clear, Color.black.opacity(0.25)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                 }
 
                 // 라벨
@@ -179,6 +188,43 @@ struct FilterDetailScreen: View {
         }
     }
 
+    @ViewBuilder
+    private var beforeHeroLayer: some View {
+        if let url = mock.signatureSampleURL ?? mock.coverURL {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .overlay {
+                            Color.black.opacity(0.18)
+                        }
+                default:
+                    placeholderHeroLayer
+                }
+            }
+        } else {
+            placeholderHeroLayer
+        }
+    }
+
+    private var placeholderHeroLayer: some View {
+        LinearGradient(
+            colors: [
+                FMColors.Background.bg3,
+                FMColors.Background.bg1
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .overlay {
+            Image(systemName: "photo")
+                .font(.system(size: 56, weight: .ultraLight))
+                .foregroundStyle(FMColors.Text.tertiary)
+        }
+    }
+
     private func handle(in size: CGSize) -> some View {
         let x = max(0, min(size.width, size.width * sliderProgress))
         return ZStack {
@@ -209,7 +255,7 @@ struct FilterDetailScreen: View {
                 .foregroundStyle(FMColors.Text.primary)
 
             HStack(spacing: Sp.xs) {
-                FMAvatar(initials: mock.makerInitials, size: .xs)
+                FMAvatar(initials: mock.makerInitials, size: .md)
 
                 Text(mock.makerHandle.replacingOccurrences(of: "@", with: ""))
                     .fmTypography(.subhead)
@@ -261,8 +307,8 @@ struct FilterDetailScreen: View {
     // MARK: - Stats
 
     private var statsRow: some View {
-        HStack(alignment: .top, spacing: Sp.xl) {
-            stat(value: formattedCount(mock.downloadCount), label: "다운로드")
+        HStack(alignment: .top, spacing: Sp.lg) {
+            stat(value: formattedCount(mock.downloadCount), label: "다운로드", isPrimary: true)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text("★")
                     .foregroundStyle(FMColors.Accent.primary)
@@ -285,11 +331,11 @@ struct FilterDetailScreen: View {
         }
     }
 
-    private func stat(value: String, label: String) -> some View {
+    private func stat(value: String, label: String, isPrimary: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value)
-                .fmTypography(.title)
-                .foregroundStyle(FMColors.Text.primary)
+                .fmTypography(isPrimary ? .titleLarge : .title)
+                .foregroundStyle(isPrimary ? FMColors.Accent.primary : FMColors.Text.primary)
                 .monospacedDigit()
             Text(label.uppercased())
                 .font(.system(size: 10, weight: .medium))
@@ -305,8 +351,8 @@ struct FilterDetailScreen: View {
         let columns = [GridItem(.adaptive(minimum: 60, maximum: 200), spacing: Sp.xs, alignment: .leading)]
         return LazyVGrid(columns: columns, alignment: .leading, spacing: Sp.xs) {
             ForEach(mock.tags, id: \.self) { tag in
-                NavigationLink(value: AppRoute.search(initialQuery: nil, category: tag)) {
-                    FMTag(tag, style: .outlined, size: .sm)
+                NavigationLink(value: AppRoute.search(initialQuery: searchQuery(forTag: tag), category: nil)) {
+                    FMTag(tag, style: .accent, size: .sm)
                         .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("filter.detail.tag.\(tag)")
                 }
@@ -462,22 +508,28 @@ struct FilterDetailScreen: View {
     // MARK: - CTA
 
     private var ctaBar: some View {
-        HStack(spacing: Sp.xs) {
+        HStack(spacing: Sp.sm) {
             Button {
-                // 좋아요 — 후속 Phase.
+                if let filter {
+                    store.toggleFavorite(filter)
+                } else {
+                    didLikeMockFilter.toggle()
+                }
                 FMHaptic.light.play()
             } label: {
-                Image(systemName: "heart")
+                Image(systemName: isLiked ? "heart.fill" : "heart")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(FMColors.Text.primary)
+                    .foregroundStyle(isLiked ? FMColors.Accent.primary : FMColors.Text.primary)
                     .frame(width: 52, height: 52)
                     .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
                     .overlay {
                         RoundedRectangle(cornerRadius: R.md)
-                            .strokeBorder(FMColors.Border.default, lineWidth: 1)
+                            .strokeBorder(isLiked ? FMColors.Accent.primary : FMColors.Border.default, lineWidth: 1)
                     }
             }
             .accessibilityLabel("좋아요")
+            .accessibilityIdentifier("filter.detail.like")
+            .accessibilityValue(isLiked ? "on" : "off")
 
             if downloadState == .ready {
                 NavigationLink(value: mock.isPaid ? AppRoute.paywallSingle(filterId: mock.displayTitle) : AppRoute.filterDownload(id: mock.displayTitle)) {
@@ -508,13 +560,14 @@ struct FilterDetailScreen: View {
         }
         .padding(.horizontal, Sp.md)
         .padding(.top, Sp.sm)
-        .padding(.bottom, FMLayout.tabBarHeight + Sp.xs)
-        .background(.regularMaterial)
+        .padding(.bottom, FMLayout.tabBarHeight + Sp.sm)
+        .background(FMColors.Background.bg0.opacity(0.96))
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(FMColors.Border.subtle)
-                .frame(height: 1)
+                .fill(FMColors.Border.default)
+                .frame(height: 0.5)
         }
+        .shadow(color: Color.black.opacity(0.08), radius: 10, y: -2)
     }
 
     // MARK: - Sub-helpers
@@ -526,7 +579,7 @@ struct FilterDetailScreen: View {
                 .foregroundStyle(FMColors.Text.primary)
             Spacer()
             if let more {
-                NavigationLink(value: title == "리뷰" ? AppRoute.reviews(filterId: mock.displayTitle) : AppRoute.forYou) {
+                NavigationLink(value: sectionRoute(for: title)) {
                     Text(more)
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Accent.primary)
@@ -535,6 +588,13 @@ struct FilterDetailScreen: View {
                 .accessibilityIdentifier(title == "리뷰" ? "filter.detail.reviews" : "filter.detail.samples")
             }
         }
+    }
+
+    private func sectionRoute(for title: String) -> AppRoute {
+        if title == "리뷰" {
+            return .reviews(filterId: mock.displayTitle)
+        }
+        return .search(initialQuery: mock.displayTitle, category: nil)
     }
 
     private var ctaTitle: String {
@@ -556,17 +616,40 @@ struct FilterDetailScreen: View {
         }
     }
 
+    private var isLiked: Bool {
+        if let filter {
+            return store.isFavorite(filter)
+        }
+        return didLikeMockFilter
+    }
+
+    private func searchQuery(forTag tag: String) -> String {
+        let normalized = tag.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        return "#\(normalized)"
+    }
+
     @MainActor
     private func triggerDownload() {
         switch downloadState {
         case .ready:
+            downloadTask?.cancel()
             downloadState = .downloading
-            if let filter {
-                store.download(filter)
-            }
-            Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 900_000_000)
-                downloadState = .completed
+            downloadTask = Task { @MainActor in
+                do {
+                    if let filter {
+                        try await store.download(filter)
+                    } else {
+                        try await Task.sleep(nanoseconds: 300_000_000)
+                    }
+                    guard !Task.isCancelled else { return }
+                    downloadState = .completed
+                } catch is CancellationError {
+                    return
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    downloadErrorMessage = error.localizedDescription
+                    downloadState = .ready
+                }
             }
         case .downloading:
             break

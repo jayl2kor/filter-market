@@ -40,7 +40,11 @@ public final class StoreKitManager: ObservableObject {
             let loaded = try await Product.products(for: ids)
             // 일관된 표시 순서 (코인 4종 → Pro 2종) 위해 IAPProductIDs.allIDs 순서 매칭.
             self.products = ids.compactMap { id in loaded.first(where: { $0.id == id }) }
-            self.lastError = nil
+            if self.products.isEmpty {
+                self.lastError = "현재 결제 패키지를 불러올 수 없습니다. 잠시 후 다시 시도해주세요."
+            } else {
+                self.lastError = nil
+            }
         } catch {
             self.lastError = "상품을 불러오지 못했어요: \(error.localizedDescription)"
             self.products = []
