@@ -409,6 +409,8 @@ final class MooditStore: ObservableObject {
     private var optimisticCoinReconcileTask: Task<Void, Never>?
     private var notificationPreferencesSaveTask: Task<Void, Never>?
     private var editorDraftSaveTask: Task<Void, Never>?
+    private var saveProfileTask: Task<Void, Never>?
+    private var saveProfileGeneration = 0
     private var currentUserID: String?
     private var isApplyingRemoteEditorDraft = false
     /// Universal Link / push tap에서 도착한 라우트. RootShell이 관찰해 표시한다.
@@ -970,6 +972,9 @@ final class MooditStore: ObservableObject {
         hasLoadedProfile = false
         lastPaymentErrorMessage = nil
         lastSubmitErrorMessage = nil
+        saveProfileTask?.cancel()
+        saveProfileTask = nil
+        saveProfileGeneration += 1
     }
 
     func select(_ filter: Filter) {
@@ -1066,9 +1071,13 @@ final class MooditStore: ObservableObject {
     func saveProfile(_ profile: EditableProfile) {
         editableProfile = profile
         lastProfileSavedAt = Date()
+        lastSubmitErrorMessage = nil
+        saveProfileTask?.cancel()
+        saveProfileGeneration += 1
+        let generation = saveProfileGeneration
         // Firestore /users/{uid} 영속화 — Cloud Function updateProfile callable로 위임 (서버 측 검증 + 일관 schema).
         // 핸들 변경은 별도 setHandle callable로 분리 (uniqueness check + reservation 보호).
-        Task { [weak self, profile] in
+        saveProfileTask = Task { [weak self, profile, generation] in
             let region = "asia-northeast3"
             do {
                 let updateCallable = Functions.functions(region: region).httpsCallable("updateProfile")
@@ -1084,10 +1093,19 @@ final class MooditStore: ObservableObject {
                     let handleCallable = Functions.functions(region: region).httpsCallable("setHandle")
                     _ = try await handleCallable.call(["handle": profile.handle])
                 }
+                guard !Task.isCancelled else { return }
+                await MainActor.run { [weak self] in
+                    guard let self, self.saveProfileGeneration == generation else { return }
+                    self.lastSubmitErrorMessage = nil
+                    self.saveProfileTask = nil
+                }
             } catch {
+                guard !Task.isCancelled else { return }
                 // (#47) silent failure 제거 — 사용자 알림 surface.
                 await MainActor.run { [weak self] in
-                    self?.lastSubmitErrorMessage = "프로필 저장 실패: \(error.localizedDescription)"
+                    guard let self, self.saveProfileGeneration == generation else { return }
+                    self.lastSubmitErrorMessage = "프로필 저장 실패: \(error.localizedDescription)"
+                    self.saveProfileTask = nil
                 }
             }
         }
