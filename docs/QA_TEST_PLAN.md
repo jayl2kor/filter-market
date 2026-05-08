@@ -143,6 +143,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 5.22 | 다운로드/좋아요/리뷰 카운트 | Firestore detail response의 `downloadCount`, `likeCount`, `reviewCount`를 그대로 표시. mock 추정값으로 대체하지 않음 |  |
 | 5.23 | 다운로드 실패/화면 이탈 | 실패 시 완료 상태로 전환하지 않고 실패 alert 표시. 진행 중 dismiss 시 download task 취소 |  |
 | 5.24 | Cloud Function detail 매핑 | `description`과 category placeholder 색상이 응답 데이터에서 오고, 구매/다운로드/리뷰 라우트는 표시 제목이 아니라 filter document ID를 사용 |  |
+| 5.25 | 로컬 UUID 필터 상세 진입 | FilterDetailLoader phase가 `.localFilter`로 단일 전환되고 loading 분기에서 별도 detail view를 중복 렌더하지 않음 |  |
 
 ---
 

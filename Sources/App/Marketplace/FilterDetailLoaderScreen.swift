@@ -18,12 +18,7 @@ struct FilterDetailLoaderScreen: View {
         Group {
             switch phase {
             case .loading:
-                // 깜빡임 방지 (#21): store.filters에 동일 ID가 있으면 .loading 단계에서도 즉시 렌더.
-                if let local = synchronousLocalFilter {
-                    FilterDetailScreen(filter: local)
-                } else {
-                    loadingView
-                }
+                loadingView
             case .loaded(let detail):
                 FilterDetailScreen(mock: detail.toMock())
             case .localFilter(let filter):
