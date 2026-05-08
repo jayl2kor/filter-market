@@ -16,8 +16,12 @@ build/
 .env.local
 .env.*.local
 GoogleService-Info.plist
-!Sources/App/Resources/Firebase/GoogleService-Info.plist
-!Sources/App/Resources/Firebase/**/GoogleService-Info.plist
+!Sources/App/Resources/GoogleService-Info.plist
+
+# Firebase Admin SDK service accounts (NEVER commit)
+*-firebase-adminsdk-*.json
+*firebase-admin*.json
+tools/secrets/
 
 # Tools
 fastlane/report.xml
@@ -33,6 +37,9 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 .runtimeconfig.json
+
+# Tools (local operational scripts)
+tools/node_modules/
 
 # macOS
 .DS_Store

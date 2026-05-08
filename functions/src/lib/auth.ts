@@ -1,9 +1,14 @@
 /**
  * Auth helpers built on top of Firebase ID Token claims provided by
  * `onCall` / `onRequest` v2 handlers. See API_SPEC.md §2.
+ *
+ * Role contract: custom claim `role` ∈ {"admin", "moderator"} (or absent).
+ * Aligned with `firestore.rules` `isAdmin()` / `isModerator()` helpers.
  */
 import { HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
+
+export type Role = "admin" | "moderator";
 
 /**
  * Asserts an authenticated caller and returns their UID.
@@ -17,14 +22,29 @@ export function requireAuth(req: CallableRequest): string {
   return uid;
 }
 
+function callerRole(req: CallableRequest): Role | null {
+  const role = req.auth?.token?.role;
+  if (role === "admin" || role === "moderator") return role;
+  return null;
+}
+
 /**
- * Asserts the caller has the `moderator: true` custom claim.
- * Throws HttpsError("permission-denied") otherwise.
+ * Asserts the caller has admin role. Returns their UID on success.
+ */
+export function requireAdmin(req: CallableRequest): string {
+  const uid = requireAuth(req);
+  if (callerRole(req) !== "admin") {
+    throw new HttpsError("permission-denied", "admin role required");
+  }
+  return uid;
+}
+
+/**
+ * Asserts the caller has moderator OR admin role. Returns their UID on success.
  */
 export function requireModerator(req: CallableRequest): string {
   const uid = requireAuth(req);
-  const isModerator = req.auth?.token?.moderator === true;
-  if (!isModerator) {
+  if (callerRole(req) === null) {
     throw new HttpsError("permission-denied", "moderator role required");
   }
   return uid;

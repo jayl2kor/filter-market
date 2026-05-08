@@ -1,41 +1,191 @@
 rules_version = '2';
-// Skeleton — see docs/FIRESTORE_RULES.md for the canonical rules.
-// This file is the deployable mirror; keep them in sync.
+// moodit Firestore security rules.
+//
+// Canonical source: docs/FIRESTORE_RULES.md.
+// Reviews migration policy: docs/REVIEWS_MIGRATION.md (1 review per (uid, filterId), single
+// maker reply attached to a review document, helpfulCount as the only counter clients touch
+// and only via +1).
+//
+// This file is the deployable mirror — keep it in lockstep with docs/FIRESTORE_RULES.md.
+// Live emulator-based tests are tracked in TODO.md §5.5/§5.7 (deferred: needs Java +
+// firebase-tools installed on the dev machine).
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Default deny — explicit allows are added below as collections come online.
-    match /{document=**} {
-      allow read, write: if false;
+    // ---- helpers --------------------------------------------------------
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+    function role() {
+      return isAuthenticated() ? request.auth.token.get('role', 'user') : 'guest';
+    }
+    function isModerator() {
+      return role() in ['moderator', 'admin'];
+    }
+    function isAdmin() {
+      return role() == 'admin';
+    }
+    function isFilterMaker(filterId) {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/filters/$(filterId))
+        && get(/databases/$(database)/documents/filters/$(filterId)).data.authorUid == request.auth.uid;
+    }
+    function isValidString(field, minLen, maxLen) {
+      return field is string && field.size() >= minLen && field.size() <= maxLen;
     }
 
-    // TODO: copy over rules from FIRESTORE_RULES.md sections:
-    //   §2 users/{uid}
-    //   §3 filters/{filterId}
-    //   §4 filters/{filterId}/reports/{reportId}
-    //   §5 filters/{filterId}/moderation/{decisionId}
-    //   §6 handles/{handle}
-    //   §7 follows/{followerUid}_{followeeUid}
+    // ---- reviews validation --------------------------------------------
+
+    function validReviewCreate(d, filterId) {
+      return d.keys().hasAll(['filterId','authorUid','authorHandle','stars','body','isVerifiedDownload','helpfulCount','createdAt'])
+        && d.filterId == filterId
+        && d.authorUid == request.auth.uid
+        && d.stars is int && d.stars >= 1 && d.stars <= 5
+        && isValidString(d.body, 1, 280)
+        && (!('intensity' in d) || (d.intensity is int && d.intensity >= 0 && d.intensity <= 100))
+        && d.helpfulCount == 0
+        && (!('makerReply' in d) || d.makerReply == null);
+    }
+
+    function validReviewSelfUpdate(d) {
+      // Author may edit only stars/body/photoUrl/intensity/lightingTag/updatedAt.
+      // authorUid, isVerifiedDownload, helpfulCount, makerReply are immutable on this path.
+      let mutable = ['stars','body','photoUrl','intensity','lightingTag','updatedAt'];
+      let changed = d.diff(resource.data).affectedKeys();
+      return changed.hasOnly(mutable)
+        && d.stars is int && d.stars >= 1 && d.stars <= 5
+        && isValidString(d.body, 1, 280);
+    }
+
+    function validHelpfulBump(d) {
+      // Anyone authed can bump helpfulCount by exactly +1.
+      let changed = d.diff(resource.data).affectedKeys();
+      return changed.hasOnly(['helpfulCount'])
+        && d.helpfulCount == resource.data.helpfulCount + 1;
+    }
+
+    function validMakerReplyAttach(d, filterId) {
+      // Only the filter maker may attach a reply; only once.
+      let changed = d.diff(resource.data).affectedKeys();
+      return changed.hasOnly(['makerReply'])
+        && resource.data.get('makerReply', null) == null
+        && d.makerReply.keys().hasAll(['body','createdAt'])
+        && isValidString(d.makerReply.body, 1, 200)
+        && isFilterMaker(filterId);
+    }
+
+    // ---- collections ----------------------------------------------------
+
+    // Filters — see docs/FIRESTORE_RULES.md §3.2 for the full canonical rules.
+    // This file enforces the bare minimum needed for the reviews subcollection
+    // to compile against an existing filter document.
+    match /filters/{filterId} {
+      allow read: if true;
+      // useCount + reviewStats updates are server-only (Cloud Functions).
+      // Other paths defer to docs/FIRESTORE_RULES.md §3.2 (not duplicated here yet).
+      allow create, update, delete: if false;
+
+      // Reviews — enforces the App Store-style policy from REVIEWS_MIGRATION.md.
+      // Document ID MUST be the author's uid so the (uid, filterId) uniqueness
+      // is enforced by Firestore key collision.
+      match /reviews/{authorUid} {
+        allow read: if true;
+
+        allow create: if isOwner(authorUid)
+          && validReviewCreate(request.resource.data, filterId);
+
+        // Three legal update paths:
+        //   (a) author edits stars/body
+        //   (b) anyone authed bumps helpfulCount by +1
+        //   (c) the filter's maker attaches a single makerReply
+        allow update: if (isOwner(authorUid) && validReviewSelfUpdate(request.resource.data))
+          || (isAuthenticated() && validHelpfulBump(request.resource.data))
+          || (isAuthenticated() && validMakerReplyAttach(request.resource.data, filterId));
+
+        allow delete: if isOwner(authorUid) || isModerator();
+      }
+
+      // Filter use counter — write-only via Cloud Function (see functions/src/http/filters.ts
+      // applyRecordUse). Direct client writes are rejected.
+      match /uses/{uid} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+    }
+
+    // Follow / block — scoped writes only by the calling uid.
+    // Document ID convention: "{actorUid}_{targetUid}".
+    match /follows/{edgeId} {
+      allow read: if isAuthenticated();
+      // create: the new doc must record actorUid == auth.uid.
+      allow create: if isAuthenticated()
+        && request.resource.data.actorUid == request.auth.uid;
+      // delete: only the original actor may remove their own follow edge.
+      allow delete: if isAuthenticated()
+        && resource.data.actorUid == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /blocks/{edgeId} {
+      // Only the actor sees their own block list; no public reads.
+      allow read: if isAuthenticated() && resource.data.actorUid == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.actorUid == request.auth.uid;
+      allow delete: if isAuthenticated()
+        && resource.data.actorUid == request.auth.uid;
+      allow update: if false;
+    }
+
+    // Notifications — recipient-only reads. Writes are server-only (Cloud Functions
+    // via admin SDK after a Firestore trigger).
+    match /users/{uid}/notifications/{notifId} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+
+    // FCM device tokens — owner reads/writes only. Each document records one
+    // device's FCM token plus stable identifying metadata. Server-side
+    // notification fan-out reads these via the Admin SDK (rules-bypassing).
+    match /users/{uid}/devices/{deviceId} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.fcmToken is string
+        && request.resource.data.platform == 'ios'
+        && request.resource.data.deviceId == deviceId;
+      allow delete: if isOwner(uid);
+    }
+
+    // ---- existing collections (untouched from prior version) -----------
 
     // CURRENCY_DESIGN.md §8.2 — wallet & transactions are server-only writes.
     match /wallets/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow write: if false;  // Cloud Functions only
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+      allow write: if false;
     }
     match /transactions/{txId} {
-      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
       allow write: if false;
     }
     match /payouts/{payoutId} {
-      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
       allow write: if false;
     }
     match /topupIntents/{intentId} {
-      allow read, write: if false;  // server-only
+      allow read, write: if false;
     }
     match /config/{doc} {
-      allow read: if true;  // economy/coinPackages public read
+      allow read: if true;
       allow write: if false;
+    }
+
+    // Default deny — any path not listed above.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

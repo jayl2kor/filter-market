@@ -11,28 +11,235 @@
  */
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
+import { getFirestore, FieldValue, type Firestore } from "firebase-admin/firestore";
+import { z } from "zod";
 import { requireAuth } from "../lib/auth.js";
+import { loadR2Config, presignPut, presignGet, headWithChecksum } from "../lib/r2.js";
 
 // region: kept consistent across all functions for low cross-region latency.
 const region = "asia-northeast3";
 
-/** POST /filters — see API_SPEC.md §5.1. */
-export const uploadInit = onCall({ region, cors: true }, async (req: CallableRequest) => {
-  const uid = requireAuth(req);
-  // TODO:
-  // 1. Validate body via zod (name, category, tags, packageBytes).
-  // 2. Reserve filter ID, create Firestore /filters/{id} draft.
-  // 3. Generate R2 presigned PUT URL via lib/r2.
-  // 4. Return { id, uploadUrl, uploadHeaders, expiresAt }.
-  throw new HttpsError("unimplemented", "uploadInit not implemented");
+// R2 secrets — declared once and attached to functions that touch R2 so
+// `process.env.R2_*` is populated at runtime. Bind via the `secrets:` option
+// on each callable that needs them.
+const R2_ENDPOINT = defineSecret("R2_ENDPOINT");
+const R2_ACCESS_KEY_ID = defineSecret("R2_ACCESS_KEY_ID");
+const R2_SECRET_ACCESS_KEY = defineSecret("R2_SECRET_ACCESS_KEY");
+const R2_BUCKET = defineSecret("R2_BUCKET");
+
+const r2Secrets = [R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET];
+
+/** Cooldown for /filters/{id}/use to count once per (uid, filter) per window. */
+export const RECORD_USE_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+
+const recordUseSchema = z.object({
+  filterId: z.string().min(1).max(128),
 });
 
-/** POST /filters/{id}/finalize — see API_SPEC.md §5.2. */
-export const uploadFinalize = onCall({ region, cors: true }, async (req: CallableRequest) => {
-  requireAuth(req);
-  // TODO: verify SHA256, transition status: uploading → pending_review_pre.
-  throw new HttpsError("unimplemented", "uploadFinalize not implemented");
+export interface RecordUseDeps {
+  firestore?: Firestore;
+  now?: () => Date;
+}
+
+export interface RecordUseResult {
+  filterId: string;
+  useCount: number;
+  counted: boolean;
+}
+
+/**
+ * Idempotent counter increment for a (uid, filter) pair.
+ * Pure logic — exported so unit tests can drive it with a mock Firestore.
+ */
+export async function applyRecordUse(
+  uid: string,
+  rawData: unknown,
+  deps: RecordUseDeps = {},
+): Promise<RecordUseResult> {
+  const parsed = recordUseSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId } = parsed.data;
+
+  const db = deps.firestore ?? getFirestore();
+  const now = (deps.now ?? (() => new Date()))();
+  const filterRef = db.collection("filters").doc(filterId);
+  const useRef = filterRef.collection("uses").doc(uid);
+
+  return db.runTransaction(async (tx) => {
+    const filterSnap = await tx.get(filterRef);
+    if (!filterSnap.exists) {
+      throw new HttpsError("not-found", `filter ${filterId} not found`);
+    }
+
+    const useSnap = await tx.get(useRef);
+    const lastUseAtMs = readMillis(useSnap.get("lastUseAt"));
+    const previousCount = (filterSnap.get("useCount") as number | undefined) ?? 0;
+
+    if (lastUseAtMs !== null && now.getTime() - lastUseAtMs < RECORD_USE_COOLDOWN_MS) {
+      return { filterId, useCount: previousCount, counted: false };
+    }
+
+    // Counter and cooldown row are written in the same transaction — atomic with the
+    // initial reads above, so two concurrent calls cannot both pass the cooldown gate.
+    tx.update(filterRef, { useCount: previousCount + 1 });
+    tx.set(useRef, { lastUseAt: now }, { merge: true });
+
+    return { filterId, useCount: previousCount + 1, counted: true };
+  });
+}
+
+function readMillis(value: unknown): number | null {
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "number") return value;
+  if (
+    value !== null &&
+    typeof value === "object" &&
+    "toMillis" in value &&
+    typeof (value as { toMillis: unknown }).toMillis === "function"
+  ) {
+    return (value as { toMillis: () => number }).toMillis();
+  }
+  return null;
+}
+
+const uploadInitSchema = z.object({
+  name: z.string().min(1).max(60),
+  category: z.string().min(1).max(40),
+  tags: z.array(z.string().max(24)).max(12).optional(),
+  packageBytes: z.number().int().min(1).max(5_000_000), // 5 MB cap
+  contentSha256: z.string().regex(/^[A-Za-z0-9+/=]+$/).optional(), // base64
 });
+
+/**
+ * POST /filters — see API_SPEC.md §5.1.
+ *
+ * Reserves a filter ID, creates the Firestore `/filters/{id}` draft, and returns
+ * a presigned PUT URL the client uploads the `.fmpkg` to directly.
+ */
+export const uploadInit = onCall(
+  { region, cors: true, secrets: r2Secrets },
+  async (req: CallableRequest) => {
+    const uid = requireAuth(req);
+
+    const parsed = uploadInitSchema.safeParse(req.data);
+    if (!parsed.success) {
+      throw new HttpsError("invalid-argument", parsed.error.message);
+    }
+    const { name, category, tags, packageBytes, contentSha256 } = parsed.data;
+
+    let cfg;
+    try {
+      cfg = loadR2Config();
+    } catch (error) {
+      throw new HttpsError("internal", (error as Error).message);
+    }
+
+    const db = getFirestore();
+    const filterRef = db.collection("filters").doc();
+    const filterId = filterRef.id;
+    const objectKey = `filters/${uid}/${filterId}.fmpkg`;
+
+    await filterRef.set({
+      authorUid: uid,
+      title: name,
+      category,
+      tags: tags ?? [],
+      status: "uploading",
+      version: "0.0.1",
+      packageBytes,
+      objectKey,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    const presigned = await presignPut(cfg, objectKey, {
+      expiresSeconds: 600,
+      contentType: "application/x-moodit-package",
+      contentSha256,
+    });
+
+    return {
+      id: filterId,
+      uploadUrl: presigned.url,
+      uploadHeaders: presigned.headers,
+      expiresAt: presigned.expiresAt,
+      objectKey,
+    };
+  },
+);
+
+const uploadFinalizeSchema = z.object({
+  filterId: z.string().min(1).max(128),
+});
+
+/**
+ * POST /filters/{id}/finalize — see API_SPEC.md §5.2.
+ *
+ * Verifies the uploaded object exists in R2 and that its size matches what was
+ * declared at uploadInit. Transitions the filter status: `uploading` →
+ * `pending_review_pre`.
+ */
+export const uploadFinalize = onCall(
+  { region, cors: true, secrets: r2Secrets },
+  async (req: CallableRequest) => {
+    const uid = requireAuth(req);
+
+    const parsed = uploadFinalizeSchema.safeParse(req.data);
+    if (!parsed.success) {
+      throw new HttpsError("invalid-argument", parsed.error.message);
+    }
+    const { filterId } = parsed.data;
+
+    let cfg;
+    try {
+      cfg = loadR2Config();
+    } catch (error) {
+      throw new HttpsError("internal", (error as Error).message);
+    }
+
+    const db = getFirestore();
+    const filterRef = db.collection("filters").doc(filterId);
+    const snap = await filterRef.get();
+    if (!snap.exists) {
+      throw new HttpsError("not-found", `filter ${filterId} not found`);
+    }
+    const data = snap.data();
+    if (data?.authorUid !== uid) {
+      throw new HttpsError("permission-denied", "not the filter owner");
+    }
+    if (data?.status !== "uploading") {
+      throw new HttpsError("failed-precondition", `filter status is ${data?.status}, expected "uploading"`);
+    }
+    const objectKey = data?.objectKey as string | undefined;
+    if (!objectKey) {
+      throw new HttpsError("internal", "filter has no objectKey");
+    }
+
+    const head = await headWithChecksum(cfg, objectKey);
+    if (head.contentLength == null) {
+      throw new HttpsError("not-found", "uploaded object missing on R2");
+    }
+    const declared = data?.packageBytes as number | undefined;
+    if (declared && head.contentLength !== declared) {
+      throw new HttpsError(
+        "data-loss",
+        `size mismatch: declared=${declared} actual=${head.contentLength}`,
+      );
+    }
+
+    await filterRef.update({
+      status: "pending_review_pre",
+      uploadedAt: FieldValue.serverTimestamp(),
+      sha256: head.sha256 ?? null,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    return { ok: true, filterId, sha256: head.sha256 };
+  },
+);
 
 /** POST /filters/{id}/submitForReview — see API_SPEC.md §5.3. */
 export const submitForReview = onCall({ region, cors: true }, async (req: CallableRequest) => {
@@ -41,24 +248,119 @@ export const submitForReview = onCall({ region, cors: true }, async (req: Callab
   throw new HttpsError("unimplemented", "submitForReview not implemented");
 });
 
-/** POST /filters/{id}/use — see API_SPEC.md §5.7. Idempotent via Idempotency-Key. */
+/** POST /filters/{id}/use — see API_SPEC.md §5.7. Cooldown enforced (1h) per (uid, filter). */
 export const recordUse = onCall({ region, cors: true }, async (req: CallableRequest) => {
-  requireAuth(req);
-  // TODO: idempotent counter increment with idempotency-key replay protection.
-  throw new HttpsError("unimplemented", "recordUse not implemented");
+  const uid = requireAuth(req);
+  return applyRecordUse(uid, req.data);
 });
 
-/** GET /filters/{id} — see API_SPEC.md §5.8. Returns signed download URL. */
-export const getFilterDetail = onCall({ region, cors: true }, async (req: CallableRequest) => {
-  // Public — no auth required.
-  void req;
-  // TODO: fetch /filters/{id}, generate signed download URL via lib/r2.
-  throw new HttpsError("unimplemented", "getFilterDetail not implemented");
+const getFilterDetailSchema = z.object({
+  filterId: z.string().min(1).max(128),
 });
+
+export interface GetFilterDetailDeps {
+  firestore?: Firestore;
+  presignGetURL?: (objectKey: string) => Promise<{ url: string; expiresAt: number }>;
+}
+
+export interface FilterDetailResponse {
+  filter: {
+    id: string;
+    title: string;
+    version: string;
+    category: string;
+    status: string;
+    useCount: number;
+    downloadCount: number;
+    priceCoins: number;
+    coverURL: string | null;
+    ratingAvg: number | null;
+    createdAt: number | null;
+    author: { uid: string; displayName: string };
+  };
+  signedDownloadURL: string;
+  expiresAt: number;
+}
+
+/**
+ * Pure logic — exported for unit tests with mock Firestore + R2.
+ * Returns the filter detail bundle including a presigned download URL.
+ */
+export async function applyGetFilterDetail(
+  rawData: unknown,
+  deps: GetFilterDetailDeps = {},
+): Promise<FilterDetailResponse> {
+  const parsed = getFilterDetailSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId } = parsed.data;
+
+  const db = deps.firestore ?? getFirestore();
+  const snap = await db.collection("filters").doc(filterId).get();
+  if (!snap.exists) {
+    throw new HttpsError("not-found", `filter ${filterId} not found`);
+  }
+  const data = snap.data() ?? {};
+  if (data.status !== "approved") {
+    throw new HttpsError("not-found", `filter ${filterId} is not available (status=${data.status})`);
+  }
+  const objectKey = data.objectKey as string | undefined;
+  if (!objectKey) {
+    throw new HttpsError("internal", "filter has no objectKey");
+  }
+
+  const presigner =
+    deps.presignGetURL ??
+    (async (key: string) => {
+      const cfg = loadR2Config();
+      const presigned = await presignGet(cfg, key, 600);
+      return { url: presigned.url, expiresAt: presigned.expiresAt };
+    });
+  const { url: signedDownloadURL, expiresAt } = await presigner(objectKey);
+
+  const author = (data.author as { uid?: string; displayName?: string } | undefined) ?? {};
+  const createdAtRaw = data.createdAt;
+  const createdAt =
+    createdAtRaw && typeof createdAtRaw === "object" && "toMillis" in createdAtRaw &&
+      typeof (createdAtRaw as { toMillis: unknown }).toMillis === "function"
+      ? (createdAtRaw as { toMillis: () => number }).toMillis()
+      : null;
+
+  return {
+    filter: {
+      id: filterId,
+      title: (data.title as string) ?? "",
+      version: (data.version as string) ?? "1.0.0",
+      category: (data.category as string) ?? "cinematic",
+      status: (data.status as string) ?? "approved",
+      useCount: (data.useCount as number) ?? 0,
+      downloadCount: (data.downloadCount as number) ?? 0,
+      priceCoins: (data.priceCoins as number) ?? 0,
+      coverURL: (data.coverURL as string | null) ?? null,
+      ratingAvg: (data.ratingAvg as number | null) ?? null,
+      createdAt,
+      author: {
+        uid: author.uid ?? (data.authorUid as string | undefined) ?? "unknown",
+        displayName: author.displayName ?? "Unknown",
+      },
+    },
+    signedDownloadURL,
+    expiresAt,
+  };
+}
+
+/** GET /filters/{id} — see API_SPEC.md §5.8. Returns signed download URL. */
+export const getFilterDetail = onCall(
+  { region, cors: true, secrets: r2Secrets },
+  async (req: CallableRequest) => {
+    return applyGetFilterDetail(req.data);
+  },
+);
 
 /** POST /filters/{id}/report — see API_SPEC.md §5.6. */
 export const reportFilter = onCall({ region, cors: true }, async (req: CallableRequest) => {
-  requireAuth(req);
-  // TODO: append to /filters/{id}/reports/{auto}, increment counter.
-  throw new HttpsError("unimplemented", "reportFilter not implemented");
+  const uid = requireAuth(req);
+  const { applyReportFilter } = await import("./moderation.js");
+  return applyReportFilter(uid, req.data);
 });

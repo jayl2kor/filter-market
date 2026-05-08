@@ -22,16 +22,14 @@ export {
 } from "./http/filters.js";
 
 export { approveFilter, rejectFilter } from "./http/moderation.js";
-export { setHandle, deleteAccount } from "./http/identity.js";
+export { setHandle, deleteAccount, setRole } from "./http/identity.js";
 
-// Phase 6 — Coin wallet (CURRENCY_DESIGN.md). Stubs; not wired until Phase 6.
+// Wallet — closed-loop coin (ADR-0006). Sprint 2 wiring of purchase + IAP credit + Pro subscription + refund.
 export {
-  getWallet,
-  topupInit,
-  topupFinalize,
   purchaseFilter,
-  listTransactions,
-  requestWithdraw,
+  creditCoinsFromIAP,
+  proSubscriptionUpdate,
+  refundRequest,
 } from "./http/wallet.js";
 
 // Firestore triggers — counters, notifications, denormalized writes.
