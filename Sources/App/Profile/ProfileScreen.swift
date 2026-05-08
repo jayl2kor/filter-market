@@ -403,7 +403,8 @@ struct ProfileScreen: View {
                     .foregroundStyle(FMColors.Text.primary)
                     .monospacedDigit()
                 Text(label.uppercased())
-                    .font(.system(size: 10, weight: .medium))
+                    .fmTypography(.caption)
+                    .fontWeight(.medium)
                     .tracking(0.4)
                     .foregroundStyle(FMColors.Text.tertiary)
             }
@@ -549,12 +550,14 @@ struct ProfileScreen: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.title)
-                    .font(.system(size: 11, weight: .semibold))
+                    .fmTypography(.caption)
+                    .fontWeight(.semibold)
                     .foregroundStyle(FMColors.Text.inverse)
                     .lineLimit(1)
                 if item.downloadCount > 0 {
                     Text(formattedCount(item.downloadCount))
-                        .font(.system(size: 10, weight: .medium))
+                        .fmTypography(.caption)
+                        .fontWeight(.medium)
                         .foregroundStyle(FMColors.Text.inverse.opacity(0.78))
                         .monospacedDigit()
                 }

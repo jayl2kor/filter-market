@@ -359,7 +359,8 @@ struct SettingsScreen: View {
         VStack(alignment: .leading, spacing: Sp.xs) {
             if let title {
                 Text(title)
-                    .font(.system(size: 11, weight: .semibold))
+                    .fmTypography(.caption)
+                    .fontWeight(.semibold)
                     .tracking(0.4)
                     .textCase(.uppercase)
                     .foregroundStyle(FMColors.Text.tertiary)
@@ -480,7 +481,8 @@ struct SettingsScreen: View {
         case .badge(let text, let chevron):
             HStack(spacing: Sp.xs) {
                 Text(text)
-                    .font(.system(size: 10, weight: .bold))
+                    .fmTypography(.caption)
+                    .fontWeight(.bold)
                     .tracking(0.3)
                     .textCase(.uppercase)
                     .foregroundStyle(FMColors.Accent.primary)
