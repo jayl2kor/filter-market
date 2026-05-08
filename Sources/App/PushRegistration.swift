@@ -200,7 +200,7 @@ final class PushRegistration: NSObject {
                 #endif
                 return
             }
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 application.registerForRemoteNotifications()
             }
         }
