@@ -19,8 +19,8 @@ final class FmpkgTests: XCTestCase {
 
     // MARK: - Builder
 
-    func testBuilderProducesManifestAndLUTData() {
-        let output = FmpkgBuilder.build(sampleOptions())
+    func testBuilderProducesManifestAndLUTData() throws {
+        let output = try FmpkgBuilder.build(sampleOptions())
 
         XCTAssertEqual(output.manifest.schemaVersion, 1)
         XCTAssertEqual(output.manifest.engine.lutSize, 8)
@@ -30,17 +30,17 @@ final class FmpkgTests: XCTestCase {
         XCTAssertFalse(output.manifestData.isEmpty)
     }
 
-    func testBuilderIsDeterministic() {
-        let a = FmpkgBuilder.build(sampleOptions())
-        let b = FmpkgBuilder.build(sampleOptions())
+    func testBuilderIsDeterministic() throws {
+        let a = try FmpkgBuilder.build(sampleOptions())
+        let b = try FmpkgBuilder.build(sampleOptions())
 
         XCTAssertEqual(a.lutData, b.lutData)
         XCTAssertEqual(a.manifestData, b.manifestData)
         XCTAssertEqual(a.lutChecksum, b.lutChecksum)
     }
 
-    func testBuilderChecksumMatchesLUTBytes() {
-        let output = FmpkgBuilder.build(sampleOptions())
+    func testBuilderChecksumMatchesLUTBytes() throws {
+        let output = try FmpkgBuilder.build(sampleOptions())
         // The checksum is recorded only inside the manifest — recompute over lutData
         // independently to confirm the builder doesn't lie about what it hashed.
         XCTAssertEqual(output.manifest.checksum.lut.count, 64) // SHA-256 hex = 64 chars
@@ -53,13 +53,13 @@ final class FmpkgTests: XCTestCase {
     // MARK: - Verifier round trip
 
     func testVerifierAcceptsBuilderOutput() throws {
-        let output = FmpkgBuilder.build(sampleOptions())
+        let output = try FmpkgBuilder.build(sampleOptions())
         let manifest = try FmpkgVerifier.verify(output)
         XCTAssertEqual(manifest, output.manifest)
     }
 
-    func testVerifierRejectsTamperedLUT() {
-        var output = FmpkgBuilder.build(sampleOptions())
+    func testVerifierRejectsTamperedLUT() throws {
+        var output = try FmpkgBuilder.build(sampleOptions())
 
         // Flip a byte in the LUT; checksum should now disagree with the manifest.
         var tamperedBytes = Array(output.lutData)
@@ -77,8 +77,8 @@ final class FmpkgTests: XCTestCase {
         }
     }
 
-    func testVerifierRejectsCorruptedManifest() {
-        let output = FmpkgBuilder.build(sampleOptions())
+    func testVerifierRejectsCorruptedManifest() throws {
+        let output = try FmpkgBuilder.build(sampleOptions())
         let bogus = FmpkgBuilder.Output(
             manifest: output.manifest,
             manifestData: Data("not json".utf8),
@@ -90,11 +90,37 @@ final class FmpkgTests: XCTestCase {
         }
     }
 
+    func testBuilderRejectsTraversalLUTFilenames() {
+        let malicious = [
+            "../../../passwd",
+            "luts/../../../etc",
+            "/tmp/lut.cube",
+            "luts//lut.cube",
+            "luts\\lut.cube"
+        ]
+
+        for filename in malicious {
+            var options = sampleOptions()
+            options = FmpkgBuilder.Options(
+                id: options.id,
+                version: options.version,
+                title: options.title,
+                author: options.author,
+                bakedLUT: options.bakedLUT,
+                createdAt: options.createdAt,
+                lutFilename: filename
+            )
+            XCTAssertThrowsError(try FmpkgBuilder.build(options)) { error in
+                XCTAssertEqual(error as? FmpkgBuilder.BuildError, .invalidLutFilename(filename))
+            }
+        }
+    }
+
     // MARK: - Smoke render parity
 
     func testSmokeRenderMatchesDirectSampleOnIdentityLUT() throws {
         let identityLUT = LUT3D.identity(size: 16)
-        let output = FmpkgBuilder.build(sampleOptions(bakedLUT: identityLUT))
+        let output = try FmpkgBuilder.build(sampleOptions(bakedLUT: identityLUT))
 
         let probe = RGBColor(red: 0.3, green: 0.6, blue: 0.9)
         let viaSmoke = try FmpkgVerifier.smokeRender(output, probe: probe)
@@ -112,7 +138,7 @@ final class FmpkgTests: XCTestCase {
             sourceLUT: baseLUT,
             parameters: EditorParameters(exposure: 0.5, contrast: 0.2)
         )
-        let output = FmpkgBuilder.build(sampleOptions(bakedLUT: baked))
+        let output = try FmpkgBuilder.build(sampleOptions(bakedLUT: baked))
 
         let probe = RGBColor(red: 0.4, green: 0.4, blue: 0.4)
         let viaPackage = try FmpkgVerifier.smokeRender(output, probe: probe)

@@ -52,6 +52,11 @@ public struct FmpkgManifest: Codable, Equatable, Sendable {
 }
 
 public enum FmpkgBuilder {
+    public enum BuildError: Error, Equatable, Sendable {
+        case invalidLutFilename(String)
+        case manifestEncodeFailed
+    }
+
     public struct Options: Sendable {
         public let id: String
         public let version: String
@@ -91,7 +96,8 @@ public enum FmpkgBuilder {
         public var lutChecksum: String { manifest.checksum.lut }
     }
 
-    public static func build(_ options: Options) -> Output {
+    public static func build(_ options: Options) throws -> Output {
+        try validateLutFilename(options.lutFilename)
         let lutText = CubeLUTWriter.text(for: options.bakedLUT, title: options.title)
         let lutData = Data(lutText.utf8)
         let lutHash = sha256Hex(lutData)
@@ -111,8 +117,23 @@ public enum FmpkgBuilder {
             checksum: FmpkgManifest.Checksum(lut: lutHash)
         )
 
-        let manifestData = encode(manifest)
+        let manifestData = try encode(manifest)
         return Output(manifest: manifest, manifestData: manifestData, lutData: lutData)
+    }
+
+    private static func validateLutFilename(_ value: String) throws {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              !trimmed.hasPrefix("/"),
+              !trimmed.contains("\\") else {
+            throw BuildError.invalidLutFilename(value)
+        }
+        let components = trimmed.split(separator: "/", omittingEmptySubsequences: false)
+        guard components.allSatisfy({ component in
+            !component.isEmpty && component != "." && component != ".." && !component.contains("..")
+        }) else {
+            throw BuildError.invalidLutFilename(value)
+        }
     }
 }
 
@@ -173,11 +194,15 @@ public enum FmpkgVerifier {
 
 // MARK: - Internals
 
-private func encode(_ manifest: FmpkgManifest) -> Data {
+private func encode(_ manifest: FmpkgManifest) throws -> Data {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys, .prettyPrinted, .withoutEscapingSlashes]
     encoder.dateEncodingStrategy = .iso8601
-    return (try? encoder.encode(manifest)) ?? Data()
+    do {
+        return try encoder.encode(manifest)
+    } catch {
+        throw FmpkgBuilder.BuildError.manifestEncodeFailed
+    }
 }
 
 private func decode(_ data: Data) throws -> FmpkgManifest {
