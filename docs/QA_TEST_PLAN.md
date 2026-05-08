@@ -147,7 +147,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 
 | # | Element (ID) | Expected action | PASS/FAIL |
 |---|---|-----------------|-----------|
-| 6.1.1 | 필터 미니카드 (`social.reviews.filter`) | → AppRoute.filterDetail |  |
+| 6.1.1 | 필터 미니카드 (`social.reviews.filter`) | 로컬 store 또는 `filters/{filterId}`에서 실제 제목/작성자/커버/카운트 표시. 탭 시 → AppRoute.filterDetail |  |
 | 6.1.2 | 리뷰 row (`social.review.row`) | row 자체는 정보 표시 |  |
 | 6.1.3 | 메이커 답글 row (`social.review.makerReply.row`) | 표시 only |  |
 | 6.1.4 | 별점 표시 (`social.review.stars`) | 1~5 별 표시, 채워진 별 = stars |  |

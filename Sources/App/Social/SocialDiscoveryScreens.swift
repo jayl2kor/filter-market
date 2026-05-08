@@ -2,12 +2,14 @@ import DesignSystem
 import FirebaseAuth
 import FirebaseFirestore
 import Foundation
+import Models
 import SwiftUI
 
 // MARK: - Reviews
 
 struct ReviewsListScreen: View {
     @AppStorage("isAuthenticated") private var isAuthenticated = false
+    @EnvironmentObject private var store: MooditStore
 
     let filterID: String
     // (#37) 프로덕션은 Firestore /filters/{filterID}/reviews listener (.task에서 attach).
@@ -17,6 +19,7 @@ struct ReviewsListScreen: View {
     @State private var moreMenuReview: SocialReview?
     @State private var reviewsListener: ListenerRegistration?
     @State private var helpfulListener: ListenerRegistration?
+    @State private var filterSummary = ReviewFilterSummary()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -69,8 +72,10 @@ struct ReviewsListScreen: View {
         .task {
             // (#37) Firestore listener attach. UI test fallback은 mock 데이터를 그대로 사용.
             guard !isUITesting else { return }
+            applyLocalFilterSummary()
             attachReviewsListener()
             attachHelpfulListener()
+            await loadFilterSummary()
         }
         .onDisappear {
             reviewsListener?.remove()
@@ -134,6 +139,50 @@ struct ReviewsListScreen: View {
         return defaultValue
     }
 
+    private static func doubleField(_ value: Any?) -> Double? {
+        if let double = value as? Double { return double }
+        if let int = value as? Int { return Double(int) }
+        if let number = value as? NSNumber { return number.doubleValue }
+        if let string = value as? String { return Double(string) }
+        return nil
+    }
+
+    private func applyLocalFilterSummary() {
+        guard let uuid = UUID(uuidString: filterID),
+              let filter = store.filters.first(where: { $0.id == uuid }) else {
+            return
+        }
+        filterSummary = ReviewFilterSummary(
+            title: filter.title,
+            makerName: filter.author.displayName,
+            categoryRawValue: filter.category.rawValue,
+            downloadCount: filter.downloadCount > 0 ? filter.downloadCount : filter.useCount,
+            ratingAvg: filter.ratingAvg,
+            coverURL: filter.coverURL
+        )
+    }
+
+    private func loadFilterSummary() async {
+        do {
+            let snapshot = try await Firestore.firestore()
+                .collection("filters").document(filterID)
+                .getDocument()
+            guard let data = snapshot.data() else { return }
+            let author = data["author"] as? [String: Any]
+            let coverURL = (data["coverURL"] as? String).flatMap(URL.init(string:))
+            filterSummary = ReviewFilterSummary(
+                title: data["title"] as? String,
+                makerName: (author?["displayName"] as? String) ?? data["authorDisplayName"] as? String,
+                categoryRawValue: data["category"] as? String,
+                downloadCount: Self.intField(data["downloadCount"], default: Self.intField(data["useCount"], default: 0)),
+                ratingAvg: Self.doubleField(data["ratingAvg"]),
+                coverURL: coverURL
+            )
+        } catch {
+            // Keep the local summary/fallback; the reviews listener still owns list content.
+        }
+    }
+
     private func attachHelpfulListener() {
         helpfulListener?.remove()
         guard let uid = Auth.auth().currentUser?.uid else {
@@ -155,20 +204,20 @@ struct ReviewsListScreen: View {
     private var filterMiniCard: some View {
         NavigationLink(value: AppRoute.filterDetail(id: filterID)) {
             HStack(spacing: Sp.sm) {
-                FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filterID, category: nil))
+                filterMiniCover
                     .frame(width: 36, height: 36)
                     .clipShape(RoundedRectangle(cornerRadius: R.sm))
 
                 VStack(alignment: .leading, spacing: 2) {
-                    // (#36) UUID 노출 방지 — UUID 형식이면 일반 라벨 사용.
-                    Text(UUID(uuidString: filterID) != nil ? "필터" : filterID)
+                    Text(filterMiniTitle)
                         .fmTypography(.callout)
                         .fontWeight(.semibold)
                         .foregroundStyle(FMColors.Text.primary)
-                    // UI 테스트는 정적 메이커 라벨 유지 (어시드 호환). 프로덕션은 일반 텍스트.
-                    Text(isUITesting ? "@sample.maker · ★ 4.9 · ↓ \(formattedDownloadCount(6_200))" : "리뷰 목록")
+                        .lineLimit(1)
+                    Text(isUITesting ? "@sample.maker · ★ 4.9 · ↓ \(formattedDownloadCount(6_200))" : filterMiniSubtitle)
                         .fmTypography(.caption)
                         .foregroundStyle(FMColors.Text.tertiary)
+                        .lineLimit(1)
                 }
 
                 Spacer()
@@ -185,6 +234,52 @@ struct ReviewsListScreen: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("social.reviews.filter")
+    }
+
+    @ViewBuilder
+    private var filterMiniCover: some View {
+        if let coverURL = filterSummary.coverURL {
+            AsyncImage(url: coverURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFill()
+                default:
+                    filterMiniPlaceholder
+                }
+            }
+        } else {
+            filterMiniPlaceholder
+        }
+    }
+
+    private var filterMiniPlaceholder: some View {
+        FMFilterCoverArt(
+            motif: FilterCoverMotifResolver.motif(
+                for: filterSummary.title ?? filterID,
+                category: filterSummary.categoryRawValue
+            )
+        )
+    }
+
+    private var filterMiniTitle: String {
+        if let title = filterSummary.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
+            return title
+        }
+        return UUID(uuidString: filterID) == nil ? filterID : "필터 정보 로딩 중"
+    }
+
+    private var filterMiniSubtitle: String {
+        var parts: [String] = []
+        if let makerName = filterSummary.makerName?.trimmingCharacters(in: .whitespacesAndNewlines), !makerName.isEmpty {
+            parts.append("@\(makerName)")
+        }
+        if let ratingAvg = filterSummary.ratingAvg, ratingAvg > 0 {
+            parts.append("★ \(String(format: "%.1f", ratingAvg))")
+        }
+        if let downloadCount = filterSummary.downloadCount {
+            parts.append("↓ \(formattedDownloadCount(downloadCount))")
+        }
+        return parts.isEmpty ? "리뷰 목록" : parts.joined(separator: " · ")
     }
 
     private var list: some View {
@@ -1713,6 +1808,15 @@ private struct SocialMakerReply: Identifiable {
     let avatarColors: [Color]
     let time: String
     let body: String
+}
+
+private struct ReviewFilterSummary {
+    var title: String?
+    var makerName: String?
+    var categoryRawValue: String?
+    var downloadCount: Int?
+    var ratingAvg: Double?
+    var coverURL: URL?
 }
 
 private struct SocialReview: Identifiable {
