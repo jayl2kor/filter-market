@@ -595,11 +595,14 @@ struct ReviewComposeScreen: View {
     @Environment(\.dismiss) private var dismiss
 
     let filterID: String
-    @State private var text = "이 필터 너무 좋아요! @jiso"
+    @State private var text = ""
+    @State private var rating = 0
     @State private var selectedMention: UUID?
     @State private var showingPhotoPicker = false
     @State private var attachedImage: UIImage?
     @State private var showingEmojiPicker = false
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
 
     private let mentions = SocialUser.mentionSuggestions
     private let limit = 280
@@ -616,30 +619,66 @@ struct ReviewComposeScreen: View {
         // surfaces. Add a leading space if the text doesn't already end in
         // whitespace — keeps tokens visually separated.
         let separator = (text.last?.isWhitespace ?? true) ? "" : " "
-        text += "\(separator)@"
+        updateText("\(text)\(separator)@")
         FMHaptic.selection.play()
     }
 
     private func insertEmoji(_ emoji: String) {
-        text += emoji
+        updateText("\(text)\(emoji)")
         FMHaptic.selection.play()
+    }
+
+    private func updateText(_ value: String) {
+        text = String(value.prefix(limit))
+        errorMessage = nil
+    }
+
+    private func selectRating(_ value: Int) {
+        let next = min(max(value, 1), 5)
+        guard next != rating else { return }
+        rating = next
+        errorMessage = nil
+        if rating == 5 {
+            FMHaptic.success.play()
+        } else {
+            FMHaptic.light.play()
+        }
     }
 
     /// Firestore /filters/{filterID}/reviews/{auto}에 리뷰 작성 (#26).
     /// 실패 시 화면 유지 + haptic 에러; 성공 시 dismiss.
     private func submitReview() async {
+        guard !isSubmitting else { return }
         guard let uid = Auth.auth().currentUser?.uid else {
+            errorMessage = "로그인이 필요합니다."
             FMHaptic.warning.play()
             return
         }
         let body = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !body.isEmpty else { return }
+        guard body.count >= 5 else {
+            errorMessage = "리뷰는 5자 이상 입력해주세요."
+            FMHaptic.warning.play()
+            return
+        }
+        guard rating > 0 else {
+            errorMessage = "별점을 선택해주세요."
+            FMHaptic.warning.play()
+            return
+        }
+        guard attachedImage == nil else {
+            errorMessage = "사진 첨부 저장은 아직 준비 중입니다. 사진을 제거하면 리뷰를 게시할 수 있어요."
+            FMHaptic.warning.play()
+            return
+        }
         let payload: [String: Any] = [
             "authorUid": uid,
             "body": body,
             "filterId": filterID,
+            "stars": rating,
             "createdAt": FieldValue.serverTimestamp(),
         ]
+        isSubmitting = true
+        defer { isSubmitting = false }
         do {
             try await Firestore.firestore()
                 .collection("filters").document(filterID)
@@ -648,6 +687,7 @@ struct ReviewComposeScreen: View {
             FMHaptic.success.play()
             dismiss()
         } catch {
+            errorMessage = "리뷰 작성 실패: \(error.localizedDescription)"
             FMHaptic.warning.play()
         }
     }
@@ -682,12 +722,17 @@ struct ReviewComposeScreen: View {
         .sheet(isPresented: $showingPhotoPicker) {
             PhotoPicker { image in
                 attachedImage = image
+                errorMessage = "사진 첨부 저장은 아직 준비 중입니다. 사진을 제거하면 리뷰를 게시할 수 있어요."
             }
         }
     }
 
     private var canPost: Bool {
-        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && text.count <= limit
+        !isSubmitting &&
+        attachedImage == nil &&
+        rating > 0 &&
+        text.trimmingCharacters(in: .whitespacesAndNewlines).count >= 5 &&
+        text.count <= limit
     }
 
     private var editor: some View {
@@ -704,15 +749,53 @@ struct ReviewComposeScreen: View {
                         .foregroundStyle(FMColors.Text.tertiary)
                 }
 
-                TextEditor(text: $text)
+                ratingInput
+
+                VStack(alignment: .leading, spacing: Sp.xs) {
+                    Text("리뷰 작성")
+                        .fmTypography(.caption)
+                        .foregroundStyle(FMColors.Text.secondary)
+
+                    TextEditor(text: Binding(
+                        get: { text },
+                        set: { updateText($0) }
+                    ))
                     .font(.system(size: 17))
                     .foregroundStyle(FMColors.Text.primary)
                     .scrollContentBackground(.hidden)
                     .frame(minHeight: 180)
+                    .overlay(alignment: .topLeading) {
+                        if text.isEmpty {
+                            Text("이 필터에 대한 의견을 남겨주세요")
+                                .fmTypography(.body)
+                                .foregroundStyle(FMColors.Text.tertiary)
+                                .padding(.top, 8)
+                                .padding(.leading, 5)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                    .accessibilityLabel("리뷰 본문")
                     .accessibilityIdentifier("social.compose.input")
+
+                    HStack {
+                        Text(validationText)
+                            .fmTypography(.caption)
+                            .foregroundStyle(validationTint)
+                        Spacer()
+                        Text("\(text.count) / \(limit)")
+                            .fmTypography(.caption)
+                            .monospacedDigit()
+                            .foregroundStyle(text.count >= limit ? FMColors.Semantic.warning : FMColors.Text.tertiary)
+                            .accessibilityHidden(true)
+                    }
+                }
 
                 if let image = attachedImage {
                     attachedImagePreview(image)
+                }
+
+                if let errorMessage {
+                    inlineMessage(errorMessage, tint: FMColors.Semantic.error, icon: "exclamationmark.triangle.fill")
                 }
 
                 if showingEmojiPicker {
@@ -725,6 +808,81 @@ struct ReviewComposeScreen: View {
             }
             .padding(Sp.md)
         }
+    }
+
+    private var ratingInput: some View {
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            Text("별점")
+                .fmTypography(.caption)
+                .foregroundStyle(FMColors.Text.secondary)
+
+            HStack(spacing: Sp.xs) {
+                ForEach(1...5, id: \.self) { value in
+                    Button {
+                        selectRating(value)
+                    } label: {
+                        Image(systemName: value <= rating ? "star.fill" : "star")
+                            .font(.system(size: 28, weight: .semibold))
+                            .foregroundStyle(value <= rating ? FMColors.Accent.primary : FMColors.Text.tertiary)
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("별점 \(value)점")
+                    .accessibilityValue("5점 만점")
+                    .accessibilityIdentifier("social.compose.rating.star.\(value)")
+                }
+                Spacer()
+                Text(ratingLabel)
+                    .fmTypography(.caption)
+                    .foregroundStyle(rating > 0 ? FMColors.Accent.primary : FMColors.Text.tertiary)
+                    .accessibilityIdentifier("social.compose.rating.label")
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 8)
+                    .onChanged { value in
+                        let starWidth: CGFloat = 44 + Sp.xs
+                        let selected = Int((value.location.x / starWidth).rounded(.up))
+                        selectRating(selected)
+                    }
+            )
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("social.compose.rating")
+        }
+    }
+
+    private var ratingLabel: String {
+        switch rating {
+        case 1: "별로예요"
+        case 2: "그저 그래요"
+        case 3: "괜찮아요"
+        case 4: "좋아요"
+        case 5: "최고예요"
+        default: "별점을 선택해주세요"
+        }
+    }
+
+    private var validationText: String {
+        let count = text.trimmingCharacters(in: .whitespacesAndNewlines).count
+        if count == 0 { return "5자 이상 입력해주세요" }
+        if count < 5 { return "조금만 더 자세히 적어주세요" }
+        return "게시할 준비가 되었어요"
+    }
+
+    private var validationTint: Color {
+        text.trimmingCharacters(in: .whitespacesAndNewlines).count >= 5
+            ? FMColors.Text.tertiary
+            : FMColors.Semantic.warning
+    }
+
+    private func inlineMessage(_ message: String, tint: Color, icon: String) -> some View {
+        Label(message, systemImage: icon)
+            .fmTypography(.caption)
+            .foregroundStyle(tint)
+            .padding(Sp.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: R.sm))
+            .accessibilityIdentifier("social.compose.error")
     }
 
     private var emojiPalette: some View {
@@ -781,7 +939,9 @@ struct ReviewComposeScreen: View {
             ForEach(mentions) { user in
                 Button {
                     selectedMention = user.id
-                    text = text.replacingOccurrences(of: "@jiso", with: user.handle + " ")
+                    if let range = text.range(of: "@", options: .backwards) {
+                        updateText(text.replacingCharacters(in: range.lowerBound..<text.endIndex, with: "\(user.handle) "))
+                    }
                     FMHaptic.selection.play()
                 } label: {
                     HStack(spacing: Sp.sm) {
@@ -858,6 +1018,7 @@ struct ReviewComposeScreen: View {
             Spacer()
             Text("\(text.count) / \(limit)")
                 .fmTypography(.caption)
+                .monospacedDigit()
                 .foregroundStyle(text.count > limit ? FMColors.Semantic.warning : FMColors.Text.tertiary)
         }
         .padding(.horizontal, Sp.md)
