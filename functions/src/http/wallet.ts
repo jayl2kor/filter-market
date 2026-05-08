@@ -10,11 +10,18 @@
  */
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
 import { getFirestore, FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth.js";
+import { verifyAppleReceipt } from "../lib/appleReceiptVerifier.js";
 
 const region = "asia-northeast3";
+
+// Apple JWS 검증에 사용하는 시크릿. 콜러블 정의에 secrets로 명시해 cold-start에 노출.
+const APP_APPLE_ID = defineSecret("APP_APPLE_ID");
+const APP_STORE_ENV = defineSecret("APP_STORE_ENV");
+const appleSecrets = [APP_APPLE_ID, APP_STORE_ENV];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // purchaseFilter
@@ -156,11 +163,9 @@ export async function applyCreditCoinsFromIAP(
     throw new HttpsError("invalid-argument", `unknown_product: ${productId}`);
   }
 
-  // (#46) Production 안전 가드 — 검증기 미주입이면 즉시 throw.
-  // 테스트는 deps.verifyReceipt를 명시적 주입해야 함.
-  const verifier = deps.verifyReceipt ?? (async (): Promise<boolean> => {
-    throw new HttpsError("internal", "receipt_verifier_not_configured");
-  });
+  // (Tier1-1) 기본 검증기는 Apple App Store Server Library JWS verifier.
+  // 테스트는 deps.verifyReceipt를 명시적 주입.
+  const verifier = deps.verifyReceipt ?? verifyAppleReceipt;
   const verified = await verifier(signedJWS, productId);
   if (!verified) {
     throw new HttpsError("permission-denied", "receipt_verification_failed");
@@ -219,10 +224,13 @@ export async function applyCreditCoinsFromIAP(
   });
 }
 
-export const creditCoinsFromIAP = onCall({ region, cors: true }, async (req: CallableRequest) => {
-  const uid = requireAuth(req);
-  return applyCreditCoinsFromIAP(uid, req.data);
-});
+export const creditCoinsFromIAP = onCall(
+  { region, cors: true, secrets: appleSecrets },
+  async (req: CallableRequest) => {
+    const uid = requireAuth(req);
+    return applyCreditCoinsFromIAP(uid, req.data);
+  },
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // proSubscriptionUpdate
@@ -261,10 +269,8 @@ export async function applyProSubscriptionUpdate(
   if (!PRO_PRODUCT_IDS.has(productId)) {
     throw new HttpsError("invalid-argument", `not_a_pro_sku: ${productId}`);
   }
-  // (#46) JWS 검증 — 검증기 미주입 시 즉시 throw로 production 안전.
-  const verifier = deps.verifyReceipt ?? (async (): Promise<boolean> => {
-    throw new HttpsError("internal", "receipt_verifier_not_configured");
-  });
+  // (Tier1-1) Apple JWS 검증 — production 기본은 verifyAppleReceipt.
+  const verifier = deps.verifyReceipt ?? verifyAppleReceipt;
   const verified = await verifier(signedJWS, productId);
   if (!verified) {
     throw new HttpsError("permission-denied", "receipt_verification_failed");
@@ -282,10 +288,13 @@ export async function applyProSubscriptionUpdate(
   return { ok: true, productId, active: true };
 }
 
-export const proSubscriptionUpdate = onCall({ region, cors: true }, async (req: CallableRequest) => {
-  const uid = requireAuth(req);
-  return applyProSubscriptionUpdate(uid, req.data);
-});
+export const proSubscriptionUpdate = onCall(
+  { region, cors: true, secrets: appleSecrets },
+  async (req: CallableRequest) => {
+    const uid = requireAuth(req);
+    return applyProSubscriptionUpdate(uid, req.data);
+  },
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // refundRequest
