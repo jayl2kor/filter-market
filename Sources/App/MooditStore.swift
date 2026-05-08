@@ -12,6 +12,7 @@ typealias Filter = Models.Filter
 enum CameraTimerOption: Int, CaseIterable, Identifiable, Hashable {
     case off = 0
     case three = 3
+    case five = 5
     case ten = 10
 
     var id: Int { rawValue }
@@ -20,6 +21,7 @@ enum CameraTimerOption: Int, CaseIterable, Identifiable, Hashable {
         switch self {
         case .off: "OFF"
         case .three: "3s"
+        case .five: "5s"
         case .ten: "10s"
         }
     }

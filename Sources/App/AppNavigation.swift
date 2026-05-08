@@ -415,7 +415,7 @@ extension AppRoute {
     var subtitle: String {
         switch self {
         case .cameraAspect: "1:1, 4:3, 16:9 촬영 가이드를 선택합니다."
-        case .cameraTimer: "OFF, 3초, 10초 타이머를 선택하고 카운트다운을 시작합니다."
+        case .cameraTimer: "OFF, 3초, 5초, 10초 타이머를 선택하고 카운트다운을 시작합니다."
         case .photoImport: "사진 접근 권한 이후 후보정할 이미지를 선택합니다."
         case .photoEdit: "필터와 강도를 조정하고 저장 또는 공유합니다."
         case .editor, .editorParameters, .editorLUT, .editorDraft:
@@ -478,6 +478,7 @@ extension AppRoute {
             [
                 .init("cam.timer.set.off", "타이머 끄기", systemImage: "timer"),
                 .init("cam.timer.set.3", "3초 타이머", systemImage: "3.circle"),
+                .init("cam.timer.set.5", "5초 타이머", systemImage: "5.circle"),
                 .init("cam.timer.set.10", "10초 타이머", systemImage: "10.circle"),
                 .init("cam.timer.cancel", "카운트다운 취소", systemImage: "xmark.circle")
             ]

@@ -836,27 +836,35 @@ struct CameraScreen: View {
             // 셔터.
             Button {
                 FMHaptic.medium.play()
-                countdownTask?.cancel()
-                countdownTask = Task { await captureWithOptionalTimer() }
+                if countdownTask != nil {
+                    cancelCountdown()
+                } else {
+                    countdownTask = Task { await captureWithOptionalTimer() }
+                }
             } label: {
                 ZStack {
                     Circle()
-                        .stroke(Color.white, lineWidth: 3)
+                        .stroke(countdownTask == nil ? Color.white : FMColors.Accent.primary, lineWidth: 3)
                         .frame(width: 76, height: 76)
 
                     Circle()
-                        .fill(FMColors.Accent.primary)
+                        .fill(countdownTask == nil ? FMColors.Accent.primary : Color.black.opacity(0.72))
                         .frame(width: 64, height: 64)
 
                     if controller.isCapturing {
                         ProgressView()
                             .tint(.black)
+                    } else if countdownTask != nil {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(FMColors.Accent.primary)
                     }
                 }
             }
             .disabled(controller.isCapturing)
             .accessibilityIdentifier("camera.shutter")
-            .accessibilityLabel("촬영")
+            .accessibilityLabel(countdownTask == nil ? "촬영" : "타이머 취소")
+            .accessibilityHint(countdownTask == nil ? "" : "카운트다운을 취소합니다")
 
             // 우하: 전후면 전환 (보조 진입점 — top bar 와 중복하나 모킹과 일치).
             Button {
@@ -921,11 +929,32 @@ struct CameraScreen: View {
         ZStack {
             Color.black.opacity(0.28)
                 .ignoresSafeArea()
-            Text("\(value)")
-                .font(.system(size: 96, weight: .bold, design: .rounded).monospacedDigit())
-                .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
-                .accessibilityLabel("타이머 \(value)")
+            VStack(spacing: Sp.lg) {
+                Text("\(value)")
+                    .font(.system(size: 96, weight: .bold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
+
+                Button {
+                    cancelCountdown()
+                } label: {
+                    Label("취소", systemImage: "xmark.circle.fill")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, Sp.md)
+                        .frame(minHeight: 44)
+                        .background(Color.black.opacity(0.58), in: Capsule())
+                        .overlay {
+                            Capsule()
+                                .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("camera.timer.cancel")
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("타이머 \(value)초")
+            .accessibilityHint("취소하려면 두 번 탭하세요")
         }
         .transition(.opacity)
         .allowsHitTesting(true)
@@ -945,6 +974,9 @@ struct CameraScreen: View {
         if seconds > 0 {
             for value in stride(from: seconds, through: 1, by: -1) {
                 countdownValue = value
+                if value == 1 {
+                    FMHaptic.light.play()
+                }
                 do {
                     try await Task.sleep(nanoseconds: 1_000_000_000)
                 } catch {
