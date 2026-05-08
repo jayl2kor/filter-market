@@ -22,7 +22,7 @@ export {
 } from "./http/filters.js";
 
 export { approveFilter, rejectFilter } from "./http/moderation.js";
-export { setHandle, deleteAccount, setRole } from "./http/identity.js";
+export { setHandle, deleteAccount, setRole, updateProfile } from "./http/identity.js";
 
 // Wallet — closed-loop coin (ADR-0006). Sprint 2 wiring of purchase + IAP credit + Pro subscription + refund.
 export {
