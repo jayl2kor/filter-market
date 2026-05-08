@@ -3639,9 +3639,9 @@ struct PaywallSingleScreen: View {
             HStack {
                 Text("가격").font(Font.fmCaption).foregroundStyle(FMColors.Text.secondary)
                 Spacer()
-                Text("\(priceCoins.formatted()) 코인")
+                Text(isIncludedWithPro ? "Pro 멤버십에 포함" : "\(priceCoins.formatted()) 코인")
                     .font(Font.fmHeadline)
-                    .foregroundStyle(FMColors.Text.primary)
+                    .foregroundStyle(isIncludedWithPro ? FMColors.Accent.primary : FMColors.Text.primary)
             }
             Rectangle().fill(FMColors.Border.subtle).frame(height: 0.5)
             HStack {
@@ -3654,8 +3654,8 @@ struct PaywallSingleScreen: View {
             HStack {
                 Text("결제 후 잔액").font(Font.fmCaption).foregroundStyle(FMColors.Text.secondary)
                 Spacer()
-                let after = store.coinBalance - priceCoins
-                Text("\(after.formatted()) 코인")
+                let after = isIncludedWithPro ? store.coinBalance : store.coinBalance - priceCoins
+                Text(isIncludedWithPro ? "\(after.formatted()) 코인 · 차감 없음" : "\(after.formatted()) 코인")
                     .font(Font.fmCaption)
                     .foregroundStyle(after < 0 ? FMColors.Semantic.error : FMColors.Text.secondary)
             }
@@ -3668,10 +3668,16 @@ struct PaywallSingleScreen: View {
     @ViewBuilder
     private var cta: some View {
         VStack(spacing: Sp.sm) {
-            FMButton("구매하기", icon: "circle.hexagongrid.circle.fill", variant: .primary, size: .lg, isLoading: isProcessing) {
+            FMButton(
+                isIncludedWithPro ? "Pro로 다운로드" : "구매하기",
+                icon: isIncludedWithPro ? "sparkles" : "circle.hexagongrid.circle.fill",
+                variant: .primary,
+                size: .lg,
+                isLoading: isProcessing
+            ) {
                 Task { await purchase() }
             }
-            .disabled(isProcessing || priceCoins == 0)
+            .disabled(isProcessing || (priceCoins == 0 && !isIncludedWithPro))
             .accessibilityIdentifier("filter.purchase.confirm")
 
             NavigationLink(value: AppRoute.proSubscription) {
@@ -3698,6 +3704,10 @@ struct PaywallSingleScreen: View {
         }
     }
 
+    private var isIncludedWithPro: Bool {
+        store.isProActive && priceCoins > 0
+    }
+
     private func loadFilterDetail() async {
         if isUITesting {
             filterTitle = "테스트 필터"
@@ -3718,7 +3728,31 @@ struct PaywallSingleScreen: View {
 
     private func purchase() async {
         guard !isProcessing else { return }
-        Telemetry.log(.filterPurchaseAttempted, parameters: ["filter_id": filterID, "price_coins": priceCoins])
+        Telemetry.log(
+            .filterPurchaseAttempted,
+            parameters: ["filter_id": filterID, "price_coins": priceCoins, "pro_included": isIncludedWithPro]
+        )
+        if isIncludedWithPro {
+            isProcessing = true
+            defer { isProcessing = false }
+            do {
+                if let filter = store.filter(matching: filterID) {
+                    try await store.download(filter)
+                } else {
+                    try await store.download(filterID: filterID)
+                }
+                Telemetry.log(
+                    .filterPurchaseSucceeded,
+                    parameters: ["filter_id": filterID, "price_coins": 0, "pro_included": true]
+                )
+                didPurchase = true
+            } catch {
+                Telemetry.log(.filterPurchaseFailed, parameters: ["filter_id": filterID, "reason": "pro_download_error"])
+                Telemetry.record(error: error, context: ["where": "proIncludedDownload", "filter_id": filterID])
+                purchaseError = error.localizedDescription
+            }
+            return
+        }
         if store.coinBalance < priceCoins {
             Telemetry.log(.filterPurchaseInsufficient, parameters: ["filter_id": filterID, "price_coins": priceCoins, "balance": store.coinBalance])
             showInsufficient = true

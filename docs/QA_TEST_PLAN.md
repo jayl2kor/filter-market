@@ -131,6 +131,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 5.16 | "리뷰 작성" 버튼 (`social.reviews.compose`) | Auth-gated → AppRoute.reviewCompose(filterId:) |  |
 | 5.17 | "무료 다운로드" CTA (무료 필터) | downloadState transitions: ready→downloading→completed |  |
 | 5.18 | "구매" CTA (유료 필터) | `PaywallSingleScreen` 진입, `filter.purchase.confirm` 또는 `filter.purchase.pro_upgrade` 선택 가능 |  |
+| 5.18b | Pro 활성 + 유료 필터 | Paywall 가격이 "Pro 멤버십에 포함"으로 표시되고 `filter.purchase.confirm`은 코인 차감/callable 없이 saved filter 동기화 후 after-download로 이동 |  |
 | 5.19 | "촬영하기" CTA (다운로드 후) | dismiss → 카메라로 |  |
 | 5.20 | 다운로드 진행 중 추가 탭 | no-op (재요청 불가) |  |
 | 5.21 | 좋아요 CTA (`filter.detail.like`) | 실제 필터는 favorite store 토글, mock detail은 local liked state 토글. 접근성 value가 on/off로 변경 |  |

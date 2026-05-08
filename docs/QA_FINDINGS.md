@@ -50,6 +50,7 @@
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after notification settings debounce/system permission batch (#247/#248) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after foreground push preference gate (#223) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after FCM token auth retry (#222) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after Pro included paid-filter download path (#253) |
 
 ## Remaining Manual QA Gates
 
@@ -91,5 +92,6 @@
 | Push device registration | FCM tokens received before login are cached, and auth state changes retry device registration or explicitly fetch the current token. | New-user device QA should verify `/users/{uid}/devices/{deviceId}` appears after login even when the token was issued before auth. |
 | Saved/favorites state | Saved filters and favorites now sync through `/users/{uid}/savedFilters` and `/users/{uid}/favorites` snapshot listeners with optimistic rollback on failed remove/favorite writes. | Firebase QA should verify download, favorite toggle, remove download, app relaunch, and second-device sync under the same uid. |
 | Wallet optimistic reconcile | Coin credit optimism now falls back to a direct wallet balance reload if the listener does not reconcile within 10 seconds. | StoreKit/Firebase QA should verify top-up UI immediately changes, then converges to `/users/{uid}/wallet/balance.value`. |
+| Pro paid-filter access | Active Pro users now see paid filters as included in PaywallSingle and download them without `purchaseFilter` coin deduction. There is no ad SDK path in the current app build. | StoreKit sandbox QA should activate Pro, open a paid filter, confirm no coin balance change, and verify saved filter sync. |
 | Payout | Current screens are marked `MockOnly`; automated QA verifies placeholder surfaces, not real Stripe payout behavior. | Keep hidden/controlled until payout backend scope is defined. |
 | Firebase-backed mutations | Several screens expose state and action contracts, but production write/read behavior still depends on real Firebase setup. | Run manual QA with seeded Firebase project before release. |

@@ -814,6 +814,12 @@ final class MooditStore: ObservableObject {
         downloadedFilterIDs.insert(filter.id)
     }
 
+    func download(filterID: String) async throws {
+        guard let id = UUID(uuidString: filterID) else { return }
+        try await persistSavedFilterAsync(filterId: id, save: true)
+        downloadedFilterIDs.insert(id)
+    }
+
     func removeDownload(_ filter: Filter) {
         let hadDownload = downloadedFilterIDs.contains(filter.id)
         let hadFavorite = favoriteFilterIDs.contains(filter.id)
