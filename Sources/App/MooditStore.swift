@@ -378,6 +378,7 @@ final class MooditStore: ObservableObject {
     private var favoritesListener: ListenerRegistration?
     private var authStateHandle: AuthStateDidChangeListenerHandle?
     private var optimisticCoinReconcileTask: Task<Void, Never>?
+    private var notificationPreferencesSaveTask: Task<Void, Never>?
     /// Universal Link / push tap에서 도착한 라우트. RootShell이 관찰해 표시한다.
     /// 한 번 처리되면 nil로 리셋한다.
     @Published var pendingDeepLinkRoute: AppRoute?
@@ -421,6 +422,7 @@ final class MooditStore: ObservableObject {
         notificationPrefsListener?.remove()
         savedFiltersListener?.remove()
         favoritesListener?.remove()
+        notificationPreferencesSaveTask?.cancel()
         walletListener = nil
         proStatusListener = nil
         userDocListener = nil
@@ -429,6 +431,7 @@ final class MooditStore: ObservableObject {
         favoritesListener = nil
         optimisticCoinReconcileTask?.cancel()
         optimisticCoinReconcileTask = nil
+        notificationPreferencesSaveTask = nil
 
         guard let uid else {
             // 로그아웃 / 미로그인 — 본인 스코프 모든 상태 즉시 정리.
@@ -497,7 +500,7 @@ final class MooditStore: ObservableObject {
                 guard let self else { return }
                 Task { @MainActor in
                     guard let data = snapshot?.data() else { return }
-                    self.notificationPreferences = NotificationPreferences(
+                    let remotePreferences = NotificationPreferences(
                         systemEnabled: (data["systemEnabled"] as? Bool) ?? self.notificationPreferences.systemEnabled,
                         social: (data["social"] as? Bool) ?? self.notificationPreferences.social,
                         reviews: (data["reviews"] as? Bool) ?? self.notificationPreferences.reviews,
@@ -509,6 +512,9 @@ final class MooditStore: ObservableObject {
                         quietStart: (data["quietStart"] as? String) ?? self.notificationPreferences.quietStart,
                         quietEnd: (data["quietEnd"] as? String) ?? self.notificationPreferences.quietEnd
                     )
+                    if remotePreferences != self.notificationPreferences {
+                        self.notificationPreferences = remotePreferences
+                    }
                 }
             }
         savedFiltersListener = db.collection("users").document(uid)
@@ -599,27 +605,67 @@ final class MooditStore: ObservableObject {
     /// 업로드/리뷰 등 비동기 callable 실패 시 사용자에 보여줄 에러 메시지 (#47).
     @Published var lastSubmitErrorMessage: String?
 
+    func setNotificationPreference<Value: Equatable>(
+        _ keyPath: WritableKeyPath<NotificationPreferences, Value>,
+        to value: Value
+    ) {
+        var preferences = notificationPreferences
+        guard preferences[keyPath: keyPath] != value else { return }
+        preferences[keyPath: keyPath] = value
+        notificationPreferences = preferences
+        scheduleNotificationPreferencesSave(preferences)
+    }
+
     /// NotificationPreferences를 Firestore /users/{uid}/notificationPreferences/main에 저장 (#45).
-    /// 토글 변경 후 호출. 비로그인이면 silent skip.
-    func persistNotificationPreferences() {
+    /// 사용자 입력에서만 호출하고, listener로 들어온 remote snapshot은 다시 저장하지 않는다.
+    func scheduleNotificationPreferencesSave() {
+        scheduleNotificationPreferencesSave(notificationPreferences)
+    }
+
+    private func scheduleNotificationPreferencesSave(_ preferences: NotificationPreferences) {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        guard Auth.auth().currentUser?.uid != nil else { return }
+        notificationPreferencesSaveTask?.cancel()
+        notificationPreferencesSaveTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            guard !Task.isCancelled else { return }
+            await self?.persistNotificationPreferences(preferences)
+        }
+    }
+
+    private func persistNotificationPreferences(_ preferences: NotificationPreferences) async {
         guard let uid = Auth.auth().currentUser?.uid else { return }
-        let p = notificationPreferences
-        Firestore.firestore()
+        let ref = Firestore.firestore()
             .collection("users").document(uid)
             .collection("notificationPreferences").document("main")
-            .setData([
-                "systemEnabled": p.systemEnabled,
-                "social": p.social,
-                "reviews": p.reviews,
-                "marketplace": p.marketplace,
-                "creator": p.creator,
-                "wallet": p.wallet,
-                "product": p.product,
-                "quietHoursEnabled": p.quietHoursEnabled,
-                "quietStart": p.quietStart,
-                "quietEnd": p.quietEnd,
-                "updatedAt": FieldValue.serverTimestamp()
-            ], merge: true)
+        do {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                ref.setData([
+                    "systemEnabled": preferences.systemEnabled,
+                    "social": preferences.social,
+                    "reviews": preferences.reviews,
+                    "marketplace": preferences.marketplace,
+                    "creator": preferences.creator,
+                    "wallet": preferences.wallet,
+                    "product": preferences.product,
+                    "quietHoursEnabled": preferences.quietHoursEnabled,
+                    "quietStart": preferences.quietStart,
+                    "quietEnd": preferences.quietEnd,
+                    "updatedAt": FieldValue.serverTimestamp()
+                ], merge: true) { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+            notificationPreferencesSaveTask = nil
+        } catch {
+            lastSubmitErrorMessage = "알림 설정 저장 실패: \(error.localizedDescription)"
+        }
     }
 
     /// 코인 잔액 낙관적 조정 (#29 적립, #31 차감). listener가 도착하면 정정.
