@@ -1,4 +1,6 @@
 import DesignSystem
+import FirebaseAuth
+import FirebaseFirestore
 import Foundation
 import SwiftUI
 
@@ -8,11 +10,12 @@ struct ReviewsListScreen: View {
     @AppStorage("isAuthenticated") private var isAuthenticated = false
 
     let filterID: String
-    // 프로덕션은 Firestore /filters/{id}/reviews listener (별도 작업)에서 채워짐.
-    // UI 테스트 (-ui-testing 런치 인자): 기존 mock 데이터로 fallback.
+    // (#37) 프로덕션은 Firestore /filters/{filterID}/reviews listener (.task에서 attach).
+    // UI 테스트 (-ui-testing): 기존 mock 데이터로 fallback.
     @State private var reviews: [SocialReview] = isUITesting ? SocialReview.mock : []
     @State private var helpfulIDs: Set<UUID> = isUITesting ? Set(SocialReview.mock.filter(\.isHelpful).map(\.id)) : []
     @State private var moreMenuReview: SocialReview?
+    @State private var reviewsListener: ListenerRegistration?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -62,6 +65,51 @@ struct ReviewsListScreen: View {
         } message: { review in
             Text("\(review.name) (\(review.handle))")
         }
+        .task {
+            // (#37) Firestore listener attach. UI test fallback은 mock 데이터를 그대로 사용.
+            guard !isUITesting else { return }
+            attachReviewsListener()
+        }
+    }
+
+    /// /filters/{filterID}/reviews.order(by: createdAt desc).limit(50) listener.
+    private func attachReviewsListener() {
+        reviewsListener?.remove()
+        reviewsListener = Firestore.firestore()
+            .collection("filters").document(filterID)
+            .collection("reviews")
+            .order(by: "createdAt", descending: true)
+            .limit(to: 50)
+            .addSnapshotListener { snapshot, _ in
+                let docs = snapshot?.documents ?? []
+                self.reviews = docs.compactMap { doc -> SocialReview? in
+                    let data = doc.data()
+                    let body = data["body"] as? String ?? ""
+                    let authorUid = data["authorUid"] as? String ?? "unknown"
+                    let authorName = data["authorName"] as? String ?? "사용자"
+                    let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+                    let initials = String(authorName.prefix(2)).uppercased()
+                    let interval = Date().timeIntervalSince(createdAt)
+                    let timeStr: String
+                    if interval < 60 { timeStr = "방금 전" }
+                    else if interval < 3600 { timeStr = "\(Int(interval / 60))분" }
+                    else if interval < 86400 { timeStr = "\(Int(interval / 3600))시간" }
+                    else { timeStr = "\(Int(interval / 86400))일" }
+                    return SocialReview(
+                        name: authorName,
+                        handle: "@\(authorUid.prefix(8))",
+                        initials: initials,
+                        avatarColors: [Color(hex: 0xF3DCC4), Color(hex: 0xD4A482)],
+                        time: timeStr,
+                        body: body,
+                        stars: 0,
+                        helpfulCount: 0,
+                        isHelpful: false,
+                        isVerifiedDownload: false,
+                        makerReply: nil
+                    )
+                }
+            }
     }
 
     private var filterMiniCard: some View {
@@ -72,11 +120,13 @@ struct ReviewsListScreen: View {
                     .clipShape(RoundedRectangle(cornerRadius: R.sm))
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(filterID)
+                    // (#36) UUID 노출 방지 — UUID 형식이면 일반 라벨 사용.
+                    Text(UUID(uuidString: filterID) != nil ? "필터" : filterID)
                         .fmTypography(.callout)
                         .fontWeight(.semibold)
                         .foregroundStyle(FMColors.Text.primary)
-                    Text("@jisoo.films · ★ 4.9 · ↓ \(formattedDownloadCount(6_200))")
+                    // UI 테스트는 정적 메이커 라벨 유지 (어시드 호환). 프로덕션은 일반 텍스트.
+                    Text(isUITesting ? "@jisoo.films · ★ 4.9 · ↓ \(formattedDownloadCount(6_200))" : "리뷰 목록")
                         .fmTypography(.caption)
                         .foregroundStyle(FMColors.Text.tertiary)
                 }
@@ -303,6 +353,33 @@ struct ReviewComposeScreen: View {
         FMHaptic.selection.play()
     }
 
+    /// Firestore /filters/{filterID}/reviews/{auto}에 리뷰 작성 (#26).
+    /// 실패 시 화면 유지 + haptic 에러; 성공 시 dismiss.
+    private func submitReview() async {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            FMHaptic.warning.play()
+            return
+        }
+        let body = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !body.isEmpty else { return }
+        let payload: [String: Any] = [
+            "authorUid": uid,
+            "body": body,
+            "filterId": filterID,
+            "createdAt": FieldValue.serverTimestamp(),
+        ]
+        do {
+            try await Firestore.firestore()
+                .collection("filters").document(filterID)
+                .collection("reviews").document()
+                .setData(payload)
+            FMHaptic.success.play()
+            dismiss()
+        } catch {
+            FMHaptic.warning.play()
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if isAuthenticated {
@@ -322,8 +399,7 @@ struct ReviewComposeScreen: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("게시") {
-                    FMHaptic.success.play()
-                    dismiss()
+                    Task { await submitReview() }
                 }
                 .fontWeight(.bold)
                 .foregroundStyle(canPost ? FMColors.Accent.primary : FMColors.Text.tertiary)
@@ -351,7 +427,7 @@ struct ReviewComposeScreen: View {
                         .fmTypography(.subhead)
                         .fontWeight(.semibold)
                         .foregroundStyle(FMColors.Text.primary)
-                    Text("@hanbyul.cam · ↩ \(filterID)에 답글")
+                    Text(UUID(uuidString: filterID) != nil ? "필터에 답글" : "↩ \(filterID)에 답글")
                         .fmTypography(.caption)
                         .foregroundStyle(FMColors.Text.tertiary)
                 }
@@ -546,6 +622,33 @@ struct RatingFormScreen: View {
 
     private let tags = ["자연스러움", "강도 조절 좋음", "카페 잘 어울림", "셀카 좋음", "여행", "실내 광원"]
 
+    /// (#28) Firestore /filters/{id}/ratings/{uid}에 평점 + 코멘트 저장.
+    /// uid 키로 1개만 — 재제출 시 덮어쓰기.
+    private func submitRating() async {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            FMHaptic.warning.play()
+            return
+        }
+        let payload: [String: Any] = [
+            "authorUid": uid,
+            "filterId": filterID,
+            "rating": rating,
+            "tags": Array(selectedTags),
+            "body": reviewBody.trimmingCharacters(in: .whitespacesAndNewlines),
+            "updatedAt": FieldValue.serverTimestamp(),
+        ]
+        do {
+            try await Firestore.firestore()
+                .collection("filters").document(filterID)
+                .collection("ratings").document(uid)
+                .setData(payload, merge: true)
+            FMHaptic.success.play()
+            dismiss()
+        } catch {
+            FMHaptic.warning.play()
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filterID, category: nil))
@@ -572,7 +675,7 @@ struct RatingFormScreen: View {
                 Text("평점 남기기")
                     .fmTypography(.headline)
                     .foregroundStyle(FMColors.Text.primary)
-                Text("\(filterID) — @jisoo.films")
+                Text(UUID(uuidString: filterID) != nil ? "필터" : filterID)
                     .fmTypography(.subhead)
                     .foregroundStyle(FMColors.Text.secondary)
             }
@@ -626,8 +729,7 @@ struct RatingFormScreen: View {
                     dismiss()
                 }
                 FMButton("평점 등록", variant: .primary, size: .lg) {
-                    FMHaptic.success.play()
-                    dismiss()
+                    Task { await submitRating() }
                 }
                 .accessibilityIdentifier("social.rating.submit")
             }
@@ -671,7 +773,9 @@ struct RatingFormScreen: View {
 struct FollowersListScreen: View {
     let userID: String
     @State private var query = ""
-    @State private var users = SocialUser.followers
+    // (#38) 프로덕션은 Firestore /users/{userID}/followers listener (별도 작업)에서 채워짐.
+    // UI 테스트(-ui-testing): 기존 mock fallback.
+    @State private var users: [SocialUser] = isUITesting ? SocialUser.followers : []
 
     var body: some View {
         FollowListScreen(
@@ -686,7 +790,9 @@ struct FollowersListScreen: View {
 struct FollowingListScreen: View {
     let userID: String
     @State private var query = ""
-    @State private var users = SocialUser.following
+    // (#38) 프로덕션은 Firestore /users/{userID}/following listener (별도 작업)에서 채워짐.
+    // UI 테스트(-ui-testing): 기존 mock fallback.
+    @State private var users: [SocialUser] = isUITesting ? SocialUser.following : []
 
     var body: some View {
         FollowListScreen(

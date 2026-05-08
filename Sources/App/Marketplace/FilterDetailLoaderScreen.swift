@@ -18,7 +18,12 @@ struct FilterDetailLoaderScreen: View {
         Group {
             switch phase {
             case .loading:
-                loadingView
+                // 깜빡임 방지 (#21): store.filters에 동일 ID가 있으면 .loading 단계에서도 즉시 렌더.
+                if let local = synchronousLocalFilter {
+                    FilterDetailScreen(filter: local)
+                } else {
+                    loadingView
+                }
             case .loaded(let detail):
                 FilterDetailScreen(mock: detail.toMock())
             case .localFilter(let filter):
@@ -35,6 +40,13 @@ struct FilterDetailLoaderScreen: View {
         .task {
             await load()
         }
+    }
+
+    /// 동기적으로 store.filters에서 매칭되는 필터를 즉시 반환. 번들 시드/이미 로드된 데이터 진입 시
+    /// .loading 단계에서도 ProgressView 깜빡임 없이 즉시 렌더링하기 위한 fast-path.
+    private var synchronousLocalFilter: Models.Filter? {
+        guard let uuid = UUID(uuidString: filterId) else { return nil }
+        return store.filters.first(where: { $0.id == uuid })
     }
 
     // MARK: - State machine

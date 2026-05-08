@@ -29,7 +29,8 @@ struct PopularMaker: Identifiable, Sendable {
 struct SearchScreen: View {
     @EnvironmentObject private var store: MooditStore
     @State private var query: String = ""
-    @State private var recentSearches: [String] = ["야경", "여름 파스텔", "jisoo.films", "골든아워", "필름룩"]
+    // (#39) 사용자별 최근 검색어 — UserDefaults 영속화. 신규 사용자는 빈 배열에서 시작.
+    @State private var recentSearches: [String] = []
     @State private var phase: SearchPhase = .browsing
     @FocusState private var isFieldFocused: Bool
 
@@ -254,9 +255,7 @@ struct SearchScreen: View {
                     .fmTypography(.headline)
                     .foregroundStyle(FMColors.Text.primary)
                 Spacer()
-                Button {
-                    // 후속 Phase — 메이커 전체 보기.
-                } label: {
+                NavigationLink(value: AppRoute.forYou) {
                     Text("전체 →")
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Accent.primary)
@@ -279,12 +278,7 @@ struct SearchScreen: View {
     }
 
     private func makerCell(_ maker: PopularMaker) -> some View {
-        Button {
-            // 후속 Phase — 메이커 프로필.
-            query = maker.handle
-            phase = .results
-            rememberSearch(maker.handle)
-        } label: {
+        NavigationLink(value: AppRoute.otherProfile(uid: maker.handle)) {
             VStack(spacing: Sp.xs) {
                 FMAvatar(initials: maker.initials, size: .lg)
                     .overlay {
@@ -474,26 +468,6 @@ struct SearchScreen: View {
         if recentSearches.count > 8 {
             recentSearches = Array(recentSearches.prefix(8))
         }
-    }
-
-    private func detailMock(from tile: FMFilterTileData) -> FilterDetailMock {
-        FilterDetailMock(
-            displayTitle: tile.title,
-            makerHandle: tile.makerName,
-            makerInitials: String(tile.makerName.replacingOccurrences(of: "@", with: "").prefix(2)).uppercased(),
-            categoryLabel: "필터",
-            downloadCount: tile.downloadCount,
-            rating: 4.7,
-            reviewCount: max(50, tile.downloadCount / 30),
-            likeCount: tile.downloadCount / 5,
-            description: "메이커가 직접 조정한 톤커브로, 일상의 순간을 한 단계 더 풍부한 분위기로 끌어올립니다. 강도 60~80% 에서 가장 자연스럽게 어울려요.",
-            tags: ["#mood", "#daily", "#warm", "#analog"],
-            sampleSymbols: ["photo", "photo.fill", "sun.max", "moon.stars", "leaf", "camera"],
-            reviews: FilterDetailMock.preview.reviews,
-            categoryHint: tile.categoryHint ?? FMColors.Category.cinematic,
-            isPaid: tile.priceLabel != nil,
-            priceLabel: tile.priceLabel
-        )
     }
 }
 

@@ -42,6 +42,7 @@ final class WalletLedgerStore: ObservableObject {
     @Published private(set) var loadError: String?
 
     private var listener: ListenerRegistration?
+    private var authHandle: AuthStateDidChangeListenerHandle?
     private let pageLimit: Int
 
     init(pageLimit: Int = 50) {
@@ -49,11 +50,18 @@ final class WalletLedgerStore: ObservableObject {
     }
 
     func start() {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            entries = []
-            return
+        // (#47) NotificationsInboxStore와 동일 패턴 — auth state 변경 시 listener 자동 재attach.
+        guard authHandle == nil else { return }
+        authHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            guard let self else { return }
+            self.listener?.remove()
+            self.listener = nil
+            guard let uid = user?.uid else {
+                self.entries = []
+                return
+            }
+            self.startListener(uid: uid)
         }
-        startListener(uid: uid)
     }
 
     func refresh() async {

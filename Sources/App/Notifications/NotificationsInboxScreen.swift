@@ -7,10 +7,12 @@ import SwiftUI
 /// (좋아요/댓글/다운로드/팔로우/시스템). 미확인 행은 `accent.bg` highlight.
 struct NotificationsInboxScreen: View {
     @State private var category: NotificationCategory = .all
-    // Firestore /users/{uid}/notifications listener는 별도 작업으로 분리.
-    // 프로덕션: 빈 배열에서 시작 — `groups.isEmpty` 분기가 FMEmptyState를 노출.
-    // UI 테스트 (-ui-testing 런치 인자): 기존 mock 데이터로 fallback해 어시드 가능 상태 유지.
-    @State private var items: [NotificationItem] = isUITesting ? NotificationItem.mock : []
+    @StateObject private var store = NotificationsInboxStore()
+    // 프로덕션: store.items (Firestore listener) 사용.
+    // UI 테스트 (-ui-testing 런치 인자): 기존 mock 데이터로 fallback해 시드 가능 상태 유지. (#30)
+    private var items: [NotificationItem] {
+        isUITesting ? NotificationItem.mock : store.items
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -36,6 +38,7 @@ struct NotificationsInboxScreen: View {
                 .accessibilityIdentifier("notif.settings")
             }
         }
+        .task { store.start() }
     }
 
     // MARK: - Category strip
@@ -269,8 +272,11 @@ struct NotificationsInboxScreen: View {
     // MARK: - Actions
 
     private func markRead(_ item: NotificationItem) {
-        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[index].isUnread = false
+        // (#33) firestoreDocId 가 있으면 store.markRead가 readAt 타임스탬프를 즉시 작성.
+        // 다음 listener 도착 시 isUnread=false 자동 반영. mock/UI test 항목은 docId 없음 → no-op.
+        if let docId = item.firestoreDocId {
+            store.markRead(notificationId: docId)
+        }
     }
 
     private func acceptFollow(_ item: NotificationItem) {
@@ -348,6 +354,9 @@ struct NotificationItem: Identifiable, Hashable {
     let relativeTime: String
     let createdGroup: NotificationGroup
     var isUnread: Bool
+    /// Firestore /users/{uid}/notifications/{docId} ID — markRead 시 사용 (#33).
+    /// nil이면 mock/local 항목 (UI 테스트 등).
+    var firestoreDocId: String? = nil
 
     var gradient: [Color] {
         switch kind {

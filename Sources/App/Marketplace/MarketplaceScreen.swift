@@ -46,8 +46,8 @@ struct MarketplaceScreen: View {
             .toolbar(.hidden, for: .navigationBar)
         }
         .task {
-            // 시뮬레이션: 첫 진입 시 약간의 지연을 두고 skeleton 표시.
-            try? await Task.sleep(nanoseconds: 350_000_000)
+            // 첫 진입 시 hasAppeared를 즉시 true — store.isLoading + 데이터 도착 여부로
+            // skeleton/empty/content를 분기. (#18 hardcoded 350ms sleep 제거)
             hasAppeared = true
         }
     }

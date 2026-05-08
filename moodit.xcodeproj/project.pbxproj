@@ -52,6 +52,7 @@
 		3A7E92655D09F55068566BCB /* State.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C83793111D18A70FE42E29E /* State.swift */; };
 		3C88C368561FCC7244D72012 /* DocumentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A8691D508900487D769105 /* DocumentPicker.swift */; };
 		41271A631E0AFA920EC8F3DC /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DFDCBB3A1A08C1770D80B67 /* FirebaseFirestore */; };
+		43BA995454F15C2354801DB6 /* NotificationsInboxStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7561CD59BD68FFE708CF509 /* NotificationsInboxStore.swift */; };
 		4401C09C63453AFCDC9C6067 /* Marketplace.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1D51DFA91005060F32F2A075 /* Marketplace.framework */; };
 		448C5CF709AE9C31DD6415B2 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76BF415E945426E88A165335 /* SettingsScreen.swift */; };
 		44DBF71783F346C4AC2EF4FC /* ProfileSelfStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB94A4B9C756853CECD34ED5 /* ProfileSelfStore.swift */; };
@@ -545,6 +546,7 @@
 		E2AA3CD9BD608293E9758F6E /* FilterDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterDetailScreen.swift; sourceTree = "<group>"; };
 		E3297A0A1E3883E05162166A /* UniversalLinkParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalLinkParserTests.swift; sourceTree = "<group>"; };
 		E4035158CACB9BDE70743847 /* PreviewUniforms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewUniforms.swift; sourceTree = "<group>"; };
+		E7561CD59BD68FFE708CF509 /* NotificationsInboxStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsInboxStore.swift; sourceTree = "<group>"; };
 		E8FCFE1455B495581E5BF208 /* SavedScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedScreen.swift; sourceTree = "<group>"; };
 		E95403B1DE5BA4E38A934325 /* cafe-cream.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "cafe-cream.png"; sourceTree = "<group>"; };
 		EC3E2D13CC029413A91CB862 /* FMSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMSlider.swift; sourceTree = "<group>"; };
@@ -711,6 +713,7 @@
 			isa = PBXGroup;
 			children = (
 				C999E9C145CB6ED65709111A /* NotificationsInboxScreen.swift */,
+				E7561CD59BD68FFE708CF509 /* NotificationsInboxStore.swift */,
 			);
 			path = Notifications;
 			sourceTree = "<group>";
@@ -1655,6 +1658,7 @@
 				B80F787C93D3C014C92565C2 /* MooditApp.swift in Sources */,
 				75A416B3410AC840412C0A6F /* MooditStore.swift in Sources */,
 				E9D22557765D14D78A6539F7 /* NotificationsInboxScreen.swift in Sources */,
+				43BA995454F15C2354801DB6 /* NotificationsInboxStore.swift in Sources */,
 				A85BBAAB57804A22E4B51461 /* NotificationsPermissionDenied.swift in Sources */,
 				E02316834DF8CB2B264AC585 /* NotificationsPermissionPriming.swift in Sources */,
 				6839CC2151EBE1198E8657CB /* OnboardingScreen.swift in Sources */,
