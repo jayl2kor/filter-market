@@ -6,6 +6,52 @@ public protocol FilterRepository: Sendable {
     func filter(id: Filter.ID) async throws -> Filter
 }
 
+public extension FilterRepository {
+    /// 트렌딩 — `useCount` 내림차순. 기본 구현은 listFilters 결과를 메모리에서 정렬.
+    /// FirestoreFilterRepository 같은 실제 구현은 backend 단에서 이미 정렬해 반환할 수 있음.
+    func trending(limit: Int = 24) async throws -> [Filter] {
+        let all = try await listFilters()
+        return Array(
+            all
+                .filter { $0.status == .approved }
+                .sorted { $0.useCount > $1.useCount }
+                .prefix(limit)
+        )
+    }
+
+    /// 최신 — `createdAt` 내림차순. 메타데이터가 없으면 원본 순서 유지.
+    func newFilters(limit: Int = 24) async throws -> [Filter] {
+        let all = try await listFilters()
+        let approved = all.filter { $0.status == .approved }
+        let hasDates = approved.contains { $0.createdAt != nil }
+        if hasDates {
+            return Array(
+                approved
+                    .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+                    .prefix(limit)
+            )
+        }
+        return Array(approved.prefix(limit))
+    }
+
+    /// 검색 — title/author 문자열 + 카테고리 필터. 단순 client-side 매칭.
+    func search(query: String, category: FilterCategory? = nil, limit: Int = 50) async throws -> [Filter] {
+        let all = try await listFilters()
+        let q = query.lowercased()
+        return Array(
+            all
+                .filter { f in
+                    guard f.status == .approved else { return false }
+                    if let category, f.category != category { return false }
+                    if q.isEmpty { return true }
+                    return f.title.lowercased().contains(q)
+                        || f.author.displayName.lowercased().contains(q)
+                }
+                .prefix(limit)
+        )
+    }
+}
+
 public struct MockFilterRepository: FilterRepository {
     private let filters: [Filter]
 

@@ -8,13 +8,30 @@ public struct Filter: Identifiable, Codable, Equatable, Sendable {
     public let category: FilterCategory
     public let engine: FilterEngineDescriptor
 
+    // Marketplace metadata — all optional with defaults so existing decoders
+    // (BundleSeedFilterRepository's manifest.json) keep working.
+    public let useCount: Int
+    public let createdAt: Date?
+    public let status: FilterStatus
+    public let priceCoins: Int
+    public let coverURL: URL?
+    public let ratingAvg: Double?
+    public let downloadCount: Int
+
     public init(
         id: UUID,
         title: String,
         version: String,
         author: FilterAuthor,
         category: FilterCategory,
-        engine: FilterEngineDescriptor
+        engine: FilterEngineDescriptor,
+        useCount: Int = 0,
+        createdAt: Date? = nil,
+        status: FilterStatus = .approved,
+        priceCoins: Int = 0,
+        coverURL: URL? = nil,
+        ratingAvg: Double? = nil,
+        downloadCount: Int = 0
     ) {
         self.id = id
         self.title = title
@@ -22,7 +39,44 @@ public struct Filter: Identifiable, Codable, Equatable, Sendable {
         self.author = author
         self.category = category
         self.engine = engine
+        self.useCount = useCount
+        self.createdAt = createdAt
+        self.status = status
+        self.priceCoins = priceCoins
+        self.coverURL = coverURL
+        self.ratingAvg = ratingAvg
+        self.downloadCount = downloadCount
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, version, author, category, engine
+        case useCount, createdAt, status, priceCoins, coverURL, ratingAvg, downloadCount
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        version = try c.decode(String.self, forKey: .version)
+        author = try c.decode(FilterAuthor.self, forKey: .author)
+        category = try c.decode(FilterCategory.self, forKey: .category)
+        engine = try c.decode(FilterEngineDescriptor.self, forKey: .engine)
+        useCount = try c.decodeIfPresent(Int.self, forKey: .useCount) ?? 0
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt)
+        status = try c.decodeIfPresent(FilterStatus.self, forKey: .status) ?? .approved
+        priceCoins = try c.decodeIfPresent(Int.self, forKey: .priceCoins) ?? 0
+        coverURL = try c.decodeIfPresent(URL.self, forKey: .coverURL)
+        ratingAvg = try c.decodeIfPresent(Double.self, forKey: .ratingAvg)
+        downloadCount = try c.decodeIfPresent(Int.self, forKey: .downloadCount) ?? 0
+    }
+}
+
+public enum FilterStatus: String, Codable, Sendable {
+    case uploading
+    case pendingReviewPre = "pending_review_pre"
+    case pendingReview = "pending_review"
+    case approved
+    case rejected
 }
 
 public struct FilterAuthor: Codable, Equatable, Sendable {
