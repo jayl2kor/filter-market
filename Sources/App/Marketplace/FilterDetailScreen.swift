@@ -1,13 +1,15 @@
 import DesignSystem
+import FilterEngine
 import Models
 import SwiftUI
+import UIKit
 
 // MARK: - FilterDetailScreen
 
 /// 필터 상세 — 7번 화면.
 ///
 /// Phase D3 — `mockups/screens/07-filter-detail.html` 와 정합.
-/// 비포/애프터 슬라이더 + 메이커 정보 + 통계 + 설명/태그 + 샘플 그리드 + 댓글 + 하단 CTA.
+/// 비포/애프터 슬라이더 + 메이커 정보 + 통계 + 설명/태그 + 샘플 갤러리 + 댓글 + 하단 CTA.
 struct FilterDetailScreen: View {
     @EnvironmentObject private var store: MooditStore
     @Environment(\.dismiss) private var dismiss
@@ -320,42 +322,16 @@ struct FilterDetailScreen: View {
 
     private var samplesSection: some View {
         VStack(alignment: .leading, spacing: Sp.sm) {
-            sectionHeader(title: "샘플", more: "\(mock.sampleSymbols.count + 3)개 모두 →")
+            sectionHeader(title: "샘플", more: "\(sampleCount)개 모두 →")
                 .padding(.horizontal, Sp.md)
 
-            LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: 4),
-                    GridItem(.flexible(), spacing: 4),
-                    GridItem(.flexible(), spacing: 4)
-                ],
-                spacing: 4
-            ) {
-                ForEach(Array(mock.sampleSymbols.enumerated()), id: \.offset) { _, symbol in
-                    sampleTile(symbol: symbol)
-                }
-            }
-            .padding(.horizontal, Sp.md)
+            SampleGalleryView(mock: mock)
         }
     }
 
-    private func sampleTile(symbol: String) -> some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    mock.categoryHint.opacity(0.4),
-                    Color.black.opacity(0.45)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            Image(systemName: symbol)
-                .font(.system(size: 22, weight: .light))
-                .foregroundStyle(.white.opacity(0.85))
-        }
-        .aspectRatio(1, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: R.sm))
-        .accessibilityHidden(true)
+    private var sampleCount: Int {
+        let signatureCount = (mock.signatureSampleURL ?? mock.coverURL) == nil ? 0 : 1
+        return signatureCount + EditorReferenceSampleKind.allCases.count
     }
 
     // MARK: - Reviews
@@ -617,6 +593,209 @@ struct FilterDetailScreen: View {
     }
 }
 
+// MARK: - Sample Gallery
+
+private struct SampleGalleryView: View {
+    let mock: FilterDetailMock
+
+    private var signatureURL: URL? {
+        mock.signatureSampleURL ?? mock.coverURL
+    }
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Sp.sm) {
+                if let signatureURL {
+                    SignatureSampleTile(url: signatureURL, categoryHint: mock.categoryHint)
+                }
+
+                ForEach(EditorReferenceSampleKind.allCases) { kind in
+                    ReferenceSampleTile(
+                        kind: kind,
+                        category: mock.filterCategory,
+                        filterKey: "\(mock.displayTitle)-\(mock.filterCategory.rawValue)"
+                    )
+                }
+            }
+            .padding(.horizontal, Sp.md)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("filter.detail.sample.gallery")
+    }
+}
+
+private struct SignatureSampleTile: View {
+    let url: URL
+    let categoryHint: Color
+
+    var body: some View {
+        AsyncImage(url: url) { phase in
+            switch phase {
+            case .success(let image):
+                image
+                    .resizable()
+                    .scaledToFill()
+            default:
+                samplePlaceholder
+            }
+        }
+        .frame(width: 172, height: 220)
+        .clipShape(RoundedRectangle(cornerRadius: R.md))
+        .overlay(alignment: .topLeading) {
+            sampleBadge("SIGNATURE")
+                .padding(Sp.xs)
+        }
+        .accessibilityLabel("메이커 시그니처 샘플")
+        .accessibilityIdentifier("filter.detail.sample.signature")
+    }
+
+    private var samplePlaceholder: some View {
+        ZStack {
+            LinearGradient(
+                colors: [categoryHint.opacity(0.45), Color.black.opacity(0.55)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            Image(systemName: "photo")
+                .font(.system(size: 28, weight: .light))
+                .foregroundStyle(.white.opacity(0.85))
+        }
+    }
+}
+
+private struct ReferenceSampleTile: View {
+    let kind: EditorReferenceSampleKind
+    let category: FilterCategory
+    let filterKey: String
+
+    @State private var sourceImage: UIImage?
+    @State private var renderedImage: UIImage?
+    @State private var isRendering = false
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            if let image = renderedImage ?? sourceImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Color.black.opacity(0.08)
+            }
+
+            if isRendering {
+                Color.black.opacity(0.18)
+                ProgressView()
+                    .tint(.white)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+
+            sampleBadge(kind.title)
+                .padding(Sp.xs)
+        }
+        .frame(width: 172, height: 220)
+        .clipShape(RoundedRectangle(cornerRadius: R.md))
+        .overlay {
+            RoundedRectangle(cornerRadius: R.md)
+                .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+        }
+        .task(id: cacheKey) {
+            await render()
+        }
+        .accessibilityLabel("\(kind.title) 기준 샘플")
+        .accessibilityIdentifier("filter.detail.sample.reference.\(kind.rawValue)")
+    }
+
+    private var cacheKey: String {
+        "detail-reference-\(filterKey)-\(kind.rawValue)"
+    }
+
+    @MainActor
+    private func render() async {
+        let sourceData = EditorReferenceSampleImage.makeJPEGData(kind: kind)
+        sourceImage = UIImage(data: sourceData)
+
+        if let cached = await SampleReferenceRenderCache.shared.data(for: cacheKey) {
+            renderedImage = UIImage(data: cached)
+            return
+        }
+
+        isRendering = true
+        defer { isRendering = false }
+
+        do {
+            let renderedData = try await Task.detached(priority: .userInitiated) {
+                let sourceLUT = LUT3D.preset(LUTPreset.preset(for: category), size: 33)
+                let renderer = PhotoFilterRenderer(jpegCompressionQuality: 0.86)
+                return try renderer.renderJPEG(
+                    to: sourceData,
+                    sourceLUT: sourceLUT,
+                    intensity: .full,
+                    cropAspectRatio: nil
+                )
+            }.value
+            await SampleReferenceRenderCache.shared.store(renderedData, for: cacheKey)
+            renderedImage = UIImage(data: renderedData)
+        } catch {
+            renderedImage = sourceImage
+        }
+    }
+}
+
+@ViewBuilder
+private func sampleBadge(_ title: String) -> some View {
+    Text(title.uppercased())
+        .font(.system(size: 10, weight: .bold))
+        .foregroundStyle(.white)
+        .padding(.horizontal, Sp.xs)
+        .padding(.vertical, 4)
+        .background(.black.opacity(0.36), in: Capsule())
+}
+
+private actor SampleReferenceRenderCache {
+    static let shared = SampleReferenceRenderCache()
+
+    private var memory: [String: Data] = [:]
+
+    func data(for key: String) -> Data? {
+        if let data = memory[key] {
+            return data
+        }
+        guard let url = fileURL(for: key), let data = try? Data(contentsOf: url) else {
+            return nil
+        }
+        memory[key] = data
+        return data
+    }
+
+    func store(_ data: Data, for key: String) {
+        memory[key] = data
+        guard let url = fileURL(for: key) else { return }
+        try? FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try? data.write(to: url, options: [.atomic])
+    }
+
+    private func fileURL(for key: String) -> URL? {
+        guard let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        return base
+            .appendingPathComponent("moodit-reference-previews", isDirectory: true)
+            .appendingPathComponent(Self.stableFileName(for: key))
+    }
+
+    private static func stableFileName(for key: String) -> String {
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in key.utf8 {
+            hash ^= UInt64(byte)
+            hash &*= 0x100000001b3
+        }
+        return String(format: "%016llx.jpg", hash)
+    }
+}
+
 // MARK: - Preview
 
 #Preview("FilterDetailScreen — Free") {
@@ -641,7 +820,9 @@ struct FilterDetailScreen: View {
                 likeCount: 1_200,
                 description: m.description,
                 tags: m.tags,
-                sampleSymbols: m.sampleSymbols,
+                coverURL: m.coverURL,
+                signatureSampleURL: m.signatureSampleURL,
+                filterCategory: .cinematic,
                 reviews: m.reviews,
                 categoryHint: FMColors.Category.cinematic,
                 isPaid: true,

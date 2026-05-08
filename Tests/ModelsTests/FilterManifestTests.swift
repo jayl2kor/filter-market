@@ -34,4 +34,32 @@ final class FilterManifestTests: XCTestCase {
         XCTAssertEqual(manifest.engine.type, .lutParams)
         XCTAssertEqual(manifest.parameters?.first?.defaultValue, 1.0)
     }
+
+    func testDecodeFilterWithSignatureSampleURL() throws {
+        let json = """
+        {
+          "id": "01900b14-7b1c-7c1e-a4f4-9b2c1d2e3f4a",
+          "version": "1.0.0",
+          "title": "Gallery Filter",
+          "author": { "uid": "maker", "displayName": "Maker" },
+          "category": "portrait",
+          "engine": {
+            "type": "lut+params",
+            "minAppVersion": "1.0.0",
+            "minIOSVersion": "17.0",
+            "lutSize": 33,
+            "lutFile": "luts/lut.png"
+          },
+          "coverURL": "https://cdn.example.com/cover.jpg",
+          "signatureSampleURL": "https://cdn.example.com/signature.jpg",
+          "downloadCount": 12
+        }
+        """
+
+        let filter = try JSONDecoder().decode(Filter.self, from: Data(json.utf8))
+
+        XCTAssertEqual(filter.signatureSampleURL?.absoluteString, "https://cdn.example.com/signature.jpg")
+        XCTAssertEqual(filter.coverURL?.absoluteString, "https://cdn.example.com/cover.jpg")
+        XCTAssertEqual(filter.downloadCount, 12)
+    }
 }

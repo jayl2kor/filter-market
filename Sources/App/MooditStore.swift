@@ -250,6 +250,8 @@ struct MakerFilterDraft: Identifiable, Equatable {
     var parameterValues: [String: Double]
     var lutFileName: String?
     var coverCount: Int
+    var signatureSampleKind: EditorReferenceSampleKind?
+    var signatureSamplePhotoData: Data?
     var beforeAfterEnabled: Bool
     var tosOriginal: Bool
     var tosPolicy: Bool
@@ -270,6 +272,8 @@ struct MakerFilterDraft: Identifiable, Equatable {
         parameterValues: [:],
         lutFileName: nil,
         coverCount: 0,
+        signatureSampleKind: nil,
+        signatureSamplePhotoData: nil,
         beforeAfterEnabled: false,
         tosOriginal: false,
         tosPolicy: false,
@@ -294,6 +298,8 @@ struct MakerFilterDraft: Identifiable, Equatable {
         ],
         lutFileName: "amber_cafe_33.cube",
         coverCount: 3,
+        signatureSampleKind: .lifestyle,
+        signatureSamplePhotoData: nil,
         beforeAfterEnabled: true,
         tosOriginal: false,
         tosPolicy: false,
@@ -804,6 +810,26 @@ final class MooditStore: ObservableObject {
 
     func removeUploadCover() {
         editorDraft.coverCount = max(0, editorDraft.coverCount - 1)
+        editorDraft.updatedAt = Date()
+    }
+
+    func setUploadSignatureSampleKind(_ kind: EditorReferenceSampleKind) {
+        editorDraft.signatureSampleKind = kind
+        editorDraft.signatureSamplePhotoData = nil
+        editorDraft.updatedAt = Date()
+    }
+
+    func setUploadSignatureSampleData(_ data: Data?) {
+        editorDraft.signatureSamplePhotoData = data
+        if data != nil {
+            editorDraft.signatureSampleKind = nil
+        }
+        editorDraft.updatedAt = Date()
+    }
+
+    func clearUploadSignatureSample() {
+        editorDraft.signatureSampleKind = nil
+        editorDraft.signatureSamplePhotoData = nil
         editorDraft.updatedAt = Date()
     }
 

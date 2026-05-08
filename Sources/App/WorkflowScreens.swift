@@ -2302,6 +2302,8 @@ struct EditorDraftSaveScreen: View {
 struct UploadCoverScreen: View {
     @EnvironmentObject private var store: MooditStore
     @State private var showCancelAlert = false
+    @State private var selectedSignatureItem: PhotosPickerItem?
+    @State private var signatureLoadError: String?
 
     var body: some View {
         ScrollView {
@@ -2313,6 +2315,7 @@ struct UploadCoverScreen: View {
                     symbol: "photo.on.rectangle"
                 )
                 coverGrid
+                signatureSampleSection
                 Toggle("자동 비포/애프터 생성", isOn: $store.editorDraft.beforeAfterEnabled)
                     .tint(FMColors.Accent.primary)
                     .padding(Sp.md)
@@ -2339,6 +2342,9 @@ struct UploadCoverScreen: View {
         .alert("업로드를 취소할까요?", isPresented: $showCancelAlert) {
             Button("초안 저장") { store.saveEditorDraft() }
             Button("취소", role: .cancel) {}
+        }
+        .onChange(of: selectedSignatureItem) { _, item in
+            Task { await loadSignatureSample(from: item) }
         }
     }
 
@@ -2386,6 +2392,127 @@ struct UploadCoverScreen: View {
                     .padding(Sp.xs)
             }
             .accessibilityIdentifier("upload.cover.remove")
+        }
+    }
+
+    @ViewBuilder
+    private var signatureSampleSection: some View {
+        let hasSample = hasSignatureSample
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            HStack(alignment: .firstTextBaseline) {
+                sectionLabel("시그니처 샘플")
+                Spacer()
+                if hasSample {
+                    Button("지우기") {
+                        store.clearUploadSignatureSample()
+                    }
+                    .fmTypography(.caption)
+                    .foregroundStyle(FMColors.Text.tertiary)
+                    .accessibilityIdentifier("upload.signature.clear")
+                }
+            }
+
+            HStack(alignment: .top, spacing: Sp.sm) {
+                signaturePreview
+
+                VStack(alignment: .leading, spacing: Sp.sm) {
+                    PhotosPicker(selection: $selectedSignatureItem, matching: .images) {
+                        Label(hasSample ? "사진 교체" : "내 사진 선택", systemImage: "photo.badge.plus")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(FMColors.Accent.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .accessibilityIdentifier("upload.signature.photo.pick")
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: Sp.xs) {
+                            ForEach(EditorReferenceSampleKind.allCases) { kind in
+                                FMChip(
+                                    kind.title,
+                                    isSelected: store.editorDraft.signatureSampleKind == kind
+                                        && store.editorDraft.signatureSamplePhotoData == nil,
+                                    size: .sm
+                                ) {
+                                    store.setUploadSignatureSampleKind(kind)
+                                }
+                                .accessibilityIdentifier("upload.signature.sample.\(kind.rawValue)")
+                            }
+                        }
+                    }
+
+                    Text("직접 올린 1장 또는 임시 샘플 1장을 상세 갤러리 첫 슬롯 기준으로 사용합니다.")
+                        .fmTypography(.caption)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if let signatureLoadError {
+                        Text(signatureLoadError)
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Semantic.error)
+                    }
+                }
+            }
+            .padding(Sp.md)
+            .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+        }
+    }
+
+    private var hasSignatureSample: Bool {
+        store.editorDraft.signatureSamplePhotoData != nil || store.editorDraft.signatureSampleKind != nil
+    }
+
+    private var signaturePreview: some View {
+        ZStack {
+            if let image = signaturePreviewImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                LinearGradient(
+                    colors: store.editorDraft.category.swatch,
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                Image(systemName: "sparkles.rectangle.stack")
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+        }
+        .frame(width: 96, height: 128)
+        .clipShape(RoundedRectangle(cornerRadius: R.md))
+        .overlay {
+            RoundedRectangle(cornerRadius: R.md)
+                .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+        }
+        .accessibilityIdentifier("upload.signature.preview")
+    }
+
+    private var signaturePreviewImage: UIImage? {
+        if let data = store.editorDraft.signatureSamplePhotoData {
+            return UIImage(data: data)
+        }
+        if let kind = store.editorDraft.signatureSampleKind {
+            return UIImage(data: EditorReferenceSampleImage.makeJPEGData(kind: kind))
+        }
+        return nil
+    }
+
+    @MainActor
+    private func loadSignatureSample(from item: PhotosPickerItem?) async {
+        guard let item else { return }
+        do {
+            guard
+                let data = try await item.loadTransferable(type: Data.self),
+                let image = UIImage(data: data),
+                let normalized = EditorReferenceSampleImage.normalizedJPEGData(from: image)
+            else {
+                signatureLoadError = "사진 데이터를 읽지 못했어요."
+                return
+            }
+            store.setUploadSignatureSampleData(normalized)
+            signatureLoadError = nil
+        } catch {
+            signatureLoadError = "사진을 불러오지 못했어요."
         }
     }
 }
@@ -2523,9 +2650,21 @@ struct UploadTOSSubmitScreen: View {
                 workflowDivider()
                 summaryRow("커버", value: "\(store.editorDraft.coverCount)장")
                 workflowDivider()
+                summaryRow("시그니처 샘플", value: signatureSummary)
+                workflowDivider()
                 summaryRow("태그", value: store.editorDraft.tags.map { "#\($0)" }.joined(separator: " "))
             }
         }
+    }
+
+    private var signatureSummary: String {
+        if store.editorDraft.signatureSamplePhotoData != nil {
+            return "직접 선택"
+        }
+        if let kind = store.editorDraft.signatureSampleKind {
+            return kind.title
+        }
+        return "없음"
     }
 
     private var tosCard: some View {
@@ -5021,7 +5160,7 @@ private enum PlaceholderPhoto {
     }
 }
 
-private enum EditorReferenceSampleImage {
+enum EditorReferenceSampleImage {
     static func makeJPEGData(kind: EditorReferenceSampleKind) -> Data {
         let size = CGSize(width: 960, height: 1200)
         let renderer = UIGraphicsImageRenderer(size: size)

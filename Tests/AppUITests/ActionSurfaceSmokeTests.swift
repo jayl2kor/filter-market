@@ -46,6 +46,9 @@ final class ActionSurfaceSmokeTests: XCTestCase {
 
         assertRoute("uploadCover", exposes: [
             "upload.cover.add",
+            "upload.signature.preview",
+            "upload.signature.photo.pick",
+            "upload.signature.sample.portrait",
             "upload.cover.ba.toggle",
             "upload.next",
             "upload.cancel"
@@ -223,6 +226,8 @@ final class ActionSurfaceSmokeTests: XCTestCase {
         assertRoute("filterDetail", exposes: [
             "filter.detail.share",
             "filter.detail.follow",
+            "filter.detail.sample.gallery",
+            "filter.detail.sample.reference.portrait",
             "filter.detail.reviews",
             "filter.detail.tags",
             "filter.detail.download"

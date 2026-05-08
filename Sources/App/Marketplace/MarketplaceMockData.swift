@@ -190,7 +190,9 @@ struct FilterDetailMock: Sendable {
     let likeCount: Int
     let description: String
     let tags: [String]
-    let sampleSymbols: [String]
+    let coverURL: URL?
+    let signatureSampleURL: URL?
+    let filterCategory: FilterCategory
     let reviews: [Review]
     let categoryHint: Color
     let isPaid: Bool
@@ -221,14 +223,9 @@ extension FilterDetailMock {
         likeCount: 2_100,
         description: "73년 코닥 필름의 따뜻한 황혼을 담았습니다. 카페 조명, 골목길 가로등, 노을이 깔리는 시간에 가장 잘 어울려요. 인물 피부톤은 자연스럽게 살리되 배경은 한 단계 깊은 톤으로.",
         tags: ["#warm", "#golden-hour", "#film", "#cafe", "#analog"],
-        sampleSymbols: [
-            "photo",
-            "photo.fill",
-            "sun.max",
-            "moon.stars",
-            "leaf",
-            "camera"
-        ],
+        coverURL: nil,
+        signatureSampleURL: nil,
+        filterCategory: .vintage,
         reviews: [
             Review(
                 initials: "SJ",
@@ -276,7 +273,9 @@ extension FilterDetailMock {
             likeCount: 980,
             description: "메이커가 직접 조정한 톤커브로, 일상의 순간을 한 단계 더 풍부한 분위기로 끌어올립니다. 강도 60~80%에서 가장 자연스럽게 어울려요.",
             tags: ["#mood", "#golden", "#warm", "#daily"],
-            sampleSymbols: ["photo", "photo.fill", "sun.max", "moon.stars", "leaf", "camera"],
+            coverURL: filter.coverURL,
+            signatureSampleURL: filter.signatureSampleURL,
+            filterCategory: filter.category,
             reviews: [],
             categoryHint: filter.category.swatch.first ?? FMColors.Category.cinematic,
             isPaid: false,

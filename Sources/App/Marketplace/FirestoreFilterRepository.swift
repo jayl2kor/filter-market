@@ -18,6 +18,7 @@ import Models
 ///     ratingAvg: Double?
 ///     priceCoins: Int
 ///     coverURL: String?
+///     signatureSampleURL: String?
 ///     createdAt: Timestamp
 ///     engine: { type, minAppVersion, minIOSVersion, lutSize?, lutFile? }
 ///     author: { uid, displayName }
@@ -105,6 +106,8 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
         let ratingAvg = data["ratingAvg"] as? Double
         let coverURLString = data["coverURL"] as? String
         let coverURL = coverURLString.flatMap { URL(string: $0) }
+        let signatureSampleURLString = data["signatureSampleURL"] as? String
+        let signatureSampleURL = signatureSampleURLString.flatMap { URL(string: $0) }
         let createdAt = (data["createdAt"] as? Timestamp)?.dateValue()
 
         let authorMap = data["author"] as? [String: Any]
@@ -139,6 +142,7 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
             status: status,
             priceCoins: priceCoins,
             coverURL: coverURL,
+            signatureSampleURL: signatureSampleURL,
             ratingAvg: ratingAvg,
             downloadCount: downloadCount
         )

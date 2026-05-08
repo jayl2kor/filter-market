@@ -39,6 +39,8 @@ describe("applyGetFilterDetail", () => {
         useCount: 42,
         downloadCount: 100,
         priceCoins: 0,
+        coverURL: "https://cdn.test/cover.jpg",
+        signatureSampleURL: "https://cdn.test/signature.jpg",
         objectKey: "filters/u-1/abc-123.fmpkg",
         author: { uid: "u-1", displayName: "Alex" },
       },
@@ -59,6 +61,8 @@ describe("applyGetFilterDetail", () => {
     assert.equal(result.filter.title, "Sunset Vibes");
     assert.equal(result.filter.status, "approved");
     assert.equal(result.filter.useCount, 42);
+    assert.equal(result.filter.coverURL, "https://cdn.test/cover.jpg");
+    assert.equal(result.filter.signatureSampleURL, "https://cdn.test/signature.jpg");
     assert.equal(result.filter.author.uid, "u-1");
     assert.equal(result.filter.author.displayName, "Alex");
     assert.equal(result.signedDownloadURL, "https://r2.test/signed?key=filters%2Fu-1%2Fabc-123.fmpkg");

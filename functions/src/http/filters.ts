@@ -111,6 +111,7 @@ const uploadInitSchema = z.object({
   tags: z.array(z.string().max(24)).max(12).optional(),
   packageBytes: z.number().int().min(1).max(5_000_000), // 5 MB cap
   contentSha256: z.string().regex(/^[A-Za-z0-9+/=]+$/).optional(), // base64
+  signatureSampleURL: z.string().url().optional(),
 });
 
 /**
@@ -128,7 +129,7 @@ export const uploadInit = onCall(
     if (!parsed.success) {
       throw new HttpsError("invalid-argument", parsed.error.message);
     }
-    const { name, category, tags, packageBytes, contentSha256 } = parsed.data;
+    const { name, category, tags, packageBytes, contentSha256, signatureSampleURL } = parsed.data;
 
     let cfg;
     try {
@@ -151,6 +152,7 @@ export const uploadInit = onCall(
       version: "0.0.1",
       packageBytes,
       objectKey,
+      signatureSampleURL: signatureSampleURL ?? null,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -328,6 +330,7 @@ export interface FilterDetailResponse {
     downloadCount: number;
     priceCoins: number;
     coverURL: string | null;
+    signatureSampleURL: string | null;
     ratingAvg: number | null;
     createdAt: number | null;
     author: { uid: string; displayName: string };
@@ -392,6 +395,7 @@ export async function applyGetFilterDetail(
       downloadCount: (data.downloadCount as number) ?? 0,
       priceCoins: (data.priceCoins as number) ?? 0,
       coverURL: (data.coverURL as string | null) ?? null,
+      signatureSampleURL: (data.signatureSampleURL as string | null) ?? null,
       ratingAvg: (data.ratingAvg as number | null) ?? null,
       createdAt,
       author: {

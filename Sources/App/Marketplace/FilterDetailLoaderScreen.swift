@@ -141,6 +141,7 @@ struct FilterDetailResponse {
     let downloadCount: Int
     let priceCoins: Int
     let coverURL: URL?
+    let signatureSampleURL: URL?
     let ratingAvg: Double?
     let createdAt: Date?
     let authorUid: String
@@ -167,6 +168,7 @@ struct FilterDetailResponse {
         self.downloadCount = (filterDict["downloadCount"] as? Int) ?? 0
         self.priceCoins = (filterDict["priceCoins"] as? Int) ?? 0
         self.coverURL = (filterDict["coverURL"] as? String).flatMap { URL(string: $0) }
+        self.signatureSampleURL = (filterDict["signatureSampleURL"] as? String).flatMap { URL(string: $0) }
         self.ratingAvg = filterDict["ratingAvg"] as? Double
         if let createdAtMs = filterDict["createdAt"] as? Double, createdAtMs > 0 {
             self.createdAt = Date(timeIntervalSince1970: createdAtMs / 1000)
@@ -196,7 +198,9 @@ struct FilterDetailResponse {
             likeCount: useCount,
             description: "Cloud Function `getFilterDetail` 응답을 기반으로 표시되는 실제 필터입니다.",
             tags: [],
-            sampleSymbols: ["photo", "photo.fill", "sun.max", "moon.stars", "leaf", "camera"],
+            coverURL: coverURL,
+            signatureSampleURL: signatureSampleURL,
+            filterCategory: FilterCategory(rawValue: category) ?? .cinematic,
             reviews: [],
             categoryHint: FMColors.Category.cinematic,
             isPaid: priceCoins > 0,

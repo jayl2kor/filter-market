@@ -15,6 +15,7 @@ public struct Filter: Identifiable, Codable, Equatable, Sendable {
     public let status: FilterStatus
     public let priceCoins: Int
     public let coverURL: URL?
+    public let signatureSampleURL: URL?
     public let ratingAvg: Double?
     public let downloadCount: Int
 
@@ -30,6 +31,7 @@ public struct Filter: Identifiable, Codable, Equatable, Sendable {
         status: FilterStatus = .approved,
         priceCoins: Int = 0,
         coverURL: URL? = nil,
+        signatureSampleURL: URL? = nil,
         ratingAvg: Double? = nil,
         downloadCount: Int = 0
     ) {
@@ -44,13 +46,14 @@ public struct Filter: Identifiable, Codable, Equatable, Sendable {
         self.status = status
         self.priceCoins = priceCoins
         self.coverURL = coverURL
+        self.signatureSampleURL = signatureSampleURL
         self.ratingAvg = ratingAvg
         self.downloadCount = downloadCount
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, title, version, author, category, engine
-        case useCount, createdAt, status, priceCoins, coverURL, ratingAvg, downloadCount
+        case useCount, createdAt, status, priceCoins, coverURL, signatureSampleURL, ratingAvg, downloadCount
     }
 
     public init(from decoder: Decoder) throws {
@@ -66,6 +69,7 @@ public struct Filter: Identifiable, Codable, Equatable, Sendable {
         status = try c.decodeIfPresent(FilterStatus.self, forKey: .status) ?? .approved
         priceCoins = try c.decodeIfPresent(Int.self, forKey: .priceCoins) ?? 0
         coverURL = try c.decodeIfPresent(URL.self, forKey: .coverURL)
+        signatureSampleURL = try c.decodeIfPresent(URL.self, forKey: .signatureSampleURL)
         ratingAvg = try c.decodeIfPresent(Double.self, forKey: .ratingAvg)
         downloadCount = try c.decodeIfPresent(Int.self, forKey: .downloadCount) ?? 0
     }
