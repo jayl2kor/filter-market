@@ -12,11 +12,11 @@ import SwiftUI
 /// 라이트 모드 풀스크린, 상단 60% 스페이서 + 중앙 로고 + 하단 인증 버튼 그룹.
 /// 실제 인증 흐름은 후속 Phase 에서 연결되며, 본 화면은 시각만 제공한다.
 struct LoginScreen: View {
-    @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
     @State private var loadingProvider: LoginProvider? = nil
     @State private var externalURL: ExternalURL?
     @State private var navigateToEmailLogin = false
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var store: MooditStore
 
     /// 인증 성공 콜백. 현재는 호출되지 않으나 향후 `AuthState` 변경 트리거로 연결 예정.
     var onAuthenticated: (() -> Void)?
@@ -317,7 +317,7 @@ struct LoginScreen: View {
     /// 1. `GIDSignIn` 시트 표시 → ID token + access token 획득
     /// 2. Firebase `GoogleAuthProvider` 자격증명 생성
     /// 3. `Auth.auth().signIn(with:)` 으로 Firebase 세션 시작
-    /// 4. `isAuthenticated` AppStorage 갱신 + onAuthenticated 콜백
+    /// 4. Firebase Auth listener updates MooditStore auth state + onAuthenticated 콜백
     @MainActor
     private func performGoogleSignIn() {
         guard let presenter = topViewController() else {
@@ -360,7 +360,9 @@ struct LoginScreen: View {
 
     @MainActor
     private func completeAuthentication() {
-        isAuthenticated = true
+        if Auth.auth().currentUser == nil {
+            store.setLocalAuthenticationFallback(true)
+        }
         loadingProvider = nil
         FMHaptic.success.play()
         onAuthenticated?()

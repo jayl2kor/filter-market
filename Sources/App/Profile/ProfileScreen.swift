@@ -31,9 +31,6 @@ struct ProfileScreen: View {
     @EnvironmentObject private var store: MooditStore
     @StateObject private var profileStore = ProfileSelfStore()
 
-    /// 로그인 여부 — placeholder 인증 상태. 실제 Firebase Auth 통합 전까지 단순 플래그.
-    @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
-
     /// 명시적으로 전달된 사용자 (e.g. `.other`). nil이면 본인 — Auth + Firestore에서 동적 조립.
     private let injectedUser: ProfileUser?
     /// 다른 사용자 프로필 진입 시 uid. nil이면 본인 프로필.
@@ -130,7 +127,7 @@ struct ProfileScreen: View {
     }
 
     var body: some View {
-        if isAuthenticated {
+        if store.isAuthenticated {
             authenticatedBody
         } else {
             guestBody
@@ -189,7 +186,6 @@ struct ProfileScreen: View {
             .toolbarBackground(.visible, for: .navigationBar)
             .navigationDestination(isPresented: $navigateToLogin) {
                 LoginScreen(onAuthenticated: {
-                    isAuthenticated = true
                     navigateToLogin = false
                 })
             }

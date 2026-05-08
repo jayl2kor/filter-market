@@ -393,6 +393,7 @@ final class MooditStore: ObservableObject {
     /// 코인 잔액 — Firestore /users/{uid}/wallet/balance.value 미러.
     /// `subscribeToWallet()` 호출 시 실시간 갱신.
     @Published private(set) var coinBalance: Int = 0
+    @Published private(set) var isAuthenticated: Bool = false
     /// Pro 멤버십 활성화 여부 — /users/{uid}/proStatus.active 미러.
     @Published private(set) var isProActive: Bool = false
 
@@ -421,6 +422,11 @@ final class MooditStore: ObservableObject {
 
     init(repository: any FilterRepository = BundleSeedFilterRepository()) {
         self.repository = repository
+        #if DEBUG
+        if isUITesting {
+            isAuthenticated = Self.uiTestingAuthenticationFlag()
+        }
+        #endif
     }
 
     // MooditStore lives the entire app lifetime so explicit deinit cleanup is
@@ -436,6 +442,7 @@ final class MooditStore: ObservableObject {
         #if DEBUG
         guard !isUITesting else {
             hasLoadedProfile = true
+            isAuthenticated = Self.uiTestingAuthenticationFlag()
             return
         }
         #endif
@@ -444,6 +451,7 @@ final class MooditStore: ObservableObject {
             guard let self else { return }
             Task { @MainActor in
                 Telemetry.setUserId(user?.uid)
+                self.isAuthenticated = (user != nil)
                 self.attachWalletListeners(uid: user?.uid)
                 if user != nil {
                     PushRegistration.shared.retryDeviceRegistrationForCurrentUser()
@@ -457,6 +465,7 @@ final class MooditStore: ObservableObject {
         guard !isUITesting else { return }
         #endif
         guard let user = Auth.auth().currentUser else {
+            isAuthenticated = false
             attachWalletListeners(uid: nil)
             return
         }
@@ -466,9 +475,28 @@ final class MooditStore: ObservableObject {
             Telemetry.record(error: error, context: ["source": "refreshOnForeground"])
         }
         attachWalletListeners(uid: user.uid)
+        isAuthenticated = true
         PushRegistration.shared.retryDeviceRegistrationForCurrentUser()
         await load(force: true)
     }
+
+    func setLocalAuthenticationFallback(_ authenticated: Bool) {
+        isAuthenticated = authenticated
+        if !authenticated {
+            resetUserScopedState()
+        }
+    }
+
+    #if DEBUG
+    private static func uiTestingAuthenticationFlag() -> Bool {
+        let args = ProcessInfo.processInfo.arguments
+        guard let index = args.firstIndex(of: "-isAuthenticated"),
+              args.indices.contains(index + 1) else {
+            return false
+        }
+        return ["1", "true", "yes"].contains(args[index + 1].lowercased())
+    }
+    #endif
 
     private func attachWalletListeners(uid: String?) {
         persistEditorDraftLocallyForCurrentUser()

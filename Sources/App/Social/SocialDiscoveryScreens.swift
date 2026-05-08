@@ -8,7 +8,6 @@ import SwiftUI
 // MARK: - Reviews
 
 struct ReviewsListScreen: View {
-    @AppStorage("isAuthenticated") private var isAuthenticated = false
     @EnvironmentObject private var store: MooditStore
 
     let filterID: String
@@ -347,8 +346,8 @@ struct ReviewsListScreen: View {
         HStack(spacing: Sp.sm) {
             avatar(initials: "HB", colors: [Color(hex: 0xB9D2E8), Color(hex: 0x4A6A90)], size: 32)
 
-            NavigationLink(value: isAuthenticated ? AppRoute.reviewCompose(filterId: filterID) : AppRoute.login) {
-                Text(isAuthenticated ? "리뷰 추가..." : "로그인하고 리뷰 남기기")
+            NavigationLink(value: store.isAuthenticated ? AppRoute.reviewCompose(filterId: filterID) : AppRoute.login) {
+                Text(store.isAuthenticated ? "리뷰 추가..." : "로그인하고 리뷰 남기기")
                     .fmTypography(.subhead)
                     .foregroundStyle(FMColors.Text.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -362,7 +361,7 @@ struct ReviewsListScreen: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("social.reviews.compose")
 
-            NavigationLink(value: isAuthenticated ? AppRoute.reviewCompose(filterId: filterID) : AppRoute.login) {
+            NavigationLink(value: store.isAuthenticated ? AppRoute.reviewCompose(filterId: filterID) : AppRoute.login) {
                 Image(systemName: "paperplane.fill")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(FMColors.Text.inverse)
@@ -591,8 +590,8 @@ struct ReviewsListScreen: View {
 }
 
 struct ReviewComposeScreen: View {
-    @AppStorage("isAuthenticated") private var isAuthenticated = false
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: MooditStore
 
     let filterID: String
     @State private var text = ""
@@ -694,7 +693,7 @@ struct ReviewComposeScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if isAuthenticated {
+            if store.isAuthenticated {
                 editor
                 toolbar
             } else {
@@ -1045,8 +1044,8 @@ struct ReviewComposeScreen: View {
 // MARK: - Rating
 
 struct RatingFormScreen: View {
-    @AppStorage("isAuthenticated") private var isAuthenticated = false
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: MooditStore
 
     let filterID: String
     @State private var rating = 0
@@ -1094,7 +1093,7 @@ struct RatingFormScreen: View {
                 .ignoresSafeArea()
             Color.black.opacity(0.34).ignoresSafeArea()
 
-            if isAuthenticated {
+            if store.isAuthenticated {
                 sheet
             } else {
                 loginSheet

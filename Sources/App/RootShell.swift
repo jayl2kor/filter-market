@@ -10,7 +10,6 @@ import SwiftUI
 struct RootShell: View {
     @StateObject private var store = MooditStore()
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
     @AppStorage("hasOnboarded") private var hasOnboarded: Bool = false
 
     @State private var selectedTab: FMTab = .market
@@ -93,10 +92,10 @@ struct RootShell: View {
         }
         .onReceive(store.$hasLoadedProfile) { loaded in
             // (#47) hardcoded sleep 제거 — store가 첫 listener snapshot을 받으면 검사 트리거.
-            guard loaded, isAuthenticated else { return }
+            guard loaded, store.isAuthenticated else { return }
             syncHandleOnboarding(profile: store.editableProfile)
         }
-        .onChange(of: isAuthenticated) { _, authenticated in
+        .onChange(of: store.isAuthenticated) { _, authenticated in
             if authenticated {
                 syncHandleOnboarding(profile: store.editableProfile)
                 flushDeferredDeepLinkIfReady()
@@ -149,7 +148,7 @@ struct RootShell: View {
             Telemetry.log(.deepLinkDeferred, parameters: [
                 "route_kind": route.telemetryKind,
                 "has_onboarded": hasOnboarded,
-                "is_authenticated": isAuthenticated
+                "is_authenticated": store.isAuthenticated
             ])
             return
         }
@@ -165,12 +164,12 @@ struct RootShell: View {
 
     private func canPresentDeepLink(_ route: AppRoute) -> Bool {
         guard hasOnboarded else { return false }
-        guard !route.requiresAuthentication || isAuthenticated else { return false }
+        guard !route.requiresAuthentication || store.isAuthenticated else { return false }
         return true
     }
 
     private func syncHandleOnboarding(profile: EditableProfile) {
-        guard isAuthenticated, store.hasLoadedProfile else { return }
+        guard store.isAuthenticated, store.hasLoadedProfile else { return }
 
         let uid = handleOnboardingUID
         if let checkedHandleOnboardingUID, checkedHandleOnboardingUID != uid {
@@ -195,7 +194,7 @@ struct RootShell: View {
     }
 
     private func markHandleOnboardingDismissed() {
-        guard isAuthenticated else { return }
+        guard store.isAuthenticated else { return }
         checkedHandleOnboardingUID = handleOnboardingUID
         didCheckHandle = true
     }

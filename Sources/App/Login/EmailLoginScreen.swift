@@ -14,7 +14,6 @@ import SwiftUI
 /// Firebase Auth가 정책 위반을 서버 측에서 검증하지만, 클라이언트도 즉시 피드백
 /// 위해 동일 규칙을 적용한다.
 struct EmailLoginScreen: View {
-    @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
     @Environment(\.dismiss) private var dismiss
 
     enum Mode {
@@ -222,7 +221,6 @@ struct EmailLoginScreen: View {
                 case .signUp:
                     _ = try await Auth.auth().createUser(withEmail: trimmedEmail, password: password)
                 }
-                isAuthenticated = true
                 FMHaptic.success.play()
                 dismiss()
             } catch {

@@ -29,7 +29,6 @@ struct PopularMaker: Identifiable, Sendable {
 /// 헤더 + 입력 + 취소 / browsing(최근/추천/메이커) / typing(필터 + 메이커) / results(그리드 + 빈상태).
 struct SearchScreen: View {
     @EnvironmentObject private var store: MooditStore
-    @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
     @State private var query: String = ""
     // (#39) 사용자별 최근 검색어 — UserDefaults 영속화. 신규 사용자는 빈 배열에서 시작.
     @State private var recentSearches: [String] = []
@@ -92,7 +91,7 @@ struct SearchScreen: View {
                 phase = .typing
             }
         }
-        .onChange(of: isAuthenticated) { _, _ in
+        .onChange(of: store.isAuthenticated) { _, _ in
             loadRecentSearches()
         }
     }

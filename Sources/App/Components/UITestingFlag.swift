@@ -12,7 +12,6 @@ enum UITestingLaunchOverrides {
         guard isUITesting else { return }
 
         applyBoolArgument("-hasOnboarded", to: "hasOnboarded")
-        applyBoolArgument("-isAuthenticated", to: "isAuthenticated")
     }
 
     private static func applyBoolArgument(_ flag: String, to key: String) {

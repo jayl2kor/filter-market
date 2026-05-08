@@ -64,9 +64,6 @@ struct SettingsScreen: View {
     // 운영 권한 (Firebase ID token의 `role` custom claim — admin/moderator)
     @State private var role: String?
 
-    // 인증 상태 (placeholder — 후속 Phase 에서 Firebase Auth 통합)
-    @AppStorage("isAuthenticated") private var isAuthenticated: Bool = false
-
     // 외부 링크 (이용약관 / 개인정보처리방침) — SafariView로 표시.
     @State private var externalURL: ExternalURL?
 
@@ -267,9 +264,9 @@ struct SettingsScreen: View {
         }
     }
 
-    /// Firebase Auth 세션 종료 + AppStorage 인증 플래그 클리어.
+    /// Firebase Auth 세션 종료. MooditStore auth listener owns authenticated state.
     /// Firebase가 미설정인 경우(GoogleService-Info.plist 누락 시뮬레이터 등)에도
-    /// 로컬 isAuthenticated만 false로 떨어지도록 안전하게 처리한다.
+    /// store의 로컬 fallback 상태를 정리한다.
     private func performSignOut() {
         // (#48) signOut 흐름 race 제거 — listener teardown 먼저, 그 사이 stale snapshot 노출 방지.
         // 1. 현재 사용자의 디바이스 토큰 doc 삭제 (#23) — Auth.signOut() 전에 uid를 잡아야 함.
@@ -292,7 +289,7 @@ struct SettingsScreen: View {
             // Firebase 미구성 환경 (시뮬레이터 등) — 명시 reset.
             store.resetUserScopedState()
         }
-        isAuthenticated = false
+        store.setLocalAuthenticationFallback(false)
         dismiss()
     }
 
