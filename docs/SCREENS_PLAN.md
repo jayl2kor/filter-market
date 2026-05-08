@@ -1,5 +1,8 @@
 # moodit — Screen Design Plan
 
+> **Reference**: 이 문서는 mockup 인벤토리와 화면 설계 매핑을 보존한다.  
+> 현재 진행 상태는 [`PHASE_ROADMAP_STATUS.md`](./PHASE_ROADMAP_STATUS.md), 버튼/라우트 흐름은 [`NAVIGATION.md`](./NAVIGATION.md)를 기준으로 한다.
+
 > 버전: v1.1 · 작성일: 2026-05-06 · 상태: Active
 >
 > 본 문서는 `mockups/`의 실제 HTML 목업을 PRD, 구현 마일스톤, SwiftUI 화면 단위로 연결하는 단일 인벤토리다. 이전 격차 분석에서 Missing으로 분류했던 P0~P6 화면은 현재 HTML 목업 기준으로 모두 작성 완료됐다.

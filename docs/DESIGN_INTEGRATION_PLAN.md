@@ -1,5 +1,8 @@
 # moodit - Design Integration Plan
 
+> **Legacy**: 이 문서는 초기 HTML mockup → SwiftUI 디자인 통합 계획 기록이다.  
+> 현재 디자인 변경 이력은 [`DESIGN_LOG.md`](./DESIGN_LOG.md), 현재 진행 상태는 [`PHASE_ROADMAP_STATUS.md`](./PHASE_ROADMAP_STATUS.md)를 기준으로 한다.
+
 > 버전: v1.0 · 작성일: 2026-05-06 · 상태: Active
 >
 > 이 문서는 `mockups/` HTML 디자인과 `docs/DESIGN_*.md` 디자인 시스템을 실제 SwiftUI 프로젝트(`Sources/`)에 적용하는 단계별 계획이다.

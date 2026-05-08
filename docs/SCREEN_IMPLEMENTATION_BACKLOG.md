@@ -1,5 +1,8 @@
 # moodit — Screen Implementation Backlog
 
+> **Reference**: 이 문서는 mockup별 SwiftUI 화면 구현 현황을 보존한다.  
+> 프로젝트의 단일 진행 기준은 [`PHASE_ROADMAP_STATUS.md`](./PHASE_ROADMAP_STATUS.md)의 Product Phase 1~4이다. 이 문서의 A~F 구분은 제품 Phase가 아니라 과거 UI work package 명칭이다.
+
 > 버전: v1.1 · 작성일: 2026-05-07 · 상태: Active
 >
 > 본 문서는 `mockups/screens` 와 `docs/NAVIGATION.md` 기준으로 **SwiftUI 화면 구현 상태와 후속 통합 작업**을 정리한다. 현재 앱은 `AppRoute` 의 모든 화면 target 을 전용 SwiftUI View 타입으로 매핑하며, 과거의 `ProductFlowScreen` fallback 은 제거됐다. 일부 화면은 `ScreenWorkflowScaffold` 공통 레이아웃을 재사용하지만, 라우트별 View 타입/액션/상태/콘텐츠를 갖는다.

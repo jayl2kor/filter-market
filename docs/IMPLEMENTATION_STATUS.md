@@ -1,5 +1,8 @@
 # moodit - Implementation Status
 
+> **Superseded**: 이 문서는 2026-05-06 기준의 과거 구현 상태 기록이다.  
+> 현재 진행 상태와 다음 작업 판단은 [`PHASE_ROADMAP_STATUS.md`](./PHASE_ROADMAP_STATUS.md)를 기준으로 한다.
+
 > 마지막 업데이트: 2026-05-06 18:32 KST · 기준 커밋/브랜치: 로컬 작업 상태 · 상태: Phase 0 실기기 검증 대기 / 촬영 비율 전환 코드 경로 구현 완료
 >
 > 이 문서는 실제 구현 진행 상황, 검증 결과, 남은 작업, 다음 Phase 진입 조건을 기록한다. 전체 이슈 분해는 [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)를 기준으로 한다.

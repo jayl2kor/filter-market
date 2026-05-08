@@ -1,5 +1,8 @@
 # moodit - Implementation Plan
 
+> **Reference**: 이 문서는 초기 이슈화 전략과 label/milestone 설계를 보존한다.  
+> 현재 진행 순서와 Phase 상태는 [`PHASE_ROADMAP_STATUS.md`](./PHASE_ROADMAP_STATUS.md)를 기준으로 한다.
+
 > 버전: v1.1 · 작성일: 2026-05-06 · 상태: Active
 >
 > 이 문서는 현재 설계 문서를 실제 구현 이슈로 전환하기 위한 실행 계획이다. [TASK_LIST.md](./TASK_LIST.md)는 전체 Phase별 작업 분해를 담고, 본 문서는 **이슈 생성 단위, 우선순위, 완료 기준, 의존성**을 더 명확히 정의한다.

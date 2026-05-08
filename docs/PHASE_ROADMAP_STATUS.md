@@ -1,136 +1,263 @@
-# Phase Roadmap Status
+# moodit Phase Plan
 
 > Last updated: 2026-05-07 KST  
-> Purpose: 제품 로드맵의 Phase 1~4와 현재 화면 구현 단위인 Phase A~D를 하나의 기준으로 통합한다.
+> 기준 커밋: `52d2502 Add reviews migration and English mockups`  
+> 이 문서는 앞으로의 단일 진행 기준을 **Product Phase 1~4**로 고정한다.
 
-## 1. Phase 체계
+## 1. 단일 기준
 
-현재 문서에는 서로 다른 두 축의 Phase가 있다.
+앞으로 프로젝트 진행 상태는 **Phase 1, Phase 2, Phase 3, Phase 4**를 기준으로 판단한다.
 
-| 구분 | 의미 | 기준 문서 |
+기존에 사용했던 `Phase A/B/C/D/E/F` 표현은 제품 Phase가 아니다. 이는 화면 구현을 빠르게 묶기 위해 임시로 썼던 실행 단위였으므로, 이 문서에서는 모두 **UI Work Package**로 재분류한다.
+
+| 이전 표현 | 새 분류 | 의미 |
 |---|---|---|
-| Product Phase 1~4 | 출시/제품 완성도 기준의 장기 로드맵 | `docs/TASK_LIST.md`, `docs/README.md` |
-| Implementation Phase A~D | 와이어프레임/목업 화면을 SwiftUI로 닫기 위한 실행 단위 | `docs/SCREEN_IMPLEMENTATION_BACKLOG.md` |
+| Phase A | UI Package 1-A | Phase 1에 속한 카메라/다운로드 화면 묶음 |
+| Phase B | UI Package 3-A | Phase 3에 속한 계정/정책 화면 묶음 |
+| Phase C | UI Package 2-A | Phase 2에 속한 메이커/에디터 화면 묶음 |
+| Phase D | UI Package 3-B / 4-A | Phase 3 소셜 화면 + Phase 4 추천 feed mock |
+| Phase E | UI Package 5-A | Phase 5 후보. 현재 Phase 1~4 기준 밖 |
+| Phase F | UI Package 6-A | Phase 6 후보. 현재 Phase 1~4 기준 밖 |
 
-따라서 Phase A~D가 완료되어도 Product Phase 1~4가 완료되는 것은 아니다. 현재 A~D는 주로 화면, mock state, local flow, E2E smoke coverage를 닫는 작업이다. 실제 backend, repository, persistence, 실기기 성능, TestFlight 운영 조건은 Product Phase 완료 조건으로 별도 추적해야 한다.
+상태 표기:
 
-## 2. 현재 요약
-
-| 영역 | 현재 상태 |
+| 상태 | 의미 |
 |---|---|
-| 최신 커밋 기준 | `f1e8429 Add design reinforcement assets and i18n groundwork` |
-| 화면 구현 기준 | Phase A/B/C 완료, Phase D 전용 화면 및 E2E 구현 완료 상태 |
-| 검증 기준 | `./scripts/build-for-testing.sh` 통과, `AppUITests/PhaseDE2ETests` 4개 통과 |
-| 미커밋 상태 | Phase D 화면/E2E 변경과 별도 i18n/reviews 작업 변경이 함께 존재 |
-| 주의 | i18n은 별도 에이전트 작업 중이므로 `Localizable.xcstrings`, `docs/I18N_MIGRATION.md`, `mockups/en/` 변경은 별도 흐름으로 취급 |
+| Done | 현재 범위 기준 완료 |
+| In Progress | 일부 완료, 남은 핵심 작업 있음 |
+| Not Started | 아직 본격 구현 전 |
+| Later | Phase 1~4 이후 후보 |
 
-## 3. Product Phase 1~4 상태
+## 2. 현재 결론
 
-| Product Phase | 원래 목표 | 현재 구현 수준 | 남은 핵심 작업 |
-|---|---|---|---|
-| Phase 1 | MVP: 카메라, 기본 필터, 저장, 기본 마켓, 다운로드, TestFlight Closed Beta | 화면과 local mock flow는 상당 부분 구현됨. Phase A가 카메라/다운로드/사진 편집 루프를 E2E로 검증함 | 실기기 FPS/thermal 검증, 실제 다운로드/cache package, Firestore/R2/Cloud Functions 연동, Auth 실제 연동, TestFlight/운영 준비 |
-| Phase 2 | 필터 에디터: LUT + 파라미터, 메이커 업로드 | Phase C에서 editor/upload/my filters/remix 화면과 mock state 구현 완료 | 실제 LUT/.cube import, renderer preview sync, draft repository, `.fmpkg` package builder, cover picker, upload job API, moderation API |
-| Phase 3 | 인증/마켓 강화: 프로필, 검색, 평점, 댓글, 팔로우, 소셜, 알림 | Phase B와 Phase D로 계정/정책/소셜 화면 구현. 댓글/평점/팔로우/For You/Following feed E2E 통과 | social repository/API, follow/comment/rating persistence, search backend, notification permission/push resolver, Universal Link payload parser |
-| Phase 4 | 추천 + 검색 고도화 + Android 진출 게이트 | For You/Following feed mock 화면은 존재하지만 실제 추천/검색 고도화는 미착수 | Algolia/Typesense 결정 및 연동, recommendation event log, BigQuery export, personalization, Android 진출 ADR |
-
-## 4. Implementation Phase A~D 상태
-
-| Implementation Phase | 범위 | 상태 | 검증 |
-|---|---|---|---|
-| Phase A | Camera/Download MVP closure: 카메라 HUD, 비율/타이머, 사진 가져오기/편집, 내장 필터, 다운로드 후 적용 | 완료, 커밋됨: `d8e1c3e` | `AppUITests/PhaseAE2ETests` 5개, `./scripts/test.sh` 통과 기록 |
-| Phase B | Account/Profile policy screens: 계정 삭제, 프로필 편집, Universal Link landing, 데이터 내보내기, 알림 설정 | 완료, 커밋됨: `3a3cc67` | `./scripts/test.sh` 통과 기록 |
-| Phase C | Maker supply flow: 에디터, 파라미터, LUT import shell, draft, upload flow, pending/rejected/my filters/remix | 완료, 커밋됨: `dfb1560` | `./scripts/test.sh` 통과 기록 |
-| Phase D | Social and discovery: 댓글/댓글 작성, 평점, 팔로워/팔로잉, For You, Following feed, 알림/즐겨찾기 유지 | 화면 구현 및 E2E 완료, 아직 미커밋 | `AppUITests/PhaseDE2ETests` 4개 통과 |
-
-## 5. 이번 Phase D 작업 내용
-
-이번 미커밋 작업에는 다음이 포함된다.
-
-| 파일/영역 | 내용 |
-|---|---|
-| `Sources/App/Social/SocialDiscoveryScreens.swift` | 댓글 목록, 댓글 작성, 평점, 팔로워/팔로잉, For You, Following feed 전용 SwiftUI 화면 구현 |
-| `Sources/App/WorkflowScreens.swift` | 기존 Phase D placeholder 제거, `PhotoImportScreen` actor 경고 정리 |
-| `Sources/App/MooditApp.swift` | UI 테스트 전용 Phase D launch route 추가 |
-| `Tests/AppUITests/PhaseDE2ETests.swift` | Phase D E2E 4개 시나리오 추가 |
-| `docs/SCREEN_IMPLEMENTATION_BACKLOG.md` | Phase D 다운로드 수 표시 및 E2E 통과 기록 |
-| `moodit.xcodeproj/project.pbxproj` | XcodeGen 재생성으로 신규 소스/테스트 포함 |
-
-Phase D E2E 커버리지:
-
-| 테스트 | 검증 내용 |
-|---|---|
-| `testCommentsListSignedInComposeAndRatingEntry` | 로그인 상태 댓글 목록, 좋아요, 댓글 작성, 평점 입력 |
-| `testSocialWriteActionsRouteGuestsToLogin` | guest 상태 댓글/평점 작성 시 로그인 유도 |
-| `testFollowListsSearchSegmentAndToggle` | 팔로워/팔로잉 목록, 검색, 팔로우 토글 |
-| `testDiscoveryFeedsExposeDownloadCountsAndSocialActions` | For You/Following feed, 다운로드 수 표시, 좋아요/저장/댓글 이동 |
-
-## 6. 남은 작업 통합 목록
-
-### 6.1 바로 해야 할 일
-
-| 우선순위 | 작업 | 이유 |
+| Product Phase | 현재 상태 | 판단 |
 |---|---|---|
-| P0 | Phase D 변경사항 커밋 범위 분리 | 현재 i18n/reviews 별도 작업과 Phase D 작업이 같은 working tree에 섞여 있음 |
-| P0 | 전체 테스트 스위트 재실행 | Phase D 단독 E2E는 통과했지만 전체 회귀는 아직 재검증 전 |
-| P1 | `docs/SCREEN_IMPLEMENTATION_BACKLOG.md`의 Phase D 상태를 "완료"로 격상할지 결정 | 화면/E2E 기준으로는 완료에 가까우나 실제 repository/API는 남아 있음 |
-| P1 | 실제 repository/API 통합 계획 문서화 | Product Phase 완료 조건과 화면 구현 완료 조건을 분리해야 함 |
+| Phase 1 | In Progress | UI/local E2E는 많이 진행됐지만 실제 다운로드/API/실기기/TestFlight가 남음 |
+| Phase 2 | In Progress | 에디터/업로드 UI는 완료됐지만 실제 LUT/parser/package/upload가 남음 |
+| Phase 3 | In Progress | 계정/소셜/리뷰 관련 UI는 많이 진행됐지만 persistence/API/search/push가 남음 |
+| Phase 4 | Not Started | For You mock UI만 존재. 추천/검색 고도화/Android gate는 미착수 |
 
-### 6.2 Product Phase 1 closure
+즉, 지금까지 화면 작업은 많이 진행됐지만 **Product Phase 1~4 중 완료된 Phase는 아직 없다.**
 
-| 작업 | 상태 |
-|---|---|
-| 카메라/다운로드/사진 편집 핵심 화면 | 화면 및 E2E 완료 |
-| 실제 필터 package 다운로드/cache | 미완료 |
-| 실기기 FPS/thermal 측정 | 미완료 |
-| Firestore/R2/Cloud Functions `/filters/use` | scaffold 또는 문서 수준, 실제 통합 필요 |
-| Auth 실제 Sign in with Apple/Google | UI 존재, 실제 인증 flow 추가 필요 |
-| TestFlight External Beta 준비 | 미완료 |
+## 3. Phase 1 — MVP Camera / Filters / Market Download
 
-### 6.3 Product Phase 2 closure
+목표:
+- 사용자가 필터를 찾는다.
+- 필터를 다운로드한다.
+- 카메라 또는 사진 편집에서 적용한다.
+- MVP 수준의 기본 마켓과 저장 흐름을 갖춘다.
 
-| 작업 | 상태 |
-|---|---|
-| 에디터/upload 화면 | Phase C에서 mock flow 완료 |
-| `.cube` parser / LUT bake | 미완료 |
-| renderer preview sync | 미완료 |
-| `.fmpkg` packaging | 미완료 |
-| draft/upload repository | 미완료 |
-| upload job API / moderation API | 미완료 |
+### 3.1 진행된 작업
 
-### 6.4 Product Phase 3 closure
+| 영역 | 상태 | 근거 |
+|---|---|---|
+| 카메라 HUD | Done | `CameraScreen`, grid/zoom/flash/aspect/timer UI |
+| 카메라 비율/타이머 설정 | Done | `CameraAspectPickerScreen`, `CameraTimerCountdownScreen` |
+| 사진 가져오기/편집 | Done | `PhotoImportScreen`, `PhotoEditScreen` |
+| 내장 필터 라이브러리 | Done | `BuiltinFilterLibraryScreen` |
+| 다운로드 진행/완료 후 적용 | Done for local flow | `FilterDownloadProgressScreen`, `FilterAfterDownloadScreen` |
+| 마켓 → 다운로드 → 적용 → 카메라 E2E | Done | `AppUITests/PhaseAE2ETests` 5개 통과 기록 |
 
-| 작업 | 상태 |
-|---|---|
-| 프로필/계정 정책 화면 | Phase B에서 완료 |
-| 댓글/평점/팔로우/피드 화면 | Phase D에서 화면 및 E2E 완료 |
-| comment/rating/follow persistence | 미완료 |
-| social repository/API | 미완료 |
-| 검색 backend / 정렬 | 미완료 |
-| APNs/FCM push, notification resolver | 미완료 |
-| Universal Link payload parser | 미완료 |
+관련 커밋:
+- `d8e1c3e Complete Phase A camera workflows with E2E coverage`
+- `57b2997 Implement filter download completion flow`
 
-### 6.5 Product Phase 4 준비
+### 3.2 남은 작업
 
-| 작업 | 상태 |
-|---|---|
-| For You mock 화면 | Phase D에서 구현 |
-| 실제 recommendation backend | 미착수 |
-| Algolia/Typesense 선택 및 인덱서 | 미착수 |
-| 이벤트 로그/BigQuery export | 미착수 |
-| personalization/co-occurrence 추천 | 미착수 |
-| Android 진출 ADR | 미착수 |
+| 우선순위 | 작업 | 완료 조건 |
+|---|---|---|
+| P0 | 실제 `.fmpkg` 다운로드/cache 경로 | mock이 아닌 package fetch/cache/apply path 동작 |
+| P0 | 실제 필터 파일 적용 | 다운로드한 필터가 카메라/사진 편집 렌더러와 연결 |
+| P0 | 실기기 FPS/thermal 검증 | 기준 기기에서 목표 FPS와 발열 확인 |
+| P1 | Firestore/R2/Cloud Functions `/filters/use` | 다운로드/사용 카운터 실제 persistence |
+| P1 | 실제 Auth 연결 | Apple/Google sign-in 및 guest branch 정리 |
+| P1 | Photo save/share 권한 edge case | 저장/공유 성공/실패 상태 처리 |
+| P2 | TestFlight 준비 | App Store Connect, privacy, beta checklist |
 
-## 7. 다음 실행 순서 제안
+### 3.3 Phase 1 완료 기준
 
-1. Phase D 변경만 선별 커밋한다.
-2. `./scripts/test.sh`로 전체 회귀 테스트를 돌린다.
-3. Phase D를 화면/E2E 기준 완료로 표시하고, API/persistence는 Product Phase 3 통합 backlog로 이동한다.
-4. Product Phase 1 closure checklist를 먼저 닫는다. 실제 베타 출시 가능성을 만들려면 카메라/다운로드/저장/마켓의 실제 data path가 우선이다.
-5. 그 다음 Product Phase 3의 social repository를 붙인다. 현재 Phase D 화면이 있으므로 API 계약을 붙이기 좋은 상태다.
-6. Product Phase 2의 실제 editor engine과 upload pipeline은 renderer/package/API가 얽혀 있어 별도 스프린트로 분리한다.
-7. Product Phase 4는 For You UI를 유지한 채, 검색/추천 backend 의사결정 문서와 ADR부터 시작한다.
+- 실제 package 다운로드와 cache가 동작한다.
+- 카메라/사진 편집에서 실제 다운로드 필터가 적용된다.
+- 실기기 성능 기준을 만족한다.
+- 핵심 E2E가 전체 테스트 스위트에서 안정적으로 통과한다.
+- TestFlight beta 준비 조건이 충족된다.
 
-## 8. 검증 로그
+## 4. Phase 2 — Filter Editor / Maker Upload
+
+목표:
+- 메이커가 필터를 만든다.
+- LUT/파라미터 기반으로 미리본다.
+- 초안 저장 후 업로드/검수 흐름으로 넘긴다.
+
+### 4.1 진행된 작업
+
+| 영역 | 상태 | 근거 |
+|---|---|---|
+| 에디터 화면 | Done for UI/mock | `FilterEditorScreen`, parameter/LUT/import 관련 화면 |
+| 업로드 flow | Done for UI/mock | cover, category/tags, TOS submit, pending |
+| 내 필터/거절/리믹스 화면 | Done for UI/mock | my filters, rejected, remix flow |
+| mock state | Done | `MakerFilterDraft`, `UploadStep`, `MakerFilterStatus` |
+| Reviews migration design | Done for docs/mockups | `REVIEWS_MIGRATION.md`, review mockups, `reviews.*` keys |
+
+관련 커밋:
+- `dfb1560 Complete Phase C maker supply flow`
+- `52d2502 Add reviews migration and English mockups`
+
+### 4.2 남은 작업
+
+| 우선순위 | 작업 | 완료 조건 |
+|---|---|---|
+| P0 | `.cube` parser | LUT 파일을 안정적으로 파싱 |
+| P0 | LUT bake / parameter bake | 파라미터 결과를 결정론적으로 렌더링 |
+| P0 | renderer preview sync | 에디터 미리보기와 실제 적용 결과 일치 |
+| P1 | `.fmpkg` packaging / manifest builder | 생성/검증/저장 가능한 package |
+| P1 | draft repository | 초안 저장/복구 persistence |
+| P1 | upload job API | 업로드 진행률/재개/실패 처리 |
+| P2 | cover picker / preview generation | thumb/before/after 생성 |
+| P2 | moderation API 연결 | pending/rejected 상태 실제화 |
+
+### 4.3 Phase 2 완료 기준
+
+- 메이커가 실제 LUT/파라미터 기반 필터를 만들 수 있다.
+- preview와 실제 적용 결과가 일치한다.
+- `.fmpkg`가 생성되고 검증된다.
+- 초안 저장과 업로드가 실제 repository/API에 연결된다.
+
+## 5. Phase 3 — Auth / Market Enhancement / Reviews / Social
+
+목표:
+- 사용자 계정과 프로필을 관리한다.
+- 검색, 리뷰, 팔로우, 알림 등 마켓 신뢰/소셜 기능을 강화한다.
+- 자유 댓글 중심이 아니라 리뷰 중심으로 전환한다.
+
+### 5.1 진행된 작업
+
+| 영역 | 상태 | 근거 |
+|---|---|---|
+| 계정 삭제 | Done for UI/mock | `AccountDeletionScreen` |
+| 프로필 편집 | Done for UI/mock | `EditProfileScreen` |
+| Universal Link landing | Done for UI/mock | `UniversalLinkLandingScreen` |
+| 데이터 내보내기 | Done for UI/mock | `DataExportScreen` |
+| 알림 설정 | Done for UI/mock | `NotificationSettingsScreen` |
+| 댓글/평점/팔로우/피드 화면 | Done for UI/E2E | `SocialDiscoveryScreens.swift` |
+| Phase 3 소셜 E2E | Done | `AppUITests/PhaseDE2ETests` 4개 통과 |
+| 다운로드 수 표시 | Done for mock | 댓글 상단/For You/Following feed에 count 표시 |
+| Reviews migration docs | Done for design | comments → reviews 정책 문서/키/mockups |
+
+관련 커밋:
+- `3a3cc67 Complete Phase B account policy screens`
+- `b8fadc4 Complete Phase D social discovery flow`
+- `52d2502 Add reviews migration and English mockups`
+
+### 5.2 남은 작업
+
+| 우선순위 | 작업 | 완료 조건 |
+|---|---|---|
+| P0 | 전체 회귀 테스트 재실행 | `./scripts/test.sh` 통과 |
+| P0 | Comments → Reviews Swift 전환 | route/screen/notification naming이 reviews 기준으로 정리 |
+| P0 | social repository/API | follow/review/rating/feed 데이터가 실제 source와 연결 |
+| P1 | review persistence | 1인 1리뷰, verified download, maker reply 저장 |
+| P1 | follow/block state persistence | 팔로우/차단 상태가 실제 사용자 기준 유지 |
+| P1 | 검색 backend | prefix/category/tag/정렬 동작 |
+| P1 | notification resolver/push | APNs/FCM/알림 row route 연결 |
+| P2 | Universal Link payload parser | 공유 링크 payload 기반 route/apply |
+| P2 | profile API | 프로필 편집/조회 persistence |
+
+### 5.3 Phase 3 완료 기준
+
+- 리뷰/팔로우/알림/검색이 실제 API와 연결된다.
+- Comments 기반 UX가 Reviews 기반 UX로 전환된다.
+- 계정/프로필/데이터/알림 정책 화면이 실제 persistence와 연결된다.
+- 핵심 E2E가 전체 테스트에서 안정적으로 통과한다.
+
+## 6. Phase 4 — Recommendation / Search Advanced / Android Gate
+
+목표:
+- 개인화 추천과 고도화 검색을 도입한다.
+- Android 진출 여부를 정량/정성 지표로 결정한다.
+
+### 6.1 진행된 작업
+
+| 영역 | 상태 | 근거 |
+|---|---|---|
+| For You 화면 | Done for mock UI | `ForYouFeedScreen` |
+| Following feed 화면 | Done for mock UI | `FollowingFeedScreen` |
+| 추천 카드 다운로드 수 표시 | Done for mock UI | For You hero/rail, Following post badge |
+
+관련 커밋:
+- `b8fadc4 Complete Phase D social discovery flow`
+
+### 6.2 남은 작업
+
+| 우선순위 | 작업 | 완료 조건 |
+|---|---|---|
+| P0 | 검색/추천 기술 선택 | Algolia vs Typesense 등 ADR 작성 |
+| P0 | 이벤트 로그 설계 | recommendation/download/search event schema |
+| P1 | 검색 인덱서 worker | filter/user/tag index sync |
+| P1 | 추천 v1 | 인기 + 최신성 가중 추천 |
+| P1 | 추천 v2 | co-occurrence / item-item 추천 |
+| P1 | For You backend 연결 | mock이 아닌 추천 결과 표시 |
+| P2 | BigQuery export | 분석/추천 학습용 export |
+| P2 | Android 진출 ADR | Kotlin/Compose MP/iOS only 결정 |
+
+### 6.3 Phase 4 완료 기준
+
+- 검색 p95와 추천 CTR 목표를 측정할 수 있다.
+- For You feed가 실제 추천 결과를 사용한다.
+- Android 진출 여부가 ADR로 결정된다.
+
+## 7. Phase 1~4 외부 후보
+
+아래 항목은 중요하지만 현재 단일 기준인 Phase 1~4 밖이다.
+
+| 후보 | 기존 표현 | 상태 | 비고 |
+|---|---|---|---|
+| Safety/moderation | Phase E | Later | Product Phase 5에 해당. 신고/차단/모더레이션 큐 |
+| Monetization | Phase F | Later | Product Phase 6에 해당. wallet/paywall/payout/refund |
+
+## 8. 현재까지 완료된 커밋
+
+| 커밋 | 내용 | 주 기준 Phase |
+|---|---|---|
+| `d8e1c3e` | camera workflows with E2E coverage | Phase 1 |
+| `3a3cc67` | account policy screens | Phase 3 |
+| `dfb1560` | maker supply flow | Phase 2 |
+| `f1e8429` | design reinforcement assets and i18n groundwork | 공통 |
+| `b8fadc4` | social discovery flow | Phase 3 / Phase 4 mock |
+| `52d2502` | reviews migration and English mockups | Phase 2 / Phase 3 |
+
+## 9. 다음 실행 순서
+
+Phase 1~4 기준으로 다음 순서를 권장한다.
+
+1. 전체 회귀 테스트 실행: `./scripts/test.sh`.
+2. Phase 3의 Comments → Reviews Swift 전환 범위를 확정한다.
+3. Phase 1의 실제 download package/cache path를 구현한다.
+4. Phase 1 실기기 성능 측정 계획을 실행한다.
+5. Phase 3 social/review repository/API 계약을 작성한다.
+6. Phase 2 editor engine 작업을 `.cube parser → LUT bake → package builder → upload API` 순서로 진행한다.
+7. Phase 4 검색/추천 기술 ADR을 작성한다.
+
+이유:
+- 화면 구현은 많이 닫혔으므로 이제 Product Phase 완료 조건인 실제 data path/API/성능 검증으로 전환해야 한다.
+- TestFlight 가능성을 만들려면 Phase 1의 실제 다운로드/적용 경로가 가장 먼저 닫혀야 한다.
+- Reviews migration은 문서와 mockup이 먼저 들어왔으므로 Swift 코드 전환을 빠르게 마무리해야 Phase 3 용어가 정리된다.
+
+## 10. 바로 열 이슈 후보
+
+| 우선순위 | 이슈 | 기준 Phase |
+|---|---|---|
+| P0 | 전체 회귀 테스트 재실행 및 실패 수정 | 공통 |
+| P0 | 실제 `.fmpkg` 다운로드/cache/apply path 구현 | Phase 1 |
+| P0 | Comments → Reviews Swift route/screen migration | Phase 3 |
+| P0 | 실기기 카메라/Metal FPS 측정 | Phase 1 |
+| P1 | social/review repository/API 설계 | Phase 3 |
+| P1 | `.cube` parser + LUT bake 구현 | Phase 2 |
+| P1 | `.fmpkg` package builder 구현 | Phase 2 |
+| P2 | 검색/추천 기술 ADR | Phase 4 |
+| P2 | Android 진출 ADR 초안 | Phase 4 |
+
+## 11. 검증 로그
 
 최근 확인된 명령:
 
@@ -138,12 +265,63 @@ Phase D E2E 커버리지:
 ./scripts/build-for-testing.sh
 ```
 
-결과: `TEST BUILD SUCCEEDED`
+결과:
+
+```text
+TEST BUILD SUCCEEDED
+```
 
 ```sh
 xcodebuild -project moodit.xcodeproj -scheme moodit -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.3.1' -derivedDataPath .build/DerivedData -toolchain com.apple.dt.toolchain.Metal.32023.864 -only-testing:AppUITests/PhaseDE2ETests test
 ```
 
-결과: `Executed 4 tests, with 0 failures`
+결과:
 
-전체 `./scripts/test.sh`는 Phase D E2E 추가 후 아직 다시 실행하지 않았다.
+```text
+Executed 4 tests, with 0 failures
+```
+
+전체 `./scripts/test.sh`는 social discovery UI 작업 이후 다시 실행해야 한다.
+
+```sh
+./scripts/test.sh
+```
+
+결과 (2026-05-07 03:42 KST, 기준 커밋 `52d2502`):
+
+```text
+ModelsTests.xctest       passed
+CameraTests.xctest       passed
+FilterEngineTests        Executed 21 tests, with 0 failures
+MarketplaceTests         Executed  4 tests, with 0 failures
+AppUITests (PhaseAE2E + PhaseDE2E)  Executed 9 tests, with 0 failures
+** TEST SUCCEEDED **
+```
+
+전체 로그: `.omc/logs/test-baseline-2026-05-07.log`.
+
+이후 Reviews migration + Editor engine 코어 + Filter package fetch/cache + repository protocols 추가 후 재실행:
+
+```sh
+./scripts/test.sh
+```
+
+결과 (2026-05-07 11:15 KST):
+
+```text
+ModelsTests.xctest       passed
+CameraTests.xctest       Executed 13 tests, with 0 failures
+FilterEngineTests        Executed 53 tests, with 0 failures   (CubeLUTParser 9 + LUTBake 8 + LUTBakeRenderParity 4 + Fmpkg 7 + 기존 25)
+MarketplaceTests         Executed 34 tests, with 0 failures   (BundleSeed 4 + ReviewStore 12 + SocialRepositories 9 + FilterPackage 9)
+AppUITests (PhaseAE2E + PhaseDE2E)  Executed 9 tests, with 0 failures
+** TEST SUCCEEDED **
+```
+
+추가 검증 (Cloud Functions + Firestore rules emulator):
+
+```sh
+cd functions && npm test       # Node 20 in-memory mock — 6/6 pass (applyRecordUse)
+cd functions && npm run test:rules  # firebase emulators:exec — 11/11 pass (reviews/follows/blocks/notifications)
+```
+
+전체 로그: `.omc/logs/test-final-2026-05-07.log`.
