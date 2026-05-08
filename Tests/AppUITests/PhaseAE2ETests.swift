@@ -54,7 +54,7 @@ final class PhaseAE2ETests: XCTestCase {
         launch(route: "cameraTimer")
         tap("cam.timer.set.3", timeout: 4)
         tap("cam.timer.set.10")
-        tap("cam.timer.set.0")
+        tap("cam.timer.set.off")
     }
 
     func testBuiltinFilterLibraryAppliesToCamera() {

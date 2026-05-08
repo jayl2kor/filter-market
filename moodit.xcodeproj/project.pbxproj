@@ -83,6 +83,7 @@
 		6654346FC8885AB8B279512D /* ShaderSources.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED24BFBFA05A541DAA68D381 /* ShaderSources.swift */; };
 		66A4B1B3373517F5D1EB4E4E /* UniversalLinkParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3297A0A1E3883E05162166A /* UniversalLinkParserTests.swift */; };
 		6839CC2151EBE1198E8657CB /* OnboardingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C206A2EEFDD812773224DCCA /* OnboardingScreen.swift */; };
+		68A750FF2569385DF2C304AE /* ActionSurfaceSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5215E14B3EB3B24446F242DE /* ActionSurfaceSmokeTests.swift */; };
 		69D331B886A65A8C396DD3E4 /* CubeLUTWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4479A775C21420F23475690E /* CubeLUTWriter.swift */; };
 		6B2AB1CD1242ECE4D89F6A68 /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8449417A7F6187C265EC312F /* SafariView.swift */; };
 		6B53D175FFABD0C3BDC39675 /* CameraFocusPointTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CABA210AB5ED4B2D1EEF02ED /* CameraFocusPointTests.swift */; };
@@ -457,6 +458,7 @@
 		4D46D8C89CB9BF63BDCE4444 /* LUTBake.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LUTBake.swift; sourceTree = "<group>"; };
 		4EEC78598BE99A55639D3D0C /* FMShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMShareSheet.swift; sourceTree = "<group>"; };
 		51BABF7665EEE2454036ED73 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
+		5215E14B3EB3B24446F242DE /* ActionSurfaceSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionSurfaceSmokeTests.swift; sourceTree = "<group>"; };
 		54FF1EF5F211CEFF7C33C325 /* FMStateViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMStateViews.swift; sourceTree = "<group>"; };
 		55E2E24B6C4331B4623F6E78 /* EmailLoginScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailLoginScreen.swift; sourceTree = "<group>"; };
 		55E4166718CCDBCEA85DADDC /* Storage.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Storage.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -869,6 +871,7 @@
 		68D5426F6F337972001F0DEF /* AppUITests */ = {
 			isa = PBXGroup;
 			children = (
+				5215E14B3EB3B24446F242DE /* ActionSurfaceSmokeTests.swift */,
 				F955DDCB3AB6FF6DF562DEEB /* P0CoreActionTests.swift */,
 				031240A7C4FF22A39D812901 /* PhaseAE2ETests.swift */,
 				C2AB334B67D4E8AF48CFE47A /* PhaseDE2ETests.swift */,
@@ -1809,6 +1812,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				68A750FF2569385DF2C304AE /* ActionSurfaceSmokeTests.swift in Sources */,
 				29D8ACDB88DB6E0FB5C6CA1A /* P0CoreActionTests.swift in Sources */,
 				90AF110E28F18A7A8128FE77 /* PhaseAE2ETests.swift in Sources */,
 				D0EA17DBE0352ACC8D76E23C /* PhaseDE2ETests.swift in Sources */,
