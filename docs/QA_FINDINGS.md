@@ -44,6 +44,7 @@
 | 2026-05-09 | `npm --prefix functions test` | PASS after backend P0 security batch (#142/#144/#137), 61 tests |
 | 2026-05-09 | `npm --prefix functions run test:rules` | PASS after wallet/pro/refund rules hardening (#136), 12 tests |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after FirebaseAppCheck iOS provider wiring (#137) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after notifications inbox QA batch (#216/#217/#218/#239/#240/#243) |
 
 ## Remaining Manual QA Gates
 
@@ -78,5 +79,6 @@
 | App Check | Callable Cloud Functions now enforce App Check and iOS registers AppCheckDebugProviderFactory in DEBUG / AppAttestProviderFactory in release. | Register debug tokens in Firebase Console for dev devices/CI before exercising callable flows. |
 | Wallet security rules | Wallet, ledger, entitlements, Pro status, and refund request subcollections are owner-read/server-write only. | Emulator rules tests pass; production Firebase rules deploy remains a release gate. |
 | Pro subscription verifier | Pro receipts are now idempotent, owner-scoped, and expired/revoked JWS metadata maps to inactive Pro state. | StoreKit sandbox renewal/cancel manual QA remains required. |
+| Notifications inbox | Notification rows now compute relative time/buckets from `createdAt`, expose literal Korean labels instead of unresolved keys, support older-page loading, and surface markRead/follow errors. | Firebase QA should seed 100+ notifications and verify load-more, badge count, read state, and follow edge writes. |
 | Payout | Current screens are marked `MockOnly`; automated QA verifies placeholder surfaces, not real Stripe payout behavior. | Keep hidden/controlled until payout backend scope is defined. |
 | Firebase-backed mutations | Several screens expose state and action contracts, but production write/read behavior still depends on real Firebase setup. | Run manual QA with seeded Firebase project before release. |

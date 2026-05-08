@@ -1094,11 +1094,14 @@ private struct FollowListScreen: View {
             if next == .notFollowing {
                 try await edgeRef.delete()
             } else {
-                try await edgeRef.setData([
-                    "actorUid": actorUid,
-                    "targetUid": targetUid,
-                    "createdAt": FieldValue.serverTimestamp()
-                ], merge: true)
+                let snapshot = try await edgeRef.getDocument()
+                if !snapshot.exists {
+                    try await edgeRef.setData([
+                        "actorUid": actorUid,
+                        "targetUid": targetUid,
+                        "createdAt": FieldValue.serverTimestamp()
+                    ])
+                }
             }
         } catch {
             users[index].relationship = user.relationship

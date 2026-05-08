@@ -11,6 +11,8 @@ struct NotificationsInboxScreen: View {
     @State private var category: NotificationCategory = .all
     @StateObject private var store = NotificationsInboxStore()
     @State private var followErrorMessage: String?
+    @State private var actionErrorMessage: String?
+    @State private var now = Date()
     // 프로덕션: store.items (Firestore listener) 사용.
     // UI 테스트 (-ui-testing 런치 인자): 기존 mock 데이터로 fallback해 시드 가능 상태 유지. (#30)
     private var items: [NotificationItem] {
@@ -30,19 +32,22 @@ struct NotificationsInboxScreen: View {
             content
         }
         .background(FMColors.Background.bg1)
-        .navigationTitle(Text("notifications.title"))
+        .navigationTitle("알림")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink(value: AppRoute.notificationSettings) {
                     Image(systemName: "gearshape")
                 }
-                .accessibilityLabel(Text("notifications.settings.title"))
+                .accessibilityLabel("알림 설정")
                 .accessibilityIdentifier("notif.settings")
             }
         }
         .task { store.start() }
         .onDisappear { store.stop() }
+        .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { date in
+            now = date
+        }
         .alert("팔로우 실패", isPresented: Binding(
             get: { followErrorMessage != nil },
             set: { if !$0 { followErrorMessage = nil } }
@@ -50,6 +55,14 @@ struct NotificationsInboxScreen: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(followErrorMessage ?? "")
+        }
+        .alert("알림 처리 실패", isPresented: Binding(
+            get: { actionErrorMessage != nil },
+            set: { if !$0 { actionErrorMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(actionErrorMessage ?? "")
         }
     }
 
@@ -64,7 +77,7 @@ struct NotificationsInboxScreen: View {
                         FMHaptic.selection.play()
                         category = value
                     } label: {
-                        Text(value.localizedKey)
+                        Text(value.title)
                             .fmTypography(.subhead)
                             .foregroundStyle(isActive ? FMColors.Accent.primary : FMColors.Text.secondary)
                             .padding(.horizontal, Sp.sm)
@@ -93,7 +106,7 @@ struct NotificationsInboxScreen: View {
 
     @ViewBuilder
     private var content: some View {
-        let groups = NotificationItem.group(items: filteredItems)
+        let groups = NotificationItem.group(items: filteredItems, now: now)
 
         if groups.isEmpty {
             emptyState
@@ -101,7 +114,7 @@ struct NotificationsInboxScreen: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
                     ForEach(groups) { group in
-                        groupLabel(group.localizedKey)
+                        groupLabel(group.title)
                             .padding(.horizontal, Sp.md)
                             .padding(.top, Sp.md)
                             .padding(.bottom, Sp.xs)
@@ -115,6 +128,15 @@ struct NotificationsInboxScreen: View {
                                     .padding(.leading, Sp.md + 40 + Sp.sm)
                             }
                         }
+                    }
+
+                    if store.canLoadMore {
+                        FMButton("이전 알림 더 보기", variant: .secondary, size: .md, isLoading: store.isLoadingMore) {
+                            Task { await loadMoreNotifications() }
+                        }
+                        .padding(.horizontal, Sp.md)
+                        .padding(.top, Sp.md)
+                        .accessibilityIdentifier("notif.loadMore")
                     }
                 }
                 .padding(.bottom, Sp.xxxl)
@@ -134,10 +156,10 @@ struct NotificationsInboxScreen: View {
             Image(systemName: "bell.slash")
                 .font(.system(size: 44, weight: .light))
                 .foregroundStyle(FMColors.Text.tertiary)
-            Text("notifications.empty.title")
+            Text("알림이 없어요")
                 .fmTypography(.headline)
                 .foregroundStyle(FMColors.Text.primary)
-            Text("notifications.empty.body")
+            Text("새 알림이 도착하면 여기에 표시됩니다.")
                 .fmTypography(.subhead)
                 .foregroundStyle(FMColors.Text.secondary)
                 .multilineTextAlignment(.center)
@@ -164,7 +186,7 @@ struct NotificationsInboxScreen: View {
                         .foregroundStyle(FMColors.Text.primary)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(item.relativeTime)
+                    Text(item.relativeTime(now: now))
                         .fmTypography(.caption)
                         .foregroundStyle(FMColors.Text.tertiary)
                 }
@@ -234,7 +256,7 @@ struct NotificationsInboxScreen: View {
                 FMHaptic.success.play()
                 acceptFollow(item)
             } label: {
-                Text("profile.follow")
+                Text("팔로우")
                     .fmTypography(.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(FMColors.Text.inverse)
@@ -272,8 +294,8 @@ struct NotificationsInboxScreen: View {
             }
     }
 
-    private func groupLabel(_ key: LocalizedStringKey) -> some View {
-        Text(key)
+    private func groupLabel(_ title: String) -> some View {
+        Text(title)
             .fmTypography(.caption)
             .fontWeight(.bold)
             .tracking(0.4)
@@ -287,7 +309,15 @@ struct NotificationsInboxScreen: View {
         // (#33) firestoreDocId 가 있으면 store.markRead가 readAt 타임스탬프를 즉시 작성.
         // 다음 listener 도착 시 isUnread=false 자동 반영. mock/UI test 항목은 docId 없음 → no-op.
         if let docId = item.firestoreDocId {
-            store.markRead(notificationId: docId)
+            Task {
+                do {
+                    try await store.markRead(notificationId: docId)
+                } catch {
+                    await MainActor.run {
+                        actionErrorMessage = error.localizedDescription
+                    }
+                }
+            }
         }
     }
 
@@ -307,20 +337,31 @@ struct NotificationsInboxScreen: View {
         }
     }
 
+    private func loadMoreNotifications() async {
+        do {
+            try await store.loadMore()
+        } catch {
+            actionErrorMessage = error.localizedDescription
+        }
+    }
+
     private func followBack(actorUid: String) async throws {
         #if DEBUG
         guard !isUITesting else { return }
         #endif
         guard let uid = Auth.auth().currentUser?.uid else { return }
         guard uid != actorUid else { return }
+        let edgeRef = Firestore.firestore()
+            .collection("follows").document("\(uid)_\(actorUid)")
+        let snapshot = try await edgeRef.getDocument()
+        guard !snapshot.exists else { return }
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            Firestore.firestore()
-                .collection("follows").document("\(uid)_\(actorUid)")
+            edgeRef
                 .setData([
                     "actorUid": uid,
                     "targetUid": actorUid,
                     "createdAt": FieldValue.serverTimestamp()
-                ], merge: true) { error in
+                ]) { error in
                     if let error {
                         continuation.resume(throwing: error)
                     } else {
@@ -342,14 +383,13 @@ enum NotificationCategory: String, CaseIterable, Identifiable, Hashable {
 
     var id: String { rawValue }
 
-    /// `Localizable.xcstrings` 의 카테고리 키.
-    var localizedKey: LocalizedStringKey {
+    var title: String {
         switch self {
-        case .all: "notifications.category.all"
-        case .likes: "notifications.category.likes"
-        case .reviews: "notifications.category.reviews"
-        case .downloads: "notifications.category.downloads"
-        case .system: "notifications.category.system"
+        case .all: "전체"
+        case .likes: "좋아요"
+        case .reviews: "리뷰"
+        case .downloads: "다운로드"
+        case .system: "시스템"
         }
     }
 
@@ -398,8 +438,7 @@ struct NotificationItem: Identifiable, Hashable {
     let id = UUID()
     let kind: Kind
     let body: AttributedSegments
-    let relativeTime: String
-    let createdGroup: NotificationGroup
+    let createdAt: Date
     var isUnread: Bool
     /// Firestore /users/{uid}/notifications/{docId} ID — markRead 시 사용 (#33).
     /// nil이면 mock/local 항목 (UI 테스트 등).
@@ -435,6 +474,22 @@ struct NotificationItem: Identifiable, Hashable {
             }
         }
     }
+
+    func relativeTime(now: Date) -> String {
+        let interval = max(0, now.timeIntervalSince(createdAt))
+        if interval < 60 { return "방금 전" }
+        if interval < 3600 { return "\(Int(interval / 60))분 전" }
+        if interval < 86400 { return "\(Int(interval / 3600))시간 전" }
+        return "\(Int(interval / 86400))일 전"
+    }
+
+    func group(now: Date) -> NotificationGroup {
+        let interval = max(0, now.timeIntervalSince(createdAt))
+        if interval < 3600 { return .fresh }
+        if interval < 86400 { return .today }
+        if interval < 604_800 { return .week }
+        return .earlier
+    }
 }
 
 struct AttributedSegments: Hashable {
@@ -452,13 +507,12 @@ enum NotificationGroup: String, CaseIterable, Hashable {
     case week
     case earlier
 
-    /// `Localizable.xcstrings` 의 그룹 헤더 키.
-    var localizedKey: LocalizedStringKey {
+    var title: String {
         switch self {
-        case .fresh: "notifications.group.fresh"
-        case .today: "notifications.group.today"
-        case .week: "notifications.group.week"
-        case .earlier: "notifications.group.earlier"
+        case .fresh: "새 알림"
+        case .today: "오늘"
+        case .week: "이번 주"
+        case .earlier: "이전"
         }
     }
 }
@@ -467,13 +521,13 @@ struct NotificationGroupBucket: Identifiable {
     let group: NotificationGroup
     let items: [NotificationItem]
     var id: NotificationGroup { group }
-    var localizedKey: LocalizedStringKey { group.localizedKey }
+    var title: String { group.title }
 }
 
 extension NotificationItem {
-    static func group(items: [NotificationItem]) -> [NotificationGroupBucket] {
+    static func group(items: [NotificationItem], now: Date) -> [NotificationGroupBucket] {
         NotificationGroup.allCases.compactMap { group in
-            let bucket = items.filter { $0.createdGroup == group }
+            let bucket = items.filter { $0.group(now: now) == group }
             guard !bucket.isEmpty else { return nil }
             return NotificationGroupBucket(group: group, items: bucket)
         }
@@ -488,8 +542,7 @@ extension NotificationItem {
                 .strong("추천 필터"),
                 .normal("에 좋아요를 눌렀습니다")
             ]),
-            relativeTime: "방금 전",
-            createdGroup: .fresh,
+            createdAt: Date(),
             isUnread: true
         ),
         NotificationItem(
@@ -500,8 +553,7 @@ extension NotificationItem {
                 .strong("추천 필터"),
                 .normal("에 댓글을 남겼습니다 — \"Mid-tone에 살짝 마젠타가...\"")
             ]),
-            relativeTime: "5분 전",
-            createdGroup: .fresh,
+            createdAt: Date().addingTimeInterval(-300),
             isUnread: true
         ),
         NotificationItem(
@@ -512,8 +564,7 @@ extension NotificationItem {
                 .strong("120회"),
                 .normal(" 다운로드되었습니다")
             ]),
-            relativeTime: "2시간 전",
-            createdGroup: .today,
+            createdAt: Date().addingTimeInterval(-7_200),
             isUnread: false
         ),
         NotificationItem(
@@ -522,8 +573,7 @@ extension NotificationItem {
                 .strong("Sarah"),
                 .normal("가 회원님을 팔로우했습니다")
             ]),
-            relativeTime: "5시간 전",
-            createdGroup: .today,
+            createdAt: Date().addingTimeInterval(-18_000),
             isUnread: false
         ),
         NotificationItem(
@@ -532,8 +582,7 @@ extension NotificationItem {
                 .strong("Amber Café"),
                 .normal(" 검수가 통과되었습니다 — 마켓에 공개됨")
             ]),
-            relativeTime: "2일 전",
-            createdGroup: .week,
+            createdAt: Date().addingTimeInterval(-172_800),
             isUnread: false
         ),
         NotificationItem(
@@ -542,8 +591,7 @@ extension NotificationItem {
                 .strong("유나"),
                 .normal("가 회원님의 댓글에 답글을 남겼습니다")
             ]),
-            relativeTime: "3일 전",
-            createdGroup: .week,
+            createdAt: Date().addingTimeInterval(-259_200),
             isUnread: false
         )
     ]

@@ -432,6 +432,9 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 13.1.9 | review/like/download 알림 우측 thumb | → AppRoute.filterDetail |  |
 | 13.1.10 | followRequest 알림 | "팔로우" 버튼 → root `follows/{currentUid}_{actorUid}` write 성공 후 markRead. 실패 시 alert |  |
 | 13.1.11 | 빈 상태 | "알림이 없어요" |  |
+| 13.1.12 | 100건 초과 알림 | `notif.loadMore`로 다음 페이지 fetch, 중복 없이 이전 알림 추가 |  |
+| 13.1.13 | 시간 라벨 | 앱을 오래 켜둬도 `createdAt` 기준으로 분/시간/일 라벨과 그룹 재계산 |  |
+| 13.1.14 | 앱 badge | unread count 기준으로 badge count 갱신 |  |
 
 ### 13.2 Wallet / Pro / Payment
 

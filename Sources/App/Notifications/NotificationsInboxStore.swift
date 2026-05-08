@@ -2,6 +2,7 @@ import FirebaseAuth
 import FirebaseFirestore
 import Foundation
 import SwiftUI
+import UserNotifications
 
 /// `/users/{uid}/notifications` Firestore listener.
 ///
@@ -11,10 +12,17 @@ import SwiftUI
 final class NotificationsInboxStore: ObservableObject {
     @Published private(set) var items: [NotificationItem] = []
     @Published private(set) var isLoading = false
+    @Published private(set) var isLoadingMore = false
+    @Published private(set) var canLoadMore = false
     @Published private(set) var loadError: String?
 
     private var listener: ListenerRegistration?
     private var authHandle: AuthStateDidChangeListenerHandle?
+    private var currentUid: String?
+    private var liveItems: [NotificationItem] = []
+    private var pagedItems: [NotificationItem] = []
+    private var lastLiveDocument: DocumentSnapshot?
+    private let pageSize = 100
 
     func start() {
         guard authHandle == nil else { return }
@@ -30,6 +38,11 @@ final class NotificationsInboxStore: ObservableObject {
     func stop() {
         listener?.remove()
         listener = nil
+        currentUid = nil
+        liveItems = []
+        pagedItems = []
+        lastLiveDocument = nil
+        canLoadMore = false
         if let authHandle {
             Auth.auth().removeStateDidChangeListener(authHandle)
             self.authHandle = nil
@@ -40,15 +53,17 @@ final class NotificationsInboxStore: ObservableObject {
         listener?.remove()
         listener = nil
         guard let uid else {
-            items = []
+            currentUid = nil
+            publish(live: [], paged: [])
             return
         }
+        currentUid = uid
         isLoading = true
         listener = Firestore.firestore()
             .collection("users").document(uid)
             .collection("notifications")
             .order(by: "createdAt", descending: true)
-            .limit(to: 100)
+            .limit(to: pageSize)
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self else { return }
                 self.isLoading = false
@@ -57,9 +72,30 @@ final class NotificationsInboxStore: ObservableObject {
                     return
                 }
                 let docs = snapshot?.documents ?? []
-                self.items = docs.compactMap { Self.decode($0) }
+                self.lastLiveDocument = docs.last
+                self.canLoadMore = docs.count == self.pageSize
+                self.publish(live: docs.compactMap { Self.decode($0) }, paged: self.pagedItems)
                 self.loadError = nil
             }
+    }
+
+    func loadMore() async throws {
+        guard !isLoadingMore else { return }
+        guard let uid = currentUid, let lastLiveDocument, canLoadMore else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+
+        let snapshot = try await Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("notifications")
+            .order(by: "createdAt", descending: true)
+            .start(afterDocument: lastLiveDocument)
+            .limit(to: pageSize)
+            .getDocuments()
+        let decoded = snapshot.documents.compactMap { Self.decode($0) }
+        pagedItems.append(contentsOf: decoded)
+        canLoadMore = snapshot.documents.count == pageSize
+        publish(live: liveItems, paged: pagedItems)
     }
 
     /// Firestore notification doc → NotificationItem.
@@ -120,38 +156,47 @@ final class NotificationsInboxStore: ObservableObject {
         return NotificationItem(
             kind: kind,
             body: body,
-            relativeTime: Self.relativeTime(from: createdAt),
-            createdGroup: Self.bucket(for: createdAt),
+            createdAt: createdAt,
             isUnread: isUnread,
             firestoreDocId: doc.documentID
         )
     }
 
     /// 행 탭 시 readAt 타임스탬프 작성.
-    func markRead(notificationId: String) {
+    func markRead(notificationId: String) async throws {
         #if DEBUG
         guard !isUITesting else { return }
         #endif
         guard let uid = Auth.auth().currentUser?.uid else { return }
-        Firestore.firestore()
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            Firestore.firestore()
             .collection("users").document(uid)
             .collection("notifications").document(notificationId)
-            .setData(["readAt": FieldValue.serverTimestamp()], merge: true)
+            .setData(["readAt": FieldValue.serverTimestamp()], merge: true) { error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
     }
 
-    private static func relativeTime(from date: Date) -> String {
-        let interval = Date().timeIntervalSince(date)
-        if interval < 60 { return "방금 전" }
-        if interval < 3600 { return "\(Int(interval / 60))분 전" }
-        if interval < 86400 { return "\(Int(interval / 3600))시간 전" }
-        return "\(Int(interval / 86400))일 전"
+    private func publish(live: [NotificationItem], paged: [NotificationItem]) {
+        liveItems = live
+        pagedItems = paged
+        var seen = Set<String>()
+        items = (live + paged).filter { item in
+            guard let docId = item.firestoreDocId else { return true }
+            return seen.insert(docId).inserted
+        }
+        updateAppBadge()
     }
 
-    private static func bucket(for date: Date) -> NotificationGroup {
-        let interval = Date().timeIntervalSince(date)
-        if interval < 3600 { return .fresh }
-        if interval < 86400 { return .today }
-        if interval < 604_800 { return .week }
-        return .earlier
+    private func updateAppBadge() {
+        let unreadCount = items.filter(\.isUnread).count
+        Task {
+            try? await UNUserNotificationCenter.current().setBadgeCount(unreadCount)
+        }
     }
 }
