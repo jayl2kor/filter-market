@@ -57,6 +57,7 @@
 | 2026-05-09 | `npm --prefix functions run test:rules` | PASS after exportRequests owner create/read rules (#250), 14 tests |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after makerDrafts listener/write wiring (#251) |
 | 2026-05-09 | `npm --prefix functions run test:rules` | PASS after makerDrafts owner rules (#251), 15 tests |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after DeepLinkDestination full AppRoute coverage (#246) |
 
 ## Remaining Manual QA Gates
 
