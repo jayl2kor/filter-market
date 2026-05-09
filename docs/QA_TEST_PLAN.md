@@ -259,6 +259,15 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 7.22 | preview memory plateau | Instruments Allocations/Metal System Trace 기준 5분 카메라 프리뷰 후 `CVMetalTextureCache`/texture 객체가 지속 누적되지 않음. background 진입 시 renderer stop/flush 후 foreground 복귀 정상 |  |
 | 7.23 | Dynamic Type xLarge | 카메라 overlay 텍스트(AUTO, 비율, 타이머, 플래시, 현재 필터, 강도, 필터명, 줌, 타이머 카운트다운)가 스케일되고 주요 컨트롤이 겹치지 않음 |  |
 | 7.24 | Dynamic Type accessibility size | CameraScreen은 xLarge 상한으로 overlay 레이아웃을 보호하고, VoiceOver label은 기존과 동일하게 유지 |  |
+| 7.25 | 카메라 권한 설정 변경 후 앱 복귀 | `UIApplication.didBecomeActiveNotification`에서 권한 재검증, 허용됨이면 CameraScreen authorized 상태로 자동 전환 |  |
+
+### 7.z PermissionDenied 공통
+| # | Route | Expected | PASS/FAIL |
+|---|---|---|---|
+| 7.z.1 | camera/photos/notifications/location denied | 모두 `설정 열기` CTA와 dismiss CTA 노출 |  |
+| 7.z.2 | camera/photos/location denied | 앱 복귀 시 동기 권한 재검증, authorized면 `onPermissionGranted` 호출 |  |
+| 7.z.3 | notifications denied | 앱 복귀 시 `UNUserNotificationCenter.notificationSettings()` 비동기 재조회, authorized면 `onPermissionGranted` 호출 |  |
+| 7.z.4 | UI-test direct route | denied 화면의 `설정 열기`가 no-op이 아니라 iOS app settings URL을 연다 |  |
 
 ### 7.x CameraAspectPickerScreen — `AppRoute.cameraAspect`
 | # | ID | Expected | PASS/FAIL |

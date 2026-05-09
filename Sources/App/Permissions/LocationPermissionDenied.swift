@@ -1,5 +1,6 @@
 import DesignSystem
 import SwiftUI
+import UIKit
 
 // MARK: - LocationPermissionDenied
 //
@@ -7,15 +8,19 @@ import SwiftUI
 // 위치는 선택 권한이므로 primary 톤은 secondary 처럼 톤다운된 느낌으로 처리하나,
 // FMButton 의 secondary 변형이 가장 가까운 매핑이다.
 public struct LocationPermissionDenied: View {
+    @StateObject private var permissionCoordinator = PermissionCoordinator()
     public var onOpenSettings: () -> Void
     public var onDismiss: () -> Void
+    public var onPermissionGranted: () -> Void
 
     public init(
         onOpenSettings: @escaping () -> Void,
-        onDismiss: @escaping () -> Void
+        onDismiss: @escaping () -> Void,
+        onPermissionGranted: @escaping () -> Void = {}
     ) {
         self.onOpenSettings = onOpenSettings
         self.onDismiss = onDismiss
+        self.onPermissionGranted = onPermissionGranted
     }
 
     public var body: some View {
@@ -43,6 +48,15 @@ public struct LocationPermissionDenied: View {
                     .accessibilityIdentifier("permission.location.denied.dismiss")
             }
         )
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            reevaluatePermission()
+        }
+    }
+
+    private func reevaluatePermission() {
+        guard permissionCoordinator.currentStatus(.location) == .authorized else { return }
+        FMHaptic.success.play()
+        onPermissionGranted()
     }
 }
 

@@ -291,19 +291,19 @@ private struct UITestLaunchHost: View {
         case .cameraPermissionPriming:
             CameraPermissionPriming(onAllow: {}, onSkip: {}, onClose: {})
         case .cameraPermissionDenied:
-            CameraPermissionDenied(onOpenSettings: {}, onDismiss: {})
+            CameraPermissionDenied(onOpenSettings: openAppSettings, onDismiss: {})
         case .photosPermissionPriming:
             PhotosPermissionPriming(onAllow: {}, onSkip: {}, onClose: {})
         case .photosPermissionDenied:
-            PhotosPermissionDenied(onOpenSettings: {}, onDismiss: {})
+            PhotosPermissionDenied(onOpenSettings: openAppSettings, onDismiss: {})
         case .notificationsPermissionPriming:
             NotificationsPermissionPriming(onAllow: {}, onSkip: {}, onClose: {})
         case .notificationsPermissionDenied:
-            NotificationsPermissionDenied(onOpenSettings: {}, onDismiss: {})
+            NotificationsPermissionDenied(onOpenSettings: openAppSettings, onDismiss: {})
         case .locationPermissionPriming:
             LocationPermissionPriming(onAllow: {}, onSkip: {}, onClose: {})
         case .locationPermissionDenied:
-            LocationPermissionDenied(onOpenSettings: {}, onDismiss: {})
+            LocationPermissionDenied(onOpenSettings: openAppSettings, onDismiss: {})
         case .photoImport:
             PhotoImportScreen()
         case .photoEdit:
@@ -381,6 +381,11 @@ private struct UITestLaunchHost: View {
         case .myFilters:
             MyFiltersScreen()
         }
+    }
+
+    private func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 }
 #endif

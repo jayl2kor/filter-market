@@ -57,7 +57,10 @@ struct CameraScreen: View {
             case .denied, .restricted:
                 CameraPermissionDenied(
                     onOpenSettings: { permissionCoordinator.openSettings() },
-                    onDismiss: { handleCloseFromPriming() }
+                    onDismiss: { handleCloseFromPriming() },
+                    onPermissionGranted: {
+                        cameraPermissionState = .authorized
+                    }
                 )
             }
         }

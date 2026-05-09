@@ -1,19 +1,24 @@
 import DesignSystem
 import SwiftUI
+import UIKit
 
 // MARK: - PhotosPermissionDenied
 //
 // Phase D5 — `mockups/screens/permissions/photos-denied.html` 와 정합.
 public struct PhotosPermissionDenied: View {
+    @StateObject private var permissionCoordinator = PermissionCoordinator()
     public var onOpenSettings: () -> Void
     public var onDismiss: () -> Void
+    public var onPermissionGranted: () -> Void
 
     public init(
         onOpenSettings: @escaping () -> Void,
-        onDismiss: @escaping () -> Void
+        onDismiss: @escaping () -> Void,
+        onPermissionGranted: @escaping () -> Void = {}
     ) {
         self.onOpenSettings = onOpenSettings
         self.onDismiss = onDismiss
+        self.onPermissionGranted = onPermissionGranted
     }
 
     public var body: some View {
@@ -40,6 +45,15 @@ public struct PhotosPermissionDenied: View {
                     .accessibilityIdentifier("permission.photos.denied.dismiss")
             }
         )
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            reevaluatePermission()
+        }
+    }
+
+    private func reevaluatePermission() {
+        guard permissionCoordinator.currentStatus(.photos) == .authorized else { return }
+        FMHaptic.success.play()
+        onPermissionGranted()
     }
 }
 
