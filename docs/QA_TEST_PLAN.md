@@ -760,6 +760,16 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 4. RootShell scenePhase active 처리 후 변경값이 relaunch 없이 반영되는지 확인
 - **PASS 기준**: Auth token refresh, user-scoped listener reattach, filter reload가 크래시 없이 수행되고 stale 값이 남지 않음
 
+### 14.9 Telemetry Coverage (#162)
+1. Debug Analytics 또는 Firebase DebugView를 켜고 앱 실행
+2. Root tab 4개(Market/Search/Saved/Profile), Camera cover, AppRoute destination 5개 이상(FilterDetail, Reviews, Wallet, Settings, Notifications) 진입 후 이탈
+3. Marketplace 카드 탭 → FilterDetail → 다운로드/구매 CTA, 좋아요, 공유, 태그 검색, pull-to-refresh 실행
+4. Search에서 추천 키워드/최근 검색/직접 submit 각각으로 결과 진입, 결과 없음 empty state와 pull-to-refresh 확인
+5. 실기기에서 Camera filter 선택, timer/grid/flash/aspect 변경, shutter, save/share 실행
+- **PASS 기준**: 각 화면 진입은 Firebase `screen_view`, 이탈은 `screen_exit` + `duration_ms`로 기록. Marketplace/Search/Camera funnel은 `funnel_step`, empty/error/refresh는 전용 이벤트로 기록.
+- **Privacy 기준**: 검색어 원문, uid, handle, review body 등 사용자 식별/입력 원문이 이벤트 파라미터에 포함되지 않음. Query는 길이만 기록.
+- **자동 검증**: `AppTests/TelemetryTests`가 이벤트 파라미터 key/value 정규화 규칙을 검증.
+
 ---
 
 ## 15. 버그 리포트 템플릿

@@ -47,11 +47,17 @@ struct RootShell: View {
                         // 셔터는 selection 으로 들어오지 않지만 방어적으로 처리.
                         guard newValue != .shutter else { return }
                         selectedTab = newValue
+                        Telemetry.trackAction("tab_selected", screen: newValue.telemetryScreen, parameters: [
+                            "tab": newValue.telemetryName
+                        ])
                     }
                 ),
                 badges: tabBadges,
                 onShutter: {
                     FMHaptic.medium.play()
+                    Telemetry.trackFunnelStep("camera_capture", step: "camera_opened", screen: .cameraLive, parameters: [
+                        "source": "tab_bar"
+                    ])
                     isCameraPresented = true
                 }
             )
@@ -91,6 +97,7 @@ struct RootShell: View {
             CameraScreen(isPresentedAsCover: true)
                 .environmentObject(store)
                 .interactiveDismissDisabled(true)
+                .fmTrackScreen(.cameraLive, parameters: ["presentation": "tab_bar_cover"])
         }
         .sheet(item: $store.pendingDeepLinkRoute) { route in
             NavigationStack {
@@ -184,6 +191,7 @@ struct RootShell: View {
     private var tabContent: some View {
         NavigationStack(path: selectedTabNavigationPath) {
             selectedTabContent
+                .fmTrackScreen(selectedTab.telemetryScreen, parameters: ["tab": selectedTab.telemetryName])
                 .appRouteDestinations()
         }
     }
@@ -387,4 +395,26 @@ struct RootShell: View {
         return URL(string: args[flagIndex + 1])
     }
     #endif
+}
+
+private extension FMTab {
+    var telemetryScreen: Telemetry.Screen {
+        switch self {
+        case .market: .marketplaceHome
+        case .search: .search
+        case .shutter: .cameraLive
+        case .saved: .saved
+        case .profile: .profile
+        }
+    }
+
+    var telemetryName: String {
+        switch self {
+        case .market: "market"
+        case .search: "search"
+        case .shutter: "shutter"
+        case .saved: "saved"
+        case .profile: "profile"
+        }
+    }
 }

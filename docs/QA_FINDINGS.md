@@ -15,6 +15,7 @@
 | Firestore Rules QA | `npm --prefix functions run test:rules` PASS with Firestore emulator, 11 tests | Done |
 | 누락된 액션/화면 selector 보정 | `ActionSurfaceSmokeTests`, `P0CoreActionTests`와 관련 SwiftUI accessibility ID 보강 | Done |
 | 실패한 automated QA 수정 | paywall UI-test Firebase 호출 우회, filter download cancel, help center/capture preview/permission route 보강 | Done |
+| 화면/핵심 액션 텔레메트리 | `Telemetry.fmTrackScreen` modifier가 root tab, camera cover, 모든 `AppRoute` destination의 진입/이탈 duration을 기록. Marketplace/Search/FilterDetail/Camera 핵심 funnel/action/empty/error/refresh 이벤트 추가 | Done |
 | 실기기/외부 서비스 QA | Apple/Google Sign-In, StoreKit sandbox, 실제 카메라 촬영/저장/공유, APNs/FCM push, App Settings deep link | Blocked |
 
 ## Automated Verification
@@ -68,6 +69,8 @@
 | 2026-05-09 | `npm --prefix functions test` | PASS, 85 tests after profile avatar upload contract was added (#183) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after profile avatar R2 upload and `avatarURL` rendering wiring (#183) |
 | 2026-05-09 | `npm --prefix functions test` | PASS, 93 tests after idempotency cache implementation, Apple cert timeout coverage, and paid filter entitlement/Pro gating in `getFilterDetail` (#182) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after #162 screen/action telemetry wiring |
+| 2026-05-09 | `xcodebuild ... -only-testing:AppTests/TelemetryTests test` | PASS, 3 tests after #162 telemetry parameter sanitizer coverage |
 | 2026-05-09 | `rg "makerFilters\\[[^\\]]+\\]" Sources/App/MooditStore.swift` + `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS, no remaining `makerFilters[index]` mutation/access pattern after immutable map update (#164) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after moving tab NavigationStack/path ownership into `RootShell` and disabling nested tab stacks where embedded (#161) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after FilterDetail sample gallery lightbox with paging, pinch/double-tap zoom, swipe-down dismiss, close control, and counter (#139) |

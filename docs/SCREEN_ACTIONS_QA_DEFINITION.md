@@ -210,6 +210,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | `callable` | Firebase Functions 호출 | 성공/실패/로딩/재시도 확인 |
 | `firestore-listener` | Firestore snapshot 기반 표시 | seed 변경 후 UI 갱신 확인 |
 | `external` | URL, Mail, App Settings, StoreKit, Stripe | 실기기 또는 sandbox에서 열림 확인 |
+| `telemetry` | 화면 진입/이탈 또는 핵심 UX/funnel event | Firebase DebugView 또는 Analytics debug log에서 event name/parameter 확인 |
 | `mock-only` | 현재 mock/no-op | QA finding으로 실제 구현 필요 여부 기록 |
 
 ## 7. Current Known Risk Before QA
@@ -221,6 +222,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | 프로필 avatar 변경 | 현재 QA 대상은 PhotosPicker 선택과 로컬 preview/persist 경로이며, 원격 Storage 업로드/URL 배포는 별도 백엔드 작업 필요 | 선택 이미지가 EditProfile/Profile에 반영되는지 확인하고, 릴리스 전 Storage 업로드 이슈 분리 |
 | 팔로우 리스트 | Firestore root `follows` edge와 `users/{uid}` profile/count listener를 사용 | 실제 Firebase seed에서 followers/following row, count, toggle round-trip 확인 |
 | 상세 backend metadata | `getFilterDetail`이 tags, samples, reviews, review/like/download count, userHasLiked를 내려주고 FilterDetail이 remote samples를 우선 렌더링 | 실제 filter 문서와 subcollection seed에서 detail UI count/preview/remote sample 표시 확인 |
+| 텔레메트리 파라미터 과수집 | Analytics에 사용자 입력 원문/식별자가 섞이면 privacy risk | `screen_view`, `screen_exit`, `funnel_step`, `user_action` 이벤트에서 uid/handle/search raw query/review text가 없는지 확인 |
 | Push 권한 요청이 앱 시작 시 발생 가능 | 첫 실행 UX 회귀 | Onboarding/Login 전 알림 prompt 발생 여부 |
 | Payout은 closed-loop coin 정책상 후순위 | 불필요한 진입점 노출 위험 | 사용자가 볼 수 있는 entry point인지 확인 |
 | StoreKit/Google/Apple sign-in은 sandbox/실기기 의존 | 시뮬레이터만으로 검증 불가 | 실기기 QA checklist 별도 표시 |

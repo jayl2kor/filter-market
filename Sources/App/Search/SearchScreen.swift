@@ -10,6 +10,14 @@ enum SearchPhase: Hashable {
     case browsing       // 빈 query — 추천/최근/인기
     case typing         // 입력 중 — 자동완성/실시간 결과
     case results        // submit 후 — 그리드 결과 + 결과 없음 빈 상태
+
+    var telemetryName: String {
+        switch self {
+        case .browsing: "browsing"
+        case .typing: "typing"
+        case .results: "results"
+        }
+    }
 }
 
 // MARK: - PopularMaker
@@ -120,12 +128,19 @@ struct SearchScreen: View {
                 isSearchDebouncing = false
                 phase = .results
                 rememberSearch(query)
+                Telemetry.trackFunnelStep("search_discovery", step: "query_submitted", screen: .search, parameters: [
+                    "query_length": query.count,
+                    "source": "keyboard"
+                ])
             }
             .frame(maxWidth: .infinity)
             .layoutPriority(1)
 
             if !query.isEmpty || phase == .results {
                 Button {
+                    Telemetry.trackAction("search_cancelled", screen: .search, parameters: [
+                        "phase": phase.telemetryName
+                    ])
                     cancelSearch()
                 } label: {
                     Text("취소")
@@ -180,6 +195,9 @@ struct SearchScreen: View {
                 Spacer()
                 if !recentSearches.isEmpty {
                     Button {
+                        Telemetry.trackAction("recent_searches_cleared", screen: .search, parameters: [
+                            "count": recentSearches.count
+                        ])
                         clearRecentSearches()
                     } label: {
                         Text("모두 지우기")
@@ -196,6 +214,9 @@ struct SearchScreen: View {
                     .fmTypography(.subhead)
                     .foregroundStyle(FMColors.Text.tertiary)
                     .padding(.vertical, Sp.xs)
+                    .onAppear {
+                        Telemetry.trackEmptyState("recent_searches_empty", screen: .search)
+                    }
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(recentSearches.enumerated()), id: \.element) { index, term in
@@ -225,6 +246,10 @@ struct SearchScreen: View {
                 query = term
                 phase = .results
                 rememberSearch(term)
+                Telemetry.trackFunnelStep("search_discovery", step: "query_submitted", screen: .search, parameters: [
+                    "query_length": term.count,
+                    "source": "recent"
+                ])
             } label: {
                 Text(term)
                     .fmTypography(.body)
@@ -236,6 +261,7 @@ struct SearchScreen: View {
 
             Button {
                 removeRecentSearch(term)
+                Telemetry.trackAction("recent_search_removed", screen: .search)
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .semibold))
@@ -262,6 +288,10 @@ struct SearchScreen: View {
                         query = stripped
                         phase = .results
                         rememberSearch(stripped)
+                        Telemetry.trackFunnelStep("search_discovery", step: "query_submitted", screen: .search, parameters: [
+                            "query_length": stripped.count,
+                            "source": "suggested_keyword"
+                        ])
                     }
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
@@ -286,6 +316,9 @@ struct SearchScreen: View {
                         .foregroundStyle(FMColors.Accent.primary)
                 }
                 .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded {
+                    Telemetry.trackAction("popular_makers_all_opened", screen: .search)
+                })
             }
 
             if cachedPopularMakers.isEmpty {
@@ -293,6 +326,9 @@ struct SearchScreen: View {
                     .fmTypography(.subhead)
                     .foregroundStyle(FMColors.Text.tertiary)
                     .padding(.vertical, Sp.xs)
+                    .onAppear {
+                        Telemetry.trackEmptyState("popular_makers_empty", screen: .search)
+                    }
                     .accessibilityIdentifier("search.makers.empty")
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -334,6 +370,11 @@ struct SearchScreen: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .simultaneousGesture(TapGesture().onEnded {
+            Telemetry.trackFunnelStep("search_discovery", step: "maker_opened", screen: .search, parameters: [
+                "source": "popular_makers"
+            ])
+        })
         .accessibilityElement(children: .combine)
     }
 
@@ -389,6 +430,12 @@ struct SearchScreen: View {
                                 FMFilterTile(data: filter.toTileData())
                             }
                             .buttonStyle(.plain)
+                            .simultaneousGesture(TapGesture().onEnded {
+                                Telemetry.trackFunnelStep("search_discovery", step: "filter_opened", screen: .search, parameters: [
+                                    "source": "typing",
+                                    "position": index
+                                ])
+                            })
                             .accessibilityIdentifier("search.typing.tile.\(index)")
                         }
                     }
@@ -434,6 +481,11 @@ struct SearchScreen: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .simultaneousGesture(TapGesture().onEnded {
+            Telemetry.trackFunnelStep("search_discovery", step: "maker_opened", screen: .search, parameters: [
+                "source": "typing"
+            ])
+        })
     }
 
     // MARK: - Results
@@ -442,9 +494,17 @@ struct SearchScreen: View {
         Group {
             if filteredFilters.isEmpty {
                 FMEmptyState(.noSearchResults(query: query)) {
+                    Telemetry.trackAction("empty_state_cta_tapped", screen: .search, parameters: [
+                        "state_name": "no_search_results"
+                    ])
                     cancelSearch()
                 }
                 .padding(.top, Sp.xxl)
+                .onAppear {
+                    Telemetry.trackEmptyState("no_search_results", screen: .search, parameters: [
+                        "query_length": query.count
+                    ])
+                }
             } else {
                 VStack(alignment: .leading, spacing: Sp.sm) {
                     Text("\"\(query)\" 결과 · \(filteredFilters.count)개")
@@ -467,6 +527,12 @@ struct SearchScreen: View {
                                 FMFilterTile(data: filter.toTileData())
                             }
                             .buttonStyle(.plain)
+                            .simultaneousGesture(TapGesture().onEnded {
+                                Telemetry.trackFunnelStep("search_discovery", step: "filter_opened", screen: .search, parameters: [
+                                    "source": "results",
+                                    "position": index
+                                ])
+                            })
                             .accessibilityIdentifier("search.result.tile.\(index)")
                         }
                     }
@@ -594,6 +660,9 @@ struct SearchScreen: View {
 
     private func refreshSearchResults() async {
         guard phase == .results else { return }
+        Telemetry.trackPullToRefresh(.search, parameters: [
+            "query_length": query.count
+        ])
         await store.load(force: true)
         debouncedQuery = query
     }

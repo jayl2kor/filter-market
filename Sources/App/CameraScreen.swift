@@ -343,6 +343,9 @@ struct CameraScreen: View {
         FMHaptic.light.play()
         store.cameraAspectRatio = aspectRatio
         controller.setCropAspectRatio(aspectRatio)
+        Telemetry.trackAction("aspect_ratio_selected", screen: .cameraLive, parameters: [
+            "aspect_ratio": aspectIdentifier(aspectRatio)
+        ])
     }
 
     private func aspectIdentifier(_ aspectRatio: PhotoCropAspectRatio) -> String {
@@ -360,6 +363,9 @@ struct CameraScreen: View {
                 Button {
                     FMHaptic.selection.play()
                     store.cameraTimerOption = option
+                    Telemetry.trackAction("timer_selected", screen: .cameraLive, parameters: [
+                        "seconds": option.rawValue
+                    ])
                 } label: {
                     if option == store.cameraTimerOption {
                         Label(option.label, systemImage: "checkmark")
@@ -408,6 +414,7 @@ struct CameraScreen: View {
         ) {
             FMHaptic.selection.play()
             store.cameraGridEnabled.toggle()
+            Telemetry.trackAction(store.cameraGridEnabled ? "grid_enabled" : "grid_disabled", screen: .cameraLive)
         }
         .accessibilityIdentifier("camera.grid.toggle")
     }
@@ -418,6 +425,9 @@ struct CameraScreen: View {
                 Button {
                     FMHaptic.selection.play()
                     store.cameraFlashMode = mode
+                    Telemetry.trackAction("flash_mode_selected", screen: .cameraLive, parameters: [
+                        "mode": mode.rawValue
+                    ])
                 } label: {
                     if mode == store.cameraFlashMode {
                         Label(mode.label, systemImage: "checkmark")
@@ -550,6 +560,10 @@ struct CameraScreen: View {
         withAnimation(reduceMotion ? nil : .fmSpringSwipe) {
             store.select(nextFilter)
         }
+        Telemetry.trackFunnelStep("camera_capture", step: "filter_selected", screen: .cameraLive, parameters: [
+            "source": "swipe",
+            "position": safeIndex
+        ])
     }
 
     private func resetFilterSwipeOffset() {
@@ -861,6 +875,9 @@ struct CameraScreen: View {
             withAnimation(reduceMotion ? nil : .fmSpringSwipe) {
                 store.select(filter)
             }
+            Telemetry.trackFunnelStep("camera_capture", step: "filter_selected", screen: .cameraLive, parameters: [
+                "source": "chip"
+            ])
         } label: {
             VStack(spacing: 6) {
                 FilterThumbnail(filter: filter)
@@ -900,6 +917,7 @@ struct CameraScreen: View {
         HStack(spacing: 0) {
             Button {
                 FMHaptic.light.play()
+                Telemetry.trackFunnelStep("camera_capture", step: "photo_import_opened", screen: .cameraLive)
                 openPhotoLibrary()
             } label: {
                 libraryThumbnail
@@ -1137,6 +1155,9 @@ struct CameraScreen: View {
         }
 
         FMHaptic.medium.play()
+        Telemetry.trackFunnelStep("camera_capture", step: "shutter_tapped", screen: .cameraLive, parameters: [
+            "timer_seconds": store.cameraTimerOption.rawValue
+        ])
         if countdownTask != nil {
             cancelCountdown()
         } else {
@@ -1150,6 +1171,7 @@ struct CameraScreen: View {
         didTriggerShutterLongPress = true
         shutterPressState = .idle
         FMHaptic.heavy.play()
+        Telemetry.trackFunnelStep("camera_capture", step: "burst_started", screen: .cameraLive)
         burstCaptureTask = Task { await captureBurstSequence() }
     }
 
@@ -1217,11 +1239,16 @@ struct CameraScreen: View {
         let result = await controller.capture(filter: store.selectedFilter)
         if let result {
             captureResult = result
+            Telemetry.trackFunnelStep("camera_capture", step: "capture_succeeded", screen: .cameraLive, parameters: [
+                "has_filter": true,
+                "aspect_ratio": result.cropAspectRatio.label
+            ])
         } else {
             FMHaptic.error.play()
             captureError = controller.statusMessage.isEmpty
                 ? "촬영에 실패했어요"
                 : controller.statusMessage
+            Telemetry.trackError("camera_capture_failed", screen: .cameraLive)
         }
     }
 
@@ -1262,11 +1289,13 @@ struct CameraScreen: View {
         if let lastResult {
             FMHaptic.heavy.play()
             captureResult = lastResult
+            Telemetry.trackFunnelStep("camera_capture", step: "burst_succeeded", screen: .cameraLive)
         } else {
             FMHaptic.error.play()
             captureError = controller.statusMessage.isEmpty
                 ? "연속 촬영에 실패했어요"
                 : controller.statusMessage
+            Telemetry.trackError("camera_burst_failed", screen: .cameraLive)
         }
     }
 
@@ -1593,14 +1622,17 @@ private struct CapturePreviewHost: View {
         guard filteredImage != nil else {
             saveState = .invalidShareData
             FMHaptic.error.play()
+            Telemetry.trackError("capture_share_invalid_data", screen: .cameraLive)
             return
         }
+        Telemetry.trackFunnelStep("camera_capture", step: "capture_shared", screen: .cameraLive)
         showShareSheet = true
     }
 
     private func save() async {
         guard saveState != .saving, saveState != .saved else { return }
         saveState = .saving
+        Telemetry.trackFunnelStep("camera_capture", step: "save_started", screen: .cameraLive)
         let outcome = await photoLibrarySaver.savePhoto(data: result.filteredPhoto.filteredData)
         let next = CaptureSaveState(result: outcome)
         saveState = next
@@ -1608,8 +1640,12 @@ private struct CapturePreviewHost: View {
         case .saved:
             await persistCaptureMetadata()
             FMHaptic.success.play()
+            Telemetry.trackFunnelStep("camera_capture", step: "save_succeeded", screen: .cameraLive)
         case .permissionDenied, .permissionRestricted, .permissionNotDetermined, .invalidData, .invalidShareData, .failed:
             FMHaptic.error.play()
+            Telemetry.trackError("capture_save_failed", screen: .cameraLive, parameters: [
+                "state": next.telemetryName
+            ])
         case .idle, .saving:
             break
         }
@@ -1929,6 +1965,20 @@ private enum CaptureSaveState: Equatable {
             "공유할 사진을 준비하지 못했어요"
         case .failed:
             "저장에 실패했어요"
+        }
+    }
+
+    var telemetryName: String {
+        switch self {
+        case .idle: "idle"
+        case .saving: "saving"
+        case .saved: "saved"
+        case .permissionDenied: "permission_denied"
+        case .permissionRestricted: "permission_restricted"
+        case .permissionNotDetermined: "permission_not_determined"
+        case .invalidData: "invalid_data"
+        case .invalidShareData: "invalid_share_data"
+        case .failed: "failed"
         }
     }
 

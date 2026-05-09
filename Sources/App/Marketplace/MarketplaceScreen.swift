@@ -65,6 +65,7 @@ struct MarketplaceScreen: View {
             .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
         }
         .refreshable {
+            Telemetry.trackPullToRefresh(.marketplaceHome)
             await store.load(force: true)
         }
         .background(FMColors.Background.bg0)
@@ -94,6 +95,9 @@ struct MarketplaceScreen: View {
                 }
             }
             .buttonStyle(.plain)
+            .simultaneousGesture(TapGesture().onEnded {
+                Telemetry.trackAction("search_opened", screen: .marketplaceHome, parameters: ["source": "header"])
+            })
             .frame(maxWidth: .infinity)
 
             NavigationLink(value: AppRoute.wallet) {
@@ -116,6 +120,9 @@ struct MarketplaceScreen: View {
                 }
             }
             .buttonStyle(.plain)
+            .simultaneousGesture(TapGesture().onEnded {
+                Telemetry.trackAction("wallet_opened", screen: .marketplaceHome, parameters: ["source": "header"])
+            })
             .accessibilityIdentifier("market.header.coinBalance")
             .accessibilityLabel("코인 잔액 \(store.coinBalance)개, 지갑 열기")
 
@@ -131,6 +138,9 @@ struct MarketplaceScreen: View {
                     }
             }
             .buttonStyle(.plain)
+            .simultaneousGesture(TapGesture().onEnded {
+                Telemetry.trackAction("notifications_opened", screen: .marketplaceHome, parameters: ["source": "header"])
+            })
             .accessibilityLabel("알림")
         }
         .padding(.horizontal, Sp.md)
@@ -174,9 +184,13 @@ struct MarketplaceScreen: View {
 
             if store.trendingFilters.isEmpty {
                 FMEmptyState(.emptyMarket, ctaTitle: "새로고침") {
+                    Telemetry.trackAction("empty_state_cta_tapped", screen: .marketplaceHome, parameters: ["section": "trending"])
                     Task { await store.load(force: true) }
                 }
                     .padding(.horizontal, Sp.md)
+                    .onAppear {
+                        Telemetry.trackEmptyState("market_trending_empty", screen: .marketplaceHome)
+                    }
                     .accessibilityIdentifier("market.trending.empty")
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -187,6 +201,12 @@ struct MarketplaceScreen: View {
                                     .frame(width: 268)
                             }
                             .buttonStyle(.plain)
+                            .simultaneousGesture(TapGesture().onEnded {
+                                Telemetry.trackFunnelStep("marketplace_download", step: "filter_card_opened", screen: .marketplaceHome, parameters: [
+                                    "section": "trending",
+                                    "position": index
+                                ])
+                            })
                             .onAppear {
                                 prefetchCovers(in: Array(store.trendingFilters.dropFirst(index + 1).prefix(8)))
                             }
@@ -215,6 +235,9 @@ struct MarketplaceScreen: View {
                                 size: .sm
                             ) {
                                 selectedCategory = category
+                                Telemetry.trackAction("category_selected", screen: .marketplaceHome, parameters: [
+                                    "category": category
+                                ])
                             }
                             .id(category)
                             .accessibilityIdentifier("market.category.\(category)")
@@ -243,9 +266,18 @@ struct MarketplaceScreen: View {
 
             if filteredNewFilters.isEmpty {
                 FMEmptyState(.emptyMarket, ctaTitle: "새로고침") {
+                    Telemetry.trackAction("empty_state_cta_tapped", screen: .marketplaceHome, parameters: [
+                        "section": "new_filters",
+                        "category": selectedCategory
+                    ])
                     Task { await store.load(force: true) }
                 }
                     .padding(.horizontal, Sp.md)
+                    .onAppear {
+                        Telemetry.trackEmptyState("market_new_filters_empty", screen: .marketplaceHome, parameters: [
+                            "category": selectedCategory
+                        ])
+                    }
                     .accessibilityIdentifier("market.new.empty")
             } else {
                 LazyVGrid(
@@ -260,6 +292,13 @@ struct MarketplaceScreen: View {
                             FMFilterTile(data: filter.toTileData())
                         }
                         .buttonStyle(.plain)
+                        .simultaneousGesture(TapGesture().onEnded {
+                            Telemetry.trackFunnelStep("marketplace_download", step: "filter_card_opened", screen: .marketplaceHome, parameters: [
+                                "section": "new_filters",
+                                "position": index,
+                                "category": selectedCategory
+                            ])
+                        })
                         .onAppear {
                             prefetchCovers(in: Array(filteredNewFilters.dropFirst(index + 1).prefix(8)))
                         }
@@ -288,6 +327,11 @@ struct MarketplaceScreen: View {
                             CollectionCard(entry: collection)
                         }
                         .buttonStyle(.plain)
+                        .simultaneousGesture(TapGesture().onEnded {
+                            Telemetry.trackAction("collection_opened", screen: .marketplaceHome, parameters: [
+                                "collection": collection.title
+                            ])
+                        })
                         .accessibilityIdentifier("market.collection.\(collection.title)")
                     }
                 }
@@ -326,11 +370,17 @@ struct MarketplaceScreen: View {
             }
 
             FMButton("다시 시도", variant: .primary, size: .md) {
+                Telemetry.trackAction("load_retry_tapped", screen: .marketplaceHome)
                 Task { await store.retry() }
             }
             .accessibilityIdentifier("market.loadError.retry")
         }
         .padding(.horizontal, Sp.md)
+        .onAppear {
+            Telemetry.trackError("market_load_error", screen: .marketplaceHome, parameters: [
+                "error_type": String(describing: type(of: error))
+            ])
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("필터 로드 실패")
     }

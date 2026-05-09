@@ -120,6 +120,9 @@ struct FilterDetailScreen: View {
             .padding(.bottom, Sp.xl)
         }
         .refreshable {
+            Telemetry.trackPullToRefresh(.filterDetail, parameters: [
+                "has_backend_filter": filter != nil
+            ])
             await refreshDetail()
         }
     }
@@ -334,6 +337,7 @@ struct FilterDetailScreen: View {
         Button {
             isFollowing.toggle()
             FMHaptic.light.play()
+            Telemetry.trackAction(isFollowing ? "maker_followed" : "maker_unfollowed", screen: .filterDetail)
         } label: {
             Text(isFollowing ? "팔로잉" : "팔로우")
                 .fmTypography(.caption)
@@ -415,6 +419,7 @@ struct FilterDetailScreen: View {
                 Button {
                     isDescriptionExpanded.toggle()
                     FMHaptic.light.play()
+                    Telemetry.trackAction(isDescriptionExpanded ? "description_expanded" : "description_collapsed", screen: .filterDetail)
                 } label: {
                     Text(isDescriptionExpanded ? "접기" : "더 보기")
                         .fmTypography(.subhead)
@@ -448,7 +453,10 @@ struct FilterDetailScreen: View {
                         .accessibilityIdentifier("filter.detail.tag.\(tag)")
                 }
                 .buttonStyle(TagPressStyle())
-                .simultaneousGesture(TapGesture().onEnded { FMHaptic.light.play() })
+                .simultaneousGesture(TapGesture().onEnded {
+                    FMHaptic.light.play()
+                    Telemetry.trackFunnelStep("marketplace_download", step: "tag_search_opened", screen: .filterDetail)
+                })
                 .accessibilityIdentifier("filter.detail.tag.\(tag)")
                 .accessibilityLabel("\(tag.replacingOccurrences(of: "#", with: "")) 태그")
                 .accessibilityHint("이 태그로 검색합니다")
@@ -585,6 +593,10 @@ struct FilterDetailScreen: View {
         Button {
             sharePayload = makeSharePayload()
             FMHaptic.light.play()
+            Telemetry.log(.filterShared, parameters: [
+                "filter_source": filter == nil ? "mock" : "backend",
+                "screen_name": Telemetry.Screen.filterDetail.rawValue
+            ])
         } label: {
             Image(systemName: "square.and.arrow.up")
                 .font(.system(size: 14, weight: .semibold))
@@ -627,6 +639,7 @@ struct FilterDetailScreen: View {
                     didLikeMockFilter.toggle()
                 }
                 FMHaptic.light.play()
+                Telemetry.trackAction(isLiked ? "filter_liked" : "filter_unliked", screen: .filterDetail)
             } label: {
                 VStack(spacing: 2) {
                     Image(systemName: isLiked ? "heart.fill" : "heart")
@@ -663,6 +676,12 @@ struct FilterDetailScreen: View {
                     .background(FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
                 }
                 .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded {
+                    Telemetry.trackFunnelStep("marketplace_download", step: mock.isPaid ? "purchase_intent" : "download_intent", screen: .filterDetail, parameters: [
+                        "is_paid": mock.isPaid,
+                        "has_price_label": mock.priceLabel != nil
+                    ])
+                })
                 .accessibilityIdentifier(mock.isPaid ? "filter.detail.purchase" : "filter.detail.download")
             } else {
                 FMButton(
@@ -767,6 +786,9 @@ struct FilterDetailScreen: View {
         case .ready:
             downloadTask?.cancel()
             downloadState = .downloading
+            Telemetry.trackFunnelStep("marketplace_download", step: "download_started", screen: .filterDetail, parameters: [
+                "filter_source": filter == nil ? "mock" : "backend"
+            ])
             downloadTask = Task { @MainActor in
                 do {
                     if let filter {
@@ -776,12 +798,16 @@ struct FilterDetailScreen: View {
                     }
                     guard !Task.isCancelled else { return }
                     downloadState = .completed
+                    Telemetry.trackFunnelStep("marketplace_download", step: "download_completed", screen: .filterDetail)
                 } catch is CancellationError {
                     return
                 } catch {
                     guard !Task.isCancelled else { return }
                     downloadErrorMessage = error.localizedDescription
                     downloadState = .ready
+                    Telemetry.trackError("filter_download_failed", screen: .filterDetail, parameters: [
+                        "error_type": String(describing: type(of: error))
+                    ])
                 }
             }
         case .downloading:
@@ -834,6 +860,14 @@ private struct FilterDetailSampleItem: Identifiable, Equatable {
         }
     }
 
+    var telemetryKind: String {
+        switch kind {
+        case .signature: "signature"
+        case .remote: "remote"
+        case .reference: "reference"
+        }
+    }
+
     static func signature(url: URL) -> FilterDetailSampleItem {
         FilterDetailSampleItem(kind: .signature(url))
     }
@@ -858,6 +892,9 @@ private struct SampleGalleryView: View {
                 ForEach(samples) { sample in
                     Button {
                         onSelect(sample)
+                        Telemetry.trackAction("sample_opened", screen: .filterDetail, parameters: [
+                            "sample_kind": sample.telemetryKind
+                        ])
                     } label: {
                         sampleTile(sample)
                     }

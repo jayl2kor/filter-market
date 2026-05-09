@@ -113,208 +113,276 @@ extension AppRoute {
             .first
             .map(String.init) ?? "unknown"
     }
+
+    var telemetryScreen: Telemetry.Screen {
+        switch self {
+        case .login: .login
+        case .emailLogin: .emailLogin
+        case .search: .search
+        case .filterDetail: .filterDetail
+        case .filterDownload: .filterDownload
+        case .filterAfterDownload: .filterAfterDownload
+        case .otherProfile, .otherProfileHandle: .otherProfile
+        case .settings: .settings
+        case .cameraAspect: .cameraAspect
+        case .cameraTimer: .cameraTimer
+        case .photoImport: .photoImport
+        case .photoEdit: .photoEdit
+        case .captureDetail: .captureDetail
+        case .savedFilters: .saved
+        case .builtinFilters: .builtinFilters
+        case .editor: .filterEditor
+        case .editorParameters: .editorParameters
+        case .editorLUT: .editorLUT
+        case .editorDraft: .editorDraft
+        case .uploadCover: .uploadCover
+        case .uploadTags: .uploadTags
+        case .uploadSubmit: .uploadSubmit
+        case .uploadPending: .uploadPending
+        case .accountDeletion: .accountDeletion
+        case .editProfile: .editProfile
+        case .universalLinkLanding: .universalLinkLanding
+        case .reviews: .reviews
+        case .reviewCompose: .reviewCompose
+        case .rating: .rating
+        case .followers: .followers
+        case .following: .following
+        case .notifications: .notifications
+        case .notificationSettings: .notificationSettings
+        case .makerDashboard: .makerDashboard
+        case .reportForm: .reportForm
+        case .favoritesCollection: .favoritesCollection
+        case .forYou: .forYou
+        case .followingFeed: .followingFeed
+        case .modQueue: .moderationQueue
+        case .modDetail: .moderationDetail
+        case .blockList: .blockList
+        case .remixFlow: .remixFlow
+        case .paywallSingle: .paywall
+        case .proSubscription: .proSubscription
+        case .ordersHistory: .ordersHistory
+        case .payoutOnboarding: .payoutOnboarding
+        case .payoutTaxInfo: .payoutTaxInfo
+        case .payoutHistory: .payoutHistory
+        case .wallet: .wallet
+        case .walletTopup: .walletTopup
+        case .walletTransactions: .walletTransactions
+        case .insufficientBalance: .insufficientBalance
+        case .earningsWithdraw: .earningsWithdraw
+        case .filterRejected: .filterRejected
+        case .proStatus: .proStatus
+        case .myFilters: .myFilters
+        case .paymentFailed: .paymentFailed
+        case .dataExport: .dataExport
+        case .refundRequest: .refundRequest
+        case .helpCenter: .helpCenter
+        }
+    }
 }
 
 extension View {
     /// Defines every `NavigationStack` destination in one place.
     func appRouteDestinations() -> some View {
         navigationDestination(for: AppRoute.self) { route in
-            switch route {
-            case .login:
-                LoginScreen()
+            Group {
+                switch route {
+                case .login:
+                    LoginScreen()
 
-            case .emailLogin:
-                EmailLoginScreen()
+                case .emailLogin:
+                    EmailLoginScreen()
 
-            case .search(let initialQuery, let category):
-                SearchScreen(initialQuery: initialQuery, initialCategory: category)
+                case .search(let initialQuery, let category):
+                    SearchScreen(initialQuery: initialQuery, initialCategory: category)
 
-            case .filterDetail(let id):
-                if UUID(uuidString: id) != nil {
-                    FilterDetailLoaderScreen(filterId: id)
-                } else {
-                    #if DEBUG
-                    if isUITesting {
-                        FilterDetailScreen(mock: FilterDetailMock.mock(forRouteID: id))
+                case .filterDetail(let id):
+                    if UUID(uuidString: id) != nil {
+                        FilterDetailLoaderScreen(filterId: id)
                     } else {
+                        #if DEBUG
+                        if isUITesting {
+                            FilterDetailScreen(mock: FilterDetailMock.mock(forRouteID: id))
+                        } else {
+                            FilterUnavailableScreen(filterID: id)
+                        }
+                        #else
                         FilterUnavailableScreen(filterID: id)
+                        #endif
                     }
-                    #else
-                    FilterUnavailableScreen(filterID: id)
-                    #endif
+
+                case .settings:
+                    SettingsScreen()
+
+                case .otherProfile(let uid):
+                    ProfileScreen(otherUid: uid, ownsNavigationStack: false)
+
+                case .otherProfileHandle(let handle):
+                    ProfileHandleResolverScreen(handle: handle)
+
+                case .savedFilters:
+                    SavedScreen(ownsNavigationStack: false)
+
+                case .filterDownload(let id):
+                    FilterDownloadProgressScreen(filterID: id)
+
+                case .filterAfterDownload(let id):
+                    FilterAfterDownloadScreen(filterID: id)
+
+                case .cameraAspect:
+                    CameraAspectPickerScreen()
+
+                case .cameraTimer:
+                    CameraTimerCountdownScreen()
+
+                case .photoImport:
+                    PhotoImportScreen()
+
+                case .photoEdit:
+                    PhotoEditScreen()
+
+                case .captureDetail(let id):
+                    CaptureDetailScreen(captureID: id)
+
+                case .builtinFilters:
+                    BuiltinFilterLibraryScreen()
+
+                case .editor:
+                    FilterEditorScreen()
+
+                case .editorParameters:
+                    EditorParametersScreen()
+
+                case .editorLUT:
+                    EditorLUTImportScreen()
+
+                case .editorDraft:
+                    EditorDraftSaveScreen()
+
+                case .uploadCover:
+                    UploadCoverScreen()
+
+                case .uploadTags:
+                    UploadTagsCategoryScreen()
+
+                case .uploadSubmit:
+                    UploadTOSSubmitScreen()
+
+                case .uploadPending:
+                    UploadPendingReviewScreen()
+
+                case .accountDeletion:
+                    AccountDeletionScreen()
+
+                case .editProfile:
+                    EditProfileScreen()
+
+                case .universalLinkLanding:
+                    UniversalLinkLandingScreen()
+
+                case .reviews(let filterId):
+                    ReviewsListScreen(filterID: filterId)
+
+                case .reviewCompose(let filterId):
+                    ReviewComposeScreen(filterID: filterId)
+
+                case .rating(let filterId):
+                    RatingFormScreen(filterID: filterId)
+
+                case .followers(let uid):
+                    FollowersListScreen(userID: uid)
+
+                case .following(let uid):
+                    FollowingListScreen(userID: uid)
+
+                case .notifications:
+                    NotificationsInboxScreen()
+
+                case .notificationSettings:
+                    NotificationSettingsScreen()
+
+                case .makerDashboard:
+                    MakerDashboardScreen()
+
+                case .reportForm(let target):
+                    ReportFormScreen(target: target)
+
+                case .favoritesCollection:
+                    FavoritesCollectionScreen()
+
+                case .forYou:
+                    ForYouFeedScreen()
+
+                case .followingFeed:
+                    FollowingFeedScreen()
+
+                case .modQueue:
+                    ModerationQueueScreen()
+
+                case .modDetail(let id):
+                    ModerationDetailScreen(itemID: id)
+
+                case .blockList:
+                    BlockListScreen()
+
+                case .remixFlow:
+                    RemixFlowScreen()
+
+                case .paywallSingle(let filterId):
+                    PaywallSingleScreen(filterID: filterId)
+
+                case .proSubscription:
+                    ProSubscriptionScreen()
+
+                case .ordersHistory:
+                    OrdersHistoryScreen()
+
+                case .payoutOnboarding:
+                    PayoutOnboardingScreen()
+
+                case .payoutTaxInfo:
+                    PayoutTaxInfoScreen()
+
+                case .payoutHistory:
+                    PayoutHistoryScreen()
+
+                case .wallet:
+                    WalletScreen()
+
+                case .walletTopup:
+                    WalletTopupScreen()
+
+                case .walletTransactions:
+                    WalletTransactionsScreen()
+
+                case .insufficientBalance(let filterId):
+                    InsufficientBalanceScreen(filterID: filterId)
+
+                case .earningsWithdraw:
+                    EarningsWithdrawScreen()
+
+                case .filterRejected(let id):
+                    FilterRejectedScreen(filterID: id)
+
+                case .proStatus:
+                    ProStatusScreen()
+
+                case .myFilters:
+                    MyFiltersScreen()
+
+                case .paymentFailed:
+                    PaymentFailedScreen()
+
+                case .dataExport:
+                    DataExportScreen()
+
+                case .refundRequest(let orderId):
+                    RefundRequestScreen(prefilledOrderId: orderId)
+
+                case .helpCenter:
+                    HelpCenterScreen()
                 }
-
-            case .settings:
-                SettingsScreen()
-
-            case .otherProfile(let uid):
-                ProfileScreen(otherUid: uid, ownsNavigationStack: false)
-
-            case .otherProfileHandle(let handle):
-                ProfileHandleResolverScreen(handle: handle)
-
-            case .savedFilters:
-                SavedScreen(ownsNavigationStack: false)
-
-            case .filterDownload(let id):
-                FilterDownloadProgressScreen(filterID: id)
-
-            case .filterAfterDownload(let id):
-                FilterAfterDownloadScreen(filterID: id)
-
-            case .cameraAspect:
-                CameraAspectPickerScreen()
-
-            case .cameraTimer:
-                CameraTimerCountdownScreen()
-
-            case .photoImport:
-                PhotoImportScreen()
-
-            case .photoEdit:
-                PhotoEditScreen()
-
-            case .captureDetail(let id):
-                CaptureDetailScreen(captureID: id)
-
-            case .builtinFilters:
-                BuiltinFilterLibraryScreen()
-
-            case .editor:
-                FilterEditorScreen()
-
-            case .editorParameters:
-                EditorParametersScreen()
-
-            case .editorLUT:
-                EditorLUTImportScreen()
-
-            case .editorDraft:
-                EditorDraftSaveScreen()
-
-            case .uploadCover:
-                UploadCoverScreen()
-
-            case .uploadTags:
-                UploadTagsCategoryScreen()
-
-            case .uploadSubmit:
-                UploadTOSSubmitScreen()
-
-            case .uploadPending:
-                UploadPendingReviewScreen()
-
-            case .accountDeletion:
-                AccountDeletionScreen()
-
-            case .editProfile:
-                EditProfileScreen()
-
-            case .universalLinkLanding:
-                UniversalLinkLandingScreen()
-
-            case .reviews(let filterId):
-                ReviewsListScreen(filterID: filterId)
-
-            case .reviewCompose(let filterId):
-                ReviewComposeScreen(filterID: filterId)
-
-            case .rating(let filterId):
-                RatingFormScreen(filterID: filterId)
-
-            case .followers(let uid):
-                FollowersListScreen(userID: uid)
-
-            case .following(let uid):
-                FollowingListScreen(userID: uid)
-
-            case .notifications:
-                NotificationsInboxScreen()
-
-            case .notificationSettings:
-                NotificationSettingsScreen()
-
-            case .makerDashboard:
-                MakerDashboardScreen()
-
-            case .reportForm(let target):
-                ReportFormScreen(target: target)
-
-            case .favoritesCollection:
-                FavoritesCollectionScreen()
-
-            case .forYou:
-                ForYouFeedScreen()
-
-            case .followingFeed:
-                FollowingFeedScreen()
-
-            case .modQueue:
-                ModerationQueueScreen()
-
-            case .modDetail(let id):
-                ModerationDetailScreen(itemID: id)
-
-            case .blockList:
-                BlockListScreen()
-
-            case .remixFlow:
-                RemixFlowScreen()
-
-            case .paywallSingle(let filterId):
-                PaywallSingleScreen(filterID: filterId)
-
-            case .proSubscription:
-                ProSubscriptionScreen()
-
-            case .ordersHistory:
-                OrdersHistoryScreen()
-
-            case .payoutOnboarding:
-                PayoutOnboardingScreen()
-
-            case .payoutTaxInfo:
-                PayoutTaxInfoScreen()
-
-            case .payoutHistory:
-                PayoutHistoryScreen()
-
-            case .wallet:
-                WalletScreen()
-
-            case .walletTopup:
-                WalletTopupScreen()
-
-            case .walletTransactions:
-                WalletTransactionsScreen()
-
-            case .insufficientBalance(let filterId):
-                InsufficientBalanceScreen(filterID: filterId)
-
-            case .earningsWithdraw:
-                EarningsWithdrawScreen()
-
-            case .filterRejected(let id):
-                FilterRejectedScreen(filterID: id)
-
-            case .proStatus:
-                ProStatusScreen()
-
-            case .myFilters:
-                MyFiltersScreen()
-
-            case .paymentFailed:
-                PaymentFailedScreen()
-
-            case .dataExport:
-                DataExportScreen()
-
-            case .refundRequest(let orderId):
-                RefundRequestScreen(prefilledOrderId: orderId)
-
-            case .helpCenter:
-                HelpCenterScreen()
             }
+            .fmTrackScreen(route.telemetryScreen, parameters: ["route_kind": route.telemetryKind])
         }
     }
 }
