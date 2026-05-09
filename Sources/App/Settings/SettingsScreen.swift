@@ -55,7 +55,7 @@ struct SettingsScreen: View {
         )
     }
 
-    // 알림 상태는 MooditStore.notificationPreferences를 단일 진실원으로 사용.
+    // 알림 상태는 SessionStore.notificationPreferences를 단일 진실원으로 사용.
     @AppStorage("settings.notif.sensitiveFilter") private var sensitiveFilterRaw: String = SensitiveFilterLevel.strong.rawValue
 
     private var sensitiveFilter: Binding<SensitiveFilterLevel> {
@@ -282,7 +282,7 @@ struct SettingsScreen: View {
         }
     }
 
-    /// Firebase Auth 세션 종료. MooditStore auth listener owns authenticated state.
+    /// Firebase Auth 세션 종료. SessionStore auth listener owns authenticated state.
     /// Firebase가 미설정인 경우(GoogleService-Info.plist 누락 시뮬레이터 등)에도
     /// store의 로컬 fallback 상태를 정리한다.
     private func performSignOut() {
