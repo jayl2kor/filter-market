@@ -30,6 +30,7 @@ struct CameraScreen: View {
     @State private var isPhotoImportPresented = false
     @State private var countdownValue: Int?
     @State private var countdownTask: Task<Void, Never>?
+    @State private var filterSwipeOffset: CGFloat = 0
     /// 셔터 → `controller.capture` 가 nil 을 반환했을 때의 사용자용 에러 메시지.
     /// `.fmAlert` 의 `isPresented` 와 binding 되며, 닫힐 때 nil 로 리셋된다.
     @State private var captureError: String?
@@ -481,36 +482,71 @@ struct CameraScreen: View {
 
     private func filterSwipeGesture(width: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 12)
+            .onChanged { drag in
+                guard abs(drag.translation.width) > abs(drag.translation.height) else { return }
+                filterSwipeOffset = CameraFilterSwipeResolver.visualOffset(
+                    translation: drag.translation.width,
+                    currentIndex: currentFilterIndex(),
+                    filterCount: store.filters.count
+                )
+            }
             .onEnded { drag in
                 // 가로 우세인 경우만 처리 — 세로 스와이프(포커스 등)와 충돌 방지.
                 guard abs(drag.translation.width) > abs(drag.translation.height) else { return }
 
-                let displacement = drag.translation.width
-                let velocity = drag.predictedEndTranslation.width - drag.translation.width
-                let distanceThreshold = max(80, width * 0.3)
-                let velocityThreshold: CGFloat = 500
+                let targetIndex = CameraFilterSwipeResolver.targetIndex(
+                    currentIndex: currentFilterIndex(),
+                    filterCount: store.filters.count,
+                    translation: drag.translation.width,
+                    predictedEndTranslation: drag.predictedEndTranslation.width,
+                    containerWidth: width
+                )
 
-                if displacement <= -distanceThreshold || velocity <= -velocityThreshold {
-                    advanceFilter(direction: 1) // 다음 필터
-                } else if displacement >= distanceThreshold || velocity >= velocityThreshold {
-                    advanceFilter(direction: -1) // 이전 필터
+                if let targetIndex, targetIndex != currentFilterIndex() {
+                    selectFilter(at: targetIndex)
+                } else {
+                    FMHaptic.light.play()
+                    resetFilterSwipeOffset()
                 }
-                // threshold 미달 — 시각 변화 없음. 후속 phase 에서 인접 필터 peek 추가 시
-                // 여기서 snap-back 애니메이션을 도입할 수 있다.
             }
     }
 
     private func advanceFilter(direction: Int) {
-        guard !store.filters.isEmpty else { return }
+        let targetIndex = CameraFilterSwipeResolver.clampedIndex(
+            currentIndex: currentFilterIndex(),
+            filterCount: store.filters.count,
+            direction: direction,
+            steps: 1
+        )
+        guard let targetIndex, targetIndex != currentFilterIndex() else {
+            FMHaptic.warning.play()
+            resetFilterSwipeOffset()
+            return
+        }
+        selectFilter(at: targetIndex)
+    }
 
+    private func currentFilterIndex() -> Int {
+        guard !store.filters.isEmpty else { return 0 }
         let currentID = store.selectedFilterID
-        let currentIndex = store.filters.firstIndex(where: { $0.id == currentID }) ?? 0
-        let nextIndex = (currentIndex + direction + store.filters.count) % store.filters.count
-        let nextFilter = store.filters[nextIndex]
+        return store.filters.firstIndex(where: { $0.id == currentID }) ?? 0
+    }
 
+    private func selectFilter(at index: Int) {
+        guard !store.filters.isEmpty else { return }
+        let safeIndex = min(max(index, 0), store.filters.count - 1)
+        let nextFilter = store.filters[safeIndex]
+
+        filterSwipeOffset = 0
         FMHaptic.medium.play()
-        withAnimation(reduceMotion ? .fmFast : .fmSpringSwipe) {
+        withAnimation(reduceMotion ? nil : .fmSpringSwipe) {
             store.select(nextFilter)
+        }
+    }
+
+    private func resetFilterSwipeOffset() {
+        withAnimation(reduceMotion ? nil : .fmSpringSwipe) {
+            filterSwipeOffset = 0
         }
     }
 
@@ -520,13 +556,18 @@ struct CameraScreen: View {
     private var swipeHints: some View {
         if let neighbours = adjacentFilters() {
             HStack {
-                swipeHint(label: neighbours.previous.title, leading: true)
+                if let previous = neighbours.previous {
+                    swipeHint(label: previous.title, leading: true)
+                }
                 Spacer()
-                swipeHint(label: neighbours.next.title, leading: false)
+                if let next = neighbours.next {
+                    swipeHint(label: next.title, leading: false)
+                }
             }
             .padding(.horizontal, Sp.sm)
             .frame(maxHeight: .infinity, alignment: .bottom)
             .padding(.bottom, 260)
+            .offset(x: filterSwipeOffset * 0.12)
             .allowsHitTesting(false)
         }
     }
@@ -557,12 +598,11 @@ struct CameraScreen: View {
         .colorScheme(.dark)
     }
 
-    private func adjacentFilters() -> (previous: Filter, next: Filter)? {
+    private func adjacentFilters() -> (previous: Filter?, next: Filter?)? {
         guard store.filters.count > 1 else { return nil }
-        let currentID = store.selectedFilterID
-        let currentIndex = store.filters.firstIndex(where: { $0.id == currentID }) ?? 0
-        let prev = store.filters[(currentIndex - 1 + store.filters.count) % store.filters.count]
-        let next = store.filters[(currentIndex + 1) % store.filters.count]
+        let currentIndex = currentFilterIndex()
+        let prev = currentIndex > 0 ? store.filters[currentIndex - 1] : nil
+        let next = currentIndex < store.filters.count - 1 ? store.filters[currentIndex + 1] : nil
         return (prev, next)
     }
 
@@ -733,7 +773,19 @@ struct CameraScreen: View {
             }
             .padding(.horizontal, Sp.md)
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("현재 필터 \(filter.title), 강도 \(Int((controller.intensity * 100).rounded()))퍼센트")
+            .accessibilityLabel("현재 필터")
+            .accessibilityValue("\(filter.title), \(Int((controller.intensity * 100).rounded()))퍼센트")
+            .accessibilityHint("위 또는 아래로 쓸어넘겨 이전 또는 다음 필터로 이동합니다")
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment:
+                    advanceFilter(direction: 1)
+                case .decrement:
+                    advanceFilter(direction: -1)
+                @unknown default:
+                    break
+                }
+            }
         }
     }
 
@@ -785,10 +837,11 @@ struct CameraScreen: View {
             }
             .onChange(of: store.selectedFilterID) { _, newID in
                 guard let newID else { return }
-                withAnimation(reduceMotion ? .fmFast : .fmSpringSwipe) {
+                withAnimation(reduceMotion ? nil : .fmSpringSwipe) {
                     proxy.scrollTo(newID, anchor: .center)
                 }
             }
+            .offset(x: filterSwipeOffset * 0.22)
         }
     }
 
@@ -797,7 +850,7 @@ struct CameraScreen: View {
         return Button {
             guard !isActive else { return }
             FMHaptic.selection.play()
-            withAnimation(reduceMotion ? .fmFast : .fmSpringSwipe) {
+            withAnimation(reduceMotion ? nil : .fmSpringSwipe) {
                 store.select(filter)
             }
         } label: {
@@ -1047,6 +1100,85 @@ struct CameraScreen: View {
         countdownTask?.cancel()
         countdownTask = nil
         countdownValue = nil
+    }
+}
+
+// MARK: - Filter swipe resolver
+
+private enum CameraFilterSwipeResolver {
+    static let distanceThreshold: CGFloat = 50
+    private static let velocityThreshold: CGFloat = 520
+    private static let fastVelocityThreshold: CGFloat = 950
+    private static let maxVisualOffset: CGFloat = 160
+
+    static func visualOffset(
+        translation: CGFloat,
+        currentIndex: Int,
+        filterCount: Int
+    ) -> CGFloat {
+        guard filterCount > 1 else { return 0 }
+
+        let isPastFirst = currentIndex <= 0 && translation > 0
+        let isPastLast = currentIndex >= filterCount - 1 && translation < 0
+        let resistance: CGFloat = (isPastFirst || isPastLast) ? 0.35 : 1
+        let resistedTranslation = translation * resistance
+
+        return min(max(resistedTranslation, -maxVisualOffset), maxVisualOffset)
+    }
+
+    static func targetIndex(
+        currentIndex: Int,
+        filterCount: Int,
+        translation: CGFloat,
+        predictedEndTranslation: CGFloat,
+        containerWidth: CGFloat
+    ) -> Int? {
+        guard filterCount > 1 else { return nil }
+
+        let velocity = predictedEndTranslation - translation
+        let horizontalIntent = abs(translation) >= distanceThreshold || abs(velocity) >= velocityThreshold
+        guard horizontalIntent else { return nil }
+
+        let primaryIntent = abs(velocity) >= velocityThreshold ? velocity : translation
+        let direction = primaryIntent < 0 ? 1 : -1
+
+        let steps = swipeSteps(
+            velocity: velocity,
+            predictedEndTranslation: predictedEndTranslation,
+            containerWidth: containerWidth
+        )
+        return clampedIndex(
+            currentIndex: currentIndex,
+            filterCount: filterCount,
+            direction: direction,
+            steps: steps
+        )
+    }
+
+    static func clampedIndex(
+        currentIndex: Int,
+        filterCount: Int,
+        direction: Int,
+        steps: Int
+    ) -> Int? {
+        guard filterCount > 1, direction != 0, steps > 0 else { return nil }
+        let targetIndex = currentIndex + (direction * steps)
+        return min(max(targetIndex, 0), filterCount - 1)
+    }
+
+    private static func swipeSteps(
+        velocity: CGFloat,
+        predictedEndTranslation: CGFloat,
+        containerWidth: CGFloat
+    ) -> Int {
+        let predictedRatio = abs(predictedEndTranslation) / max(containerWidth, 1)
+        if abs(velocity) >= fastVelocityThreshold || predictedRatio >= 0.85 {
+            return 3
+        }
+        if abs(velocity) >= velocityThreshold || predictedRatio >= 0.55 {
+            return 2
+        }
+        return 1
     }
 }
 

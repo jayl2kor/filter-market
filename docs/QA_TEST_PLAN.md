@@ -315,7 +315,11 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 7.12 | 줌 1x (`camera.zoom.1`) | zoom preset 변경 |  |
 | 7.13 | 줌 3x (`camera.zoom.3`) | zoom preset 변경 |  |
 | 7.14 | 프리뷰 탭 (focus) | FocusReticle 850ms 표시 |  |
-| 7.15 | 좌우 드래그 | 필터 좌/우 전환 |  |
+| 7.15 | 좌우 드래그 | 50pt 이상 가로 드래그에서 필터 좌/우 전환, 50pt 미만은 snap-back |  |
+| 7.15a | 빠른 좌우 swipe | velocity/predicted end 기준으로 2~3개 필터를 관성 점프하고 thumbnail strip이 선택 필터 중앙으로 동기화 |  |
+| 7.15b | 첫/마지막 필터 edge drag | 첫 필터에서 오른쪽, 마지막 필터에서 왼쪽 드래그 시 edge resistance가 적용되고 wrap-around 되지 않음 |  |
+| 7.15c | Reduce Motion ON | 필터 swipe/thumbnail strip 이동이 장시간 spring 없이 즉시 또는 짧은 snap으로 전환 |  |
+| 7.15d | VoiceOver current filter | 현재 필터 pill이 accessibilityValue로 "필터명, 강도 N퍼센트"를 읽고 adjustable flick으로 이전/다음 필터 이동 |  |
 | 7.16 | timer 카운트다운 중 화면 탭 | 카운트다운 취소 |  |
 | 7.16a | timer 카운트다운 중 background/inactive | 카운트다운 task 취소, `countdownValue` nil, background capture 발생 안 함 |  |
 | 7.17 | 캡처 실패 (시뮬레이터) | "촬영 실패" 알럿 |  |
