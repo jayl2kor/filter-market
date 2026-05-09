@@ -140,6 +140,7 @@
 		A1841001A1841001A1841001 /* WorkflowHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1841000A1841000A1841000 /* WorkflowHelpers.swift */; };
 		A1841003A1841003A1841003 /* WorkflowFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1841002A1841002A1841002 /* WorkflowFormatters.swift */; };
 		A1841005A1841005A1841005 /* EditorAssets.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1841004A1841004A1841004 /* EditorAssets.swift */; };
+		B1780501B1780501B1780501 /* MakerWorkflowScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1780500B1780500B1780500 /* MakerWorkflowScreens.swift */; };
 		9E741D7E42757E5EC2821E84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A5351CED6F1DF3CD977446C4 /* Assets.xcassets */; };
 		9F86C29BA2A7D32C3C4EB4D9 /* FirestoreFilterRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D6F0C2A387F95021D67B35 /* FirestoreFilterRepository.swift */; };
 		A0E6E49719D0A6D7A9C38C55 /* NumberFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E6E49619D0A6D7A9C38C55 /* NumberFormatting.swift */; };
@@ -584,6 +585,7 @@
 		A1841000A1841000A1841000 /* WorkflowHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowHelpers.swift; sourceTree = "<group>"; };
 		A1841002A1841002A1841002 /* WorkflowFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowFormatters.swift; sourceTree = "<group>"; };
 		A1841004A1841004A1841004 /* EditorAssets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorAssets.swift; sourceTree = "<group>"; };
+		B1780500B1780500B1780500 /* MakerWorkflowScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakerWorkflowScreens.swift; sourceTree = "<group>"; };
 		DB733F6CAB461FE90147DBD6 /* MooditApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditApp.swift; sourceTree = "<group>"; };
 		DCF82BA88FE8A0FCB5612ACD /* ReduceMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReduceMotion.swift; sourceTree = "<group>"; };
 		DCFD3ADD882050868B6A4166 /* AppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -1021,6 +1023,7 @@
 			isa = PBXGroup;
 			children = (
 				A1841004A1841004A1841004 /* EditorAssets.swift */,
+				B1780500B1780500B1780500 /* MakerWorkflowScreens.swift */,
 			);
 			path = Maker;
 			sourceTree = "<group>";
@@ -1738,6 +1741,7 @@
 				328DBE45D7E28194B6C3008E /* DeepLinkDestination.swift in Sources */,
 				3C88C368561FCC7244D72012 /* DocumentPicker.swift in Sources */,
 				A1841005A1841005A1841005 /* EditorAssets.swift in Sources */,
+				B1780501B1780501B1780501 /* MakerWorkflowScreens.swift in Sources */,
 				D06642B60C0907C0DC558D7F /* EmailLoginScreen.swift in Sources */,
 				B6B51C13A41C8CEE2FBEDA74 /* FavoritesCollectionScreen.swift in Sources */,
 				019F4D27F33F709256F90E13 /* FilterDetailLoaderScreen.swift in Sources */,
