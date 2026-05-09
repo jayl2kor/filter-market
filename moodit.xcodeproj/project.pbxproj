@@ -66,6 +66,7 @@
 		47D43CB68B0D53B02819C462 /* Telemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E143F001AB6EB3CE134D5C7 /* Telemetry.swift */; };
 		4A92C0014A92C0014A920092 /* FMColorsContrastTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A92C0004A92C0004A920092 /* FMColorsContrastTests.swift */; };
 		B0640001B0640001B0640001 /* FilterDetailResponseParsingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0640000B0640000B0640000 /* FilterDetailResponseParsingTests.swift */; };
+		B1800303B1800303B1800303 /* FilterLibraryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1800302B1800302B1800302 /* FilterLibraryStoreTests.swift */; };
 		A1620001A1620001A1620001 /* TelemetryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1620000A1620000A1620000 /* TelemetryTests.swift */; };
 		497C3F1BB53D9520221180C7 /* FilterEngine.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 19A5F57CB1F9511DB9EEE36F /* FilterEngine.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		49A1300149A1300149A10030 /* SystemImageAccessibilityAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49A1300049A1300049A10030 /* SystemImageAccessibilityAuditTests.swift */; };
@@ -145,6 +146,7 @@
 		B1780603B1780603B1780603 /* UniversalLinkLandingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1780602B1780602B1780602 /* UniversalLinkLandingScreen.swift */; };
 		B1780605B1780605B1780605 /* DataExportScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1780604B1780604B1780604 /* DataExportScreen.swift */; };
 		B1780607B1780607B1780607 /* NotificationSettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1780606B1780606B1780606 /* NotificationSettingsScreen.swift */; };
+		B1800301B1800301B1800301 /* FilterLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1800300B1800300B1800300 /* FilterLibraryStore.swift */; };
 		9E741D7E42757E5EC2821E84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A5351CED6F1DF3CD977446C4 /* Assets.xcassets */; };
 		9F86C29BA2A7D32C3C4EB4D9 /* FirestoreFilterRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D6F0C2A387F95021D67B35 /* FirestoreFilterRepository.swift */; };
 		A0E6E49719D0A6D7A9C38C55 /* NumberFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E6E49619D0A6D7A9C38C55 /* NumberFormatting.swift */; };
@@ -547,6 +549,7 @@
 		B0640000B0640000B0640000 /* FilterDetailResponseParsingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterDetailResponseParsingTests.swift; sourceTree = "<group>"; };
 		B1780100B1780100B1780100 /* CameraWorkflowScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraWorkflowScreens.swift; sourceTree = "<group>"; };
 		B1800000B1800000B1800000 /* MooditStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditStoreTests.swift; sourceTree = "<group>"; };
+		B1800302B1800302B1800302 /* FilterLibraryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterLibraryStoreTests.swift; sourceTree = "<group>"; };
 		B1840100B1840100B1840100 /* ProfileSelfStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelfStoreTests.swift; sourceTree = "<group>"; };
 		B1800200B1800200B1800200 /* MooditStoreModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditStoreModels.swift; sourceTree = "<group>"; };
 		AE15FDD0D63491F42DC3EB6B /* CapturePreviewScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePreviewScreen.swift; sourceTree = "<group>"; };
@@ -592,6 +595,7 @@
 		B1780602B1780602B1780602 /* UniversalLinkLandingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalLinkLandingScreen.swift; sourceTree = "<group>"; };
 		B1780604B1780604B1780604 /* DataExportScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataExportScreen.swift; sourceTree = "<group>"; };
 		B1780606B1780606B1780606 /* NotificationSettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsScreen.swift; sourceTree = "<group>"; };
+		B1800300B1800300B1800300 /* FilterLibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterLibraryStore.swift; sourceTree = "<group>"; };
 		DB733F6CAB461FE90147DBD6 /* MooditApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditApp.swift; sourceTree = "<group>"; };
 		DCF82BA88FE8A0FCB5612ACD /* ReduceMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReduceMotion.swift; sourceTree = "<group>"; };
 		DCFD3ADD882050868B6A4166 /* AppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -939,6 +943,7 @@
 			children = (
 				4A92C0004A92C0004A920092 /* FMColorsContrastTests.swift */,
 				B0640000B0640000B0640000 /* FilterDetailResponseParsingTests.swift */,
+				B1800302B1800302B1800302 /* FilterLibraryStoreTests.swift */,
 				20AD78CAA174208501C9A979 /* IAPProductIDsTests.swift */,
 				49A1300049A1300049A10030 /* SystemImageAccessibilityAuditTests.swift */,
 				A1620000A1620000A1620000 /* TelemetryTests.swift */,
@@ -1061,6 +1066,7 @@
 			children = (
 				AF562476D5DB9EC655372E76 /* FilterDetailLoaderScreen.swift */,
 				E2AA3CD9BD608293E9758F6E /* FilterDetailScreen.swift */,
+				B1800300B1800300B1800300 /* FilterLibraryStore.swift */,
 				75C628A9FFFF44E72B594135 /* FilterTileMapping.swift */,
 				82D6F0C2A387F95021D67B35 /* FirestoreFilterRepository.swift */,
 				B73582E7F46CA5AFA4A47576 /* IAPProductIDs.swift */,
@@ -1792,6 +1798,7 @@
 				B5A246E02823D8C8B52F79C9 /* ShareSheet.swift in Sources */,
 				F931661DCDD3BB86DC13E4E8 /* SocialDiscoveryScreens.swift in Sources */,
 				C3103871CBE6A50DBB440C3F /* StoreKitManager.swift in Sources */,
+				B1800301B1800301B1800301 /* FilterLibraryStore.swift in Sources */,
 				47D43CB68B0D53B02819C462 /* Telemetry.swift in Sources */,
 				DD9E7C1FCBD83D80D21EDAC3 /* UITestingFlag.swift in Sources */,
 				B1780603B1780603B1780603 /* UniversalLinkLandingScreen.swift in Sources */,
@@ -1863,6 +1870,7 @@
 			files = (
 				4A92C0014A92C0014A920092 /* FMColorsContrastTests.swift in Sources */,
 				B0640001B0640001B0640001 /* FilterDetailResponseParsingTests.swift in Sources */,
+				B1800303B1800303B1800303 /* FilterLibraryStoreTests.swift in Sources */,
 				C6EE0EE8326E4A9F2F2BB282 /* IAPProductIDsTests.swift in Sources */,
 				49A1300149A1300149A10030 /* SystemImageAccessibilityAuditTests.swift in Sources */,
 				A1620001A1620001A1620001 /* TelemetryTests.swift in Sources */,

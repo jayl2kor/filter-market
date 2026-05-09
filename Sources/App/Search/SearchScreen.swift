@@ -98,7 +98,7 @@ struct SearchScreen: View {
             try? await Task.sleep(nanoseconds: 200_000_000)
             isFieldFocused = true
         }
-        .onReceive(store.$filters) { filters in
+        .onReceive(store.filterLibraryStore.$filters) { filters in
             refreshPopularMakers(from: filters)
         }
         .onChange(of: query) { _, newValue in

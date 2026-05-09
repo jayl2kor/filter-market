@@ -26,6 +26,7 @@
 | Workflow residual screen extraction | `AccountDeletionScreen`, `EditProfileScreen`, `UniversalLinkLandingScreen`, `DataExportScreen`, `NotificationSettingsScreen`을 각 도메인 파일로 분리하고 `Sources/App/WorkflowScreens.swift`를 삭제 | Done |
 | MooditStore unit baseline | Firebase가 설정된 test host에서도 순수 상태 테스트가 외부 Firestore/Auth에 닿지 않도록 unit-test guard를 추가하고 load/download/favorite/editor draft/submit/reset 상태 전이를 `MooditStoreTests`로 고정 | Partial |
 | MooditStore model extraction | camera/editor/profile/export/notification/maker draft domain value types를 `MooditStoreModels.swift`로 분리해 store 본문 분리의 첫 경계를 확보 | Partial |
+| FilterLibraryStore extraction | 필터 로딩/선택/다운로드/즐겨찾기/라우트 lookup 상태 전이를 `Sources/App/Marketplace/FilterLibraryStore.swift`로 분리하고 `MooditStore`는 기존 화면 API를 유지하는 facade로 연결 | Partial |
 | ProfileSelfStore unit baseline | Firebase가 설정되지 않은 단위 테스트에서 Auth/Firestore 접근을 우회하고 profile baseline/handle normalization/start-refresh local reset을 `ProfileSelfStoreTests`로 고정 | Done |
 | StoreKit backend bridge unit baseline | StoreKit sandbox 없이 검증 가능한 product id mapping, backend callable routing, coin credit response parsing을 `IAPProductIDsTests`로 고정 | Done |
 | Swift Testing adoption seed | 신규 pure parsing coverage를 `import Testing` + `@Test` 기반 `FilterDetailResponseParsingTests`로 추가 | Partial |
@@ -87,6 +88,7 @@
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/ProfileSelfStoreTests` | PASS, 4 tests covering handle normalization, profile baseline mapping, Auth fallback, and unit-test local start/refresh guard (#184) |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/IAPProductIDsTests` | PASS, 12 tests covering SKU mappings plus StoreKit backend callable routing and coin credit response parsing (#184) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` + `xcodebuild ... -only-testing:AppTests/MooditStoreTests` | PASS after extracting `MooditStoreModels.swift`, 5 MooditStore tests (#180) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` + `xcodebuild ... -only-testing:AppTests/FilterLibraryStoreTests -only-testing:AppTests/MooditStoreTests` | PASS after extracting `FilterLibraryStore`, 3 Swift Testing store tests + 5 MooditStore facade tests (#180/#184) |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/FilterDetailResponseParsingTests` | PASS, Swift Testing 1 test covering `userHasLiked`/counter/sample/review mapping into FilterDetail mock adapter (#64/#184) |
 | 2026-05-09 | `npm --prefix functions run test:rules` | PASS, 23 Firestore rules tests after adding filter likes owner create/delete and client-read-only samples policies (#64) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` + `xcodebuild ... -only-testing:AppUITests/PhaseAE2ETests/testCameraHudAndPhotoImportEntry` | PASS after moving camera workflow screens out of `WorkflowScreens.swift` (#178) |

@@ -1,3 +1,4 @@
+import Combine
 import FirebaseAuth
 import FirebaseCore
 import FirebaseFirestore
@@ -29,10 +30,14 @@ private enum ProfileAvatarUploadError: LocalizedError {
 
 @MainActor
 final class MooditStore: ObservableObject {
-    @Published private(set) var filters: [Filter] = []
-    @Published private(set) var downloadedFilterIDs: Set<Filter.ID> = []
-    @Published private(set) var favoriteFilterIDs: Set<Filter.ID> = []
-    @Published var selectedFilterID: Filter.ID?
+    let filterLibraryStore: FilterLibraryStore
+    var filters: [Filter] { filterLibraryStore.filters }
+    var downloadedFilterIDs: Set<Filter.ID> { filterLibraryStore.downloadedFilterIDs }
+    var favoriteFilterIDs: Set<Filter.ID> { filterLibraryStore.favoriteFilterIDs }
+    var selectedFilterID: Filter.ID? {
+        get { filterLibraryStore.selectedFilterID }
+        set { filterLibraryStore.selectedFilterID = newValue }
+    }
     @Published var cameraAspectRatio: PhotoCropAspectRatio = .fourThree
     @Published var cameraTimerOption: CameraTimerOption = .off
     @Published var cameraGridEnabled = true
@@ -70,13 +75,13 @@ final class MooditStore: ObservableObject {
     /// (이전: 4개 하드코딩 mock 잔재 — 사용자 본인이 만들지 않은 필터가 노출되는 문제 해결)
     @Published var makerFilters: [MakerFilterDraft] = []
     /// manifest 로드 실패 시 마지막 에러. UI 는 이 값을 보고 ErrorBanner / FMEmptyState 를 노출.
-    @Published private(set) var loadError: Error?
+    var loadError: Error? { filterLibraryStore.loadError }
     /// 로드 진행 상태. skeleton vs 에러 vs 빈 상태 분기에 사용.
-    @Published private(set) var isLoading = false
+    var isLoading: Bool { filterLibraryStore.isLoading }
     /// 마켓 트렌딩 — useCount 내림차순. 비어 있으면 FMEmptyState.
-    @Published private(set) var trendingFilters: [Filter] = []
+    var trendingFilters: [Filter] { filterLibraryStore.trendingFilters }
     /// 마켓 신규 — createdAt 내림차순. 비어 있으면 FMEmptyState.
-    @Published private(set) var newFiltersList: [Filter] = []
+    var newFiltersList: [Filter] { filterLibraryStore.newFiltersList }
     /// 코인 잔액 — Firestore /users/{uid}/wallet/balance.value 미러.
     /// `subscribeToWallet()` 호출 시 실시간 갱신.
     @Published private(set) var coinBalance: Int = 0
@@ -109,10 +114,14 @@ final class MooditStore: ObservableObject {
     /// 한 번 처리되면 nil로 리셋한다.
     @Published var pendingDeepLinkRoute: AppRoute?
 
-    private let repository: any FilterRepository
+    private var filterLibraryCancellable: AnyCancellable?
 
     init(repository: any FilterRepository = BundleSeedFilterRepository()) {
-        self.repository = repository
+        let filterLibraryStore = FilterLibraryStore(repository: repository)
+        self.filterLibraryStore = filterLibraryStore
+        filterLibraryCancellable = filterLibraryStore.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
         #if DEBUG
         if isUITesting {
             isAuthenticated = Self.uiTestingAuthenticationFlag()
@@ -337,7 +346,7 @@ final class MooditStore: ObservableObject {
                 guard let self else { return }
                 Task { @MainActor in
                     let uuids = snapshot?.documents.compactMap { UUID(uuidString: $0.documentID) } ?? []
-                    self.downloadedFilterIDs = Set(uuids)
+                    self.filterLibraryStore.setDownloadedFilterIDs(Set(uuids))
                 }
             }
 
@@ -349,7 +358,7 @@ final class MooditStore: ObservableObject {
                 guard let self else { return }
                 Task { @MainActor in
                     let uuids = snapshot?.documents.compactMap { UUID(uuidString: $0.documentID) } ?? []
-                    self.favoriteFilterIDs = Set(uuids)
+                    self.filterLibraryStore.setFavoriteFilterIDs(Set(uuids))
                 }
             }
 
@@ -461,53 +470,20 @@ final class MooditStore: ObservableObject {
     }
 
     var selectedFilter: Filter? {
-        guard let selectedFilterID else { return filters.first }
-        return filters.first { $0.id == selectedFilterID }
+        filterLibraryStore.selectedFilter
     }
 
     var libraryFilters: [Filter] {
-        filters.filter { downloadedFilterIDs.contains($0.id) }
+        filterLibraryStore.libraryFilters
     }
 
     func load(force: Bool = false) async {
-        // 이미 정상 로드된 상태면 재호출 무시. 실패 후 retry / pull-to-refresh 는 통과시킨다.
-        guard force || filters.isEmpty || loadError != nil else { return }
-
-        isLoading = true
-        loadError = nil
-        defer { isLoading = false }
-
-        do {
-            let loadedFilters = try await repository.listFilters()
-            filters = loadedFilters
-            selectedFilterID = loadedFilters.first?.id
-            if let firstFilter = loadedFilters.first {
-                downloadedFilterIDs.insert(firstFilter.id)
-            }
-            // 트렌딩/신규 — repository의 default impl이 메모리 정렬, Firestore impl은 backend 정렬.
-            // 실패해도 listFilters 결과는 유지 (트렌딩/신규는 조용히 비움).
-            do {
-                trendingFilters = try await repository.trending(limit: 24)
-            } catch {
-                trendingFilters = []
-            }
-            do {
-                newFiltersList = try await repository.newFilters(limit: 24)
-            } catch {
-                newFiltersList = []
-            }
-        } catch {
-            loadError = error
-            filters = []
-            trendingFilters = []
-            newFiltersList = []
-        }
+        await filterLibraryStore.load(force: force)
     }
 
     /// 로드 실패 후 사용자가 재시도. 직전 에러를 비우고 `load()` 를 재실행한다.
     func retry() async {
-        loadError = nil
-        await load()
+        await filterLibraryStore.retry()
     }
 
     /// Pro 구독 구매 직후 낙관적 활성화 (#27). Firestore listener가 도착하면 정정.
@@ -700,8 +676,7 @@ final class MooditStore: ObservableObject {
         editableProfile = .empty
         lastProfileSavedAt = nil
         accountDeletionRequestedAt = nil
-        downloadedFilterIDs = []
-        favoriteFilterIDs = []
+        filterLibraryStore.resetUserScopedState()
         notificationPreferences = NotificationPreferences()
         importedPhotoData = nil
         editorReferencePhotoData = nil
@@ -714,7 +689,6 @@ final class MooditStore: ObservableObject {
         selectedMakerStatus = .all
         makerFilters = []
         exportRequests = []
-        selectedFilterID = nil
         hasLoadedProfile = false
         lastPaymentErrorMessage = nil
         lastSubmitErrorMessage = nil
@@ -724,27 +698,23 @@ final class MooditStore: ObservableObject {
     }
 
     func select(_ filter: Filter) {
-        selectedFilterID = filter.id
-        downloadedFilterIDs.insert(filter.id)
+        filterLibraryStore.select(filter)
     }
 
     func download(_ filter: Filter) async throws {
         // (#24) /users/{uid}/savedFilters/{filterId} Firestore 동기화 — 앱 재시작/다른 디바이스에서도 유지.
         try await persistSavedFilterAsync(filterId: filter.id, save: true)
-        downloadedFilterIDs.insert(filter.id)
+        filterLibraryStore.markDownloaded(filter.id)
     }
 
     func download(filterID: String) async throws {
         guard let id = UUID(uuidString: filterID) else { return }
         try await persistSavedFilterAsync(filterId: id, save: true)
-        downloadedFilterIDs.insert(id)
+        filterLibraryStore.markDownloaded(id)
     }
 
     func removeDownload(_ filter: Filter) {
-        let hadDownload = downloadedFilterIDs.contains(filter.id)
-        let hadFavorite = favoriteFilterIDs.contains(filter.id)
-        downloadedFilterIDs.remove(filter.id)
-        favoriteFilterIDs.remove(filter.id)
+        let snapshot = filterLibraryStore.removeDownload(filter)
         Task { [weak self] in
             do {
                 try await self?.persistSavedFilterAsync(filterId: filter.id, save: false)
@@ -752,37 +722,22 @@ final class MooditStore: ObservableObject {
             } catch {
                 await MainActor.run { [weak self] in
                     guard let self else { return }
-                    if hadDownload { self.downloadedFilterIDs.insert(filter.id) }
-                    if hadFavorite { self.favoriteFilterIDs.insert(filter.id) }
+                    self.filterLibraryStore.restore(snapshot)
                     self.lastSubmitErrorMessage = "저장 상태 동기화 실패: \(error.localizedDescription)"
                 }
             }
         }
-        if selectedFilterID == filter.id {
-            selectedFilterID = libraryFilters.first?.id ?? filters.first?.id
-        }
     }
 
     func toggleFavorite(_ filter: Filter) {
-        let shouldSave: Bool
-        if favoriteFilterIDs.contains(filter.id) {
-            favoriteFilterIDs.remove(filter.id)
-            shouldSave = false
-        } else {
-            favoriteFilterIDs.insert(filter.id)
-            shouldSave = true
-        }
+        let shouldSave = filterLibraryStore.toggleFavorite(filter)
         Task { [weak self] in
             do {
                 try await self?.persistFavoriteAsync(filterId: filter.id, save: shouldSave)
             } catch {
                 await MainActor.run { [weak self] in
                     guard let self else { return }
-                    if shouldSave {
-                        self.favoriteFilterIDs.remove(filter.id)
-                    } else {
-                        self.favoriteFilterIDs.insert(filter.id)
-                    }
+                    self.filterLibraryStore.rollbackFavorite(filter, shouldSave: shouldSave)
                     self.lastSubmitErrorMessage = "즐겨찾기 동기화 실패: \(error.localizedDescription)"
                 }
             }
@@ -790,11 +745,11 @@ final class MooditStore: ObservableObject {
     }
 
     func isFavorite(_ filter: Filter) -> Bool {
-        favoriteFilterIDs.contains(filter.id)
+        filterLibraryStore.isFavorite(filter)
     }
 
     func isDownloaded(_ filter: Filter) -> Bool {
-        downloadedFilterIDs.contains(filter.id)
+        filterLibraryStore.isDownloaded(filter)
     }
 
     func setImportedPhotoData(_ data: Data?) {
@@ -1259,34 +1214,6 @@ final class MooditStore: ObservableObject {
     }
 
     func filter(matching routeID: String) -> Filter? {
-        let normalizedRouteID = routeID.normalizedFilterLookupKey
-        if let uuid = UUID(uuidString: routeID),
-           let filter = filters.first(where: { $0.id == uuid }) {
-            return filter
-        }
-        if let exact = filters.first(where: { $0.title.normalizedFilterLookupKey == normalizedRouteID }) {
-            return exact
-        }
-        if let partial = filters.first(where: { filter in
-            let key = filter.title.normalizedFilterLookupKey
-            return normalizedRouteID.contains(key) || key.contains(normalizedRouteID)
-        }) {
-            return partial
-        }
-        let routeTokens = normalizedRouteID.split(separator: " ")
-        return filters.first { filter in
-            let titleTokens = Set(filter.title.normalizedFilterLookupKey.split(separator: " "))
-            return routeTokens.contains { titleTokens.contains($0) }
-        }
-    }
-}
-
-private extension String {
-    var normalizedFilterLookupKey: String {
-        lowercased()
-            .replacingOccurrences(of: "@", with: "")
-            .replacingOccurrences(of: "-", with: " ")
-            .replacingOccurrences(of: "_", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        filterLibraryStore.filter(matching: routeID)
     }
 }
