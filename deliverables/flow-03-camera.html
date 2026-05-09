@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flow 03 · Camera & Photo · moodit mockups</title>
+  <link rel="stylesheet" href="_tokens.css">
+</head>
+<body>
+
+<header class="canvas">
+  <div>
+    <h1>Flow 03 · Camera & Photo</h1>
+    <div class="meta">7 screens · CameraScreen / CapturePreviewScreen / Aspect / Timer / Photo Import / Photo Edit / Capture Detail</div>
+  </div>
+  <nav>
+    <a href="index.html">Index</a>
+    <a href="flow-01-auth.html">Auth</a>
+    <a href="flow-02-marketplace.html">Marketplace</a>
+    <a href="flow-03-camera.html" class="active">Camera</a>
+    <a href="flow-04-maker.html">Maker</a>
+    <a href="flow-05-wallet.html">Wallet</a>
+    <a href="flow-06-profile-social.html">Profile</a>
+    <a href="flow-07-notifications-settings.html">Settings</a>
+    <a href="flow-08-states-modals.html">States</a>
+  </nav>
+</header>
+
+<section class="flow">
+  <h2>Camera & Photo</h2>
+  <p class="subtitle">중앙 셔터 탭으로 진입하는 <code>fullScreenCover</code>. 카메라 라이브 프리뷰는 OLED 다크 (이 앱에서 유일하게 다크 모드인 화면). <code>CameraSession</code> + <code>MetalPreviewRenderer</code> 가 60fps LUT 적용 라이브 프리뷰를 그립니다.</p>
+
+  <div class="flow-summary">
+    <div class="col recs">
+      <h3>Working</h3>
+      <ul>
+        <li><strong>Dark camera, light app</strong> — Apple Camera 와 동일한 패턴. OLED 절약 + 사진에 집중.</li>
+        <li>Filter strip 의 active 필터에 골드 외곽선 — 명확.</li>
+        <li>Long-press 원본 비교 — Photo Edit 에서 매우 자연스러움.</li>
+      </ul>
+    </div>
+    <div class="col gaps">
+      <h3>Gaps</h3>
+      <ul>
+        <li><strong>유료 필터 진입</strong> — 카메라에서 paid filter 탭 시 paywall 모달이 라이브 프리뷰 위에 떠서 흐름 끊김.</li>
+        <li>Filter strip 정렬 / 핀 기능 없음 — 사용자가 필터 100+ 다운로드 시 스크롤 지옥.</li>
+        <li>Capture Preview 의 "사진 정보" 버튼 동작 미정의.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="gallery">
+
+    <!-- ───── 10 · CAMERA LIVE ──────────────────────────────────────────── -->
+    <div class="annotated" id="camera-live">
+      <div class="shot">
+        <div class="label"><span class="num">10</span><span class="name">Camera Live (4:5)</span><span class="status todo">PARTIAL</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen camera-live" style="background:#000;">
+            <div class="status-bar dark"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+
+            <!-- Live preview area (4:5 aspect) -->
+            <div style="position:relative; flex:1;">
+              <div class="preview"></div>
+
+              <!-- Top controls -->
+              <div class="top-controls">
+                <div class="icon-pill">✕</div>
+                <div style="display:flex; gap:8px;">
+                  <div class="icon-pill">⚡︎ 자동</div>
+                  <div class="icon-pill">⊟ 4:5</div>
+                  <div class="icon-pill">⏱</div>
+                  <div class="icon-pill">⊞</div>
+                </div>
+              </div>
+
+              <!-- Zoom indicator -->
+              <div style="position:absolute; bottom: 230px; left:50%; transform: translateX(-50%); display:flex; gap:8px; z-index:10;">
+                <div style="padding: 6px 10px; border-radius:999px; background: rgba(0,0,0,0.6); color: var(--accent-soft); font-size: 11px; font-weight:600; backdrop-filter: blur(8px);">1×</div>
+              </div>
+
+              <!-- Filter strip -->
+              <div class="filter-strip">
+                <div class="filter-thumb" style="background:linear-gradient(135deg,#7e7e7e,#2a2a2a);">원본</div>
+                <div class="filter-thumb active" style="background:linear-gradient(135deg,#c47b4f,#6c3a1a);">Cinema</div>
+                <div class="filter-thumb" style="background:linear-gradient(135deg,#6b85a0,#2a3540);">Cool</div>
+                <div class="filter-thumb" style="background:linear-gradient(135deg,#e5a8c6,#b88599);">Pastel</div>
+                <div class="filter-thumb" style="background:linear-gradient(135deg,#a8a8a8,#3a3a3a);">Mono</div>
+              </div>
+
+              <!-- Filter name + intensity (active) -->
+              <div style="position:absolute; bottom: 200px; left:0; right:0; text-align:center; z-index: 10;">
+                <div style="display:inline-flex; align-items:center; gap:6px; padding: 4px 10px; border-radius:999px; background:rgba(0,0,0,0.6); backdrop-filter: blur(8px);">
+                  <span style="color:#fff; font-size:11px; font-weight:600;">Cinematic 35mm</span>
+                  <span style="color:var(--accent-soft); font-size:10px;">· 80%</span>
+                </div>
+              </div>
+
+              <!-- Bottom controls -->
+              <div class="controls">
+                <div class="lib-thumb"></div>
+                <div class="shutter-btn"></div>
+                <div class="small-btn" style="margin-left:auto;">↻</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> 옛 mockup 은 16:9 비율 + 검은 letterbox 였음. 코드 기본은 <b>4:5</b> (Instagram 친화). aspect picker 진입 시 비율 변경 → preview 컨테이너 즉시 리사이즈.</div>
+        <div class="note"><span class="tag add">ADD</span> Filter thumb 위에 paid 표시 — 보유 X 인 유료 필터는 thumb 우상단에 작은 <code>⬡</code> 아이콘. 탭 시 paywall sheet 가 아닌 <b>비교 미리보기 (5초)</b> 후 paywall.</div>
+        <div class="note"><span class="tag add">ADD</span> Coin balance 너무 낮을 때 (&lt; 50C) 화면 우상단에 작은 알림 chip <code>"⬡ 충전"</code> 표시. paywall hit 전에 사용자에게 정보 제공.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Filter strip 은 horizontal scroll 컨테이너. <code>accessibilityElement(children:.contain)</code> + <code>accessibilityCustomActions</code> [.previousFilter / .nextFilter]. 필터 100+ 일 때 VoiceOver 사용자 swipe 지옥 방지.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Shutter button — <code>accessibilityHint("두 번 탭하여 촬영 · 길게 눌러 연속 촬영")</code>. 현재 hint 없음.</div>
+        <div class="note"><span class="tag note">NOTE</span> Telemetry: filter swipe 횟수 vs 촬영 횟수 비율 = 의사결정 마찰 지표. 7 swipes/capture 이상이면 strip UI 개선 필요.</div>
+      </div>
+    </div>
+
+    <!-- ───── 11 · CAPTURE PREVIEW ──────────────────────────────────────── -->
+    <div class="annotated" id="capture-preview">
+      <div class="shot">
+        <div class="label"><span class="num">11</span><span class="name">Capture Preview</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen camera-live">
+            <div class="status-bar dark"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="background:#000;">
+
+              <!-- Captured photo -->
+              <div style="position:absolute; top:60px; left:0; right:0; bottom:200px; background: linear-gradient(135deg, #c47b4f, #6c3a1a);">
+                <div style="position:absolute; left:30%; top:25%; width:90px; height:120px; border-radius:50%; background: radial-gradient(circle, rgba(244,210,150,0.7), transparent 70%); filter:blur(2px);"></div>
+              </div>
+
+              <!-- Top -->
+              <div style="position:absolute; top:60px; left:0; right:0; padding: 12px 16px; display:flex; justify-content:space-between; z-index:10;">
+                <button class="icon-pill">‹</button>
+                <button class="icon-pill">⋯</button>
+              </div>
+
+              <!-- Filter chip on top -->
+              <div style="position:absolute; top:120px; left:50%; transform:translateX(-50%); padding:6px 12px; border-radius:999px; background: rgba(0,0,0,0.6); color:#fff; font-size:11px; backdrop-filter: blur(8px);">
+                Cinematic 35mm · 80%
+              </div>
+
+              <!-- Thumbnail action row -->
+              <div style="position:absolute; bottom: 96px; left:0; right:0; padding: 0 24px; display:flex; justify-content:space-between; z-index:10;">
+                <button class="small-btn" style="width:52px; height:52px; border-radius:14px;">↺<br><span style="font-size:9px;">재촬영</span></button>
+                <button class="small-btn" style="width:52px; height:52px; border-radius:14px;">🎨<br><span style="font-size:9px;">필터</span></button>
+                <button class="small-btn" style="width:52px; height:52px; border-radius:14px;">✏︎<br><span style="font-size:9px;">편집</span></button>
+                <button class="small-btn" style="width:52px; height:52px; border-radius:14px;">↗<br><span style="font-size:9px;">공유</span></button>
+              </div>
+
+              <!-- Save bar -->
+              <div style="position:absolute; bottom:0; left:0; right:0; padding:12px 16px 28px; background:rgba(0,0,0,0.5); backdrop-filter: blur(20px); display:flex; gap:10px;">
+                <button class="btn" style="background:rgba(255,255,255,0.1); color:#fff; border-color:transparent; flex:0 0 auto;">🗑️</button>
+                <button class="btn primary" style="flex:1;">사진 저장</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> "사진 정보" 버튼 동작 미정의. <b>Bottom sheet 디자인 제안</b>: filter applied / intensity / 촬영시각 / 위치 (권한 시) / @maker → 메이커 프로필 link.</div>
+        <div class="note"><span class="tag fix">FIX</span> 4 액션 row (재촬영/필터/편집/공유) 의 hit area 가 52px square 인데 thumb finger zone (화면 하단 ~25%) 안에 있어 우연 탭 위험. 간격 8px → 12px.</div>
+        <div class="note"><span class="tag copy">COPY</span> "사진 저장" — 어디에 저장? <b>"갤러리에 저장"</b> 으로 명확. 단, "moodit 라이브러리에 저장" (Captures grid) 와 헷갈릴 수 있어 destination 명시.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Captured image 에 <code>accessibilityLabel("Cinematic 35mm 필터 적용된 사진, 80% 강도")</code>. VoiceOver 사용자 어떤 필터로 찍혔는지 즉각 인지 가능.</div>
+      </div>
+    </div>
+
+    <!-- ───── 12 · ASPECT PICKER ────────────────────────────────────────── -->
+    <div class="annotated" id="aspect-picker">
+      <div class="shot">
+        <div class="label"><span class="num">12</span><span class="name">Camera · Aspect Picker</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen camera-live">
+            <div class="status-bar dark"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="background:rgba(0,0,0,0.7);">
+              <div class="preview" style="opacity:0.4"></div>
+
+              <!-- Sheet -->
+              <div class="sheet" style="background:#1a1a1a; color:#fff; border-color:#2a2a2a;">
+                <div class="grabber" style="background:#3a3a3a;"></div>
+                <div style="padding: 4px 4px 16px; font-size:14px; font-weight:600;">사진 비율</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                  <button class="btn" style="background:rgba(255,255,255,0.08); color:#fff; border-color:transparent; flex-direction:column; padding: 18px;">
+                    <div style="width:36px; height:36px; border:2px solid #fff; border-radius:6px; margin-bottom:6px;"></div>
+                    <div style="font-size:13px;">1:1</div>
+                    <div style="font-size:10px; color:#a8a8a8;">정사각형</div>
+                  </button>
+                  <button class="btn" style="background:var(--accent); color:#fff; border-color:var(--accent); flex-direction:column; padding: 18px;">
+                    <div style="width:30px; height:38px; border:2px solid #fff; border-radius:6px; margin-bottom:6px;"></div>
+                    <div style="font-size:13px;">4:5</div>
+                    <div style="font-size:10px; color:#fff8e8;">기본</div>
+                  </button>
+                  <button class="btn" style="background:rgba(255,255,255,0.08); color:#fff; border-color:transparent; flex-direction:column; padding: 18px;">
+                    <div style="width:34px; height:26px; border:2px solid #fff; border-radius:6px; margin-bottom:6px;"></div>
+                    <div style="font-size:13px;">4:3</div>
+                    <div style="font-size:10px; color:#a8a8a8;">표준</div>
+                  </button>
+                  <button class="btn" style="background:rgba(255,255,255,0.08); color:#fff; border-color:transparent; flex-direction:column; padding: 18px;">
+                    <div style="width:42px; height:24px; border:2px solid #fff; border-radius:6px; margin-bottom:6px;"></div>
+                    <div style="font-size:13px;">16:9</div>
+                    <div style="font-size:10px; color:#a8a8a8;">와이드</div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag note">NOTE</span> 코드는 4-button list 인데, 2x2 grid 가 시각적 비교에 더 좋음. 각 옵션의 mini-preview rectangle 비율을 시각화.</div>
+        <div class="note"><span class="tag add">ADD</span> Selected option 우하단에 작은 ✓ — 모션도 함께 (transform: scale(1.02), 200ms spring). 단순 골드 배경만으론 약함.</div>
+      </div>
+    </div>
+
+    <!-- ───── 13 · TIMER COUNTDOWN ──────────────────────────────────────── -->
+    <div class="annotated" id="timer">
+      <div class="shot">
+        <div class="label"><span class="num">13</span><span class="name">Camera · Timer Countdown (3s)</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen camera-live">
+            <div class="status-bar dark"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="preview"></div>
+
+              <!-- Countdown overlay -->
+              <div style="position:absolute; inset:0; display:grid; place-items:center; background:rgba(0,0,0,0.4); z-index:20;">
+                <div style="font-size:140px; font-weight:300; color:#fff; line-height:1; letter-spacing:-0.04em; font-variant-numeric: tabular-nums; text-shadow: 0 4px 32px rgba(0,0,0,0.5);">3</div>
+              </div>
+
+              <!-- Cancel -->
+              <div style="position:absolute; bottom:28px; left:50%; transform:translateX(-50%); z-index:30;">
+                <button class="btn" style="background:rgba(0,0,0,0.6); color:#fff; border-color:transparent; backdrop-filter: blur(8px);">취소</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag a11y">A11Y</span> Countdown 숫자 변경 시 <code>UIAccessibility.post(notification:.announcement, argument:"3초")</code>. 매 초마다 호출.</div>
+        <div class="note"><span class="tag add">ADD</span> Haptic — 매 초 light tap, 0초 시 medium impact + camera shutter sound. <code>FMHaptic.medium.play()</code> 활용.</div>
+        <div class="note"><span class="tag note">NOTE</span> 옵션 picker 화면 (OFF / 3s / 5s / 10s) 는 aspect picker 와 동일한 sheet 패턴 — 별도 mockup 생략.</div>
+      </div>
+    </div>
+
+    <!-- ───── 14 · PHOTO IMPORT ─────────────────────────────────────────── -->
+    <div class="annotated" id="photo-import">
+      <div class="shot">
+        <div class="label"><span class="num">14</span><span class="name">Photo Import</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+
+              <div class="top-bar">
+                <button class="icon-btn ghost">✕</button>
+                <div class="title">사진 가져오기</div>
+                <button class="icon-btn ghost"></button>
+              </div>
+
+              <!-- Limited access warning -->
+              <div style="margin: 0 16px 12px; padding: 10px 12px; background:var(--info-bg); border:1px solid var(--info); border-radius: 12px; font-size:12px; color:var(--info); display:flex; gap:8px; align-items:flex-start;">
+                <span style="font-size:14px;">ℹ️</span>
+                <div>
+                  <b>제한된 사진만 표시 중</b><br>
+                  <span style="font-size:11px; opacity:0.9;">설정에서 "모든 사진"으로 변경하면 더 많은 사진을 볼 수 있습니다.</span>
+                  <button style="margin-top:6px; background:none; border:none; color:var(--info); font-weight:600; font-size:11px; padding:0;">설정 열기 →</button>
+                </div>
+              </div>
+
+              <div style="padding: 0 12px;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;">
+                  <div style="aspect-ratio:1; background: linear-gradient(135deg, #c47b4f, #6c3a1a); border-radius: 4px;"></div>
+                  <div style="aspect-ratio:1; background: linear-gradient(135deg, #6b85a0, #2a3540); border-radius: 4px;"></div>
+                  <div style="aspect-ratio:1; background: linear-gradient(135deg, #e5a8c6, #b88599); border-radius: 4px;"></div>
+                  <div style="aspect-ratio:1; background: linear-gradient(135deg, #5a4280, #1a1230); border-radius: 4px;"></div>
+                  <div style="aspect-ratio:1; background: linear-gradient(135deg, #a8a8a8, #3a3a3a); border-radius: 4px;"></div>
+                  <div style="aspect-ratio:1; background: linear-gradient(135deg, #d8c5a4, #c47b4f); border-radius: 4px;"></div>
+                  <div style="aspect-ratio:1; background: linear-gradient(135deg, #d09642, #6b3f12); border-radius: 4px;"></div>
+                  <div style="aspect-ratio:1; background: linear-gradient(135deg, #e89a7b, #8b4a30); border-radius: 4px;"></div>
+                  <div style="aspect-ratio:1; background: linear-gradient(135deg, #c485a6, #7e5fb8); border-radius: 4px;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag note">NOTE</span> iOS 14+ 의 limited photo access 가 active 일 때 banner 자동 노출. 코드는 <code>PHPhotoLibrary.authorizationStatus(.readWrite)</code> 로 체크.</div>
+        <div class="note"><span class="tag add">ADD</span> 사진 미선택 시 "선택" 버튼 disabled. 1+ 선택 시 우상단에 "다음 (3)" 형태로 카운트.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Photo grid 의 각 cell 에 <code>accessibilityLabel("\(date) 사진")</code> + <code>accessibilityValue(selected ? "선택됨" : "")</code>. 현재 코드는 generic "이미지" 만 announce.</div>
+      </div>
+    </div>
+
+    <!-- ───── 15 · PHOTO EDIT ──────────────────────────────────────────── -->
+    <div class="annotated" id="photo-edit">
+      <div class="shot">
+        <div class="label"><span class="num">15</span><span class="name">Photo Edit</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen camera-live">
+            <div class="status-bar dark"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+
+              <!-- Top bar -->
+              <div style="position:absolute; top:60px; left:0; right:0; padding: 12px 16px; display:flex; justify-content:space-between; z-index:30;">
+                <button class="icon-pill">✕</button>
+                <div style="display:flex; gap:6px;">
+                  <button class="icon-pill" style="opacity:0.7;">↺</button>
+                  <button class="icon-pill">↻</button>
+                  <button class="icon-pill">⋯</button>
+                </div>
+              </div>
+
+              <!-- Photo -->
+              <div style="position:absolute; top:120px; left:0; right:0; bottom:240px; background: linear-gradient(135deg, #c47b4f, #6c3a1a);"></div>
+
+              <!-- Long-press hint -->
+              <div style="position:absolute; top:130px; left:50%; transform:translateX(-50%); padding:4px 10px; border-radius:999px; background:rgba(0,0,0,0.6); color:#fff; font-size:10px; backdrop-filter: blur(8px); z-index:10;">
+                길게 눌러 원본 비교
+              </div>
+
+              <!-- Intensity slider (filter active) -->
+              <div style="position:absolute; bottom: 160px; left:0; right:0; padding: 0 24px; z-index:20;">
+                <div style="display:flex; justify-content:space-between; font-size:11px; color:#fff; margin-bottom:6px;">
+                  <span>강도</span>
+                  <span style="font-variant-numeric: tabular-nums; color:var(--accent-soft); font-weight:600;">80</span>
+                </div>
+                <div style="height: 4px; background: rgba(255,255,255,0.2); border-radius:2px; position:relative;">
+                  <div style="position:absolute; left:0; right:20%; top:0; bottom:0; background:var(--accent-soft); border-radius:2px;"></div>
+                  <div style="position:absolute; left:80%; top:50%; transform:translate(-50%, -50%); width:18px; height:18px; border-radius:50%; background:#fff; box-shadow: 0 2px 4px rgba(0,0,0,0.4);"></div>
+                </div>
+              </div>
+
+              <!-- Filter strip -->
+              <div style="position:absolute; bottom: 80px; left:0; right:0; padding: 0 16px; display:flex; gap:8px; overflow-x:hidden; z-index:20;">
+                <div class="filter-thumb" style="width:50px; height:50px;">원본</div>
+                <div class="filter-thumb active" style="width:50px; height:50px;">Cinema</div>
+                <div class="filter-thumb" style="width:50px; height:50px; background:linear-gradient(135deg,#6b85a0,#2a3540);">Cool</div>
+                <div class="filter-thumb" style="width:50px; height:50px; background:linear-gradient(135deg,#e5a8c6,#b88599);">Pastel</div>
+                <div class="filter-thumb" style="width:50px; height:50px; background:linear-gradient(135deg,#a8a8a8,#3a3a3a);">Mono</div>
+              </div>
+
+              <!-- Bottom action -->
+              <div style="position:absolute; bottom:0; left:0; right:0; padding: 12px 16px 28px; background: rgba(0,0,0,0.5); backdrop-filter:blur(20px); display:flex; gap:10px; z-index:30;">
+                <button class="btn" style="background:rgba(255,255,255,0.08); color:#fff; border-color:transparent; flex:0 0 auto;">↺ 초기화</button>
+                <button class="btn primary" style="flex:1;">저장</button>
+                <button class="btn" style="background:rgba(255,255,255,0.08); color:#fff; border-color:transparent; flex:0 0 auto;">↗</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> Photo Edit 의 undo/redo 가 top bar 에 있고 "초기화" 가 bottom bar 에 있음 — 분리되어 있어 발견 어려움. <b>3개를 한 묶음으로 (top right cluster)</b>: undo / redo / overflow → reset.</div>
+        <div class="note"><span class="tag add">ADD</span> Long-press = 원본 비교 hint chip 은 첫 진입 시만 노출 + 3초 fade-out. 매번 보이면 노이즈.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Slider 값 announce: <code>accessibilityValue("\(percent)퍼센트")</code>. 0~100 범위 명확. <code>accessibilityAdjustableAction</code> 으로 swipe up/down.</div>
+        <div class="note"><span class="tag add">ADD</span> 미리보기 → 원본 비교 시 작은 "원본" label 이 사진 위에 fade-in. 길게 눌러도 어떤 게 원본인지 모르는 경우 있음.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer class="canvas">
+  <p>← <a href="flow-02-marketplace.html">Marketplace 02</a> · <a href="index.html">Index</a> · <a href="flow-04-maker.html">Maker 04 →</a></p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flow 06 · Profile & Social · moodit mockups</title>
+  <link rel="stylesheet" href="_tokens.css">
+</head>
+<body>
+
+<header class="canvas">
+  <div>
+    <h1>Flow 06 · Profile & Social</h1>
+    <div class="meta">11 screens · Profile (self/other) · Edit · Followers · Following · For You · Following Feed · Reviews · Compose · Rating · Block · Report</div>
+  </div>
+  <nav>
+    <a href="index.html">Index</a>
+    <a href="flow-01-auth.html">Auth</a>
+    <a href="flow-02-marketplace.html">Marketplace</a>
+    <a href="flow-03-camera.html">Camera</a>
+    <a href="flow-04-maker.html">Maker</a>
+    <a href="flow-05-wallet.html">Wallet</a>
+    <a href="flow-06-profile-social.html" class="active">Profile</a>
+    <a href="flow-07-notifications-settings.html">Settings</a>
+    <a href="flow-08-states-modals.html">States</a>
+  </nav>
+</header>
+
+<section class="flow">
+  <h2>Profile · Social · Reviews</h2>
+  <p class="subtitle">사용자/메이커 프로필, 팔로우 소셜 그래프, 리뷰 시스템 (App Store 패턴 준수). <code>follows/{actor}_{target}</code>, <code>blocks</code>, <code>reviews/{authorUid}</code> Firestore 직접 쓰기 + 일부 콜러블.</p>
+
+  <div class="flow-summary">
+    <div class="col recs">
+      <h3>Working</h3>
+      <ul>
+        <li><strong>Reviews = App Store 패턴</strong> — 1 review/user/filter, 5점 + ≤280자 + 메이커 답글 1회. 단순하고 익숙.</li>
+        <li>차단/뮤트 분리 — 사용자 의도 세분화.</li>
+        <li>For You / Following 두 피드 분리 — IG/TikTok 패턴.</li>
+      </ul>
+    </div>
+    <div class="col gaps">
+      <h3>Gaps</h3>
+      <ul>
+        <li><strong>Profile segments</strong> — "내 필터/저장됨/촬영함" 3 세그먼트 — 옛 mockup 은 2개. UI 불일치 가능.</li>
+        <li>Reviews list 의 "최신순/도움순" toggle 없음 — 코드는 helpful 기본.</li>
+        <li>For You 피드에 추천 신호 (👍/👎) 없음.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="gallery">
+
+    <!-- ───── 36 · PROFILE (self) ──────────────────────────────────────── -->
+    <div class="annotated" id="profile-self">
+      <div class="shot">
+        <div class="label"><span class="num">36</span><span class="name">Profile · Self</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+
+              <div class="top-bar">
+                <div class="title" style="font-size:14px; color:var(--text-secondary);">@haein</div>
+                <div style="display:flex; gap:6px;">
+                  <button class="icon-btn">↗</button>
+                  <button class="icon-btn">⓵</button>
+                </div>
+              </div>
+
+              <!-- Header -->
+              <div style="padding: 8px 16px 16px; display:flex; gap:14px; align-items:flex-start;">
+                <div style="width:80px; height:80px; border-radius:50%; background: linear-gradient(135deg, #c47b4f, #6c3a1a); flex-shrink:0; border: 3px solid #fff; box-shadow: var(--elev-2);"></div>
+                <div style="flex:1; padding-top:6px;">
+                  <div style="font-size:18px; font-weight:700; letter-spacing:-0.02em;">박해인</div>
+                  <div style="font-size:12px; color:var(--text-secondary); margin-top:4px; line-height:1.5;">필름 카메라로 일상의 빛을 담습니다.<br>📷 35mm · 카페 · 골든아워</div>
+                  <div style="margin-top: 10px; display:flex; gap:8px;">
+                    <button class="btn sm" style="background:var(--bg-2); border-color:var(--border-default);">프로필 편집</button>
+                    <button class="btn sm" style="background:var(--bg-2); border-color:var(--border-default); width:36px; padding: 0;">↗</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stats -->
+              <div style="padding: 0 16px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; border-radius:12px; overflow:hidden; background:var(--bg-2); border:1px solid var(--border-subtle); margin-bottom:16px;">
+                <div style="padding: 12px; text-align:center; border-right:1px solid var(--border-subtle);">
+                  <div style="font-size:18px; font-weight:700; font-variant-numeric: tabular-nums;">8</div>
+                  <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px;">필터</div>
+                </div>
+                <div style="padding: 12px; text-align:center; border-right:1px solid var(--border-subtle);">
+                  <div style="font-size:18px; font-weight:700; font-variant-numeric: tabular-nums;">1.2k</div>
+                  <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px;">팔로워</div>
+                </div>
+                <div style="padding: 12px; text-align:center;">
+                  <div style="font-size:18px; font-weight:700; font-variant-numeric: tabular-nums;">328</div>
+                  <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px;">팔로잉</div>
+                </div>
+              </div>
+
+              <!-- Segment -->
+              <div style="padding: 0 16px; margin-bottom: 12px;">
+                <div style="padding: 4px; background: var(--bg-3); border-radius: 10px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px;">
+                  <button class="btn sm" style="background:#fff; border:1px solid var(--border-subtle); height:32px;">내 필터</button>
+                  <button class="btn sm" style="background:transparent; border-color:transparent; color:var(--text-tertiary); height:32px;">저장됨</button>
+                  <button class="btn sm" style="background:transparent; border-color:transparent; color:var(--text-tertiary); height:32px;">촬영함</button>
+                </div>
+              </div>
+
+              <!-- Grid -->
+              <div style="padding: 0 16px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px;">
+                <div style="aspect-ratio:1; background: linear-gradient(135deg, #c47b4f, #6c3a1a);"></div>
+                <div style="aspect-ratio:1; background: linear-gradient(135deg, #6b85a0, #2a3540);"></div>
+                <div style="aspect-ratio:1; background: linear-gradient(135deg, #e5a8c6, #b88599);"></div>
+                <div style="aspect-ratio:1; background: linear-gradient(135deg, #5a4280, #1a1230);"></div>
+                <div style="aspect-ratio:1; background: linear-gradient(135deg, #d8c5a4, #c47b4f);"></div>
+                <div style="aspect-ratio:1; background: linear-gradient(135deg, #a8a8a8, #3a3a3a);"></div>
+              </div>
+              <div style="height:80px;"></div>
+
+              <!-- Tab bar -->
+              <div class="tab-bar">
+                <div class="tab"><span class="ico">🛍️</span><span>마켓</span></div>
+                <div class="tab"><span class="ico">🔍</span><span>검색</span></div>
+                <div class="tab shutter"><span class="ico">●</span></div>
+                <div class="tab"><span class="ico">🔖</span><span>저장됨</span></div>
+                <div class="tab active"><span class="ico">👤</span><span>프로필</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> 옛 mockup 은 "내 필터 / 좋아요" 2 세그먼트. 코드는 <b>"내 필터 / 저장됨 / 촬영함"</b> 3 세그먼트. 이 mockup 은 코드 기준.</div>
+        <div class="note"><span class="tag add">ADD</span> 자기 프로필에서도 "공유" 버튼 — 자신의 페이지 link copy 를 다른 SNS 에 보내는 흐름. 메이커 마케팅 도구.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Stats 의 "1.2k" 등 줄임 표기 — VoiceOver 가 "원 점 이 케이" 로 읽음. <code>accessibilityLabel("1,200명 팔로워")</code> override.</div>
+      </div>
+    </div>
+
+    <!-- ───── 37 · PROFILE (other) ─────────────────────────────────────── -->
+    <div class="annotated" id="profile-other">
+      <div class="shot">
+        <div class="label"><span class="num">37</span><span class="name">Profile · Other (Maker)</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title" style="font-size:14px; color:var(--text-secondary);">@minju</div>
+                <button class="icon-btn">⋯</button>
+              </div>
+
+              <div style="padding: 8px 16px 16px; display:flex; gap:14px; align-items:flex-start;">
+                <div style="width:80px; height:80px; border-radius:50%; background: linear-gradient(135deg, #c47b4f, #6c3a1a); flex-shrink:0; border: 3px solid #fff; box-shadow: var(--elev-2);"></div>
+                <div style="flex:1; padding-top:6px;">
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <div style="font-size:18px; font-weight:700; letter-spacing:-0.02em;">김민주</div>
+                    <span style="background:var(--accent); color:#fff; font-size:9px; padding:2px 5px; border-radius:4px; font-weight:700;">VERIFIED MAKER</span>
+                  </div>
+                  <div style="font-size:12px; color:var(--text-secondary); margin-top:4px; line-height:1.5;">시네마틱 LUT 메이커.<br>moodit 누적 다운로드 12k+</div>
+                </div>
+              </div>
+
+              <div style="padding: 0 16px; display:flex; gap:8px; margin-bottom:14px;">
+                <button class="btn primary" style="flex:1;">+ 팔로우</button>
+                <button class="btn" style="width:44px; padding:0;">✉</button>
+                <button class="btn" style="width:44px; padding:0;">↗</button>
+              </div>
+
+              <!-- Stats -->
+              <div style="padding: 0 16px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; border-radius:12px; overflow:hidden; background:var(--bg-2); border:1px solid var(--border-subtle); margin-bottom:16px;">
+                <div style="padding: 12px; text-align:center; border-right:1px solid var(--border-subtle);">
+                  <div style="font-size:18px; font-weight:700; font-variant-numeric: tabular-nums;">23</div>
+                  <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px;">필터</div>
+                </div>
+                <div style="padding: 12px; text-align:center; border-right:1px solid var(--border-subtle);">
+                  <div style="font-size:18px; font-weight:700; font-variant-numeric: tabular-nums;">12.4k</div>
+                  <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px;">팔로워</div>
+                </div>
+                <div style="padding: 12px; text-align:center;">
+                  <div style="font-size:18px; font-weight:700; font-variant-numeric: tabular-nums;">★ 4.8</div>
+                  <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px;">평균 평점</div>
+                </div>
+              </div>
+
+              <div style="padding: 0 16px; margin-bottom: 12px;">
+                <div style="padding: 4px; background: var(--bg-3); border-radius: 10px; display:grid; grid-template-columns:1fr 1fr; gap:2px;">
+                  <button class="btn sm" style="background:#fff; border:1px solid var(--border-subtle); height:32px;">필터 23</button>
+                  <button class="btn sm" style="background:transparent; border-color:transparent; color:var(--text-tertiary); height:32px;">컬렉션 5</button>
+                </div>
+              </div>
+
+              <div style="padding: 0 16px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px;">
+                <div style="aspect-ratio:1; background: linear-gradient(135deg, #c47b4f, #6c3a1a);"></div>
+                <div style="aspect-ratio:1; background: linear-gradient(135deg, #d8c5a4, #8b5e1f);"></div>
+                <div style="aspect-ratio:1; background: linear-gradient(135deg, #e89a7b, #8b4a30);"></div>
+                <div style="aspect-ratio:1; background: linear-gradient(135deg, #6b3f12, #2a1810);"></div>
+                <div style="aspect-ratio:1; background: linear-gradient(135deg, #c47b4f, #4a1f08);"></div>
+                <div style="aspect-ratio:1; background: linear-gradient(135deg, #a0721e, #6c3a1a);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> "VERIFIED MAKER" badge — 코드에 없음. 일정 다운로드/평점 기준 (e.g. 5k+, 4.5+) 통과 시 자동 부여. Firestore <code>users.makerVerified</code> 필드.</div>
+        <div class="note"><span class="tag note">NOTE</span> "✉" 메시지 — DM 기능 미정. Phase 7 이후. 지금은 안 보이게 또는 disabled.</div>
+        <div class="note"><span class="tag fix">FIX</span> "더보기 (⋯)" 메뉴 — 신고/차단/공유 옵션. 차단은 destructive 색 (red), separator 로 분리.</div>
+      </div>
+    </div>
+
+    <!-- ───── 38 · EDIT PROFILE ────────────────────────────────────────── -->
+    <div class="annotated" id="edit-profile">
+      <div class="shot">
+        <div class="label"><span class="num">38</span><span class="name">Edit Profile</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="btn ghost sm">취소</button>
+                <div class="title">프로필 편집</div>
+                <button class="btn ghost sm" style="color:var(--accent); font-weight:600;">저장</button>
+              </div>
+
+              <!-- Avatar -->
+              <div style="text-align:center; padding: 24px 0;">
+                <div style="position:relative; display:inline-block;">
+                  <div style="width:96px; height:96px; border-radius:50%; background: linear-gradient(135deg, #c47b4f, #6c3a1a); border: 4px solid #fff; box-shadow: var(--elev-2);"></div>
+                  <button style="position:absolute; bottom:0; right:0; width:32px; height:32px; border-radius:50%; background:var(--accent); color:#fff; border:3px solid #fff; font-size:14px;">📷</button>
+                </div>
+                <div style="font-size:11px; color:var(--text-tertiary); margin-top:10px;">아바타 변경</div>
+              </div>
+
+              <!-- Form fields -->
+              <div style="padding: 0 16px;">
+                <div style="margin-bottom: 14px;">
+                  <label style="font-size:11px; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:6px;">핸들 (handle)</label>
+                  <div style="position:relative;">
+                    <input value="haein" style="width:100%; height:44px; padding: 0 38px 0 28px; font-size:14px; border-radius:12px; border:1px solid var(--border-default); background:var(--bg-2); outline:none;">
+                    <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-tertiary); font-size:14px;">@</span>
+                    <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--success); font-size:14px;">✓</span>
+                  </div>
+                  <div style="font-size:11px; color:var(--success); margin-top:6px;">사용 가능한 핸들이에요</div>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                  <label style="font-size:11px; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:6px;">이름</label>
+                  <input value="박해인" style="width:100%; height:44px; padding: 0 14px; font-size:14px; border-radius:12px; border:1px solid var(--border-default); background:var(--bg-2); outline:none;">
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                  <label style="font-size:11px; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:6px;">소개</label>
+                  <textarea style="width:100%; min-height:80px; padding: 12px 14px; font-size:14px; border-radius:12px; border:1px solid var(--border-default); background:var(--bg-2); resize:none; outline:none; font-family:var(--font-sans);">필름 카메라로 일상의 빛을 담습니다.
+📷 35mm · 카페 · 골든아워</textarea>
+                  <div style="text-align:right; font-size:11px; color:var(--text-tertiary); margin-top:4px; font-variant-numeric: tabular-nums;">38 / 150</div>
+                </div>
+
+                <div style="margin-bottom: 14px;">
+                  <label style="font-size:11px; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:6px;">웹사이트</label>
+                  <input value="instagram.com/haein.film" placeholder="https://..." style="width:100%; height:44px; padding: 0 14px; font-size:14px; border-radius:12px; border:1px solid var(--border-default); background:var(--bg-2); outline:none;">
+                </div>
+
+                <!-- Privacy toggles -->
+                <div class="list-section" style="margin: 14px 0;">
+                  <div class="list-row">
+                    <div>
+                      <div class="ttl">메이커 페이지 공개</div>
+                      <div class="sub">내 필터를 마켓에 노출</div>
+                    </div>
+                    <div style="width: 48px; height: 28px; border-radius:14px; background:var(--accent); position:relative;">
+                      <div style="position:absolute; top:2px; right:2px; width:24px; height:24px; border-radius:50%; background:#fff;"></div>
+                    </div>
+                  </div>
+                  <div class="list-row">
+                    <div>
+                      <div class="ttl">사진 공유 허용</div>
+                      <div class="sub">샘플 갤러리에 사용</div>
+                    </div>
+                    <div style="width: 48px; height: 28px; border-radius:14px; background:var(--bg-3); position:relative;">
+                      <div style="position:absolute; top:2px; left:2px; width:24px; height:24px; border-radius:50%; background:#fff;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag note">NOTE</span> 핸들 변경은 hourly rate limit 5/24h. 한번 더 변경 시 disable + 안내 — 코드 ✓.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> 핸들 가용성 체크 결과 (✓/✗) 가 텍스트만으로도 announce 되어야 함. <code>accessibilityValue</code>.</div>
+        <div class="note"><span class="tag add">ADD</span> Bio textarea 의 글자 카운터 (38/150) 는 코드에 없음. 150 글자 제한 필요한데 사용자에게 미고지.</div>
+      </div>
+    </div>
+
+    <!-- ───── 39 · REVIEWS LIST ────────────────────────────────────────── -->
+    <div class="annotated" id="reviews-list">
+      <div class="shot">
+        <div class="label"><span class="num">39</span><span class="name">Reviews List</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">리뷰</div>
+                <button class="icon-btn ghost">⋮</button>
+              </div>
+
+              <!-- Summary -->
+              <div style="padding: 0 16px 16px;">
+                <div class="card" style="padding: 14px;">
+                  <div style="display:flex; gap:14px; align-items:center;">
+                    <div style="text-align:center;">
+                      <div style="font-size:32px; font-weight:700; line-height:1; font-variant-numeric: tabular-nums; color:var(--accent);">4.8</div>
+                      <div style="margin-top:4px; color:var(--accent); font-size:14px;">★★★★★</div>
+                      <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px;">342개 리뷰</div>
+                    </div>
+                    <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+                      <div style="display:flex; gap:8px; align-items:center; font-size:10px;">
+                        <span style="width:14px; color:var(--text-tertiary); text-align:right;">5</span>
+                        <div style="flex:1; height:6px; background:var(--bg-3); border-radius:3px;"><div style="width:80%; height:100%; background:var(--accent); border-radius:3px;"></div></div>
+                        <span style="width:30px; text-align:right; color:var(--text-tertiary); font-variant-numeric: tabular-nums;">274</span>
+                      </div>
+                      <div style="display:flex; gap:8px; align-items:center; font-size:10px;">
+                        <span style="width:14px; color:var(--text-tertiary); text-align:right;">4</span>
+                        <div style="flex:1; height:6px; background:var(--bg-3); border-radius:3px;"><div style="width:14%; height:100%; background:var(--accent-soft); border-radius:3px;"></div></div>
+                        <span style="width:30px; text-align:right; color:var(--text-tertiary); font-variant-numeric: tabular-nums;">48</span>
+                      </div>
+                      <div style="display:flex; gap:8px; align-items:center; font-size:10px;">
+                        <span style="width:14px; color:var(--text-tertiary); text-align:right;">3</span>
+                        <div style="flex:1; height:6px; background:var(--bg-3); border-radius:3px;"><div style="width:4%; height:100%; background:var(--text-tertiary); border-radius:3px;"></div></div>
+                        <span style="width:30px; text-align:right; color:var(--text-tertiary); font-variant-numeric: tabular-nums;">14</span>
+                      </div>
+                      <div style="display:flex; gap:8px; align-items:center; font-size:10px;">
+                        <span style="width:14px; color:var(--text-tertiary); text-align:right;">2</span>
+                        <div style="flex:1; height:6px; background:var(--bg-3); border-radius:3px;"><div style="width:1%; height:100%; background:var(--warning); border-radius:3px;"></div></div>
+                        <span style="width:30px; text-align:right; color:var(--text-tertiary); font-variant-numeric: tabular-nums;">4</span>
+                      </div>
+                      <div style="display:flex; gap:8px; align-items:center; font-size:10px;">
+                        <span style="width:14px; color:var(--text-tertiary); text-align:right;">1</span>
+                        <div style="flex:1; height:6px; background:var(--bg-3); border-radius:3px;"><div style="width:1%; height:100%; background:var(--error); border-radius:3px;"></div></div>
+                        <span style="width:30px; text-align:right; color:var(--text-tertiary); font-variant-numeric: tabular-nums;">2</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sort toggle -->
+              <div style="padding: 0 16px 12px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; gap:6px;">
+                  <span class="chip active">도움순</span>
+                  <span class="chip">최신순</span>
+                </div>
+                <button class="btn sm primary" style="height:32px; padding:0 12px;">+ 리뷰 작성</button>
+              </div>
+
+              <!-- Review item -->
+              <div style="padding: 0 16px 12px;">
+                <div class="card" style="padding: 14px;">
+                  <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom: 6px;">
+                    <div style="width:32px; height:32px; border-radius:50%; background: linear-gradient(135deg, #6b85a0, #2a3540);"></div>
+                    <div style="flex:1; min-width:0;">
+                      <div style="display:flex; gap:6px; align-items:center;">
+                        <div style="font-size:12px; font-weight:600;">@hyun</div>
+                        <span style="background:var(--success-bg); color:var(--success); font-size:9px; padding:1px 5px; border-radius:4px; font-weight:600;">구매 인증</span>
+                      </div>
+                      <div style="display:flex; gap:6px; align-items:center; margin-top:2px;">
+                        <span style="color:var(--accent); font-size:11px;">★★★★★</span>
+                        <span style="font-size:10px; color:var(--text-tertiary);">5월 6일</span>
+                      </div>
+                    </div>
+                    <button class="icon-btn ghost" style="width:28px; height:28px;">⋯</button>
+                  </div>
+                  <div style="font-size:13px; line-height:1.6; color:var(--text-primary);">필름 톤이 정말 자연스러워요. 카페 사진에 너무 잘 어울립니다.</div>
+                  <!-- Maker reply -->
+                  <div style="margin-top:10px; padding: 10px 12px; background:var(--bg-1); border-left: 3px solid var(--accent); border-radius: 8px;">
+                    <div style="font-size:11px; color:var(--accent); font-weight:600; margin-bottom: 2px;">@minju 메이커</div>
+                    <div style="font-size:12px; line-height:1.5; color:var(--text-secondary);">감사합니다! 다음 시즌 작업 기대해주세요 :)</div>
+                  </div>
+                  <div style="display:flex; gap:8px; margin-top:10px;">
+                    <button class="btn sm" style="height:28px; padding:0 10px;">👍 24</button>
+                    <button class="btn sm" style="height:28px; padding:0 10px;">답글</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> "도움순/최신순" toggle — 옛 mockup 에 없음. 코드는 helpful 디폴트. <a href="DESIGNER_NOTES.md">Notes B.11</a>.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> 별점 (★★★★★) 5개 — 단일 announce: <code>accessibilityLabel("별점 5점")</code>. 5개 별이 각각 SR 으로 읽히면 노이즈.</div>
+        <div class="note"><span class="tag note">NOTE</span> "구매 인증" 배지 — entitlement 검증 통과한 리뷰만. 신뢰도 ↑.</div>
+      </div>
+    </div>
+
+    <!-- ───── 40 · REVIEW COMPOSE ──────────────────────────────────────── -->
+    <div class="annotated" id="review-compose">
+      <div class="shot">
+        <div class="label"><span class="num">40</span><span class="name">Review Compose</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="btn ghost sm">취소</button>
+                <div class="title">리뷰 작성</div>
+                <button class="btn ghost sm" style="color:var(--accent); font-weight:600;">게시</button>
+              </div>
+
+              <!-- Filter context -->
+              <div style="padding: 0 16px;">
+                <div class="card" style="padding: 12px; display:flex; gap:10px; align-items:center; margin-bottom: 16px;">
+                  <div style="width:48px; height:48px; border-radius:8px; background:linear-gradient(135deg,#c47b4f,#6c3a1a);"></div>
+                  <div>
+                    <div style="font-size:13px; font-weight:600;">Cinematic 35mm</div>
+                    <div style="font-size:11px; color:var(--text-tertiary);">@minju</div>
+                  </div>
+                </div>
+
+                <!-- Star input -->
+                <div style="text-align:center; padding: 16px 0;">
+                  <div style="font-size:11px; color:var(--text-secondary); margin-bottom: 12px;">별점을 선택하세요</div>
+                  <div style="display:flex; gap:10px; justify-content:center; font-size:38px; color: var(--accent);">★★★★<span style="color:var(--border-default);">★</span></div>
+                  <div style="font-size:13px; color:var(--text-primary); margin-top:10px; font-weight:600;">좋아요 (4점)</div>
+                </div>
+
+                <!-- Body -->
+                <textarea placeholder="이 필터의 어떤 점이 좋았나요?" style="width:100%; min-height:140px; padding: 14px; font-size:14px; border-radius: 12px; border:1px solid var(--border-default); background:var(--bg-2); resize:none; outline:none; font-family:var(--font-sans);">필름 톤이 정말 자연스러워요. 카페 사진에 너무 잘 어울립니다. 강도 60~70 정도로 사용 추천!</textarea>
+                <div style="text-align:right; font-size:11px; color:var(--text-tertiary); margin-top:4px; font-variant-numeric: tabular-nums;">62 / 280</div>
+
+                <!-- Photo attachment -->
+                <div style="margin-top: 16px;">
+                  <div style="font-size:11px; color:var(--text-secondary); font-weight:600; margin-bottom: 8px;">사진 첨부 (선택)</div>
+                  <div style="display:flex; gap:8px;">
+                    <div style="width:64px; height:80px; border-radius:10px; background:linear-gradient(135deg,#d8c5a4,#c47b4f); position:relative;">
+                      <button style="position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%; background:rgba(0,0,0,0.6); color:#fff; border:none; font-size:10px;">✕</button>
+                    </div>
+                    <button style="width:64px; height:80px; border-radius:10px; background:var(--bg-1); border:2px dashed var(--border-default); display:grid; place-items:center; color:var(--text-tertiary); font-size:24px;">+</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag note">NOTE</span> 280자 = Twitter/X 표준. 사용자에게 익숙. counter visible.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Star input — <code>accessibilityValue("\(stars)점 / 5점")</code> + <code>accessibilityAdjustableAction</code>. tap 외 swipe 도 동작.</div>
+        <div class="note"><span class="tag add">ADD</span> 사진 첨부 시 EXIF 자동 제거 안내 — 위치 정보 보호. 작은 캡션 "위치 정보는 자동으로 제거됩니다."</div>
+      </div>
+    </div>
+
+    <!-- ───── 41 · FOR YOU FEED ────────────────────────────────────────── -->
+    <div class="annotated" id="foryou">
+      <div class="shot">
+        <div class="label"><span class="num">41</span><span class="name">For You Feed</span><span class="status todo">PARTIAL</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+
+              <!-- Top tabs -->
+              <div style="padding: 8px 16px 12px; display:flex; gap:16px; border-bottom: 1px solid var(--border-subtle);">
+                <button style="background:none; border:none; color:var(--text-primary); font-size:14px; font-weight:700; padding: 6px 0; border-bottom: 2px solid var(--accent);">For You</button>
+                <button style="background:none; border:none; color:var(--text-tertiary); font-size:14px; font-weight:500; padding: 6px 0;">팔로잉</button>
+              </div>
+
+              <!-- Hero card -->
+              <div style="padding: 12px 16px;">
+                <div class="card elev2" style="padding: 0; overflow:hidden; border-radius: 18px;">
+                  <div style="aspect-ratio: 4/5; background: linear-gradient(135deg, #c47b4f, #6c3a1a); position:relative;">
+                    <span style="position:absolute; top:12px; left:12px; padding: 4px 10px; border-radius:999px; background:rgba(0,0,0,0.55); color:#fff; font-size:10px; backdrop-filter: blur(8px);">⭐ 추천</span>
+                    <div style="position:absolute; bottom:12px; right:12px; display:flex; flex-direction:column; gap:8px;">
+                      <button style="width:44px; height:44px; border-radius:50%; background:rgba(0,0,0,0.6); color:#fff; border:none; font-size:18px;">👍</button>
+                      <button style="width:44px; height:44px; border-radius:50%; background:rgba(0,0,0,0.6); color:#fff; border:none; font-size:18px;">👎</button>
+                    </div>
+                  </div>
+                  <div style="padding: 12px 14px;">
+                    <div style="display:flex; gap:10px; align-items:center; margin-bottom: 8px;">
+                      <div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#c47b4f,#6c3a1a);"></div>
+                      <div style="flex:1;">
+                        <div style="font-size:13px; font-weight:600;">Cinematic 35mm</div>
+                        <div style="font-size:11px; color:var(--text-tertiary);">@minju · 별점 4.8</div>
+                      </div>
+                      <button class="btn sm primary" style="height: 30px;">⬡50</button>
+                    </div>
+                    <div style="font-size:11px; color:var(--text-secondary);">"필름 톤이 정말 자연스러워요" · @hyun</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Maker recommendation -->
+              <div class="sec-h"><div class="h">팔로우할 만한 메이커</div><div class="more">전체 →</div></div>
+              <div style="padding: 8px 16px; display:flex; gap:12px; overflow-x:hidden;">
+                <div class="card" style="padding: 10px; min-width: 140px; text-align:center;">
+                  <div style="width: 56px; height:56px; border-radius:50%; background:linear-gradient(135deg,#6b85a0,#2a3540); margin:0 auto 8px;"></div>
+                  <div style="font-size:12px; font-weight:600;">@hyun</div>
+                  <div style="font-size:10px; color:var(--text-tertiary); margin-bottom:8px;">8.1k · ★ 4.7</div>
+                  <button class="btn sm primary" style="height:28px; width:100%;">팔로우</button>
+                </div>
+                <div class="card" style="padding: 10px; min-width: 140px; text-align:center;">
+                  <div style="width: 56px; height:56px; border-radius:50%; background:linear-gradient(135deg,#e5a8c6,#b88599); margin:0 auto 8px;"></div>
+                  <div style="font-size:12px; font-weight:600;">@yoonji</div>
+                  <div style="font-size:10px; color:var(--text-tertiary); margin-bottom:8px;">3.2k · ★ 4.6</div>
+                  <button class="btn sm primary" style="height:28px; width:100%;">팔로우</button>
+                </div>
+              </div>
+
+              <!-- Grid -->
+              <div class="sec-h"><div class="h">맞춤 필터</div></div>
+              <div style="padding: 8px 16px; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div class="tile">
+                  <div class="cover cool"></div>
+                  <div class="meta"><div class="name">Cyan Drift</div><div class="author">@hyun</div></div>
+                </div>
+                <div class="tile">
+                  <div class="cover pastel"></div>
+                  <div class="meta"><div class="name">Sakura Mist</div><div class="author">@yoonji</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> 👍 / 👎 신호 — <a href="DESIGNER_NOTES.md">Notes C.2.8</a>. 추천 알고리즘에 input 으로. 코드 미구현.</div>
+        <div class="note"><span class="tag fix">FIX</span> 옛 mockup 은 단일 feed. 코드는 hero + maker carousel + grid 3 sections. 이 mockup 은 코드 기준.</div>
+        <div class="note"><span class="tag note">NOTE</span> Hero card "⭐ 추천" badge — 추천 이유 (e.g. "@minju 를 팔로우하는 사용자가 좋아한 필터") 노출 시 신뢰도 ↑.</div>
+      </div>
+    </div>
+
+    <!-- ───── 42 · FOLLOWERS LIST ──────────────────────────────────────── -->
+    <div class="annotated" id="followers-list">
+      <div class="shot">
+        <div class="label"><span class="num">42</span><span class="name">Followers List</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">팔로워 1,200</div>
+                <button class="icon-btn ghost"></button>
+              </div>
+
+              <!-- Search within followers -->
+              <div style="padding: 0 16px 12px;">
+                <div class="search-bar">
+                  <span style="color:var(--text-tertiary)">⌕</span>
+                  <span>팔로워 검색</span>
+                </div>
+              </div>
+
+              <!-- Tab toggle -->
+              <div style="padding: 0 16px 12px;">
+                <div style="padding: 4px; background: var(--bg-3); border-radius: 10px; display:grid; grid-template-columns:1fr 1fr; gap:2px;">
+                  <button class="btn sm" style="background:#fff; border:1px solid var(--border-subtle); height:32px;">팔로워 1.2k</button>
+                  <button class="btn sm" style="background:transparent; border-color:transparent; color:var(--text-tertiary); height:32px;">팔로잉 328</button>
+                </div>
+              </div>
+
+              <!-- List -->
+              <div style="padding: 0;">
+                <div class="list-row">
+                  <div style="display:flex; gap:10px; align-items:center; flex:1; min-width:0;">
+                    <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#6b85a0,#2a3540);"></div>
+                    <div style="min-width:0;">
+                      <div class="ttl">김현 <span style="color:var(--text-tertiary); font-weight:400;">@hyun</span></div>
+                      <div class="sub">필터 18개 · 팔로워 8.1k</div>
+                    </div>
+                  </div>
+                  <button class="btn sm" style="border-color:var(--border-default); background:var(--bg-2);">팔로잉</button>
+                </div>
+                <div class="list-row">
+                  <div style="display:flex; gap:10px; align-items:center; flex:1; min-width:0;">
+                    <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#e5a8c6,#b88599);"></div>
+                    <div style="min-width:0;">
+                      <div class="ttl">이윤지 <span style="color:var(--text-tertiary); font-weight:400;">@yoonji</span></div>
+                      <div class="sub">필터 6개 · 팔로워 3.2k</div>
+                    </div>
+                  </div>
+                  <button class="btn sm primary">+ 팔로우</button>
+                </div>
+                <div class="list-row">
+                  <div style="display:flex; gap:10px; align-items:center; flex:1; min-width:0;">
+                    <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#c47b4f,#6c3a1a);"></div>
+                    <div style="min-width:0;">
+                      <div class="ttl">박해인 <span style="color:var(--text-tertiary); font-weight:400;">@haein</span></div>
+                      <div class="sub">필터 8개 · 팔로워 1.2k</div>
+                    </div>
+                  </div>
+                  <button class="btn sm" style="border-color:var(--border-default); background:var(--bg-2);">팔로잉</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> 검색 within followers — <a href="DESIGNER_NOTES.md">Notes C.2.10</a>. 메이커 1k+ 팔로워 시 특정 사용자 찾기 어려움.</div>
+        <div class="note"><span class="tag note">NOTE</span> "팔로잉" pill 은 long-press 시 unfollow confirm. <code>FMConfirmationDialog</code> 적절.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Toggle 버튼 텍스트 변경 (팔로우 ↔ 팔로잉) — <code>accessibilityValue</code> 로 상태 announce.</div>
+      </div>
+    </div>
+
+    <!-- ───── 43 · REPORT FORM ─────────────────────────────────────────── -->
+    <div class="annotated" id="report-form">
+      <div class="shot">
+        <div class="label"><span class="num">43</span><span class="name">Report Form</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="background:rgba(0,0,0,0.4);">
+
+              <div class="sheet" style="max-height: 80%; overflow-y:auto;">
+                <div class="grabber"></div>
+                <div style="font-size:18px; font-weight:700; letter-spacing:-0.02em; margin-bottom: 4px;">신고하기</div>
+                <div style="font-size:12px; color:var(--text-secondary); margin-bottom: 20px;">@minju · Cinematic 35mm</div>
+
+                <div style="font-size:11px; color:var(--text-secondary); font-weight:600; margin-bottom:8px;">신고 사유</div>
+                <div style="display:flex; flex-direction:column; gap:8px; margin-bottom: 16px;">
+                  <label class="card" style="padding: 12px 14px; display:flex; gap:10px; align-items:center; cursor:pointer; border-color:var(--accent); background:var(--accent-bg);">
+                    <div style="width:18px; height:18px; border-radius:50%; border: 2px solid var(--accent); position:relative;"><div style="position:absolute; inset:3px; border-radius:50%; background:var(--accent);"></div></div>
+                    <div style="font-size:13px; font-weight:500;">저작권 침해</div>
+                  </label>
+                  <label class="card" style="padding: 12px 14px; display:flex; gap:10px; align-items:center; cursor:pointer;">
+                    <div style="width:18px; height:18px; border-radius:50%; border: 2px solid var(--border-default);"></div>
+                    <div style="font-size:13px;">부적절한 콘텐츠</div>
+                  </label>
+                  <label class="card" style="padding: 12px 14px; display:flex; gap:10px; align-items:center; cursor:pointer;">
+                    <div style="width:18px; height:18px; border-radius:50%; border: 2px solid var(--border-default);"></div>
+                    <div style="font-size:13px;">스팸 / 사기</div>
+                  </label>
+                  <label class="card" style="padding: 12px 14px; display:flex; gap:10px; align-items:center; cursor:pointer;">
+                    <div style="width:18px; height:18px; border-radius:50%; border: 2px solid var(--border-default);"></div>
+                    <div style="font-size:13px;">기타</div>
+                  </label>
+                </div>
+
+                <textarea placeholder="추가 설명 (선택)" style="width:100%; min-height:80px; padding: 12px 14px; font-size:13px; border-radius:12px; border:1px solid var(--border-default); background:var(--bg-2); resize:none; outline:none; font-family:var(--font-sans);"></textarea>
+
+                <button class="btn primary full" style="margin-top:16px;">신고 제출</button>
+                <div style="text-align:center; font-size:10px; color:var(--text-tertiary); margin-top:10px; line-height:1.6;">신고는 익명으로 처리되며, 24시간 내에 검토됩니다.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag note">NOTE</span> 신고 사유 코드 — Firestore <code>filters/{id}/reports/{rid}.reasonCode</code>. 정형 카테고리 → 백엔드 자동 처리 (e.g. 저작권 = priority 즉시).</div>
+        <div class="note"><span class="tag fix">FIX</span> Rate limit 30/h 적용. 사용자가 30회 초과 시 toast — "오늘 신고 한도에 도달했습니다."</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer class="canvas">
+  <p>← <a href="flow-05-wallet.html">Wallet 05</a> · <a href="index.html">Index</a> · <a href="flow-07-notifications-settings.html">Settings 07 →</a></p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,766 @@
+openapi: 3.0.3
+info:
+  title: moodit Backend API
+  version: 1.0.0
+  description: |
+    Firebase Cloud Functions Callable 엔드포인트의 OpenAPI 표현.
+
+    실제 호출 방식은 Firebase SDK의 `httpsCallable("<name>")(payload)` 이지만, 본 문서는
+    REST 도구(Postman, swagger-ui, mock 서버)에서 명세를 활용할 수 있도록 OpenAPI로 표현한다.
+
+    Callable의 응답 envelope `{result: <data>}` 또는 `{error: {code, message, details}}` 는
+    Firebase SDK가 자동 풀어준다. 본 OpenAPI에서는 핸들러가 반환하는 **data 페이로드** 만 표기한다.
+
+servers:
+  - url: https://asia-northeast3-{projectId}.cloudfunctions.net
+    description: Cloud Functions
+    variables:
+      projectId:
+        default: moodit-staging
+
+security:
+  - firebaseIdToken: []
+
+components:
+  securitySchemes:
+    firebaseIdToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: failed-precondition
+        message:
+          type: string
+          example: download_required
+        details:
+          type: object
+
+    PresignedUploadResult:
+      type: object
+      properties:
+        objectKey: { type: string }
+        uploadUrl: { type: string, format: uri }
+        uploadHeaders:
+          type: object
+          additionalProperties: { type: string }
+        publicURL: { type: string, format: uri }
+        expiresAt: { type: integer }
+
+    FilterDetail:
+      type: object
+      properties:
+        filter:
+          type: object
+          properties:
+            id: { type: string }
+            title: { type: string }
+            description: { type: string }
+            version: { type: string }
+            category: { type: string }
+            status: { type: string, enum: [approved] }
+            useCount: { type: integer }
+            downloadCount: { type: integer }
+            priceCoins: { type: integer, enum: [0, 30, 50, 80, 120] }
+            coverURL: { type: string, nullable: true }
+            signatureSampleURL: { type: string, nullable: true }
+            ratingAvg: { type: number, nullable: true }
+            reviewCount: { type: integer }
+            likeCount: { type: integer }
+            sampleCount: { type: integer }
+            tags:
+              type: array
+              items: { type: string }
+            createdAt: { type: integer, nullable: true }
+            author:
+              type: object
+              properties:
+                uid: { type: string }
+                displayName: { type: string }
+        samples:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              kind: { type: string }
+              categoryHint: { type: string, nullable: true }
+              coverURL: { type: string, nullable: true }
+              thumbnailURL: { type: string, nullable: true }
+        reviews:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              authorUid: { type: string }
+              authorDisplayName: { type: string }
+              stars: { type: integer, minimum: 1, maximum: 5 }
+              body: { type: string }
+              photoUrl: { type: string, nullable: true }
+              isVerifiedDownload: { type: boolean }
+              helpfulCount: { type: integer }
+              createdAt: { type: integer, nullable: true }
+        userHasLiked: { type: boolean }
+        signedDownloadURL: { type: string, format: uri }
+        expiresAt: { type: integer }
+
+paths:
+  /uploadInit:
+    post:
+      operationId: uploadInit
+      summary: Reserve a filter ID and presigned PUT URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, category, packageBytes]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 60 }
+                category: { type: string, minLength: 1, maxLength: 40 }
+                tags:
+                  type: array
+                  items: { type: string, maxLength: 24 }
+                  maxItems: 12
+                packageBytes: { type: integer, minimum: 1, maximum: 5000000 }
+                contentSha256: { type: string }
+                signatureSampleURL: { type: string, format: uri }
+      responses:
+        "200":
+          description: Filter draft + presigned PUT
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  uploadUrl: { type: string }
+                  uploadHeaders:
+                    type: object
+                    additionalProperties: { type: string }
+                  expiresAt: { type: integer }
+                  objectKey: { type: string }
+        "401": { description: unauthenticated }
+        "400": { description: invalid-argument }
+
+  /uploadFinalize:
+    post:
+      operationId: uploadFinalize
+      summary: Verify uploaded R2 object and transition to pending_review_pre
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId]
+              properties:
+                filterId: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  filterId: { type: string }
+                  sha256: { type: string, nullable: true }
+        "404": { description: not-found }
+        "403": { description: not the filter owner }
+        "400": { description: failed-precondition / data-loss }
+
+  /submitForReview:
+    post:
+      operationId: submitForReview
+      summary: Submit pending_review_pre filter to moderation queue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId, tosOriginal, tosPolicy, tosCommercial]
+              properties:
+                filterId: { type: string }
+                tosOriginal: { type: boolean }
+                tosPolicy: { type: boolean }
+                tosCommercial: { type: boolean }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  filterId: { type: string }
+                  status: { type: string, enum: [pending_review] }
+
+  /recordUse:
+    post:
+      operationId: recordUse
+      summary: Idempotent use counter (1h cooldown per uid+filter)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId]
+              properties:
+                filterId: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  filterId: { type: string }
+                  useCount: { type: integer }
+                  counted: { type: boolean }
+
+  /getFilterDetail:
+    post:
+      operationId: getFilterDetail
+      summary: Filter detail bundle + presigned download URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId]
+              properties:
+                filterId: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FilterDetail" }
+        "403": { description: not_entitled (paid filter without entitlement) }
+        "404": { description: not-found }
+
+  /toggleFilterLike:
+    post:
+      operationId: toggleFilterLike
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId, liked]
+              properties:
+                filterId: { type: string }
+                liked: { type: boolean }
+      responses:
+        "200":
+          description: ok
+
+  /reportFilter:
+    post:
+      operationId: reportFilter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId, reasonCode]
+              properties:
+                filterId: { type: string }
+                reasonCode: { type: string, maxLength: 64 }
+                detail: { type: string, maxLength: 2000 }
+      responses:
+        "200": { description: ok }
+        "429": { description: rate_limited (filters.report 30/3600s) }
+
+  /submitReview:
+    post:
+      operationId: submitReview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId, stars, body]
+              properties:
+                filterId: { type: string }
+                stars: { type: integer, minimum: 1, maximum: 5 }
+                body: { type: string, minLength: 5, maxLength: 500 }
+                photoUrl: { type: string, format: uri }
+                photoObjectKey: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  filterId: { type: string }
+                  reviewId: { type: string }
+                  isVerifiedDownload: { type: boolean }
+        "400": { description: filter_not_available / maker_cannot_review_own_filter / download_required }
+
+  /listReviews:
+    post:
+      operationId: listReviews
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId]
+              properties:
+                filterId: { type: string }
+                limit: { type: integer, minimum: 1, maximum: 20, default: 20 }
+                cursor: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  filterId: { type: string }
+                  reviews:
+                    type: array
+                    items:
+                      type: object
+                  nextCursor: { type: string, nullable: true }
+
+  /listSamples:
+    post:
+      operationId: listSamples
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId]
+              properties:
+                filterId: { type: string }
+                limit: { type: integer, minimum: 1, maximum: 24, default: 12 }
+                cursor: { type: string }
+      responses:
+        "200": { description: ok }
+
+  /deleteReview:
+    post:
+      operationId: deleteReview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId, reviewId]
+              properties:
+                filterId: { type: string }
+                reviewId: { type: string }
+      responses:
+        "200": { description: ok }
+        "403": { description: not_review_owner }
+
+  /markReviewHelpful:
+    post:
+      operationId: markReviewHelpful
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId, reviewId, helpful]
+              properties:
+                filterId: { type: string }
+                reviewId: { type: string }
+                helpful: { type: boolean }
+      responses:
+        "200": { description: ok }
+
+  /reviewImageUploadInit:
+    post:
+      operationId: reviewImageUploadInit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId, contentType, imageBytes]
+              properties:
+                filterId: { type: string }
+                contentType: { type: string, enum: [image/jpeg, image/png] }
+                imageBytes: { type: integer, minimum: 1, maximum: 2500000 }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PresignedUploadResult" }
+
+  /sampleImageUploadInit:
+    post:
+      operationId: sampleImageUploadInit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId, contentType, imageBytes]
+              properties:
+                filterId: { type: string }
+                contentType: { type: string, enum: [image/jpeg, image/png] }
+                imageBytes: { type: integer, minimum: 1, maximum: 4000000 }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PresignedUploadResult" }
+
+  /addUserSample:
+    post:
+      operationId: addUserSample
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId, objectKey, publicURL]
+              properties:
+                filterId: { type: string }
+                objectKey: { type: string }
+                publicURL: { type: string, format: uri }
+                categoryHint: { type: string }
+      responses:
+        "200": { description: ok }
+
+  /removeSample:
+    post:
+      operationId: removeSample
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId, sampleId]
+              properties:
+                filterId: { type: string }
+                sampleId: { type: string }
+      responses:
+        "200": { description: ok }
+
+  /setHandle:
+    post:
+      operationId: setHandle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [handle]
+              properties:
+                handle:
+                  type: string
+                  pattern: "^[a-z0-9_.]{3,30}$"
+      responses:
+        "200": { description: ok }
+        "409": { description: handle_taken }
+
+  /updateProfile:
+    post:
+      operationId: updateProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+                bio: { type: string }
+                website: { type: string }
+                makerPageVisible: { type: boolean }
+                photoSharingAllowed: { type: boolean }
+                avatarVariant: { type: integer, minimum: 0, maximum: 64 }
+                avatarURL: { type: string, format: uri }
+                photoURL: { type: string, format: uri }
+                avatarObjectKey: { type: string }
+      responses:
+        "200": { description: ok }
+
+  /profileAvatarUploadInit:
+    post:
+      operationId: profileAvatarUploadInit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contentType, imageBytes]
+              properties:
+                contentType: { type: string, enum: [image/jpeg, image/png] }
+                imageBytes: { type: integer, minimum: 1, maximum: 1500000 }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PresignedUploadResult" }
+
+  /deleteAccount:
+    post:
+      operationId: deleteAccount
+      responses:
+        "200": { description: ok }
+
+  /setRole:
+    post:
+      operationId: setRole
+      summary: (admin only) Grant or revoke a custom role claim
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetUid, role]
+              properties:
+                targetUid: { type: string }
+                role:
+                  type: string
+                  nullable: true
+                  enum: [admin, moderator, null]
+      responses:
+        "200": { description: ok }
+        "403": { description: admin role required }
+
+  /approveFilter:
+    post:
+      operationId: approveFilter
+      summary: (moderator) approve filter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId]
+              properties:
+                filterId: { type: string }
+      responses:
+        "200": { description: ok }
+
+  /rejectFilter:
+    post:
+      operationId: rejectFilter
+      summary: (moderator) reject filter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId, reason]
+              properties:
+                filterId: { type: string }
+                reason: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        "200": { description: ok }
+
+  /undoModerationDecision:
+    post:
+      operationId: undoModerationDecision
+      summary: (moderator) revert approve/reject back to pending_review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId]
+              properties:
+                filterId: { type: string }
+      responses:
+        "200": { description: ok }
+
+  /reportReview:
+    post:
+      operationId: reportReview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId, reviewId, reasonCode]
+              properties:
+                filterId: { type: string }
+                reviewId: { type: string }
+                authorUid: { type: string }
+                reasonCode: { type: string, maxLength: 64 }
+                detail: { type: string, maxLength: 2000 }
+      responses:
+        "200": { description: ok }
+
+  /reportUser:
+    post:
+      operationId: reportUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetUid, reasonCode]
+              properties:
+                targetUid: { type: string }
+                reasonCode: { type: string }
+                detail: { type: string }
+      responses:
+        "200": { description: ok }
+
+  /purchaseFilter:
+    post:
+      operationId: purchaseFilter
+      summary: Spend coins, grant filter entitlement (idempotent)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filterId]
+              properties:
+                filterId: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  balance: { type: integer }
+                  filterId: { type: string }
+                  alreadyOwned: { type: boolean }
+        "400": { description: insufficient_balance }
+        "404": { description: filter not found }
+        "429": { description: rate_limited (wallet.purchase 30/60s) }
+
+  /creditCoinsFromIAP:
+    post:
+      operationId: creditCoinsFromIAP
+      summary: Verify Apple JWS, credit coins (idempotent on originalTransactionId)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [originalTransactionId, productId, signedJWS]
+              properties:
+                originalTransactionId: { type: string }
+                productId:
+                  type: string
+                  enum:
+                    - com.jayl2kor.moodit.coins.100
+                    - com.jayl2kor.moodit.coins.550
+                    - com.jayl2kor.moodit.coins.1200
+                    - com.jayl2kor.moodit.coins.3000
+                signedJWS: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  productId: { type: string }
+                  creditedAmount: { type: integer }
+                  balance: { type: integer }
+                  duplicate: { type: boolean }
+        "403": { description: receipt_verification_failed / receipt_belongs_to_another_user }
+        "429": { description: rate_limited }
+
+  /proSubscriptionUpdate:
+    post:
+      operationId: proSubscriptionUpdate
+      summary: Verify Pro subscription JWS, mirror to proStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [originalTransactionId, productId, signedJWS]
+              properties:
+                originalTransactionId: { type: string }
+                productId:
+                  type: string
+                  enum:
+                    - com.jayl2kor.moodit.pro.monthly
+                    - com.jayl2kor.moodit.pro.yearly
+                signedJWS: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  productId: { type: string }
+                  active: { type: boolean }
+
+  /refundRequest:
+    post:
+      operationId: refundRequest
+      summary: Queue a refund request for a ledger entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, reason]
+              properties:
+                orderId:
+                  type: string
+                  pattern: "^[A-Za-z0-9._:-]+$"
+                reason: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        "200": { description: ok }
+        "404": { description: order_not_found }
+        "409": { description: refund_already_requested }
+        "429": { description: rate_limited (wallet.refund 5/3600s) }

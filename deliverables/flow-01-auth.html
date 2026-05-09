@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flow 01 · Auth & Onboarding · moodit mockups</title>
+  <link rel="stylesheet" href="_tokens.css">
+</head>
+<body>
+
+<header class="canvas">
+  <div>
+    <h1>Flow 01 · Auth & Onboarding</h1>
+    <div class="meta">3 screens · OnboardingScreen / LoginScreen / EmailLoginScreen</div>
+  </div>
+  <nav>
+    <a href="index.html">Index</a>
+    <a href="flow-01-auth.html" class="active">Auth</a>
+    <a href="flow-02-marketplace.html">Marketplace</a>
+    <a href="flow-03-camera.html">Camera</a>
+    <a href="flow-04-maker.html">Maker</a>
+    <a href="flow-05-wallet.html">Wallet</a>
+    <a href="flow-06-profile-social.html">Profile</a>
+    <a href="flow-07-notifications-settings.html">Settings</a>
+    <a href="flow-08-states-modals.html">States</a>
+  </nav>
+</header>
+
+<section class="flow">
+  <h2>Auth & Onboarding</h2>
+  <p class="subtitle">First-run gate. <code>MooditApp.swift</code> branches on <code>@AppStorage("hasOnboarded")</code> + Firebase Auth state. Guest path lands on Marketplace immediately; authenticated users without a handle get nudged to <code>EditProfileScreen</code> via <code>RootShell.syncHandleOnboarding()</code>.</p>
+
+  <div class="flow-summary">
+    <div class="col recs">
+      <h3>Working</h3>
+      <ul>
+        <li><strong>Apple-first ordering</strong> — Apple Sign In is the top button, matches App Store Review §4.8.</li>
+        <li>Carousel uses <code>@AppStorage("hasOnboarded")</code> — won't re-show after re-install once iCloud KV is enabled.</li>
+        <li>약관 / 개인정보 SafariView links present.</li>
+      </ul>
+    </div>
+    <div class="col gaps">
+      <h3>Gaps</h3>
+      <ul>
+        <li><strong>"둘러보기" (guest)</strong> — copy unclear. Becomes a real anonymous Firebase Auth user but reads like "browsing".</li>
+        <li>Onboarding has 4 pages but no progress dots in the current implementation — only "건너뛰기 / 다음".</li>
+        <li>No tooltip tour on first marketplace landing (proposed).</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="gallery">
+
+    <!-- ───── ONBOARDING (page 2 of 4) ─────────────────────────────────── -->
+    <div class="annotated">
+      <div class="shot">
+        <div class="label"><span class="num">01</span><span class="name">Onboarding · Page 2/4</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar">
+              <span>9:41</span>
+              <span class="signals">●●●●●  100%</span>
+            </div>
+            <div class="app-body" style="padding: 24px 24px 0; display:flex; flex-direction:column;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 32px;">
+                <div style="font-size:11px; color:var(--text-tertiary); font-family:var(--font-mono)">2 / 4</div>
+                <button style="background:none; border:none; color:var(--text-tertiary); font-size:13px;">건너뛰기</button>
+              </div>
+
+              <!-- Illustration placeholder -->
+              <div style="flex:1; min-height:280px; display:grid; place-items:center; margin-bottom:24px;">
+                <div style="width:200px; height:200px; border-radius:50%; background: radial-gradient(circle at 30% 30%, var(--accent-soft), var(--accent) 60%, transparent 100%); position:relative;">
+                  <div style="position:absolute; inset:18px; border-radius:50%; border:2px dashed rgba(255,255,255,0.5);"></div>
+                  <div style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size:60px;">📷</div>
+                </div>
+              </div>
+
+              <h2 style="font-size:26px; font-weight:700; letter-spacing:-0.02em; margin:0 0 12px; color:var(--text-primary)">메이커가 만든<br>필터를 바로 찍어요</h2>
+              <p style="font-size:14px; color:var(--text-secondary); line-height:1.6; margin:0 0 28px">시네마틱 무드부터 빈티지 톤까지,<br>전 세계 메이커의 필터를 카메라에서 바로 적용합니다.</p>
+
+              <!-- Page dots -->
+              <div style="display:flex; gap:6px; justify-content:center; margin-bottom:20px;">
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--border-default)"></span>
+                <span style="width:20px; height:6px; border-radius:3px; background:var(--accent)"></span>
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--border-default)"></span>
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--border-default)"></span>
+              </div>
+
+              <button class="btn primary full" style="margin-bottom:16px;">다음</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span><b>Page dots</b> are not in the current SwiftUI code (`OnboardingScreen.swift` only renders 다음/건너뛰기). Adding indicators is a low-effort, high-clarity win for first-run users.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Carousel container needs <code>accessibilityElement(children:.contain)</code> + <code>accessibilityScrollAction</code> so VoiceOver users can swipe between pages without hitting Next.</div>
+        <div class="note"><span class="tag copy">COPY</span> "메이커가 만든 / 필터를 바로 찍어요" — 두 줄 분리가 어색. <code>"메이커가 만든 필터로<br>지금 바로 찍어요"</code> 가 자연스러움.</div>
+      </div>
+    </div>
+
+    <!-- ───── LOGIN ─────────────────────────────────────────────────────── -->
+    <div class="annotated">
+      <div class="shot">
+        <div class="label"><span class="num">02</span><span class="name">Login</span><span class="status todo">PARTIAL</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar">
+              <span>9:41</span>
+              <span class="signals">●●●●●  100%</span>
+            </div>
+            <div class="app-body" style="padding: 32px 24px 0; display:flex; flex-direction:column;">
+
+              <!-- Brand mark -->
+              <div style="text-align:center; padding: 32px 0 48px;">
+                <div style="display:inline-grid; place-items:center; width:88px; height:88px; border-radius:24px; background: linear-gradient(135deg, var(--accent-soft), var(--accent)); margin-bottom:16px; box-shadow: 0 12px 24px -8px rgba(184,133,58,0.4);">
+                  <div style="color:#fff; font-size:38px; font-weight:800;">m</div>
+                </div>
+                <h1 style="font-size:30px; font-weight:800; letter-spacing:-0.04em; margin:0 0 8px; color:var(--text-primary)">moodit</h1>
+                <p style="font-size:13px; color:var(--text-secondary); margin:0;">필터 마켓플레이스 · 무드를 발견하고 만드세요</p>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:24px;">
+                <button class="btn full" style="background:#000; color:#fff; border-color:#000;">
+                  <span style="font-size:18px; margin-right:6px;">􀎫</span> Apple로 로그인
+                </button>
+                <button class="btn full" style="background:#fff; color:#1a1a1a; border-color:var(--border-default);">
+                  <span style="margin-right:6px; font-weight:700; color:#4285F4;">G</span> Google로 로그인
+                </button>
+                <button class="btn full" style="background:var(--bg-2); color:var(--text-primary); border-color:var(--border-default);">
+                  ✉️ 이메일로 계속
+                </button>
+              </div>
+
+              <div style="text-align:center; margin-bottom:28px;">
+                <button style="background:none; border:none; color:var(--accent); font-size:14px; font-weight:600;">로그인 없이 시작 →</button>
+              </div>
+
+              <p style="font-size:11px; color:var(--text-tertiary); line-height:1.6; text-align:center; margin:0 0 16px;">
+                계속하면 <a href="#" style="color:var(--accent); text-decoration:underline;">서비스 약관</a>과<br>
+                <a href="#" style="color:var(--accent); text-decoration:underline;">개인정보 처리방침</a>에 동의하게 됩니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag copy">COPY</span> 현재 코드는 <code>"둘러보기"</code> — 게스트인지 임시 로그인인지 모호. <b>"로그인 없이 시작"</b> 으로 변경 제안. (Firebase anon-auth 동작은 동일)</div>
+        <div class="note"><span class="tag a11y">A11Y</span> 약관/개인정보 링크는 <code>UIFontMetrics</code> 적용 안 됨. AX5 사이즈에서 잘릴 위험. <code>.fmTypography(.footnote)</code> 로 명시 + <code>lineLimit(nil)</code>.</div>
+        <div class="note"><span class="tag fix">FIX</span> Apple 버튼은 <b>SF Symbol 􀎫</b> (<code>apple.logo</code>) 사용 가능 — 현재 mockups/ 의 emoji 🍎 는 가이드라인 위반.</div>
+        <div class="note"><span class="tag note">NOTE</span> Pro 사용자 부분은 첫 로그인 직후 paywall 띄우지 말 것 — App Store §3.1.2 정책상 강제 결제로 해석 가능.</div>
+      </div>
+    </div>
+
+    <!-- ───── EMAIL LOGIN ───────────────────────────────────────────────── -->
+    <div class="annotated">
+      <div class="shot">
+        <div class="label"><span class="num">03</span><span class="name">Email Login</span><span class="status todo">PARTIAL</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar">
+              <span>9:41</span>
+              <span class="signals">●●●●●  100%</span>
+            </div>
+            <div class="app-body" style="padding: 0;">
+              <!-- Top bar with back -->
+              <div class="top-bar" style="padding: 8px 12px 16px;">
+                <button class="icon-btn ghost" aria-label="뒤로"><span style="font-size:18px;">‹</span></button>
+                <div class="title">이메일</div>
+                <div style="width:36px"></div>
+              </div>
+
+              <div style="padding: 8px 24px;">
+                <h2 style="font-size:24px; font-weight:700; letter-spacing:-0.02em; margin:0 0 8px;">이메일로 시작</h2>
+                <p style="font-size:13px; color:var(--text-secondary); margin: 0 0 24px;">기존 계정이 있으면 자동으로 로그인됩니다.</p>
+
+                <!-- Email field -->
+                <div style="margin-bottom: 16px;">
+                  <label style="font-size:11px; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:6px;">이메일</label>
+                  <input value="jay@example.com" style="width:100%; height:48px; padding: 0 14px; font-size:14px; border-radius: 12px; border:1px solid var(--accent); background:var(--bg-2); outline:none; color:var(--text-primary); box-shadow: 0 0 0 4px var(--accent-ring);">
+                </div>
+
+                <!-- Password field -->
+                <div style="margin-bottom: 24px;">
+                  <label style="font-size:11px; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:6px;">비밀번호</label>
+                  <div style="position:relative;">
+                    <input type="password" value="••••••••••" style="width:100%; height:48px; padding: 0 44px 0 14px; font-size:14px; border-radius: 12px; border:1px solid var(--border-default); background:var(--bg-2); outline:none; color:var(--text-primary);">
+                    <button style="position:absolute; right:8px; top:8px; width:32px; height:32px; border-radius:8px; background:none; border:none; color:var(--text-tertiary);">👁</button>
+                  </div>
+                  <div style="font-size:11px; color:var(--text-tertiary); margin-top:6px;">8자 이상, 영문 + 숫자 포함</div>
+                </div>
+
+                <button class="btn primary full" style="margin-bottom:12px;">로그인</button>
+                <button class="btn ghost full">계정 만들기</button>
+
+                <p style="font-size:12px; color:var(--text-secondary); text-align:center; margin: 20px 0 0;">
+                  비밀번호를 잊으셨나요? <a href="#" style="color:var(--accent); font-weight:600;">재설정</a>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> 비밀번호 표시/숨김 토글이 코드에 없음. <code>password-toggle</code> 은 ui-ux-pro-max §8 권장 사항.</div>
+        <div class="note"><span class="tag fix">FIX</span> 현재 화면은 "로그인 또는 가입" 분기 처리가 동일 폼인데, 가입 시 비밀번호 확인 필드가 누락됨. Firebase Auth는 클라이언트 검증을 강제하지 않지만 UX상 필수.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Email input must use <code>textContentType(.emailAddress)</code> + <code>keyboardType(.emailAddress)</code> + <code>autocapitalization(.never)</code>. Password input <code>textContentType(.password)</code>. (autofill-support 룰)</div>
+        <div class="note"><span class="tag add">ADD</span> Inline validation: <code>onSubmit</code> 시점이 아닌 <code>onChange</code> 디바운스로 이메일 형식만 검증. 비밀번호는 첫 시도 후에만 검증 (inline-validation 룰).</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer class="canvas">
+  <p>← <a href="index.html">Index</a> · <a href="flow-02-marketplace.html">Marketplace 02 →</a></p>
+</footer>
+
+</body>
+</html>

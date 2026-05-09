@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flow 04 · Maker & Upload · moodit mockups</title>
+  <link rel="stylesheet" href="_tokens.css">
+</head>
+<body>
+
+<header class="canvas">
+  <div>
+    <h1>Flow 04 · Maker & Upload</h1>
+    <div class="meta">10 screens · Filter Editor / Parameters / LUT / Draft / Upload Cover/Tags/TOS/Pending / My Filters / Maker Dashboard / Filter Rejected / Remix</div>
+  </div>
+  <nav>
+    <a href="index.html">Index</a>
+    <a href="flow-01-auth.html">Auth</a>
+    <a href="flow-02-marketplace.html">Marketplace</a>
+    <a href="flow-03-camera.html">Camera</a>
+    <a href="flow-04-maker.html" class="active">Maker</a>
+    <a href="flow-05-wallet.html">Wallet</a>
+    <a href="flow-06-profile-social.html">Profile</a>
+    <a href="flow-07-notifications-settings.html">Settings</a>
+    <a href="flow-08-states-modals.html">States</a>
+  </nav>
+</header>
+
+<section class="flow">
+  <h2>Maker Flow · 필터 만들기 → 마켓 공유</h2>
+  <p class="subtitle">메이커가 필터를 만들고 마켓에 올리는 전체 흐름. <code>EditorDraftStore</code> 가 단계별 상태 (parameters / LUT / cover / tags / TOS / pending) 를 관리. <code>uploadInit</code> → R2 PUT → <code>uploadFinalize</code> → <code>submitForReview</code> 콜러블 시퀀스를 SwiftUI workflow 로 wrapping.</p>
+
+  <div class="flow-summary">
+    <div class="col recs">
+      <h3>Working</h3>
+      <ul>
+        <li><strong>Step-by-step workflow</strong> — Editor → Cover → Tags → TOS → Pending. 각 단계가 별도 화면으로 깔끔히 분리.</li>
+        <li>Long-press before/after on parameter sliders — 직관적.</li>
+        <li>약관 3종 분리 동의 (원본/정책/상업) — KFTC 권장 형태.</li>
+      </ul>
+    </div>
+    <div class="col gaps">
+      <h3>Gaps</h3>
+      <ul>
+        <li><strong>업로드 진행 중 앱 종료</strong> 시 stuck draft 가 My Filters 에서 회복 불가.</li>
+        <li>LUT 가져오기 → 적용 미리보기 사이의 cube parsing error 처리 부재.</li>
+        <li>Maker Dashboard 가 placeholder. 다운로드/매출 기간 비교 visual 없음.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="gallery">
+
+    <!-- ───── 16 · FILTER EDITOR (entry) ───────────────────────────────── -->
+    <div class="annotated" id="filter-editor">
+      <div class="shot">
+        <div class="label"><span class="num">16</span><span class="name">Filter Editor (entry)</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">필터 만들기</div>
+                <button class="btn ghost sm">버리기</button>
+              </div>
+
+              <!-- Sample preview -->
+              <div style="aspect-ratio: 4/5; margin: 8px 16px; border-radius: 16px; background: linear-gradient(135deg, #c47b4f, #6c3a1a); position:relative; overflow:hidden;">
+                <div style="position:absolute; bottom:12px; left:12px; padding: 4px 10px; border-radius:999px; background:rgba(0,0,0,0.55); color:#fff; font-size:11px; backdrop-filter:blur(8px);">미리보기</div>
+              </div>
+
+              <!-- Method toggle -->
+              <div style="margin: 16px; padding: 4px; background: var(--bg-3); border-radius: 12px; display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
+                <button class="btn sm" style="background:#fff; color:var(--text-primary); border-color:transparent;">파라미터</button>
+                <button class="btn sm" style="background:transparent; color:var(--text-tertiary); border-color:transparent;">LUT 가져오기</button>
+              </div>
+
+              <!-- Quick start CTA -->
+              <div style="margin: 0 16px; padding: 14px; border-radius: 16px; background: linear-gradient(135deg, var(--accent-bg), #fff); border: 1px solid var(--accent-soft);">
+                <div style="display:flex; gap:12px; align-items:flex-start;">
+                  <div style="font-size:24px;">✨</div>
+                  <div style="flex:1;">
+                    <div style="font-size:14px; font-weight:600; color:var(--text-primary);">템플릿으로 시작하기</div>
+                    <div style="font-size:12px; color:var(--text-secondary); margin: 4px 0 8px;">Warm / Cool / Mono / Vivid / Soft 5가지 프리셋 중 선택</div>
+                    <button class="btn sm primary" style="height:32px; padding: 0 12px;">템플릿 보기</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style="height: 80px;"></div>
+
+              <!-- Bottom bar -->
+              <div style="position:absolute; left:0; right:0; bottom:0; padding: 12px 16px 28px; background:rgba(255,255,255,0.92); backdrop-filter: blur(20px); border-top:1px solid var(--border-subtle); display:flex; gap:10px;">
+                <button class="btn" style="flex:0 0 auto;">초안 저장</button>
+                <button class="btn primary" style="flex:1;">계속 →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> 기존 코드는 paramters / LUT 분기에서 바로 시작. <b>5가지 템플릿 프리셋 (Warm/Cool/Mono/Vivid/Soft)</b> 으로 시작하는 옵션 제안. <code>LUTPreset</code> enum 이 이미 코드에 존재 — 활용 안 하고 있음.</div>
+        <div class="note"><span class="tag fix">FIX</span> "버리기" 가 우상단에 있는데 너무 prominent — 사용자 실수로 누르면 모든 작업 손실. <code>FMConfirmationDialog</code> 로 ask 단계 추가 (현재 코드 ✓).</div>
+        <div class="note"><span class="tag note">NOTE</span> "파라미터 / LUT 가져오기" 토글 — 둘 중 하나만 가능한지, 둘 다 적용되는지 모호. 코드 기준 둘 다 + parameter 가 LUT 위에 추가 적용. UI 카피로 "LUT + 파라미터 보정" 형태로 표시.</div>
+      </div>
+    </div>
+
+    <!-- ───── 17 · EDITOR PARAMETERS ───────────────────────────────────── -->
+    <div class="annotated" id="editor-parameters">
+      <div class="shot">
+        <div class="label"><span class="num">17</span><span class="name">Editor · Parameters</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">파라미터</div>
+                <button class="icon-btn ghost">↺</button>
+              </div>
+
+              <!-- Live preview -->
+              <div style="aspect-ratio: 4/3; margin: 0 16px; border-radius: 14px; background: linear-gradient(135deg, #c47b4f, #6c3a1a); position:relative;">
+                <div style="position:absolute; top:8px; right:8px; padding: 3px 8px; border-radius: 999px; background: rgba(0,0,0,0.55); color:#fff; font-size:10px; backdrop-filter: blur(8px);">길게 눌러 원본</div>
+              </div>
+
+              <!-- Sliders -->
+              <div style="padding: 16px; display:flex; flex-direction:column; gap:14px;">
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;"><span style="color:var(--text-secondary)">노출</span><span style="font-variant-numeric:tabular-nums; color:var(--text-primary); font-weight:600;">+0.3</span></div>
+                  <div style="height:4px; background:var(--bg-3); border-radius:2px; position:relative;">
+                    <div style="position:absolute; left:50%; top:0; bottom:0; width:8%; background:var(--accent); border-radius:2px;"></div>
+                    <div style="position:absolute; left:58%; top:50%; transform:translate(-50%, -50%); width:18px; height:18px; border-radius:50%; background:#fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); border: 1px solid var(--border-default);"></div>
+                  </div>
+                </div>
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;"><span style="color:var(--text-secondary)">대비</span><span style="font-variant-numeric:tabular-nums; color:var(--text-primary); font-weight:600;">+18</span></div>
+                  <div style="height:4px; background:var(--bg-3); border-radius:2px; position:relative;">
+                    <div style="position:absolute; left:50%; top:0; bottom:0; width:18%; background:var(--accent); border-radius:2px;"></div>
+                    <div style="position:absolute; left:68%; top:50%; transform:translate(-50%,-50%); width:18px; height:18px; border-radius:50%; background:#fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); border: 1px solid var(--border-default);"></div>
+                  </div>
+                </div>
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;"><span style="color:var(--text-secondary)">채도</span><span style="font-variant-numeric:tabular-nums; color:var(--text-primary); font-weight:600;">−12</span></div>
+                  <div style="height:4px; background:var(--bg-3); border-radius:2px; position:relative;">
+                    <div style="position:absolute; right:50%; top:0; bottom:0; width:12%; background:var(--accent); border-radius:2px;"></div>
+                    <div style="position:absolute; left:38%; top:50%; transform:translate(-50%,-50%); width:18px; height:18px; border-radius:50%; background:#fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); border: 1px solid var(--border-default);"></div>
+                  </div>
+                </div>
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;"><span style="color:var(--text-secondary)">그레인</span><span style="font-variant-numeric:tabular-nums; color:var(--text-primary); font-weight:600;">25</span></div>
+                  <div style="height:4px; background:var(--bg-3); border-radius:2px; position:relative;">
+                    <div style="position:absolute; left:0; top:0; bottom:0; width:25%; background:var(--accent); border-radius:2px;"></div>
+                    <div style="position:absolute; left:25%; top:50%; transform:translate(-50%,-50%); width:18px; height:18px; border-radius:50%; background:#fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); border: 1px solid var(--border-default);"></div>
+                  </div>
+                </div>
+                <div>
+                  <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;"><span style="color:var(--text-secondary)">비네팅</span><span style="font-variant-numeric:tabular-nums; color:var(--text-primary); font-weight:600;">40</span></div>
+                  <div style="height:4px; background:var(--bg-3); border-radius:2px; position:relative;">
+                    <div style="position:absolute; left:0; top:0; bottom:0; width:40%; background:var(--accent); border-radius:2px;"></div>
+                    <div style="position:absolute; left:40%; top:50%; transform:translate(-50%,-50%); width:18px; height:18px; border-radius:50%; background:#fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); border: 1px solid var(--border-default);"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="height:80px;"></div>
+              <div style="position:absolute; left:0; right:0; bottom:0; padding: 12px 16px 28px; background:rgba(255,255,255,0.92); backdrop-filter: blur(20px); border-top:1px solid var(--border-subtle); display:flex; gap:10px;">
+                <button class="btn" style="flex:0 0 auto;">초안 저장</button>
+                <button class="btn primary" style="flex:1;">계속 →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> 옛 mockup 은 4 sliders (그레인 누락). 코드는 5 sliders. 이 mockup 은 코드 기준.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Slider value 텍스트는 항상 visible — placeholder 가 아닌 label 처럼. <code>accessibilityValue("\(value)")</code> + <code>accessibilityIncrement/Decrement</code>.</div>
+        <div class="note"><span class="tag add">ADD</span> Center "0" detent — 현재는 단순 0 통과. iOS 표준은 0 에서 살짝 멈춤 (haptic light) 후 통과. 사용자가 reset 위치 인지.</div>
+        <div class="note"><span class="tag add">ADD</span> "노출" 등 슬라이더 라벨 옆에 ⓘ tap → 짧은 설명 popover. 첫 사용 메이커에게 도움.</div>
+      </div>
+    </div>
+
+    <!-- ───── 18 · LUT IMPORT ──────────────────────────────────────────── -->
+    <div class="annotated" id="lut-import">
+      <div class="shot">
+        <div class="label"><span class="num">18</span><span class="name">LUT Import</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">LUT 가져오기</div>
+                <button class="icon-btn ghost"></button>
+              </div>
+
+              <!-- Empty state with file pick -->
+              <div style="padding: 24px 16px;">
+                <div style="border: 2px dashed var(--border-default); border-radius: 16px; padding: 40px 24px; text-align:center; background: var(--bg-1);">
+                  <div style="font-size:48px; margin-bottom:12px;">📁</div>
+                  <div style="font-size:16px; font-weight:600; margin-bottom:4px;">.cube 파일 가져오기</div>
+                  <div style="font-size:12px; color:var(--text-secondary); margin-bottom:16px; line-height:1.6;">
+                    Adobe / DaVinci Resolve 등에서 export 한<br>
+                    Color Lookup Table (.cube) 파일을 가져옵니다.
+                  </div>
+                  <button class="btn primary">파일에서 선택</button>
+                  <div style="margin-top:14px; font-size:11px; color:var(--text-tertiary);">최대 5MB · 17 / 33 / 65 사이즈 지원</div>
+                </div>
+
+                <!-- Already imported -->
+                <div style="margin-top: 24px; padding: 12px 14px; background:var(--success-bg); border-radius:12px; border:1px solid var(--success); display:flex; gap:10px; align-items:center;">
+                  <span style="font-size:18px; color:var(--success);">✓</span>
+                  <div style="flex:1;">
+                    <div style="font-size:13px; font-weight:600; color:var(--success);">Cinematic_warm.cube</div>
+                    <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">33×33×33 · 1.2 MB · 검증됨</div>
+                  </div>
+                  <button class="btn sm" style="background:var(--bg-2); border-color:transparent;">교체</button>
+                </div>
+
+                <!-- Preview -->
+                <div style="margin-top: 16px;">
+                  <div style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;">미리보기 (4:3)</div>
+                  <div style="aspect-ratio: 4/3; border-radius: 12px; background: linear-gradient(135deg, #c47b4f, #6c3a1a);"></div>
+                </div>
+              </div>
+
+              <div style="height:80px;"></div>
+              <div style="position:absolute; left:0; right:0; bottom:0; padding: 12px 16px 28px; background:rgba(255,255,255,0.92); backdrop-filter: blur(20px); border-top:1px solid var(--border-subtle); display:flex; gap:10px;">
+                <button class="btn" style="flex:0 0 auto;">초안 저장</button>
+                <button class="btn primary" style="flex:1;">계속 →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> .cube parsing error 시 inline error block — 파일명 / 줄번호 / 원인. 현재 코드는 alert 만 띄움.</div>
+        <div class="note"><span class="tag fix">FIX</span> ".cube" 라는 용어가 디자이너에게 너무 기술적. 부제로 <code>"DaVinci, Lightroom 에서 export 한 색감 파일"</code> 추가.</div>
+        <div class="note"><span class="tag note">NOTE</span> Cube 파일 size 제한 5MB — 65³ LUT (높은 정밀도) 일 때 1.5MB 정도라 충분. 사용자에게 사이즈 안내 보조.</div>
+      </div>
+    </div>
+
+    <!-- ───── 19 · DRAFT SAVE ──────────────────────────────────────────── -->
+    <div class="annotated" id="draft-save">
+      <div class="shot">
+        <div class="label"><span class="num">19</span><span class="name">Editor · Draft Save</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">초안 저장</div>
+                <button class="icon-btn ghost"></button>
+              </div>
+
+              <div style="padding: 16px;">
+                <div style="aspect-ratio:4/5; border-radius:14px; background:linear-gradient(135deg, #c47b4f, #6c3a1a); margin-bottom: 20px;"></div>
+
+                <div style="margin-bottom:14px;">
+                  <label style="font-size:11px; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:6px;">필터 이름</label>
+                  <input value="Cinematic 35mm" style="width:100%; height:48px; padding: 0 14px; font-size:14px; border-radius: 12px; border:1px solid var(--border-default); background:var(--bg-2); color:var(--text-primary); outline:none;">
+                  <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:11px; color:var(--text-tertiary);">
+                    <span>3 ~ 30 자</span>
+                    <span style="font-variant-numeric:tabular-nums;">14/30</span>
+                  </div>
+                </div>
+
+                <!-- Two CTAs -->
+                <button class="btn full" style="margin-bottom:8px;">초안 저장</button>
+                <button class="btn primary full">바로 마켓 공유 →</button>
+
+                <p style="font-size:11px; color:var(--text-tertiary); margin-top:12px; text-align:center; line-height:1.6;">
+                  초안은 내 필터에 저장되며,<br>
+                  마켓 공유는 검수(평균 1~3일)를 거칩니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> 텍스트 input 의 character counter (현재 14/30) 가 코드에 없음. 30자 제한이지만 사용자에게 미고지.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Input 에 <code>autocapitalization(.words)</code> + <code>spellChecking(.no)</code>. 필터 이름은 명사 + 영문 혼용 빈도 높음.</div>
+        <div class="note"><span class="tag copy">COPY</span> "바로 마켓 공유" 버튼 — "검수 요청" 이 더 정확. 사용자가 즉시 노출되는 줄 오해 가능.</div>
+      </div>
+    </div>
+
+    <!-- ───── 20 · UPLOAD COVER ────────────────────────────────────────── -->
+    <div class="annotated" id="upload-cover">
+      <div class="shot">
+        <div class="label"><span class="num">20</span><span class="name">Upload · Cover (1/4)</span><span class="status todo">PARTIAL</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">✕</button>
+                <div class="title">마켓 공유 · 1 / 4</div>
+                <button class="icon-btn ghost"></button>
+              </div>
+
+              <!-- Progress steps -->
+              <div style="padding: 0 16px 16px; display:flex; gap:4px;">
+                <div style="flex:1; height: 3px; background: var(--accent); border-radius:2px;"></div>
+                <div style="flex:1; height: 3px; background: var(--bg-3); border-radius:2px;"></div>
+                <div style="flex:1; height: 3px; background: var(--bg-3); border-radius:2px;"></div>
+                <div style="flex:1; height: 3px; background: var(--bg-3); border-radius:2px;"></div>
+              </div>
+
+              <div style="padding: 0 16px;">
+                <h2 style="font-size:22px; font-weight:700; letter-spacing:-0.02em; margin: 0 0 8px;">커버 이미지를 추가해주세요</h2>
+                <p style="font-size:13px; color:var(--text-secondary); margin: 0 0 20px;">최소 1장, 최대 5장. 첫 번째 이미지가 대표 커버로 사용됩니다.</p>
+
+                <!-- Cover slots -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+                  <div style="aspect-ratio:4/5; border-radius:14px; background:linear-gradient(135deg, #c47b4f, #6c3a1a); position:relative; overflow:hidden;">
+                    <span class="badge" style="position:absolute; top:8px; left:8px; background:var(--accent); color:#fff; font-size:9px; padding:3px 6px; border-radius:6px; font-weight:700;">대표</span>
+                    <button style="position:absolute; top:6px; right:6px; width:24px; height:24px; border-radius:50%; background:rgba(0,0,0,0.6); color:#fff; border:none; font-size:12px;">✕</button>
+                  </div>
+                  <button style="aspect-ratio:4/5; border-radius:14px; background:var(--bg-1); border: 2px dashed var(--border-default); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; color:var(--text-tertiary); font-size:13px;">
+                    <div style="font-size:28px;">+</div>
+                    <span>추가</span>
+                  </button>
+                </div>
+
+                <!-- Before/After auto-toggle -->
+                <div style="padding: 12px 14px; background: var(--bg-2); border-radius: 12px; border:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+                  <div>
+                    <div style="font-size:13px; font-weight:600;">자동 Before/After</div>
+                    <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">커버에 원본 비교 인터랙션 추가</div>
+                  </div>
+                  <!-- Toggle on -->
+                  <div style="width: 48px; height: 28px; border-radius:14px; background:var(--accent); position:relative;">
+                    <div style="position:absolute; top:2px; right:2px; width:24px; height:24px; border-radius:50%; background:#fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="height:80px;"></div>
+              <div style="position:absolute; left:0; right:0; bottom:0; padding: 12px 16px 28px; background:rgba(255,255,255,0.92); backdrop-filter: blur(20px); border-top:1px solid var(--border-subtle); display:flex; gap:10px;">
+                <button class="btn" style="flex:0 0 auto;">취소</button>
+                <button class="btn primary" style="flex:1;">다음 →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> Step indicator (1/4 progress bar) 는 코드에 없음. 4단계 업로드 흐름인데 사용자에게 progress 미공지. ui-ux-pro-max §8 <code>multi-step-progress</code>.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> 커버 슬롯의 "대표" badge 만으로는 reorder 직관 X. drag handle + <code>accessibilityCustomActions</code> [.moveUp / .moveDown] 추가.</div>
+        <div class="note"><span class="tag note">NOTE</span> 최대 5장 — 코드 상수 확인 필요. 현재 mockup 은 가정.</div>
+      </div>
+    </div>
+
+    <!-- ───── 21 · UPLOAD TAGS ─────────────────────────────────────────── -->
+    <div class="annotated" id="upload-tags">
+      <div class="shot">
+        <div class="label"><span class="num">21</span><span class="name">Upload · Tags & Category (2/4)</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">마켓 공유 · 2 / 4</div>
+                <button class="icon-btn ghost"></button>
+              </div>
+
+              <div style="padding: 0 16px 16px; display:flex; gap:4px;">
+                <div style="flex:1; height:3px; background:var(--accent); border-radius:2px;"></div>
+                <div style="flex:1; height:3px; background:var(--accent); border-radius:2px;"></div>
+                <div style="flex:1; height:3px; background:var(--bg-3); border-radius:2px;"></div>
+                <div style="flex:1; height:3px; background:var(--bg-3); border-radius:2px;"></div>
+              </div>
+
+              <div style="padding: 0 16px;">
+                <!-- Category -->
+                <label style="font-size:11px; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:6px;">카테고리</label>
+                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px;">
+                  <span class="chip">시네마틱</span>
+                  <span class="chip active">빈티지</span>
+                  <span class="chip">파스텔</span>
+                  <span class="chip">흑백</span>
+                  <span class="chip">인물</span>
+                  <span class="chip">음식</span>
+                  <span class="chip">여행</span>
+                </div>
+
+                <!-- Tags -->
+                <label style="font-size:11px; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:6px;">해시태그 <span style="color:var(--text-tertiary); font-weight:400;">(최대 10개)</span></label>
+                <div style="padding: 8px; min-height: 80px; border-radius: 12px; border:1px solid var(--border-default); background:var(--bg-2); display:flex; flex-wrap:wrap; gap:6px; margin-bottom: 20px;">
+                  <span class="chip accent" style="font-size:11px; gap:4px;">#golden_hour <span style="color:var(--accent); font-weight:700;">×</span></span>
+                  <span class="chip accent" style="font-size:11px; gap:4px;">#warm <span style="color:var(--accent); font-weight:700;">×</span></span>
+                  <span class="chip accent" style="font-size:11px; gap:4px;">#korean_cafe <span style="color:var(--accent); font-weight:700;">×</span></span>
+                  <span style="font-size:13px; color:var(--text-tertiary); padding: 4px 8px;">| 태그 추가...</span>
+                </div>
+
+                <!-- Suggested -->
+                <div style="font-size:11px; color:var(--text-secondary); font-weight:600; margin-bottom:6px;">추천 태그</div>
+                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                  <span class="chip" style="font-size:11px;">+ #vintage_film</span>
+                  <span class="chip" style="font-size:11px;">+ #portrait</span>
+                  <span class="chip" style="font-size:11px;">+ #moody</span>
+                  <span class="chip" style="font-size:11px;">+ #soft_light</span>
+                </div>
+              </div>
+
+              <div style="height:80px;"></div>
+              <div style="position:absolute; left:0; right:0; bottom:0; padding: 12px 16px 28px; background:rgba(255,255,255,0.92); backdrop-filter: blur(20px); border-top:1px solid var(--border-subtle); display:flex; gap:10px;">
+                <button class="btn" style="flex:0 0 auto;">‹ 이전</button>
+                <button class="btn primary" style="flex:1;">다음 →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> "추천 태그" — 카테고리 + 커버 이미지 분석 기반 ML 추천. Phase 5 의 ML 인프라 준비 후. 지금은 카테고리 기반 fixed list.</div>
+        <div class="note"><span class="tag fix">FIX</span> 태그 입력 필드의 <b>placeholder text</b> 현재 "태그 추가..." 가 chip 들과 한 줄 — 명확히 별도 row 로 구분. 태그가 5개 넘어가면 wrapping 어색.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Tag chip 의 × 버튼 hit area 너무 작음. <code>hitSlop(.init(top:8, leading:8, bottom:8, trailing:8))</code>.</div>
+      </div>
+    </div>
+
+    <!-- ───── 22 · UPLOAD TOS ──────────────────────────────────────────── -->
+    <div class="annotated" id="upload-tos">
+      <div class="shot">
+        <div class="label"><span class="num">22</span><span class="name">Upload · TOS Submit (3/4)</span><span class="status todo">PARTIAL</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">마켓 공유 · 3 / 4</div>
+                <button class="icon-btn ghost"></button>
+              </div>
+
+              <div style="padding: 0 16px 16px; display:flex; gap:4px;">
+                <div style="flex:1; height:3px; background:var(--accent); border-radius:2px;"></div>
+                <div style="flex:1; height:3px; background:var(--accent); border-radius:2px;"></div>
+                <div style="flex:1; height:3px; background:var(--accent); border-radius:2px;"></div>
+                <div style="flex:1; height:3px; background:var(--bg-3); border-radius:2px;"></div>
+              </div>
+
+              <div style="padding: 0 16px;">
+                <h2 style="font-size:22px; font-weight:700; letter-spacing:-0.02em; margin: 0 0 8px;">약관 동의</h2>
+                <p style="font-size:13px; color:var(--text-secondary); margin: 0 0 24px;">마켓 공유 전 3가지 약관에 모두 동의가 필요합니다.</p>
+
+                <div class="list-section">
+                  <div class="list-row">
+                    <div style="flex:1; padding-right:8px;">
+                      <div class="ttl">필터 원본 권리 보유</div>
+                      <div class="sub">제3자의 LUT/패키지를 무단 전재하지 않았음을 확인</div>
+                    </div>
+                    <div style="width:24px; height:24px; border-radius:8px; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:13px; flex-shrink:0;">✓</div>
+                  </div>
+                  <div class="list-row">
+                    <div style="flex:1; padding-right:8px;">
+                      <div class="ttl">moodit 정책 준수</div>
+                      <div class="sub">콘텐츠 가이드라인, 신고 처리 정책 동의 <a href="#" style="color:var(--accent); text-decoration:underline;">보기</a></div>
+                    </div>
+                    <div style="width:24px; height:24px; border-radius:8px; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:13px; flex-shrink:0;">✓</div>
+                  </div>
+                  <div class="list-row">
+                    <div style="flex:1; padding-right:8px;">
+                      <div class="ttl">상업 이용 동의</div>
+                      <div class="sub">사용자가 본 필터로 만든 사진을 자유롭게 활용 가능</div>
+                    </div>
+                    <div style="width:24px; height:24px; border-radius:8px; background:var(--bg-2); border:1px solid var(--border-default); flex-shrink:0;"></div>
+                  </div>
+                </div>
+
+                <div style="margin-top: 16px; padding: 10px 12px; background: var(--info-bg); border-radius: 12px; font-size:11px; color:var(--info); display:flex; gap:8px; align-items:flex-start;">
+                  <span style="font-size:13px;">ℹ️</span>
+                  <div>검수는 평균 <b>1~3일</b> 소요됩니다. 결과는 알림으로 안내드려요.</div>
+                </div>
+              </div>
+
+              <div style="height:80px;"></div>
+              <div style="position:absolute; left:0; right:0; bottom:0; padding: 12px 16px 28px; background:rgba(255,255,255,0.92); backdrop-filter: blur(20px); border-top:1px solid var(--border-subtle); display:flex; gap:10px;">
+                <button class="btn" style="flex:0 0 auto;">‹ 이전</button>
+                <button class="btn primary disabled" style="flex:1;">검수 요청</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> "검수 요청" 버튼 — 3개 모두 체크 안 됐을 때 disabled (현재 코드 ✓). 단, 사용자가 비활성화 이유 모르면 답답함. 버튼 옆 <code>"3 / 3 약관 동의 후 활성화"</code> 캡션 추가.</div>
+        <div class="note"><span class="tag copy">COPY</span> "상업 이용 동의" — 메이커가 제3자에게 권리 양도하는 느낌. 정확히는 <code>"사용자가 만든 결과물의 상업 활용 허용"</code> 으로 명확화.</div>
+      </div>
+    </div>
+
+    <!-- ───── 23 · UPLOAD PENDING ──────────────────────────────────────── -->
+    <div class="annotated" id="upload-pending">
+      <div class="shot">
+        <div class="label"><span class="num">23</span><span class="name">Upload · Pending Review (4/4)</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="display:flex; flex-direction:column; align-items:center; padding: 60px 24px 0; text-align:center;">
+              <div style="width: 96px; height: 96px; border-radius: 50%; background: var(--accent-bg); display:grid; place-items:center; margin-bottom:24px;">
+                <span style="font-size: 44px;">⏳</span>
+              </div>
+              <h1 style="font-size:24px; font-weight:700; letter-spacing:-0.02em; margin: 0 0 12px;">검수 대기 중</h1>
+              <p style="font-size:14px; color:var(--text-secondary); line-height:1.6; margin: 0 0 36px;">
+                <b>Cinematic 35mm</b> 가 검수 큐에 추가됐습니다.<br>
+                평균 1~3일 내에 결과를 알려드릴게요.
+              </p>
+
+              <div class="card" style="width:100%; padding: 14px;">
+                <div style="font-size:12px; color:var(--text-secondary); margin-bottom: 10px;">검수 단계</div>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="width:20px; height:20px; border-radius:50%; background:var(--success); color:#fff; display:grid; place-items:center; font-size:11px;">✓</div>
+                    <div style="font-size:12px;">제출 완료</div>
+                  </div>
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="width:20px; height:20px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:11px; animation: pulse 1.5s infinite;">●</div>
+                    <div style="font-size:12px; font-weight:600;">검수 진행 중</div>
+                  </div>
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="width:20px; height:20px; border-radius:50%; background:var(--bg-3); border:2px solid var(--border-default);"></div>
+                    <div style="font-size:12px; color:var(--text-tertiary);">결과 알림</div>
+                  </div>
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="width:20px; height:20px; border-radius:50%; background:var(--bg-3); border:2px solid var(--border-default);"></div>
+                    <div style="font-size:12px; color:var(--text-tertiary);">마켓 공개</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top: 36px; display:flex; flex-direction:column; gap:10px; width:100%;">
+                <button class="btn primary full">내 필터 보기</button>
+                <button class="btn full">새 필터 만들기</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> 검수 단계 timeline 은 코드에 없음 — 현재는 메시지만. Status visualization 으로 사용자 안심.</div>
+        <div class="note"><span class="tag note">NOTE</span> "검수 진행 중" 의 평균 시간 (1~3일) 은 백엔드 SLA. 시간 줄어들면 카피 업데이트.</div>
+      </div>
+    </div>
+
+    <!-- ───── 24 · MY FILTERS ──────────────────────────────────────────── -->
+    <div class="annotated" id="my-filters">
+      <div class="shot">
+        <div class="label"><span class="num">24</span><span class="name">My Filters</span><span class="status todo">PARTIAL</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">내 필터</div>
+                <button class="icon-btn">+</button>
+              </div>
+
+              <!-- Status filter -->
+              <div style="padding: 0 16px 12px; display:flex; gap:6px; overflow-x:hidden;">
+                <span class="chip active">전체 8</span>
+                <span class="chip">검수 중 1</span>
+                <span class="chip">공개 6</span>
+                <span class="chip">거절 1</span>
+              </div>
+
+              <!-- Filter rows -->
+              <div style="padding: 0 16px; display:flex; flex-direction:column; gap:10px;">
+                <!-- Pending -->
+                <div class="card" style="padding: 12px; display:flex; gap:12px; align-items:center;">
+                  <div style="width:60px; height:60px; border-radius:10px; background: linear-gradient(135deg, #c47b4f, #6c3a1a); flex-shrink:0;"></div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-size:13px; font-weight:600; margin-bottom:2px;">Cinematic 35mm</div>
+                    <div style="font-size:11px; color:var(--text-tertiary);">2일 전 제출</div>
+                    <div style="margin-top:6px; display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; background:var(--warning-bg); color:var(--warning); font-size:10px; font-weight:600;">⏳ 검수 중</div>
+                  </div>
+                  <button class="icon-btn ghost">⋯</button>
+                </div>
+                <!-- Approved -->
+                <div class="card" style="padding: 12px; display:flex; gap:12px; align-items:center;">
+                  <div style="width:60px; height:60px; border-radius:10px; background: linear-gradient(135deg, #6b85a0, #2a3540); flex-shrink:0;"></div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-size:13px; font-weight:600; margin-bottom:2px;">Cyan Drift</div>
+                    <div style="font-size:11px; color:var(--text-tertiary); display:flex; gap:8px; align-items:center;">
+                      <span>★ 4.6</span>
+                      <span>⬇ 1.2k</span>
+                      <span style="color:var(--accent); font-weight:600;">⬡ 12,400</span>
+                    </div>
+                    <div style="margin-top:6px; display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; background:var(--success-bg); color:var(--success); font-size:10px; font-weight:600;">✓ 공개</div>
+                  </div>
+                  <button class="icon-btn ghost">⋯</button>
+                </div>
+                <!-- Rejected -->
+                <div class="card" style="padding: 12px; display:flex; gap:12px; align-items:center; border-color:var(--error); background:var(--error-bg);">
+                  <div style="width:60px; height:60px; border-radius:10px; background: linear-gradient(135deg, #a8a8a8, #3a3a3a); flex-shrink:0;"></div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-size:13px; font-weight:600; margin-bottom:2px;">Mono Mood</div>
+                    <div style="font-size:11px; color:var(--text-secondary);">검수 거절 · 사유 보기 ›</div>
+                    <div style="margin-top:6px; display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; background:#fff; color:var(--error); font-size:10px; font-weight:600;">⚠ 거절</div>
+                  </div>
+                  <button class="icon-btn ghost">⋯</button>
+                </div>
+              </div>
+
+              <!-- Stuck draft hint -->
+              <div style="margin: 16px; padding: 12px 14px; background: var(--warning-bg); border:1px solid var(--warning); border-radius: 12px; font-size:12px; color:var(--warning); display:flex; gap:10px; align-items:flex-start;">
+                <span style="font-size:14px;">⚠️</span>
+                <div style="flex:1;">
+                  <b style="color:var(--warning)">업로드가 중단된 초안 1건</b><br>
+                  <span style="font-size:11px;">"Soft Light" 가 4시간 전부터 업로드 중. 재시도하시겠어요?</span>
+                  <div style="margin-top:8px; display:flex; gap:6px;">
+                    <button class="btn sm" style="height:28px; padding:0 10px; background:var(--warning); color:#fff; border-color:var(--warning);">재시도</button>
+                    <button class="btn sm" style="height:28px; padding:0 10px; background:#fff; border-color:var(--warning); color:var(--warning);">처음부터</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> <b>Stuck draft 회복 banner</b> — 옛 mockup 에 없음. <code>uploading → pending_review_pre</code> 사이에 앱 종료 시 stuck. 4시간 지나면 회복 hint 노출.</div>
+        <div class="note"><span class="tag fix">FIX</span> Status pill 색상만으론 색약자에게 모호. 코드 색상 + 아이콘 모두 사용 (✓ ⏳ ⚠) — 현재 mockup ✓.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> 거절 카드의 색상 차이가 크지만 SR 사용자에게는 visible label 필요. <code>accessibilityValue("거절됨, 사유: \(reason)")</code>.</div>
+      </div>
+    </div>
+
+    <!-- ───── 25 · MAKER DASHBOARD ─────────────────────────────────────── -->
+    <div class="annotated" id="maker-dashboard">
+      <div class="shot">
+        <div class="label"><span class="num">25</span><span class="name">Maker Dashboard</span><span class="status new">PROPOSED</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">메이커 대시보드</div>
+                <button class="icon-btn ghost">⓵</button>
+              </div>
+
+              <!-- Period picker -->
+              <div style="padding: 0 16px 12px; display:flex; gap:6px;">
+                <span class="chip">7일</span>
+                <span class="chip active">30일</span>
+                <span class="chip">90일</span>
+                <span class="chip">전체</span>
+              </div>
+
+              <!-- KPI cards -->
+              <div style="padding: 0 16px 16px; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div class="card" style="padding: 12px;">
+                  <div style="font-size:10px; color:var(--text-tertiary);">총 다운로드</div>
+                  <div style="font-size:22px; font-weight:700; font-variant-numeric: tabular-nums; margin-top:4px;">2,841</div>
+                  <div style="font-size:10px; color:var(--success); margin-top:2px;">↑ 12.3% (vs 전월)</div>
+                </div>
+                <div class="card" style="padding: 12px;">
+                  <div style="font-size:10px; color:var(--text-tertiary);">코인 적립</div>
+                  <div style="font-size:22px; font-weight:700; font-variant-numeric: tabular-nums; margin-top:4px; color:var(--accent);">⬡ 18,420</div>
+                  <div style="font-size:10px; color:var(--success); margin-top:2px;">↑ 8.7% (vs 전월)</div>
+                </div>
+              </div>
+
+              <!-- Mini chart -->
+              <div class="card" style="margin: 0 16px 16px; padding: 14px;">
+                <div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">일별 다운로드</div>
+                <svg viewBox="0 0 240 80" style="width:100%; height: 80px;">
+                  <polyline fill="none" stroke="var(--accent)" stroke-width="2" points="10,60 30,55 50,42 70,50 90,38 110,30 130,35 150,22 170,28 190,18 210,22 230,12"/>
+                  <polyline fill="rgba(184,133,58,0.12)" stroke="none" points="10,60 30,55 50,42 70,50 90,38 110,30 130,35 150,22 170,28 190,18 210,22 230,12 230,80 10,80"/>
+                </svg>
+                <div style="display:flex; justify-content:space-between; font-size:9px; color:var(--text-tertiary); margin-top:4px; font-variant-numeric: tabular-nums;">
+                  <span>4/10</span><span>4/15</span><span>4/20</span><span>4/25</span><span>4/30</span><span>5/5</span>
+                </div>
+              </div>
+
+              <!-- Top filters -->
+              <div class="sec-h"><div class="h">인기 필터</div><div class="more">전체 →</div></div>
+              <div style="padding: 8px 16px; display:flex; flex-direction:column; gap:8px;">
+                <div class="card" style="padding: 10px; display:flex; gap:10px; align-items:center;">
+                  <div style="width:44px; height:44px; border-radius:8px; background: linear-gradient(135deg, #c47b4f, #6c3a1a);"></div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-size:12px; font-weight:600;">Cinematic 35mm</div>
+                    <div style="font-size:10px; color:var(--text-tertiary);">⬇ 1,420 · ★ 4.8</div>
+                  </div>
+                  <div style="font-size:13px; font-weight:600; color:var(--accent); font-variant-numeric: tabular-nums;">⬡ 8,200</div>
+                </div>
+                <div class="card" style="padding: 10px; display:flex; gap:10px; align-items:center;">
+                  <div style="width:44px; height:44px; border-radius:8px; background: linear-gradient(135deg, #6b85a0, #2a3540);"></div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-size:12px; font-weight:600;">Cyan Drift</div>
+                    <div style="font-size:10px; color:var(--text-tertiary);">⬇ 924 · ★ 4.6</div>
+                  </div>
+                  <div style="font-size:13px; font-weight:600; color:var(--success); font-variant-numeric: tabular-nums;">무료</div>
+                </div>
+              </div>
+
+              <div style="height:80px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> 메이커 대시보드는 <b>Planned</b> 상태 — feature_inventory 기준. 이 mockup 은 closed-loop coin 모델 가정 (인출 X). 코인 적립 = 메이커 보상.</div>
+        <div class="note"><span class="tag note">NOTE</span> Phase 6 (Stripe Connect) 연결 시 우상단에 "출금" 버튼 노출 + 추가 row "이번 달 출금 가능 금액" 추가.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> SVG line chart 는 SR 에 무의미 — <code>accessibilityLabel("일별 다운로드: 30일 동안 평균 95회, 5월 5일 가장 높음 (244회)")</code> 형태로 요약 제공. ui-ux-pro-max §10 <code>screen-reader-summary</code>.</div>
+      </div>
+    </div>
+
+    <!-- ───── 26 · FILTER REJECTED ─────────────────────────────────────── -->
+    <div class="annotated" id="filter-rejected">
+      <div class="shot">
+        <div class="label"><span class="num">26</span><span class="name">Filter Rejected</span><span class="status todo">PARTIAL</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title" style="color:var(--error)">검수 거절</div>
+                <button class="icon-btn ghost"></button>
+              </div>
+
+              <div style="padding: 0 16px;">
+                <!-- Banner -->
+                <div style="padding: 14px; background:var(--error-bg); border:1px solid var(--error); border-radius:14px; margin-bottom:16px;">
+                  <div style="display:flex; gap:10px; align-items:flex-start;">
+                    <span style="font-size:20px;">⚠️</span>
+                    <div>
+                      <div style="font-size:13px; font-weight:600; color:var(--error)">Mono Mood 가 검수에서 거절되었습니다</div>
+                      <div style="font-size:11px; color:var(--text-secondary); margin-top:4px;">3시간 전 · 검수자 메시지 확인</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Rejection reason -->
+                <div class="card" style="margin-bottom:16px;">
+                  <div style="font-size:11px; color:var(--text-tertiary); font-weight:600; margin-bottom:6px;">거절 사유</div>
+                  <div style="font-size:13px; color:var(--text-primary); line-height:1.6;">
+                    제출하신 LUT 가 다른 작가의 상업 LUT 와 80% 이상 유사합니다. 원본 .cube 파일이거나, 직접 만든 파라미터 기반 필터로 다시 제출해 주세요.
+                  </div>
+                </div>
+
+                <!-- Action options -->
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                  <button class="btn primary full">에디터에서 수정</button>
+                  <button class="btn full">이의 제기 →</button>
+                  <button class="btn full">고객센터 문의</button>
+                  <button class="btn full" style="color:var(--error); border-color:var(--error-bg);">필터 삭제</button>
+                </div>
+
+                <!-- Timeline -->
+                <div style="margin-top: 24px; padding-top:16px; border-top:1px solid var(--border-subtle);">
+                  <div style="font-size:11px; color:var(--text-tertiary); font-weight:600; margin-bottom:10px;">처리 이력</div>
+                  <div style="display:flex; flex-direction:column; gap:10px; font-size:11px;">
+                    <div style="display:flex; gap:10px;"><span style="color:var(--text-tertiary); width: 60px; flex-shrink:0;">5/9 14:20</span><span>제출됨</span></div>
+                    <div style="display:flex; gap:10px;"><span style="color:var(--text-tertiary); width: 60px; flex-shrink:0;">5/10 06:30</span><span style="color:var(--error); font-weight:600;">거절됨</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> 옛 mockup 은 2 액션 (수정/문의) 만. 코드는 4가지: 수정 / 이의 제기 / 고객센터 / 삭제. 이 mockup 은 코드 기준.</div>
+        <div class="note"><span class="tag add">ADD</span> "처리 이력" 타임라인 — 제출 / 거절 / 재제출 history. 이의 제기 시 그 내역도 추가. 메이커 신뢰도 ↑.</div>
+        <div class="note"><span class="tag copy">COPY</span> 거절 사유를 사용자가 인용 (메이커가 검수자에게 항의 시 reference). 사유는 항상 actionable 해야 함 — "수정 방법" 명시.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer class="canvas">
+  <p>← <a href="flow-03-camera.html">Camera 03</a> · <a href="index.html">Index</a> · <a href="flow-05-wallet.html">Wallet 05 →</a></p>
+</footer>
+
+</body>
+</html>

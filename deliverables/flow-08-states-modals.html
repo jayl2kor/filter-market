@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flow 08 · States, Modals & Moderation · moodit mockups</title>
+  <link rel="stylesheet" href="_tokens.css">
+</head>
+<body>
+
+<header class="canvas">
+  <div>
+    <h1>Flow 08 · States, Modals & Moderation</h1>
+    <div class="meta">12+ states · Permissions priming/denied (4 types) · Empty / Error states · Common modals (Alert / Confirm / Bottom sheet / Share / Toast) · Moderation Queue & Detail</div>
+  </div>
+  <nav>
+    <a href="index.html">Index</a>
+    <a href="flow-01-auth.html">Auth</a>
+    <a href="flow-02-marketplace.html">Marketplace</a>
+    <a href="flow-03-camera.html">Camera</a>
+    <a href="flow-04-maker.html">Maker</a>
+    <a href="flow-05-wallet.html">Wallet</a>
+    <a href="flow-06-profile-social.html">Profile</a>
+    <a href="flow-07-notifications-settings.html">Settings</a>
+    <a href="flow-08-states-modals.html" class="active">States</a>
+  </nav>
+</header>
+
+<section class="flow">
+  <h2>Permissions, Empty & Error states</h2>
+  <p class="subtitle">권한 프라이밍 → 거부 분기 (4 종류). 빈 상태 카탈로그 (마켓/검색/저장/팔로워/리뷰/촬영). 에러 상태 (네트워크/서버/필터 unavailable). 모든 카드는 동일 토큰으로 통일.</p>
+
+  <div class="gallery">
+
+    <!-- ───── 52 · CAMERA PERMISSION PRIMING ───────────────────────────── -->
+    <div class="annotated" id="permissions">
+      <div class="shot">
+        <div class="label"><span class="num">52</span><span class="name">Camera Permission · Priming</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="display:flex; flex-direction:column; padding-top:60px; padding-left:24px; padding-right:24px; text-align:center;">
+              <div style="display:inline-grid; place-items:center; width:96px; height:96px; border-radius:24px; background:var(--accent-bg); margin: 0 auto 24px;">
+                <span style="font-size:48px;">📷</span>
+              </div>
+              <h1 style="font-size:24px; font-weight:700; letter-spacing:-0.02em; margin: 0 0 12px;">카메라 접근 허용</h1>
+              <p style="font-size:14px; color:var(--text-secondary); line-height:1.7; margin: 0 0 28px;">
+                필터를 적용한 사진을 촬영하려면<br>
+                카메라 접근이 필요해요.<br>
+                <span style="font-size:12px; color:var(--text-tertiary);">사진은 기기 외부로 전송되지 않습니다.</span>
+              </p>
+
+              <!-- Benefits -->
+              <div style="display:flex; flex-direction:column; gap:14px; padding: 0 12px; margin-bottom:36px; text-align:left;">
+                <div style="display:flex; gap:12px; align-items:center;">
+                  <div style="width:32px; height:32px; border-radius:8px; background:var(--success-bg); color:var(--success); display:grid; place-items:center; font-size:14px; flex-shrink:0;">✓</div>
+                  <div style="font-size:13px;">실시간 LUT 적용 라이브 프리뷰</div>
+                </div>
+                <div style="display:flex; gap:12px; align-items:center;">
+                  <div style="width:32px; height:32px; border-radius:8px; background:var(--success-bg); color:var(--success); display:grid; place-items:center; font-size:14px; flex-shrink:0;">✓</div>
+                  <div style="font-size:13px;">전/후면 카메라 즉시 전환</div>
+                </div>
+                <div style="display:flex; gap:12px; align-items:center;">
+                  <div style="width:32px; height:32px; border-radius:8px; background:var(--success-bg); color:var(--success); display:grid; place-items:center; font-size:14px; flex-shrink:0;">✓</div>
+                  <div style="font-size:13px;">셀프 타이머 / 비율 조정</div>
+                </div>
+              </div>
+
+              <button class="btn primary full" style="margin-bottom: 8px;">카메라 허용하기</button>
+              <button style="width:100%; padding: 12px; background:none; border:none; color:var(--text-tertiary); font-size:13px;">나중에 하기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag note">NOTE</span> Priming = 시스템 dialog 띄우기 직전 priming screen. 시스템 dialog 거부 → denied 화면 (다음 mockup).</div>
+        <div class="note"><span class="tag a11y">A11Y</span> "사진은 기기 외부로 전송되지 않습니다" — 명시적 안심 카피. App Store §5.1.1 (i) 권장.</div>
+        <div class="note"><span class="tag fix">FIX</span> "나중에 하기" — onboarding 단계에서는 OK, but 카메라 셔터 탭한 직후라면 사용자 의도 거스름. 이 화면 진입 context 별 카피 분기.</div>
+      </div>
+    </div>
+
+    <!-- ───── 53 · CAMERA PERMISSION DENIED ────────────────────────────── -->
+    <div class="annotated">
+      <div class="shot">
+        <div class="label"><span class="num">53</span><span class="name">Camera Permission · Denied</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="display:flex; flex-direction:column; padding-top:60px; padding-left:24px; padding-right:24px; text-align:center;">
+              <div style="display:inline-grid; place-items:center; width:96px; height:96px; border-radius:24px; background:var(--error-bg); margin: 0 auto 24px;">
+                <span style="font-size:44px; opacity:0.7;">📷</span>
+                <span style="position:absolute; font-size:30px; color:var(--error);">∅</span>
+              </div>
+              <h1 style="font-size:22px; font-weight:700; letter-spacing:-0.02em; margin: 0 0 12px;">카메라 접근이 차단되어 있어요</h1>
+              <p style="font-size:14px; color:var(--text-secondary); line-height:1.7; margin: 0 0 28px;">
+                iOS 설정 &gt; moodit 에서<br>
+                카메라 권한을 켜주세요.
+              </p>
+
+              <!-- Step guide -->
+              <div class="card" style="text-align:left; padding: 14px; margin-bottom: 28px;">
+                <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:8px;">
+                  <div style="width:20px; height:20px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:10px; flex-shrink:0;">1</div>
+                  <div style="font-size:12px;">아래 "설정 열기" 탭</div>
+                </div>
+                <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:8px;">
+                  <div style="width:20px; height:20px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:10px; flex-shrink:0;">2</div>
+                  <div style="font-size:12px;">"카메라" toggle ON</div>
+                </div>
+                <div style="display:flex; gap:10px; align-items:flex-start;">
+                  <div style="width:20px; height:20px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:10px; flex-shrink:0;">3</div>
+                  <div style="font-size:12px;">앱으로 돌아오기</div>
+                </div>
+              </div>
+
+              <button class="btn primary full" style="margin-bottom: 8px;">설정 열기</button>
+              <button style="width:100%; padding: 12px; background:none; border:none; color:var(--text-tertiary); font-size:13px;">취소</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> Step guide (1/2/3) 가 코드에 없음 — denied 화면은 button 만. 단계 guide 가 conversion ↑.</div>
+        <div class="note"><span class="tag note">NOTE</span> "설정 열기" → <code>UIApplication.openSettingsURLString</code> deep link. 코드 ✓.</div>
+      </div>
+    </div>
+
+    <!-- ───── 54 · PHOTOS PERMISSION ───────────────────────────────────── -->
+    <div class="annotated">
+      <div class="shot">
+        <div class="label"><span class="num">54</span><span class="name">Photos · Limited Access</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="display:flex; flex-direction:column; padding-top:60px; padding-left:24px; padding-right:24px; text-align:center;">
+              <div style="display:inline-grid; place-items:center; width:96px; height:96px; border-radius:24px; background:var(--info-bg); margin: 0 auto 24px;">
+                <span style="font-size:48px;">🖼️</span>
+              </div>
+              <h1 style="font-size:22px; font-weight:700; letter-spacing:-0.02em; margin: 0 0 12px;">사진 접근 권한</h1>
+              <p style="font-size:13px; color:var(--text-secondary); line-height:1.7; margin: 0 0 24px;">기존 사진을 가져와 필터를 적용하려면<br>접근 권한이 필요해요.</p>
+
+              <!-- Two options -->
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <button class="btn primary full">모든 사진 허용</button>
+                <button class="btn full">선택한 사진만 허용</button>
+                <button style="width:100%; padding: 12px; background:none; border:none; color:var(--text-tertiary); font-size:13px;">건너뛰기</button>
+              </div>
+
+              <p style="font-size:11px; color:var(--text-tertiary); margin-top:24px; line-height:1.6;">
+                iOS 14+ 부터 "선택한 사진만" 옵션이 가능합니다.<br>
+                위치 정보 (EXIF) 는 자동으로 제거됩니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag note">NOTE</span> iOS 14+ "limited photo access" 우선 안내. 사용자 보안 의식 존중.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> "위치 정보 제거" 안내 — 사용자 신뢰 ↑. EXIF 자동 stripping 코드 검증 필요.</div>
+      </div>
+    </div>
+
+    <!-- ───── 55 · NOTIFICATIONS PRIMING ───────────────────────────────── -->
+    <div class="annotated">
+      <div class="shot">
+        <div class="label"><span class="num">55</span><span class="name">Notifications · Priming</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="display:flex; flex-direction:column; padding-top:60px; padding-left:24px; padding-right:24px; text-align:center;">
+              <div style="display:inline-grid; place-items:center; width:96px; height:96px; border-radius:24px; background:var(--warning-bg); margin: 0 auto 24px;">
+                <span style="font-size:48px;">🔔</span>
+              </div>
+              <h1 style="font-size:22px; font-weight:700; letter-spacing:-0.02em; margin: 0 0 12px;">알림을 받아볼까요?</h1>
+              <p style="font-size:13px; color:var(--text-secondary); line-height:1.7; margin: 0 0 24px;">메이커 활동, 필터 검수 결과,<br>좋아요/댓글 알림을 보내드려요.</p>
+
+              <div class="card" style="padding: 14px; text-align:left; margin-bottom:24px;">
+                <div style="font-size:11px; color:var(--text-tertiary); font-weight:600; margin-bottom: 8px;">받을 알림 (변경 가능)</div>
+                <div style="font-size:12px; line-height:1.8; color:var(--text-secondary);">
+                  • 내 필터에 좋아요/댓글<br>
+                  • 검수 결과 (통과 / 거절)<br>
+                  • 다운로드 마일스톤<br>
+                  • 새 팔로워<br>
+                  • Pro 만료 알림
+                </div>
+              </div>
+
+              <button class="btn primary full" style="margin-bottom:8px;">알림 허용</button>
+              <button style="width:100%; padding: 12px; background:none; border:none; color:var(--text-tertiary); font-size:13px;">나중에 설정</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> 알림 priming 은 user value (메이커 알림) 가 명확할 때 띄우기. <b>onboarding 즉시 X</b> — 첫 다운로드 / 첫 필터 업로드 후 trigger 권장.</div>
+        <div class="note"><span class="tag note">NOTE</span> Apple HIG: priming 은 시스템 prompt 거부 시 다시 띄울 기회 보존. 한번 거부 ≠ 영구 거부 (앱 컨텍스트 기억).</div>
+      </div>
+    </div>
+
+    <!-- ───── 56 · EMPTY STATES (composite) ────────────────────────────── -->
+    <div class="annotated" id="empty">
+      <div class="shot">
+        <div class="label"><span class="num">56</span><span class="name">Empty States · Catalog</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="background:#f8f7f3;">
+              <div class="top-bar"><div class="title">빈 상태</div></div>
+
+              <div style="padding: 0 16px;">
+                <!-- Saved empty -->
+                <div class="card" style="padding: 32px 20px; text-align:center; margin-bottom:14px;">
+                  <div style="font-size:48px; opacity:0.4; margin-bottom:12px;">🔖</div>
+                  <div style="font-size:14px; font-weight:600; margin-bottom:6px;">저장된 필터가 없어요</div>
+                  <div style="font-size:11px; color:var(--text-tertiary); margin-bottom:14px;">마음에 드는 필터를 다운로드하면<br>여기에 보관돼요.</div>
+                  <button class="btn sm primary">마켓 둘러보기</button>
+                </div>
+
+                <!-- Search no results -->
+                <div class="card" style="padding: 32px 20px; text-align:center; margin-bottom:14px;">
+                  <div style="font-size:48px; opacity:0.4; margin-bottom:12px;">🔎</div>
+                  <div style="font-size:14px; font-weight:600; margin-bottom:6px;">검색 결과가 없어요</div>
+                  <div style="font-size:11px; color:var(--text-tertiary); margin-bottom:14px;">"<b>화양연화</b>" 와 일치하는 필터/메이커가 없습니다.</div>
+                  <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-bottom:14px;">
+                    <span class="chip" style="font-size:11px;">#vintage_film</span>
+                    <span class="chip" style="font-size:11px;">#cinematic</span>
+                  </div>
+                  <button class="btn sm primary">필터 만들기</button>
+                </div>
+
+                <!-- No reviews -->
+                <div class="card" style="padding: 32px 20px; text-align:center; margin-bottom:14px;">
+                  <div style="font-size:48px; opacity:0.4; margin-bottom:12px;">★</div>
+                  <div style="font-size:14px; font-weight:600; margin-bottom:6px;">첫 리뷰의 주인공이 되어보세요</div>
+                  <div style="font-size:11px; color:var(--text-tertiary); margin-bottom:14px;">아직 리뷰가 없어요.</div>
+                  <button class="btn sm primary">리뷰 쓰기</button>
+                </div>
+
+                <!-- No followers -->
+                <div class="card" style="padding: 32px 20px; text-align:center;">
+                  <div style="font-size:48px; opacity:0.4; margin-bottom:12px;">👥</div>
+                  <div style="font-size:14px; font-weight:600; margin-bottom:6px;">아직 팔로워가 없어요</div>
+                  <div style="font-size:11px; color:var(--text-tertiary); margin-bottom:14px;">필터를 마켓에 공유하면<br>다른 사용자가 팔로우할 수 있어요.</div>
+                  <button class="btn sm primary">필터 만들기</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> 검색 빈 상태에 <b>"필터 만들기"</b> CTA — 검색 → 메이커 funnel. <a href="DESIGNER_NOTES.md">Notes C.1.2</a>.</div>
+        <div class="note"><span class="tag note">NOTE</span> 모든 빈 상태 카드는 동일 패턴: icon + headline + sub + CTA. <code>FMEmptyState</code> 컴포넌트 ✓.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Icon 만 으론 의미 약함. <code>accessibilityLabel</code> 에 상태 명시: "저장된 필터 없음, 빈 상태".</div>
+      </div>
+    </div>
+
+    <!-- ───── 57 · ERROR STATES ────────────────────────────────────────── -->
+    <div class="annotated" id="error">
+      <div class="shot">
+        <div class="label"><span class="num">57</span><span class="name">Error States · Catalog</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar"><div class="title">에러 상태</div></div>
+
+              <div style="padding: 0 16px;">
+                <!-- Network -->
+                <div class="card" style="padding: 14px; margin-bottom:14px; border-color:var(--warning); background:var(--warning-bg);">
+                  <div style="display:flex; gap:10px; align-items:flex-start;">
+                    <span style="font-size:20px;">📡</span>
+                    <div style="flex:1;">
+                      <div style="font-size:13px; font-weight:600; color:var(--warning);">네트워크 연결 없음</div>
+                      <div style="font-size:11px; color:var(--text-secondary); margin-top:4px;">Wi-Fi 또는 셀룰러 연결을 확인해주세요.</div>
+                      <button class="btn sm" style="margin-top:8px; height:28px; padding:0 10px; background:var(--warning); color:#fff; border-color:var(--warning);">다시 시도</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Server error -->
+                <div class="card" style="padding: 14px; margin-bottom:14px; border-color:var(--error); background:var(--error-bg);">
+                  <div style="display:flex; gap:10px; align-items:flex-start;">
+                    <span style="font-size:20px;">⚠️</span>
+                    <div style="flex:1;">
+                      <div style="font-size:13px; font-weight:600; color:var(--error);">필터를 불러올 수 없어요</div>
+                      <div style="font-size:11px; color:var(--text-secondary); margin-top:4px;">잠시 후 다시 시도해주세요. <span style="font-family:var(--font-mono); font-size:10px;">(500)</span></div>
+                      <div style="margin-top:8px; display:flex; gap:6px;">
+                        <button class="btn sm" style="height:28px; padding:0 10px; background:var(--error); color:#fff; border-color:var(--error);">다시 시도</button>
+                        <button class="btn sm" style="height:28px; padding:0 10px;">고객지원</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Filter unavailable -->
+                <div class="card" style="padding: 32px 20px; text-align:center;">
+                  <div style="font-size:48px; opacity:0.4; margin-bottom:12px;">🚫</div>
+                  <div style="font-size:14px; font-weight:600; margin-bottom:6px;">이 필터는 더 이상 사용할 수 없어요</div>
+                  <div style="font-size:11px; color:var(--text-tertiary); margin-bottom:14px; line-height:1.6;">메이커가 비공개로 전환했거나<br>정책에 따라 제거되었을 수 있어요.</div>
+                  <button class="btn sm primary">마켓으로 이동</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> 모든 에러 상태에 <b>error code</b> 표기 — 사용자가 고객지원에 reference. raw code (500) + 사용자 친화 카피 동시.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Error 카드의 색상 + 아이콘 + 텍스트 — 3중 redundancy ✓. WCAG color-not-only 만족.</div>
+      </div>
+    </div>
+
+    <!-- ───── 58 · MODAL · ALERT ───────────────────────────────────────── -->
+    <div class="annotated" id="alert">
+      <div class="shot">
+        <div class="label"><span class="num">58</span><span class="name">Modal · Alert (destructive)</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="background:rgba(0,0,0,0.5); display:grid; place-items:center; padding: 0 32px;">
+              <div style="background:#fff; width: 100%; border-radius: 18px; padding: 24px; box-shadow: var(--elev-3); text-align:center;">
+                <div style="display:inline-grid; place-items:center; width:48px; height:48px; border-radius:50%; background:var(--error-bg); color:var(--error); margin-bottom:14px; font-size:22px;">⚠️</div>
+                <div style="font-size:16px; font-weight:700; margin-bottom:6px;">초안을 버리시겠어요?</div>
+                <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:20px;">현재 작업 중인 필터의 모든 변경사항이<br>저장되지 않고 사라집니다.</div>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn full">취소</button>
+                  <button class="btn full" style="background:var(--error); color:#fff; border-color:var(--error);">버리기</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag note">NOTE</span> Destructive alert — destructive button 우측 (iOS 표준). 취소가 좌측. <code>FMAlert</code> 컴포넌트 ✓.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Alert dismiss 는 swipe X — 시스템 dialog 아님. ESC 또는 outside-tap 으로 cancel. <code>accessibilityElement</code>.</div>
+      </div>
+    </div>
+
+    <!-- ───── 59 · MODAL · BOTTOM SHEET ────────────────────────────────── -->
+    <div class="annotated" id="bottom-sheet">
+      <div class="shot">
+        <div class="label"><span class="num">59</span><span class="name">Modal · Bottom Sheet (kebab menu)</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="background:rgba(0,0,0,0.4);">
+              <!-- Background dimmed -->
+
+              <!-- Sheet -->
+              <div class="sheet" style="padding-bottom: 36px;">
+                <div class="grabber"></div>
+                <div style="padding: 4px 0 16px; text-align:center;">
+                  <div style="font-size:14px; font-weight:600;">Cinematic 35mm</div>
+                  <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">@minju</div>
+                </div>
+
+                <div class="list-section" style="margin: 0 0 12px;">
+                  <div class="list-row">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <span style="font-size:18px; width:24px; text-align:center;">↗</span>
+                      <div class="ttl">공유</div>
+                    </div>
+                  </div>
+                  <div class="list-row">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <span style="font-size:18px; width:24px; text-align:center;">📁</span>
+                      <div class="ttl">컬렉션에 추가</div>
+                    </div>
+                  </div>
+                  <div class="list-row">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <span style="font-size:18px; width:24px; text-align:center;">⊘</span>
+                      <div class="ttl">@minju 차단</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="list-section" style="margin: 0;">
+                  <div class="list-row" style="background:var(--error-bg);">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <span style="font-size:18px; width:24px; text-align:center; color:var(--error);">⚠</span>
+                      <div class="ttl" style="color:var(--error);">신고</div>
+                    </div>
+                  </div>
+                </div>
+
+                <button class="btn full" style="margin-top: 12px;">취소</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag a11y">A11Y</span> Sheet 의 close 액션 — swipe-down (gesture) 외에 명시적 close button 또는 "취소" row 필요. VoiceOver 사용자 dismiss 어려움.</div>
+        <div class="note"><span class="tag note">NOTE</span> Destructive 옵션 (신고) 은 분리된 list section + red 색상. iOS 표준 패턴.</div>
+      </div>
+    </div>
+
+    <!-- ───── 60 · TOAST ───────────────────────────────────────────────── -->
+    <div class="annotated" id="toast">
+      <div class="shot">
+        <div class="label"><span class="num">60</span><span class="name">Toast Variants</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar"><div class="title">Toast 변형</div></div>
+
+              <!-- Stack of toasts as preview -->
+              <div style="padding: 16px;">
+                <div class="toast success" style="margin: 0 0 10px;">
+                  <span>✓</span><span>저장됨</span>
+                </div>
+                <div class="toast" style="margin: 0 0 10px;">
+                  <span>✓</span><span>알림 모두 읽음 처리</span><span class="undo">되돌리기</span>
+                </div>
+                <div class="toast warning" style="margin: 0 0 10px;">
+                  <span>⚠</span><span>저장 공간 부족</span>
+                </div>
+                <div class="toast error" style="margin: 0 0 10px;">
+                  <span>✕</span><span>업로드 실패</span><span class="undo">재시도</span>
+                </div>
+              </div>
+
+              <!-- Auto-dismiss timer indicator -->
+              <div style="padding: 0 16px;">
+                <div class="card" style="padding: 14px; font-size:12px;">
+                  <div style="font-weight:600; margin-bottom:8px;">Toast 규칙</div>
+                  <ul style="margin:0; padding-left:18px; line-height:1.8; color:var(--text-secondary);">
+                    <li>지속시간: 기본 <b>3초</b>, undo 액션 있으면 <b>5초</b></li>
+                    <li>위치: 화면 하단 (사용자 액션) / 상단 (시스템 push)</li>
+                    <li>최대 1개 동시 표시 — 이전 toast 즉시 dismiss</li>
+                    <li>VoiceOver: <code>aria-live="polite"</code> 동등 (focus steal 금지)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> Toast 위치 규칙 — 코드는 사용자 액션은 bottom, foreground push 는 top. <code>MODAL_PATTERNS.md</code> 에 명시 권장. <a href="DESIGNER_NOTES.md">Notes F.4</a>.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Toast 는 <code>UIAccessibility.post(notification:.announcement)</code> 로 SR announce. 자동 dismiss 시간 ≥5s (WCAG 2.2 enough-time).</div>
+      </div>
+    </div>
+
+    <!-- ───── 61 · MODERATION QUEUE ────────────────────────────────────── -->
+    <div class="annotated" id="moderation">
+      <div class="shot">
+        <div class="label"><span class="num">61</span><span class="name">Moderation Queue (mod only)</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">검수 큐</div>
+                <button class="icon-btn ghost">⌕</button>
+              </div>
+
+              <!-- Status filter -->
+              <div style="padding: 0 16px 12px; display:flex; gap:6px;">
+                <span class="chip active">대기 12</span>
+                <span class="chip">검수 중 3</span>
+                <span class="chip">완료</span>
+                <span class="chip">신고</span>
+              </div>
+
+              <!-- Items -->
+              <div style="padding: 0 16px; display:flex; flex-direction:column; gap:8px;">
+                <div class="card" style="padding: 12px; display:flex; gap:12px; align-items:center; border-left: 3px solid var(--warning);">
+                  <div style="width:48px; height:48px; border-radius:8px; background:linear-gradient(135deg,#c47b4f,#6c3a1a);"></div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-size:13px; font-weight:600;">Soft Light 2026</div>
+                    <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px;">@yoonji · 3시간 전 제출</div>
+                    <div style="display:flex; gap:6px; margin-top:6px;">
+                      <span class="chip" style="font-size:10px; padding:2px 8px;">파스텔</span>
+                      <span class="chip" style="font-size:10px; padding:2px 8px;">신규 메이커</span>
+                    </div>
+                  </div>
+                  <button class="btn sm primary" style="height:30px;">검토</button>
+                </div>
+                <div class="card" style="padding: 12px; display:flex; gap:12px; align-items:center; border-left: 3px solid var(--error);">
+                  <div style="width:48px; height:48px; border-radius:8px; background:linear-gradient(135deg,#a8a8a8,#3a3a3a);"></div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-size:13px; font-weight:600;">Mono Sharp <span style="background:var(--error); color:#fff; font-size:9px; padding:1px 5px; border-radius:4px; margin-left:4px;">신고 3</span></div>
+                    <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px;">@kayla · 6시간 전 제출</div>
+                    <div style="font-size:10px; color:var(--error); margin-top:4px;">사유: 저작권 침해 의심</div>
+                  </div>
+                  <button class="btn sm primary" style="height:30px; background:var(--error); border-color:var(--error);">검토</button>
+                </div>
+                <div class="card" style="padding: 12px; display:flex; gap:12px; align-items:center;">
+                  <div style="width:48px; height:48px; border-radius:8px; background:linear-gradient(135deg,#6b85a0,#2a3540);"></div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-size:13px; font-weight:600;">Cyan Drift v2</div>
+                    <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px;">@hyun · 1일 전 제출</div>
+                    <div style="display:flex; gap:6px; margin-top:6px;">
+                      <span class="chip" style="font-size:10px; padding:2px 8px;">시네마틱</span>
+                    </div>
+                  </div>
+                  <button class="btn sm primary" style="height:30px;">검토</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag note">NOTE</span> 모더레이터 전용 화면 — Auth custom claim <code>role: moderator | admin</code> 필요. 일반 사용자는 진입 불가.</div>
+        <div class="note"><span class="tag add">ADD</span> 신고 카운트 ≥ 3 인 항목은 자동으로 큐 상단으로 이동 + 빨간색 강조. <code>onReportCreated</code> trigger 활용.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> "신고 3" 같은 badge 는 색약자에게 색만으로 priority 전달 X. 좌측 border 색상 + 텍스트 사유 동시 ✓.</div>
+      </div>
+    </div>
+
+    <!-- ───── 62 · MODERATION DETAIL ───────────────────────────────────── -->
+    <div class="annotated">
+      <div class="shot">
+        <div class="label"><span class="num">62</span><span class="name">Moderation Detail (mod only)</span><span class="status todo">PARTIAL</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">검수 상세</div>
+                <button class="icon-btn ghost">⓵</button>
+              </div>
+
+              <div style="padding: 0 16px;">
+                <!-- Filter preview -->
+                <div style="aspect-ratio: 4/5; border-radius:14px; background:linear-gradient(135deg,#a8a8a8,#3a3a3a); margin-bottom:14px; position:relative;">
+                  <div style="position:absolute; bottom:8px; right:8px; padding: 3px 8px; border-radius: 999px; background:rgba(0,0,0,0.55); color:#fff; font-size:10px; backdrop-filter: blur(8px);">자동 비교</div>
+                </div>
+
+                <div style="font-size:18px; font-weight:700; letter-spacing:-0.02em; margin-bottom:4px;">Mono Sharp</div>
+                <div style="font-size:12px; color:var(--text-secondary); margin-bottom:14px;">@kayla · 6시간 전 제출 · v1.0.0</div>
+
+                <!-- Reports section -->
+                <div style="padding: 12px 14px; background:var(--error-bg); border:1px solid var(--error); border-radius:12px; margin-bottom:14px;">
+                  <div style="font-size:12px; font-weight:700; color:var(--error); margin-bottom:6px;">⚠️ 신고 3건</div>
+                  <div style="font-size:11px; color:var(--text-secondary); line-height:1.6;">
+                    • 저작권 침해 (2건) — 외부 LUT 와 95% 유사<br>
+                    • 부적절한 콘텐츠 (1건)
+                  </div>
+                  <button class="btn sm" style="margin-top:8px; height:28px; padding:0 10px; background:#fff; border-color:var(--error); color:var(--error);">신고 상세 보기</button>
+                </div>
+
+                <!-- ToS check -->
+                <div class="card" style="padding: 12px; margin-bottom:14px;">
+                  <div style="font-size:11px; color:var(--text-tertiary); font-weight:600; margin-bottom:8px;">약관 동의</div>
+                  <div style="display:flex; flex-direction:column; gap:6px; font-size:11px;">
+                    <div style="display:flex; gap:8px;"><span style="color:var(--success);">✓</span> 원본 권리 보유</div>
+                    <div style="display:flex; gap:8px;"><span style="color:var(--success);">✓</span> moodit 정책</div>
+                    <div style="display:flex; gap:8px;"><span style="color:var(--success);">✓</span> 상업 이용</div>
+                  </div>
+                </div>
+
+                <!-- Action buttons -->
+                <div style="display:flex; flex-direction:column; gap:8px; margin-bottom: 24px;">
+                  <button class="btn primary full" style="background:var(--success); border-color:var(--success);">✓ 승인 → 마켓 공개</button>
+                  <button class="btn full" style="background:var(--error); border-color:var(--error); color:#fff;">✕ 거절 (사유 입력)</button>
+                  <button class="btn full">잠시 보류 / 추가 정보 요청</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> "잠시 보류 / 추가 정보 요청" — 코드에 없음. moderator 가 메이커에게 추가 정보 요청 가능한 상태. <code>filter.status = "pending_info"</code> 신규 enum.</div>
+        <div class="note"><span class="tag note">NOTE</span> 거절 시 사유 picker — 메이커가 "Filter Rejected" 화면에서 reference. 사유 카테고리 선택 + free-text 디테일 동시.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> 승인/거절 버튼 색상 (녹/빨) — color-only meaning 회피. ✓ / ✕ 아이콘 prefix 동시.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer class="canvas">
+  <p>← <a href="flow-07-notifications-settings.html">Settings 07</a> · <a href="index.html">Index</a> · <a href="DESIGNER_NOTES.md">Designer Notes →</a></p>
+</footer>
+
+</body>
+</html>

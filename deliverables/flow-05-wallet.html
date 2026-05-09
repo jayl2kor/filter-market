@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flow 05 · Wallet & Paywall · moodit mockups</title>
+  <link rel="stylesheet" href="_tokens.css">
+</head>
+<body>
+
+<header class="canvas">
+  <div>
+    <h1>Flow 05 · Wallet, Paywall & Pro</h1>
+    <div class="meta">10 screens · Wallet / Topup / Transactions / Paywall Single / Pro Subscription / Pro Status / Insufficient Balance / Payment Failed / Orders / Refund</div>
+  </div>
+  <nav>
+    <a href="index.html">Index</a>
+    <a href="flow-01-auth.html">Auth</a>
+    <a href="flow-02-marketplace.html">Marketplace</a>
+    <a href="flow-03-camera.html">Camera</a>
+    <a href="flow-04-maker.html">Maker</a>
+    <a href="flow-05-wallet.html" class="active">Wallet</a>
+    <a href="flow-06-profile-social.html">Profile</a>
+    <a href="flow-07-notifications-settings.html">Settings</a>
+    <a href="flow-08-states-modals.html">States</a>
+  </nav>
+</header>
+
+<section class="flow">
+  <h2>Wallet · Paywall · Pro</h2>
+  <p class="subtitle">Coin (1C ≈ ₩14) 충전 → 단일 필터 구매 또는 Pro 구독 (월/연). StoreKit2 + <code>creditCoinsFromIAP</code> / <code>proSubscriptionUpdate</code> / <code>purchaseFilter</code> 콜러블. 환불은 <code>refundRequest</code>. 모든 잔액/가격 표기는 tabular numerals.</p>
+
+  <div class="flow-summary">
+    <div class="col recs">
+      <h3>Working</h3>
+      <ul>
+        <li><strong>Coin 잔액 표기</strong> — 마켓 헤더에 항상 노출. 잔액 인지 ↑.</li>
+        <li>4개 충전 패키지 (100/550/1200/3000) — 가격대별 적정 분포.</li>
+        <li>StoreKit2 영수증 검증 + JWS — 중복 충전 방지 견고.</li>
+      </ul>
+    </div>
+    <div class="col gaps">
+      <h3>Gaps</h3>
+      <ul>
+        <li><strong>잔액 부족 → 충전</strong> 흐름이 modal 위 modal — back stack 혼란 우려.</li>
+        <li>Pro 만료 임박 (7일 이내) banner 가 wallet 화면에 없음.</li>
+        <li>Refund Request reason 이 free-text — picker 형태가 분류/통계에 유리.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="gallery">
+
+    <!-- ───── 27 · WALLET ──────────────────────────────────────────────── -->
+    <div class="annotated" id="wallet">
+      <div class="shot">
+        <div class="label"><span class="num">27</span><span class="name">Wallet</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">지갑</div>
+                <button class="icon-btn ghost">⓵</button>
+              </div>
+
+              <!-- Balance hero -->
+              <div style="margin: 8px 16px 16px; padding: 24px 20px; border-radius: 20px; background: linear-gradient(135deg, var(--accent), var(--accent-hover)); color:#fff; box-shadow: var(--elev-3);">
+                <div style="font-size:11px; opacity:0.8; margin-bottom:6px;">현재 잔액</div>
+                <div style="display:flex; align-items:flex-end; gap:10px;">
+                  <div style="font-size:38px; font-weight:700; line-height:1; font-variant-numeric: tabular-nums; letter-spacing:-0.02em;">⬡ 1,250</div>
+                  <div style="font-size:13px; opacity:0.85; padding-bottom:6px; font-variant-numeric: tabular-nums;">≈ ₩17,500</div>
+                </div>
+                <div style="margin-top:18px; display:flex; gap:8px;">
+                  <button class="btn full" style="background:rgba(255,255,255,0.18); color:#fff; border-color:transparent; backdrop-filter: blur(8px);">+ 충전</button>
+                  <button class="btn full" style="background:rgba(255,255,255,0.18); color:#fff; border-color:transparent; backdrop-filter: blur(8px);">거래내역</button>
+                </div>
+              </div>
+
+              <!-- Pro renewal warning -->
+              <div style="margin: 0 16px 16px; padding: 12px 14px; background: var(--warning-bg); border:1px solid var(--warning); border-radius: 14px; display:flex; gap:10px; align-items:flex-start;">
+                <span style="font-size:16px;">🔔</span>
+                <div style="flex:1;">
+                  <div style="font-size:12px; font-weight:600; color:var(--warning);">Pro 멤버십이 곧 만료됩니다</div>
+                  <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">2026년 5월 17일 · 7일 남음</div>
+                </div>
+                <button class="btn sm" style="background:#fff; color:var(--warning); border-color:var(--warning);">갱신 확인</button>
+              </div>
+
+              <!-- Pro promo -->
+              <div class="card elev2" style="margin: 0 16px 16px; padding: 16px; border:1px solid var(--accent-soft); background: linear-gradient(135deg, var(--accent-bg), #fff);">
+                <div style="display:flex; gap:10px; align-items:flex-start;">
+                  <div style="font-size:24px;">✨</div>
+                  <div style="flex:1;">
+                    <div style="font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:4px;">moodit Pro</div>
+                    <div style="font-size:12px; color:var(--text-secondary); margin-bottom:10px;">모든 필터 무제한 · 광고 제거 · 우선 지원</div>
+                    <button class="btn sm primary" style="height: 32px; padding: 0 12px;">멤버십 보기</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recent transactions -->
+              <div class="sec-h"><div class="h">최근 거래</div><div class="more">전체 →</div></div>
+              <div style="padding: 8px 16px;">
+                <div class="list-section">
+                  <div class="list-row">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <div style="width:32px; height:32px; border-radius:8px; background:var(--success-bg); color:var(--success); display:grid; place-items:center; font-size:14px;">↗</div>
+                      <div>
+                        <div class="ttl">충전</div>
+                        <div class="sub">5월 8일</div>
+                      </div>
+                    </div>
+                    <div class="right" style="color:var(--success); font-weight:600; font-variant-numeric: tabular-nums;">+ ⬡ 550</div>
+                  </div>
+                  <div class="list-row">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <div style="width:32px; height:32px; border-radius:8px; background:var(--accent-bg); color:var(--accent); display:grid; place-items:center; font-size:14px;">⬇</div>
+                      <div>
+                        <div class="ttl">Cinematic 35mm 구매</div>
+                        <div class="sub">5월 7일 · @minju</div>
+                      </div>
+                    </div>
+                    <div class="right" style="font-variant-numeric: tabular-nums;">− ⬡ 50</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> <b>Pro 만료 임박 banner</b> — 코드에 없음. <code>proStatus.expiresAt - now &lt; 7d</code> 일 때 노란색 banner 표시. <a href="DESIGNER_NOTES.md">Notes C.2.9</a>.</div>
+        <div class="note"><span class="tag fix">FIX</span> 옛 mockup 은 Pro 카드 + transactions 만. 코드는 충전/거래/Pro 3 sections — 이 mockup 은 코드 기준 + Pro warning 추가.</div>
+        <div class="note"><span class="tag note">NOTE</span> ₩ 환산 표기는 매번 보여주지 않고 화폐 옵션 (Coin / KRW) toggle 가능하게? CURRENCY_DESIGN.md 확인.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Coin glyph (⬡) — VoiceOver 가 "헥사그램" 으로 읽음. <code>accessibilityLabel</code> 로 "코인" override.</div>
+      </div>
+    </div>
+
+    <!-- ───── 28 · WALLET TOPUP ────────────────────────────────────────── -->
+    <div class="annotated" id="wallet-topup">
+      <div class="shot">
+        <div class="label"><span class="num">28</span><span class="name">Wallet · Topup</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">코인 충전</div>
+                <button class="icon-btn ghost">↻</button>
+              </div>
+
+              <div style="padding: 0 16px;">
+                <p style="font-size:12px; color:var(--text-secondary); margin: 0 0 16px;">앱 내 결제로 충전합니다. 단위 가격은 App Store 기준입니다.</p>
+
+                <!-- 4 packages -->
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                  <div class="card" style="padding: 14px; display:flex; gap:14px; align-items:center;">
+                    <div style="width:48px; height:48px; border-radius:12px; background:var(--accent-bg); color:var(--accent); display:grid; place-items:center; font-size:22px;">⬡</div>
+                    <div style="flex:1;">
+                      <div style="font-size:15px; font-weight:600; font-variant-numeric: tabular-nums;">⬡ 100</div>
+                      <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">2 ~ 3 필터 구매</div>
+                    </div>
+                    <div style="text-align:right; font-variant-numeric: tabular-nums;">
+                      <div style="font-size:14px; font-weight:600;">₩1,500</div>
+                    </div>
+                  </div>
+                  <div class="card" style="padding: 14px; display:flex; gap:14px; align-items:center; border:2px solid var(--accent); position:relative;">
+                    <div style="position:absolute; top:-8px; right:14px; padding:2px 8px; border-radius:6px; background:var(--accent); color:#fff; font-size:9px; font-weight:700; letter-spacing:0.05em;">+10% 보너스</div>
+                    <div style="width:48px; height:48px; border-radius:12px; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:22px;">⬡</div>
+                    <div style="flex:1;">
+                      <div style="font-size:15px; font-weight:600; font-variant-numeric: tabular-nums;">⬡ 550 <span style="color:var(--success); font-size:11px;">+50</span></div>
+                      <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">10 ~ 15 필터 · 인기</div>
+                    </div>
+                    <div style="text-align:right; font-variant-numeric: tabular-nums;">
+                      <div style="font-size:14px; font-weight:600;">₩7,500</div>
+                    </div>
+                  </div>
+                  <div class="card" style="padding: 14px; display:flex; gap:14px; align-items:center;">
+                    <div style="width:48px; height:48px; border-radius:12px; background:var(--accent-bg); color:var(--accent); display:grid; place-items:center; font-size:22px;">⬡</div>
+                    <div style="flex:1;">
+                      <div style="font-size:15px; font-weight:600; font-variant-numeric: tabular-nums;">⬡ 1,200 <span style="color:var(--success); font-size:11px;">+200</span></div>
+                      <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">25 ~ 30 필터</div>
+                    </div>
+                    <div style="text-align:right; font-variant-numeric: tabular-nums;">
+                      <div style="font-size:14px; font-weight:600;">₩15,000</div>
+                    </div>
+                  </div>
+                  <div class="card" style="padding: 14px; display:flex; gap:14px; align-items:center;">
+                    <div style="width:48px; height:48px; border-radius:12px; background:var(--accent-bg); color:var(--accent); display:grid; place-items:center; font-size:22px;">⬡</div>
+                    <div style="flex:1;">
+                      <div style="font-size:15px; font-weight:600; font-variant-numeric: tabular-nums;">⬡ 3,000 <span style="color:var(--success); font-size:11px;">+800</span></div>
+                      <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">60+ 필터 · 최대 보너스</div>
+                    </div>
+                    <div style="text-align:right; font-variant-numeric: tabular-nums;">
+                      <div style="font-size:14px; font-weight:600;">₩39,000</div>
+                    </div>
+                  </div>
+                </div>
+
+                <button style="margin-top:20px; width:100%; padding: 12px; background:none; border:none; color:var(--accent); font-size:13px; font-weight:600;">이전 구매 복원</button>
+
+                <p style="font-size:10px; color:var(--text-tertiary); line-height:1.6; margin-top: 12px; text-align:center;">
+                  결제는 Apple ID 에 연결된 결제 수단으로 진행됩니다.<br>
+                  자동 갱신 없음 · 단일 결제.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> 옛 mockup 은 3개 pack. 코드는 4개 + 보너스 % 표시. 이 mockup 은 4개 + 인기 pack (⬡550) highlight.</div>
+        <div class="note"><span class="tag add">ADD</span> "보너스" 표기는 처음 충전한 사람에게 더 prominent. 신규 충전 사용자에게만 첫 결제 보너스 +20% (Phase 5 retention 캠페인).</div>
+        <div class="note"><span class="tag note">NOTE</span> 자동 갱신 (subscription auto-renew) X 명시 — Apple Review 통과를 위해 단일 결제임을 사용자에게 분명히.</div>
+      </div>
+    </div>
+
+    <!-- ───── 29 · PAYWALL SINGLE ──────────────────────────────────────── -->
+    <div class="annotated" id="paywall-single">
+      <div class="shot">
+        <div class="label"><span class="num">29</span><span class="name">Paywall · Single Filter</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="background:rgba(0,0,0,0.4);">
+
+              <!-- Sheet -->
+              <div style="position:absolute; left:0; right:0; bottom:0; padding: 20px 20px 28px; background:#fff; border-radius: 24px 24px 0 0; box-shadow: var(--elev-3); border-top:1px solid var(--border-subtle);">
+                <div class="grabber"></div>
+
+                <div style="text-align:center; padding: 8px 0 20px;">
+                  <div style="width:80px; height:80px; border-radius:18px; background: linear-gradient(135deg, #c47b4f, #6c3a1a); margin: 0 auto 12px;"></div>
+                  <div style="font-size:18px; font-weight:700; letter-spacing:-0.02em;">Cinematic 35mm</div>
+                  <div style="font-size:12px; color:var(--text-tertiary); margin-top:2px;">@minju · 별점 4.8</div>
+                </div>
+
+                <!-- Price + balance -->
+                <div class="card" style="padding: 14px; margin-bottom:12px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                      <div style="font-size:11px; color:var(--text-tertiary);">필터 가격</div>
+                      <div style="font-size:18px; font-weight:700; color:var(--accent); font-variant-numeric: tabular-nums; margin-top:2px;">⬡ 50</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div style="font-size:11px; color:var(--text-tertiary);">결제 후 잔액</div>
+                      <div style="font-size:14px; font-weight:600; font-variant-numeric: tabular-nums; margin-top:2px;">⬡ 1,200</div>
+                    </div>
+                  </div>
+                </div>
+
+                <button class="btn primary full" style="margin-bottom: 8px;">⬡ 50 코인으로 구매</button>
+
+                <!-- Pro upsell -->
+                <div style="margin: 14px 0 4px; padding: 12px 14px; border-radius: 14px; background: var(--bg-1); border:1px solid var(--border-subtle); display:flex; gap:10px; align-items:center;">
+                  <div style="font-size:20px;">✨</div>
+                  <div style="flex:1;">
+                    <div style="font-size:12px; font-weight:600;">Pro 멤버십이면 무료</div>
+                    <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">월 ₩4,900 · 모든 필터 무제한</div>
+                  </div>
+                  <button class="btn sm">보기</button>
+                </div>
+
+                <button style="width:100%; padding: 12px; background:none; border:none; color:var(--text-tertiary); font-size:13px; margin-top:8px;">취소</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> 결제 후 잔액 (⬡1,200) 이 음수 ('-50' 적용) 일 때 → "잔액 부족" 화면으로 분기. 자연스러운 transition: 같은 sheet 내부 content swap (no nested modal).</div>
+        <div class="note"><span class="tag add">ADD</span> "Pro 멤버십이면 무료" — Pro 안 가입한 사용자에게만 표시. Pro 가입자는 paywall 자체 skip 권장 (Open Q #4).</div>
+        <div class="note"><span class="tag a11y">A11Y</span> "⬡ 50 코인으로 구매" — VoiceOver: <code>"코인 50개로 구매, 버튼"</code>. 가격 + 단위 + 동작 명확.</div>
+      </div>
+    </div>
+
+    <!-- ───── 30 · PRO SUBSCRIPTION ────────────────────────────────────── -->
+    <div class="annotated" id="pro-subscription">
+      <div class="shot">
+        <div class="label"><span class="num">30</span><span class="name">Pro Subscription</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen" style="background:linear-gradient(180deg, #1a1a1a, #0a0a0a); color:#fff;">
+            <div class="status-bar dark"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+
+              <div style="padding: 8px 12px;">
+                <button class="icon-btn" style="background:rgba(255,255,255,0.1); border-color:transparent; color:#fff;">✕</button>
+              </div>
+
+              <div style="padding: 16px 24px 0; text-align:center;">
+                <div style="display:inline-grid; place-items:center; width:72px; height:72px; border-radius:18px; background: linear-gradient(135deg, var(--accent-soft), var(--accent)); margin-bottom:18px; box-shadow: 0 16px 32px -8px rgba(184,133,58,0.4);">
+                  <span style="font-size:34px;">✨</span>
+                </div>
+                <h1 style="font-size:32px; font-weight:800; letter-spacing:-0.04em; margin: 0 0 8px;">moodit <span style="color:var(--accent-soft);">Pro</span></h1>
+                <p style="font-size:14px; color:#a8a8a8; margin: 0 0 28px; line-height:1.6;">모든 필터를 무제한으로 즐기세요</p>
+
+                <!-- Plan toggle -->
+                <div style="display:inline-flex; padding:4px; background:rgba(255,255,255,0.1); border-radius:10px; margin-bottom: 24px; gap:2px;">
+                  <button style="padding: 8px 18px; border-radius: 8px; font-size:13px; font-weight:600; background:none; border:none; color:#a8a8a8;">월간</button>
+                  <button style="padding: 8px 18px; border-radius: 8px; font-size:13px; font-weight:600; background:#fff; color:#1a1a1a; border:none; position:relative;">
+                    연간
+                    <span style="position:absolute; top:-8px; right:-8px; padding:2px 6px; border-radius: 4px; background:var(--accent); color:#fff; font-size:9px; font-weight:700;">−40%</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Pricing -->
+              <div style="padding: 0 24px; text-align:center; margin-bottom: 28px;">
+                <div style="font-size:48px; font-weight:800; letter-spacing:-0.04em; line-height:1; font-variant-numeric: tabular-nums;">₩3,200<span style="font-size:14px; color:#a8a8a8; font-weight:400;"> /월</span></div>
+                <div style="font-size:11px; color:#a8a8a8; margin-top:6px; font-variant-numeric: tabular-nums;">연간 ₩38,400 일시 결제 · 월 ₩4,900 → ₩3,200</div>
+              </div>
+
+              <!-- Benefits -->
+              <div style="padding: 0 24px;">
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                  <div style="display:flex; gap:12px; align-items:flex-start;">
+                    <div style="width:24px; height:24px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:12px; flex-shrink:0;">✓</div>
+                    <div>
+                      <div style="font-size:13px; font-weight:600;">모든 유료 필터 무제한</div>
+                      <div style="font-size:11px; color:#a8a8a8; margin-top:2px;">2,000+ 필터 즉시 다운로드</div>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:12px; align-items:flex-start;">
+                    <div style="width:24px; height:24px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:12px; flex-shrink:0;">✓</div>
+                    <div>
+                      <div style="font-size:13px; font-weight:600;">Pro 전용 시그니처 컬렉션</div>
+                      <div style="font-size:11px; color:#a8a8a8; margin-top:2px;">매월 큐레이터의 신규 시리즈</div>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:12px; align-items:flex-start;">
+                    <div style="width:24px; height:24px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:12px; flex-shrink:0;">✓</div>
+                    <div>
+                      <div style="font-size:13px; font-weight:600;">광고 제거 · 우선 지원</div>
+                      <div style="font-size:11px; color:#a8a8a8; margin-top:2px;">검수 우선 처리 (메이커 혜택)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="height:90px;"></div>
+
+              <!-- Bottom CTA -->
+              <div style="position:absolute; left:0; right:0; bottom:0; padding: 16px 24px 28px; background:rgba(0,0,0,0.4); backdrop-filter: blur(16px); border-top: 1px solid rgba(255,255,255,0.06);">
+                <button class="btn primary full" style="background:var(--accent-soft); color:#1a1a1a; font-weight:700;">연간 Pro 시작</button>
+                <div style="text-align:center; margin-top:8px; font-size:10px; color:#6b6b6b; line-height:1.6;">언제든 취소 가능 · 첫 결제 후 자동 갱신 · <a href="#" style="color:#a8a8a8;">약관</a></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag note">NOTE</span> 다크 paywall 화면 — 카메라 라이브 외에 유일한 dark surface. Pro 의 premium 인상을 위함. 다크 톤을 한 화면에 한정.</div>
+        <div class="note"><span class="tag fix">FIX</span> 자동 갱신 disclosure 가 작은 글씨 — App Store §3.1.2(a) 정책상 <b>"매년 자동 갱신"</b> + <b>"₩38,400 결제"</b> 가 CTA 위에 명시되어야 함. 현재 코드는 약함.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> 다크 paywall 의 회색 sub-text (#a8a8a8 on #1a1a1a) 는 contrast 4.5 살짝 미달 (~4.0). #b8b8b8 으로 바꾸기.</div>
+      </div>
+    </div>
+
+    <!-- ───── 31 · INSUFFICIENT BALANCE ────────────────────────────────── -->
+    <div class="annotated" id="insufficient-balance">
+      <div class="shot">
+        <div class="label"><span class="num">31</span><span class="name">Insufficient Balance</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="background:rgba(0,0,0,0.4);">
+
+              <div style="position:absolute; left:0; right:0; bottom:0; padding: 20px 20px 28px; background:#fff; border-radius: 24px 24px 0 0; box-shadow: var(--elev-3);">
+                <div class="grabber"></div>
+
+                <div style="text-align:center; padding: 16px 0 20px;">
+                  <div style="display:inline-grid; place-items:center; width:64px; height:64px; border-radius:50%; background:var(--warning-bg); color:var(--warning); margin-bottom:12px; font-size:30px;">⚠️</div>
+                  <div style="font-size:18px; font-weight:700; letter-spacing:-0.02em;">코인이 부족합니다</div>
+                  <div style="font-size:12px; color:var(--text-secondary); margin-top:6px;">필요 ⬡ 50 · 보유 ⬡ 30 · <b style="color:var(--error)">⬡ 20 부족</b></div>
+                </div>
+
+                <div class="card" style="padding: 12px 14px; margin-bottom: 16px; background:var(--accent-bg); border:1px solid var(--accent-soft);">
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="font-size:20px;">⬡</div>
+                    <div style="flex:1;">
+                      <div style="font-size:13px; font-weight:600;">충전 추천: ⬡ 100 패키지</div>
+                      <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">필요한 만큼 + 다음 필터 1~2개</div>
+                    </div>
+                    <div style="font-size:13px; font-weight:600; font-variant-numeric: tabular-nums;">₩1,500</div>
+                  </div>
+                </div>
+
+                <button class="btn primary full" style="margin-bottom: 8px;">⬡ 100 충전하고 구매</button>
+                <button class="btn full" style="margin-bottom: 8px;">충전 화면 열기</button>
+                <button style="width:100%; padding: 12px; background:none; border:none; color:var(--text-tertiary); font-size:13px; margin-top:4px;">취소</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> "충전하고 즉시 구매" — 두 단계 (충전 → 구매) 를 하나로 묶는 one-shot CTA. 사용자 의도가 명확하므로 friction 줄임. <a href="DESIGNER_NOTES.md">Notes C.1.1 (잔액 부족)</a>.</div>
+        <div class="note"><span class="tag fix">FIX</span> 모달 위 모달 (Paywall sheet → Insufficient sheet) 은 dismiss 가 혼란. <b>같은 sheet 내부 content swap</b> 권장. iOS HIG.</div>
+        <div class="note"><span class="tag note">NOTE</span> "충전 추천" 패키지는 가장 작은 단위 + 충분한 잔여분 기준. 동적 추천 알고리즘 후속 작업.</div>
+      </div>
+    </div>
+
+    <!-- ───── 32 · PAYMENT FAILED ──────────────────────────────────────── -->
+    <div class="annotated" id="payment-failed">
+      <div class="shot">
+        <div class="label"><span class="num">32</span><span class="name">Payment Failed</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body" style="display:flex; flex-direction:column; align-items:center; padding-top:60px; padding-left:24px; padding-right:24px; text-align:center;">
+              <div style="width:80px; height:80px; border-radius:50%; background:var(--error-bg); color:var(--error); display:grid; place-items:center; font-size:40px; margin-bottom:24px;">✕</div>
+              <h1 style="font-size:22px; font-weight:700; letter-spacing:-0.02em; margin: 0 0 12px;">결제에 실패했습니다</h1>
+              <p style="font-size:13px; color:var(--text-secondary); margin: 0 0 24px; line-height:1.6;">
+                Apple ID 결제 수단을 확인해 주세요.<br>
+                일시적 오류일 수 있어요.
+              </p>
+
+              <div class="card" style="width:100%; padding: 12px 14px; text-align:left; margin-bottom: 24px;">
+                <div style="font-size:11px; color:var(--text-tertiary); margin-bottom: 4px;">오류 코드</div>
+                <div style="font-size:13px; color:var(--text-primary); font-family:var(--font-mono);">SKError.paymentInvalid · 0x2003</div>
+              </div>
+
+              <div style="width:100%; display:flex; flex-direction:column; gap:10px;">
+                <button class="btn primary full">다시 시도</button>
+                <button class="btn full">이전 구매 복원</button>
+                <button class="btn full">고객지원 메일</button>
+                <button style="margin-top:8px; background:none; border:none; color:var(--text-tertiary); font-size:13px;">취소</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> 오류 코드 (<code>SKError.paymentInvalid</code>) 가 raw — 사용자에게 의미 없음. Mapping table: <code>paymentInvalid → "결제 수단이 만료되었거나 사용할 수 없습니다"</code>. 코드는 details 링크로.</div>
+        <div class="note"><span class="tag copy">COPY</span> "결제에 실패했습니다" — 너무 generic. 가능하다면 원인 (네트워크 / 카드 한도 / Apple 차단) 별 분기 카피.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Error icon (✕) 만으로는 의미 약함. <code>accessibilityLabel("결제 실패")</code> 명시.</div>
+      </div>
+    </div>
+
+    <!-- ───── 33 · WALLET TRANSACTIONS ─────────────────────────────────── -->
+    <div class="annotated" id="wallet-transactions">
+      <div class="shot">
+        <div class="label"><span class="num">33</span><span class="name">Wallet · Transactions</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">거래내역</div>
+                <button class="icon-btn ghost">⓵</button>
+              </div>
+
+              <!-- Filter chips -->
+              <div style="padding: 0 16px 12px; display:flex; gap:6px;">
+                <span class="chip active">전체</span>
+                <span class="chip">충전</span>
+                <span class="chip">구매</span>
+                <span class="chip">환불</span>
+              </div>
+
+              <!-- Date sections -->
+              <div style="padding: 0 16px;">
+                <div style="font-size:11px; color:var(--text-tertiary); padding: 8px 0 6px; font-family: var(--font-mono);">5월</div>
+                <div class="list-section">
+                  <div class="list-row">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <div style="width:32px; height:32px; border-radius:8px; background:var(--success-bg); color:var(--success); display:grid; place-items:center; font-size:14px;">↗</div>
+                      <div>
+                        <div class="ttl">충전 · ⬡ 550</div>
+                        <div class="sub">5월 8일 14:32</div>
+                      </div>
+                    </div>
+                    <div class="right" style="color:var(--success); font-weight:600; font-variant-numeric: tabular-nums;">+ ₩7,500</div>
+                  </div>
+                  <div class="list-row">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <div style="width:32px; height:32px; border-radius:8px; background:var(--accent-bg); color:var(--accent); display:grid; place-items:center; font-size:14px;">⬇</div>
+                      <div>
+                        <div class="ttl">Cinematic 35mm</div>
+                        <div class="sub">5월 7일 · @minju</div>
+                      </div>
+                    </div>
+                    <div class="right" style="font-variant-numeric: tabular-nums;">− ⬡ 50</div>
+                  </div>
+                  <div class="list-row">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <div style="width:32px; height:32px; border-radius:8px; background:var(--info-bg); color:var(--info); display:grid; place-items:center; font-size:14px;">↺</div>
+                      <div>
+                        <div class="ttl">환불 · Mono Mood</div>
+                        <div class="sub">5월 5일 · 처리 완료</div>
+                      </div>
+                    </div>
+                    <div class="right" style="color:var(--info); font-weight:600; font-variant-numeric: tabular-nums;">+ ⬡ 30</div>
+                  </div>
+                </div>
+
+                <div style="font-size:11px; color:var(--text-tertiary); padding: 16px 0 6px; font-family: var(--font-mono);">4월</div>
+                <div class="list-section">
+                  <div class="list-row">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                      <div style="width:32px; height:32px; border-radius:8px; background:var(--accent-bg); color:var(--accent); display:grid; place-items:center; font-size:14px;">⬇</div>
+                      <div>
+                        <div class="ttl">Soft Pastel</div>
+                        <div class="sub">4월 28일 · @yoonji</div>
+                      </div>
+                    </div>
+                    <div class="right" style="font-variant-numeric: tabular-nums;">− ⬡ 30</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> 각 row 우측 fav: long-press → 영수증 / 환불 신청 / 메이커 프로필 메뉴.</div>
+        <div class="note"><span class="tag note">NOTE</span> 환불 row 는 partial refund 도 가능 — 코인 일부만 반환. 코드 <code>refundRequest</code> 는 ledgerKind 기반.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> 거래 종류 (↗ ⬇ ↺) 를 색상 + 아이콘으로 구분 — color-only meaning 회피 ✓. SR label: "충전" / "구매" / "환불".</div>
+      </div>
+    </div>
+
+    <!-- ───── 34 · REFUND REQUEST ──────────────────────────────────────── -->
+    <div class="annotated" id="refund-request">
+      <div class="shot">
+        <div class="label"><span class="num">34</span><span class="name">Refund Request</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">환불 요청</div>
+                <button class="icon-btn ghost"></button>
+              </div>
+
+              <div style="padding: 0 16px;">
+                <!-- Order summary -->
+                <div class="card" style="padding:12px; margin-bottom:16px; display:flex; gap:12px; align-items:center;">
+                  <div style="width:48px; height:48px; border-radius:10px; background:linear-gradient(135deg,#a8a8a8,#3a3a3a); flex-shrink:0;"></div>
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-size:13px; font-weight:600;">Mono Mood</div>
+                    <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">2026-05-05 · ⬡ 30</div>
+                  </div>
+                  <div style="font-size:11px; color:var(--text-tertiary); font-family: var(--font-mono);">#A2KZ91</div>
+                </div>
+
+                <!-- Reason picker (proposed) -->
+                <label style="font-size:11px; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:8px;">환불 사유</label>
+                <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+                  <label class="card" style="padding: 12px 14px; display:flex; gap:10px; align-items:center; cursor:pointer; border-color:var(--accent); background:var(--accent-bg);">
+                    <div style="width:18px; height:18px; border-radius:50%; border: 2px solid var(--accent); position:relative;">
+                      <div style="position:absolute; inset:3px; border-radius:50%; background:var(--accent);"></div>
+                    </div>
+                    <div style="font-size:13px; font-weight:500;">중복 구매</div>
+                  </label>
+                  <label class="card" style="padding: 12px 14px; display:flex; gap:10px; align-items:center; cursor:pointer;">
+                    <div style="width:18px; height:18px; border-radius:50%; border: 2px solid var(--border-default);"></div>
+                    <div style="font-size:13px;">필터 작동 안 함 / 결과물 다름</div>
+                  </label>
+                  <label class="card" style="padding: 12px 14px; display:flex; gap:10px; align-items:center; cursor:pointer;">
+                    <div style="width:18px; height:18px; border-radius:50%; border: 2px solid var(--border-default);"></div>
+                    <div style="font-size:13px;">단순 변심</div>
+                  </label>
+                  <label class="card" style="padding: 12px 14px; display:flex; gap:10px; align-items:center; cursor:pointer;">
+                    <div style="width:18px; height:18px; border-radius:50%; border: 2px solid var(--border-default);"></div>
+                    <div style="font-size:13px;">기타 (직접 입력)</div>
+                  </label>
+                </div>
+
+                <!-- Optional detail -->
+                <label style="font-size:11px; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:6px;">추가 설명 (선택)</label>
+                <textarea placeholder="검수자에게 도움이 될 추가 정보..." style="width:100%; min-height:80px; padding:12px 14px; font-size:13px; border-radius:12px; border:1px solid var(--border-default); background:var(--bg-2); resize:none; outline:none; font-family: var(--font-sans);"></textarea>
+
+                <!-- Policy notice -->
+                <div style="margin-top:14px; padding: 10px 12px; background:var(--info-bg); border-radius:12px; font-size:11px; color:var(--info); display:flex; gap:8px; align-items:flex-start;">
+                  <span>ℹ️</span>
+                  <div>구매 후 7일 이내 환불 가능. 처리 결과는 1~2 영업일 내 알림.</div>
+                </div>
+              </div>
+
+              <div style="height:80px;"></div>
+              <div style="position:absolute; left:0; right:0; bottom:0; padding: 12px 16px 28px; background:rgba(255,255,255,0.92); backdrop-filter: blur(20px); border-top:1px solid var(--border-subtle); display:flex; gap:10px;">
+                <button class="btn" style="flex:0 0 auto;">취소</button>
+                <button class="btn primary" style="flex:1;">요청 제출</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag add">ADD</span> <b>Reason picker</b> — 코드는 free-text. picker 가 분류/통계에 유리 + 사용자 입력 부담 ↓. <a href="DESIGNER_NOTES.md">Notes E.6</a>.</div>
+        <div class="note"><span class="tag note">NOTE</span> 7일 정책 — 코드 <code>refundRequest</code> 에서 검증. 이를 넘긴 항목은 카드 자체에 "환불 기간 만료" disabled 표시.</div>
+      </div>
+    </div>
+
+    <!-- ───── 35 · ORDERS HISTORY ──────────────────────────────────────── -->
+    <div class="annotated" id="orders-history">
+      <div class="shot">
+        <div class="label"><span class="num">35</span><span class="name">Orders History</span><span class="status todo">PARTIAL</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">주문 내역</div>
+                <button class="icon-btn ghost">⌕</button>
+              </div>
+
+              <div style="padding: 0 16px; display:flex; flex-direction:column; gap:10px;">
+                <div class="card" style="padding: 12px 14px;">
+                  <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-tertiary); margin-bottom: 6px; font-family: var(--font-mono);">
+                    <span>2026-05-07 · #A2KX91</span>
+                    <span>완료</span>
+                  </div>
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="width:48px; height:48px; border-radius:10px; background:linear-gradient(135deg,#c47b4f,#6c3a1a); flex-shrink:0;"></div>
+                    <div style="flex:1; min-width:0;">
+                      <div style="font-size:13px; font-weight:600;">Cinematic 35mm</div>
+                      <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">@minju</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div style="font-size:13px; font-weight:600; font-variant-numeric: tabular-nums;">⬡ 50</div>
+                      <button class="btn sm" style="height:28px; padding:0 10px; margin-top:4px;">환불</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="card" style="padding: 12px 14px; opacity: 0.65;">
+                  <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-tertiary); margin-bottom: 6px; font-family: var(--font-mono);">
+                    <span>2026-04-28 · #A2KZ44</span>
+                    <span>환불 완료</span>
+                  </div>
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="width:48px; height:48px; border-radius:10px; background:linear-gradient(135deg,#a8a8a8,#3a3a3a); flex-shrink:0;"></div>
+                    <div style="flex:1; min-width:0;">
+                      <div style="font-size:13px; font-weight:600; text-decoration: line-through;">Mono Mood</div>
+                      <div style="font-size:11px; color:var(--text-tertiary); margin-top:2px;">@kayla</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div style="font-size:13px; font-weight:600; font-variant-numeric: tabular-nums; color:var(--text-tertiary);">⬡ 30</div>
+                      <div style="font-size:10px; color:var(--info); margin-top:4px;">+30 환급</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> "완료" / "환불 완료" 상태 라벨이 우상단 텍스트만 — pill 형태로 색상 입혀야 명확.</div>
+        <div class="note"><span class="tag add">ADD</span> Refund 가능 여부 (구매 후 7일 이내) 따라 버튼 활성/비활성 동적. 만료된 항목은 "환불 기간 만료" 텍스트.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer class="canvas">
+  <p>← <a href="flow-04-maker.html">Maker 04</a> · <a href="index.html">Index</a> · <a href="flow-06-profile-social.html">Profile 06 →</a></p>
+</footer>
+
+</body>
+</html>

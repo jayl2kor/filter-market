@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flow 07 · Notifications, Saved & Settings · moodit mockups</title>
+  <link rel="stylesheet" href="_tokens.css">
+</head>
+<body>
+
+<header class="canvas">
+  <div>
+    <h1>Flow 07 · Notifications, Saved & Settings</h1>
+    <div class="meta">9 screens · Notifications Inbox · Notification Settings · Saved · Builtin Library · Favorites Collections · Settings · Data Export · Help · Account Deletion</div>
+  </div>
+  <nav>
+    <a href="index.html">Index</a>
+    <a href="flow-01-auth.html">Auth</a>
+    <a href="flow-02-marketplace.html">Marketplace</a>
+    <a href="flow-03-camera.html">Camera</a>
+    <a href="flow-04-maker.html">Maker</a>
+    <a href="flow-05-wallet.html">Wallet</a>
+    <a href="flow-06-profile-social.html">Profile</a>
+    <a href="flow-07-notifications-settings.html" class="active">Settings</a>
+    <a href="flow-08-states-modals.html">States</a>
+  </nav>
+</header>
+
+<section class="flow">
+  <h2>Notifications · Saved · Settings</h2>
+  <p class="subtitle">알림 인박스, 저장된 필터/컬렉션, 앱 설정 군. <code>users/{uid}/notifications</code> Firestore listener (real-time), <code>users/{uid}/savedFilters</code> + <code>collections</code> + <code>favorites</code> 분리. 설정은 외부 link + system preferences.</p>
+
+  <div class="flow-summary">
+    <div class="col recs">
+      <h3>Working</h3>
+      <ul>
+        <li>알림 카테고리 칩 — 모두/좋아요/댓글/다운로드/팔로우/시스템 6 type.</li>
+        <li>방해 금지 시간대 (DND) 설정 — Phase 4 retention 고려.</li>
+        <li>4-photo 모자이크 컬렉션 커버 — visual scan 빠름.</li>
+      </ul>
+    </div>
+    <div class="col gaps">
+      <h3>Gaps</h3>
+      <ul>
+        <li><strong>"모두 읽음 처리"</strong> 가 destructive 인데 confirm/undo 없음.</li>
+        <li>계정 삭제 시 핸들 재입력 필요 — UX 마찰. "DELETE" 입력으로 단순화 가능.</li>
+        <li>Saved Filters 의 swipe-to-delete 외에 multi-select 모드 없음.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="gallery">
+
+    <!-- ───── 44 · NOTIFICATIONS INBOX ─────────────────────────────────── -->
+    <div class="annotated" id="notifications">
+      <div class="shot">
+        <div class="label"><span class="num">44</span><span class="name">Notifications Inbox</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">알림</div>
+                <button class="btn ghost sm">모두 읽음</button>
+              </div>
+
+              <!-- Category chips -->
+              <div style="padding: 0 16px 12px; display:flex; gap:6px; overflow-x:hidden;">
+                <span class="chip active">모두</span>
+                <span class="chip">좋아요</span>
+                <span class="chip">댓글</span>
+                <span class="chip">다운로드</span>
+                <span class="chip">팔로우</span>
+                <span class="chip">시스템</span>
+              </div>
+
+              <!-- Section: 새 -->
+              <div style="padding: 0 16px;">
+                <div style="font-size:11px; color:var(--text-tertiary); padding: 8px 0 6px; font-weight:600; font-family: var(--font-mono); text-transform: uppercase;">새 알림 · 3</div>
+                <div class="list-section" style="margin: 0;">
+                  <!-- Unread - has dot -->
+                  <div class="list-row" style="background: var(--accent-bg); position:relative;">
+                    <div style="position:absolute; left:6px; top:50%; transform:translateY(-50%); width:6px; height:6px; border-radius:50%; background:var(--accent);"></div>
+                    <div style="display:flex; gap:10px; align-items:center; flex:1; padding-left: 8px;">
+                      <div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#6b85a0,#2a3540);"></div>
+                      <div>
+                        <div class="ttl"><b>@hyun</b> 님이 회원님을 팔로우했어요</div>
+                        <div class="sub">방금 전</div>
+                      </div>
+                    </div>
+                    <button class="btn sm primary" style="height:28px; padding:0 10px;">맞팔</button>
+                  </div>
+                  <div class="list-row" style="background: var(--accent-bg); position:relative;">
+                    <div style="position:absolute; left:6px; top:50%; transform:translateY(-50%); width:6px; height:6px; border-radius:50%; background:var(--accent);"></div>
+                    <div style="display:flex; gap:10px; align-items:center; flex:1; padding-left: 8px;">
+                      <div style="width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg,#c47b4f,#6c3a1a);"></div>
+                      <div>
+                        <div class="ttl"><b>Cinematic 35mm</b>가 검수 통과됐어요 ✓</div>
+                        <div class="sub">5분 전 · 마켓 공개</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="font-size:11px; color:var(--text-tertiary); padding: 16px 0 6px; font-weight:600; font-family: var(--font-mono); text-transform: uppercase;">오늘</div>
+                <div class="list-section" style="margin: 0;">
+                  <div class="list-row">
+                    <div style="display:flex; gap:10px; align-items:center; flex:1;">
+                      <div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#e5a8c6,#b88599);"></div>
+                      <div>
+                        <div class="ttl"><b>@yoonji</b> 님이 댓글을 남겼어요</div>
+                        <div class="sub">"이 톤 너무 좋아요!" · 3시간 전</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="list-row">
+                    <div style="display:flex; gap:10px; align-items:center; flex:1;">
+                      <div style="width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg,#5a4280,#1a1230);"></div>
+                      <div>
+                        <div class="ttl"><b>Mono Mood</b>가 100회 다운로드를 달성했어요 🎉</div>
+                        <div class="sub">8시간 전 · 메이커 대시보드 보기 →</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="font-size:11px; color:var(--text-tertiary); padding: 16px 0 6px; font-weight:600; font-family: var(--font-mono); text-transform: uppercase;">이번 주</div>
+                <div class="list-section" style="margin: 0;">
+                  <div class="list-row">
+                    <div style="display:flex; gap:10px; align-items:center; flex:1;">
+                      <div style="width:36px; height:36px; border-radius:50%; background:var(--accent-bg); color:var(--accent); display:grid; place-items:center; font-size:16px;">⬡</div>
+                      <div>
+                        <div class="ttl">코인 ⬡ 550 충전 완료</div>
+                        <div class="sub">5월 8일</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> "모두 읽음" 버튼 — destructive (다시 unread 못함) 인데 confirm 없음. <a href="DESIGNER_NOTES.md">Notes C.1.4</a>. 5초 toast + [되돌리기] 액션 추가.</div>
+        <div class="note"><span class="tag fix">FIX</span> 옛 mockup 은 "새/이전" 2 그룹. 코드는 <b>새/오늘/이번 주/이전</b> 4 그룹. 이 mockup 은 코드 기준.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> Unread dot 만으론 색약 사용자에게 약함. <code>accessibilityLabel</code> 에 "새 알림" 추가 + visual indicator 강화 (배경색 ✓).</div>
+        <div class="note"><span class="tag add">ADD</span> "맞팔" 버튼 inline — 팔로우 전환 friction 감소. 이미 follow 중이면 disabled + "팔로잉".</div>
+      </div>
+    </div>
+
+    <!-- ───── 45 · NOTIFICATION SETTINGS ───────────────────────────────── -->
+    <div class="annotated" id="notification-settings">
+      <div class="shot">
+        <div class="label"><span class="num">45</span><span class="name">Notification Settings</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">알림 설정</div>
+                <button class="icon-btn ghost"></button>
+              </div>
+
+              <div style="padding: 0 16px 12px;">
+                <div style="padding: 12px 14px; background:var(--info-bg); border-radius:12px; font-size:11px; color:var(--info); display:flex; gap:8px; align-items:flex-start;">
+                  <span>ℹ️</span>
+                  <div style="flex:1;">시스템 권한이 꺼져 있으면 아래 설정이 적용되지 않습니다.<button style="margin-top:6px; background:none; border:none; color:var(--info); font-weight:600; font-size:11px; padding:0; display:block;">iOS 설정 열기 →</button></div>
+                </div>
+              </div>
+
+              <div style="padding: 0 16px;">
+                <div class="list-section">
+                  <div class="list-row">
+                    <div>
+                      <div class="ttl">좋아요</div>
+                      <div class="sub">내 필터에 좋아요 알림</div>
+                    </div>
+                    <div style="width: 48px; height: 28px; border-radius:14px; background:var(--accent); position:relative;">
+                      <div style="position:absolute; top:2px; right:2px; width:24px; height:24px; border-radius:50%; background:#fff;"></div>
+                    </div>
+                  </div>
+                  <div class="list-row">
+                    <div>
+                      <div class="ttl">댓글 / 리뷰</div>
+                      <div class="sub">새 댓글 또는 리뷰</div>
+                    </div>
+                    <div style="width: 48px; height: 28px; border-radius:14px; background:var(--accent); position:relative;">
+                      <div style="position:absolute; top:2px; right:2px; width:24px; height:24px; border-radius:50%; background:#fff;"></div>
+                    </div>
+                  </div>
+                  <div class="list-row">
+                    <div>
+                      <div class="ttl">다운로드</div>
+                      <div class="sub">100/500/1k 마일스톤</div>
+                    </div>
+                    <div style="width: 48px; height: 28px; border-radius:14px; background:var(--accent); position:relative;">
+                      <div style="position:absolute; top:2px; right:2px; width:24px; height:24px; border-radius:50%; background:#fff;"></div>
+                    </div>
+                  </div>
+                  <div class="list-row">
+                    <div>
+                      <div class="ttl">팔로우</div>
+                      <div class="sub">새 팔로워</div>
+                    </div>
+                    <div style="width: 48px; height: 28px; border-radius:14px; background:var(--bg-3); position:relative;">
+                      <div style="position:absolute; top:2px; left:2px; width:24px; height:24px; border-radius:50%; background:#fff;"></div>
+                    </div>
+                  </div>
+                  <div class="list-row">
+                    <div>
+                      <div class="ttl">검수 결과</div>
+                      <div class="sub">필터 검수 통과/거절</div>
+                    </div>
+                    <div style="width: 48px; height: 28px; border-radius:14px; background:var(--accent); position:relative;">
+                      <div style="position:absolute; top:2px; right:2px; width:24px; height:24px; border-radius:50%; background:#fff;"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- DND -->
+                <div style="font-size:11px; color:var(--text-tertiary); padding: 16px 0 8px; font-weight:600; font-family: var(--font-mono); text-transform: uppercase;">방해 금지</div>
+                <div class="list-section">
+                  <div class="list-row">
+                    <div>
+                      <div class="ttl">방해 금지 시간</div>
+                      <div class="sub">이 시간에는 알림 무음</div>
+                    </div>
+                    <div style="width: 48px; height: 28px; border-radius:14px; background:var(--accent); position:relative;">
+                      <div style="position:absolute; top:2px; right:2px; width:24px; height:24px; border-radius:50%; background:#fff;"></div>
+                    </div>
+                  </div>
+                  <div class="list-row">
+                    <div class="ttl">시작</div>
+                    <div class="right" style="font-variant-numeric: tabular-nums;">22:00 ›</div>
+                  </div>
+                  <div class="list-row">
+                    <div class="ttl">종료</div>
+                    <div class="right" style="font-variant-numeric: tabular-nums;">08:00 ›</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag note">NOTE</span> 시스템 권한 OFF 일 때 모든 toggle 회색 + tap 시 "iOS 설정 열기" alert. 코드는 toggle 만 풀어주는데 사용자 혼란.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> 시간 picker (22:00 / 08:00) — VoiceOver: <code>accessibilityLabel("방해 금지 시작 시간, 22시")</code>. picker 자체는 시스템 표준 사용.</div>
+      </div>
+    </div>
+
+    <!-- ───── 46 · SAVED FILTERS ───────────────────────────────────────── -->
+    <div class="annotated" id="saved">
+      <div class="shot">
+        <div class="label"><span class="num">46</span><span class="name">Saved Filters</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <div class="title">저장됨</div>
+                <button class="btn ghost sm" style="color:var(--accent); font-weight:600;">편집</button>
+              </div>
+
+              <!-- Sub tabs -->
+              <div style="padding: 0 16px 12px;">
+                <div style="padding: 4px; background: var(--bg-3); border-radius: 10px; display:grid; grid-template-columns:1fr 1fr; gap:2px;">
+                  <button class="btn sm" style="background:#fff; border:1px solid var(--border-subtle); height:32px;">필터 24</button>
+                  <button class="btn sm" style="background:transparent; border-color:transparent; color:var(--text-tertiary); height:32px;">컬렉션 5</button>
+                </div>
+              </div>
+
+              <!-- Category filter -->
+              <div style="padding: 0 16px 12px; display:flex; gap:6px; overflow-x:hidden;">
+                <span class="chip active">전체</span>
+                <span class="chip">시네마틱</span>
+                <span class="chip">빈티지</span>
+                <span class="chip">파스텔</span>
+              </div>
+
+              <!-- Grid -->
+              <div style="padding: 0 16px; display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                <div class="tile">
+                  <div class="cover warm"></div>
+                  <div class="meta">
+                    <div class="name">Cinematic 35mm</div>
+                    <div class="author">@minju</div>
+                  </div>
+                </div>
+                <div class="tile">
+                  <div class="cover cool"></div>
+                  <div class="meta">
+                    <div class="name">Cyan Drift</div>
+                    <div class="author">@hyun</div>
+                  </div>
+                </div>
+                <div class="tile">
+                  <div class="cover pastel"></div>
+                  <div class="meta">
+                    <div class="name">Sakura Mist</div>
+                    <div class="author">@yoonji</div>
+                  </div>
+                </div>
+                <div class="tile">
+                  <div class="cover mono"></div>
+                  <div class="meta">
+                    <div class="name">Mono Mood</div>
+                    <div class="author">@kayla</div>
+                  </div>
+                </div>
+              </div>
+              <div style="height:80px;"></div>
+
+              <!-- Tab bar -->
+              <div class="tab-bar">
+                <div class="tab"><span class="ico">🛍️</span><span>마켓</span></div>
+                <div class="tab"><span class="ico">🔍</span><span>검색</span></div>
+                <div class="tab shutter"><span class="ico">●</span></div>
+                <div class="tab active"><span class="ico">🔖</span><span>저장됨</span></div>
+                <div class="tab"><span class="ico">👤</span><span>프로필</span><span class="badge">3</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> 옛 mockup 은 단일 grid. 코드는 <b>필터 / 컬렉션</b> sub-tabs + 카테고리 filter chips. 이 mockup 은 코드 기준.</div>
+        <div class="note"><span class="tag add">ADD</span> "편집" mode 활성 시 — 필터 multi-select + 일괄 삭제 / 일괄 컬렉션 추가. 현재는 swipe-to-delete 만.</div>
+        <div class="note"><span class="tag note">NOTE</span> 빈 상태 카탈로그는 <a href="flow-08-states-modals.html">flow-08</a>.</div>
+      </div>
+    </div>
+
+    <!-- ───── 47 · FAVORITES COLLECTIONS ───────────────────────────────── -->
+    <div class="annotated" id="collections">
+      <div class="shot">
+        <div class="label"><span class="num">47</span><span class="name">Favorites Collections</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">컬렉션</div>
+                <button class="icon-btn">+</button>
+              </div>
+
+              <div style="padding: 0 16px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                <!-- All favorites (auto) -->
+                <div class="card" style="padding: 0; overflow:hidden;">
+                  <div style="aspect-ratio: 1; background:linear-gradient(135deg, var(--accent-bg), var(--accent-soft)); display:grid; place-items:center;">
+                    <span style="font-size:48px; color:var(--accent);">♡</span>
+                  </div>
+                  <div style="padding: 10px 12px;">
+                    <div style="font-size:13px; font-weight:600;">전체 즐겨찾기</div>
+                    <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px; font-variant-numeric: tabular-nums;">42개 · 자동</div>
+                  </div>
+                </div>
+                <!-- Custom collection - 4-photo mosaic cover -->
+                <div class="card" style="padding: 0; overflow:hidden;">
+                  <div style="aspect-ratio: 1; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:1px; background:#fff;">
+                    <div style="background:linear-gradient(135deg,#c47b4f,#6c3a1a);"></div>
+                    <div style="background:linear-gradient(135deg,#d8c5a4,#8b5e1f);"></div>
+                    <div style="background:linear-gradient(135deg,#e89a7b,#8b4a30);"></div>
+                    <div style="background:linear-gradient(135deg,#a0721e,#6c3a1a);"></div>
+                  </div>
+                  <div style="padding: 10px 12px;">
+                    <div style="font-size:13px; font-weight:600;">골든아워 카페</div>
+                    <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px; font-variant-numeric: tabular-nums;">8개 · 비공개 🔒</div>
+                  </div>
+                </div>
+                <div class="card" style="padding: 0; overflow:hidden;">
+                  <div style="aspect-ratio: 1; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:1px; background:#fff;">
+                    <div style="background:linear-gradient(135deg,#6b85a0,#2a3540);"></div>
+                    <div style="background:linear-gradient(135deg,#5a4280,#1a1230);"></div>
+                    <div style="background:linear-gradient(135deg,#a8a8a8,#3a3a3a);"></div>
+                    <div style="background:linear-gradient(135deg,#7e5fb8,#2a1850);"></div>
+                  </div>
+                  <div style="padding: 10px 12px;">
+                    <div style="font-size:13px; font-weight:600;">시네마틱</div>
+                    <div style="font-size:10px; color:var(--text-tertiary); margin-top:2px; font-variant-numeric: tabular-nums;">6개</div>
+                  </div>
+                </div>
+                <!-- Empty new -->
+                <button style="aspect-ratio: 1.4; border-radius:12px; background:var(--bg-1); border: 2px dashed var(--border-default); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; color:var(--text-tertiary); font-size:13px;">
+                  <div style="font-size:28px;">+</div>
+                  <span>새 컬렉션</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> 옛 mockup 은 단일 cover. 코드는 <b>4-photo 모자이크</b>. 이 mockup 은 코드 기준 — 스캔 빠름.</div>
+        <div class="note"><span class="tag add">ADD</span> 컬렉션 4개 미만일 때 mosaic 빈 칸 → placeholder. 현재 코드는 빈 칸 그대로 노출.</div>
+        <div class="note"><span class="tag note">NOTE</span> "비공개 🔒" badge — 다른 사용자가 프로필 통해 못 보는 컬렉션. 새 컬렉션 sheet 에 비공개 toggle 있음.</div>
+      </div>
+    </div>
+
+    <!-- ───── 48 · SETTINGS ────────────────────────────────────────────── -->
+    <div class="annotated" id="settings">
+      <div class="shot">
+        <div class="label"><span class="num">48</span><span class="name">Settings</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">설정</div>
+                <button class="icon-btn ghost"></button>
+              </div>
+
+              <div style="padding: 0 16px;">
+                <!-- Profile section -->
+                <div class="card" style="padding: 14px; display:flex; gap:12px; align-items:center; margin-bottom:16px;">
+                  <div style="width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,#c47b4f,#6c3a1a);"></div>
+                  <div style="flex:1;">
+                    <div style="font-size:14px; font-weight:600;">박해인</div>
+                    <div style="font-size:11px; color:var(--text-tertiary);">@haein</div>
+                  </div>
+                  <button class="btn sm">편집</button>
+                </div>
+
+                <!-- General -->
+                <div style="font-size:11px; color:var(--text-tertiary); padding: 4px 4px 8px; font-weight:600; font-family: var(--font-mono); text-transform: uppercase;">일반</div>
+                <div class="list-section">
+                  <div class="list-row"><div class="ttl">알림 설정</div><div class="right">›</div></div>
+                  <div class="list-row"><div class="ttl">차단 목록</div><div class="right" style="font-variant-numeric: tabular-nums;">3 ›</div></div>
+                  <div class="list-row"><div class="ttl">언어</div><div class="right">한국어 ›</div></div>
+                  <div class="list-row"><div class="ttl">데이터 사용량</div><div class="right">셀룰러 절약 ›</div></div>
+                </div>
+
+                <!-- Privacy -->
+                <div style="font-size:11px; color:var(--text-tertiary); padding: 16px 4px 8px; font-weight:600; font-family: var(--font-mono); text-transform: uppercase;">개인정보 / 데이터</div>
+                <div class="list-section">
+                  <div class="list-row"><div class="ttl">데이터 내보내기</div><div class="right">›</div></div>
+                  <div class="list-row" style="background:var(--error-bg);"><div class="ttl" style="color:var(--error)">계정 삭제</div><div class="right" style="color:var(--error);">›</div></div>
+                </div>
+
+                <!-- Help -->
+                <div style="font-size:11px; color:var(--text-tertiary); padding: 16px 4px 8px; font-weight:600; font-family: var(--font-mono); text-transform: uppercase;">도움말 / 정보</div>
+                <div class="list-section">
+                  <div class="list-row"><div class="ttl">도움말 센터</div><div class="right">↗</div></div>
+                  <div class="list-row"><div class="ttl">피드백 보내기</div><div class="right">↗</div></div>
+                  <div class="list-row"><div class="ttl">서비스 약관</div><div class="right">↗</div></div>
+                  <div class="list-row"><div class="ttl">개인정보 처리방침</div><div class="right">↗</div></div>
+                  <div class="list-row"><div class="ttl">오픈소스 라이선스</div><div class="right">›</div></div>
+                </div>
+
+                <div style="text-align:center; padding: 24px 0; font-size:11px; color:var(--text-tertiary); font-variant-numeric: tabular-nums;">moodit · v1.0.0 (build 142)</div>
+
+                <button class="btn full" style="margin-bottom: 24px; color:var(--text-secondary);">로그아웃</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag note">NOTE</span> "계정 삭제" — destructive 색 (red) 으로 강조. <code>FMConfirmationDialog</code> + 핸들 재입력 단계 있음.</div>
+        <div class="note"><span class="tag a11y">A11Y</span> "↗" (외부 링크) vs "›" (앱 내 이동) 시각적으로 구분 — VoiceOver 도 <code>accessibilityHint("Safari 에서 열림")</code> / <code>accessibilityHint("이동")</code>.</div>
+        <div class="note"><span class="tag copy">COPY</span> "데이터 사용량 - 셀룰러 절약" — 정확한 옵션 코드 확인 필요. "셀룰러 데이터 절약 / 표준 / 무제한" 등 분기.</div>
+      </div>
+    </div>
+
+    <!-- ───── 49 · DATA EXPORT ─────────────────────────────────────────── -->
+    <div class="annotated" id="data-export">
+      <div class="shot">
+        <div class="label"><span class="num">49</span><span class="name">Data Export</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">데이터 내보내기</div>
+                <button class="icon-btn ghost">⓵</button>
+              </div>
+
+              <div style="padding: 0 16px;">
+                <p style="font-size:13px; color:var(--text-secondary); margin: 0 0 20px; line-height:1.6;">
+                  내 활동 데이터를 다운로드합니다.<br>
+                  GDPR / 5.1.1(v) 요청 처리 기간 평균 <b>1~3일</b>.
+                </p>
+
+                <!-- Items to export -->
+                <div style="font-size:11px; color:var(--text-secondary); font-weight:600; margin-bottom:8px;">포함 항목</div>
+                <div class="list-section">
+                  <div class="list-row">
+                    <div class="ttl">프로필 정보</div>
+                    <div style="width:24px; height:24px; border-radius:6px; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:13px;">✓</div>
+                  </div>
+                  <div class="list-row">
+                    <div class="ttl">필터 (8개)</div>
+                    <div style="width:24px; height:24px; border-radius:6px; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:13px;">✓</div>
+                  </div>
+                  <div class="list-row">
+                    <div class="ttl">리뷰 / 댓글 (24개)</div>
+                    <div style="width:24px; height:24px; border-radius:6px; background:var(--accent); color:#fff; display:grid; place-items:center; font-size:13px;">✓</div>
+                  </div>
+                  <div class="list-row">
+                    <div class="ttl">거래 내역</div>
+                    <div style="width:24px; height:24px; border-radius:6px; background:var(--bg-2); border:1px solid var(--border-default);"></div>
+                  </div>
+                  <div class="list-row">
+                    <div class="ttl">촬영 기록</div>
+                    <div style="width:24px; height:24px; border-radius:6px; background:var(--bg-2); border:1px solid var(--border-default);"></div>
+                  </div>
+                </div>
+
+                <!-- Format -->
+                <div style="font-size:11px; color:var(--text-secondary); font-weight:600; margin: 20px 0 8px;">파일 형식</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+                  <button class="btn sm" style="background:var(--accent-bg); border-color:var(--accent); color:var(--accent); font-weight:600;">JSON</button>
+                  <button class="btn sm">CSV</button>
+                  <button class="btn sm">HTML</button>
+                </div>
+
+                <button class="btn primary full" style="margin-top: 24px;">데이터 사본 요청</button>
+
+                <p style="font-size:10px; color:var(--text-tertiary); margin-top:12px; text-align:center; line-height:1.6;">
+                  완료되면 가입 이메일로 다운로드 링크가 전송됩니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag a11y">A11Y</span> Checkbox - 단순 색상 차이로 selected/unselected 구분 — color-not-only 룰 위반 우려. <code>accessibilityValue("선택됨/미선택")</code> + 시각적 ✓ 동시 사용 ✓.</div>
+        <div class="note"><span class="tag note">NOTE</span> 처리 시간 평균 1~3일. 사용자 기대치 미리 set. 결과는 알림 + 이메일 동시 전송.</div>
+      </div>
+    </div>
+
+    <!-- ───── 50 · ACCOUNT DELETION ────────────────────────────────────── -->
+    <div class="annotated" id="account-deletion">
+      <div class="shot">
+        <div class="label"><span class="num">50</span><span class="name">Account Deletion</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title" style="color:var(--error);">계정 삭제</div>
+                <button class="icon-btn ghost"></button>
+              </div>
+
+              <div style="padding: 16px;">
+                <!-- Warning -->
+                <div style="padding: 16px; background:var(--error-bg); border:1px solid var(--error); border-radius:14px; margin-bottom:16px;">
+                  <div style="display:flex; gap:10px; align-items:flex-start;">
+                    <span style="font-size:20px;">⚠️</span>
+                    <div>
+                      <div style="font-size:14px; font-weight:700; color:var(--error)">이 작업은 되돌릴 수 없습니다</div>
+                      <div style="font-size:12px; color:var(--text-secondary); margin-top:6px; line-height:1.6;">
+                        프로필 / 필터 / 리뷰 / 컬렉션 / 거래 내역이<br>
+                        영구 삭제되며, 동일한 핸들로 재가입할 수 없습니다.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- What gets deleted -->
+                <div class="card" style="padding: 14px; margin-bottom: 16px;">
+                  <div style="font-size:11px; color:var(--text-tertiary); font-weight:600; margin-bottom: 10px;">삭제되는 항목</div>
+                  <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
+                    <div style="display:flex; gap:8px;"><span style="color:var(--error);">×</span> 프로필 정보, 아바타</div>
+                    <div style="display:flex; gap:8px;"><span style="color:var(--error);">×</span> 메이커 필터 8개 (마켓에서 제거)</div>
+                    <div style="display:flex; gap:8px;"><span style="color:var(--error);">×</span> 리뷰 24개</div>
+                    <div style="display:flex; gap:8px;"><span style="color:var(--error);">×</span> 저장된 필터 / 컬렉션</div>
+                    <div style="display:flex; gap:8px; color:var(--text-tertiary);"><span style="color:var(--success);">✓</span> 보유 코인 ⬡1,250 자동 환급 (5-7일)</div>
+                  </div>
+                </div>
+
+                <!-- Confirm input -->
+                <div style="margin-bottom: 16px;">
+                  <label style="font-size:11px; color:var(--text-secondary); font-weight:600; display:block; margin-bottom:6px;">계속하려면 핸들을 입력하세요</label>
+                  <input placeholder="@haein" style="width:100%; height:44px; padding: 0 14px; font-size:14px; border-radius:12px; border:1px solid var(--border-default); background:var(--bg-2); outline:none;">
+                </div>
+
+                <button class="btn danger full">계정 영구 삭제</button>
+                <button style="width:100%; padding: 12px; background:none; border:none; color:var(--text-secondary); font-size:13px; margin-top:8px;">취소</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag fix">FIX</span> 핸들 입력 = GDPR 친화 (사용자 의도 명시) 지만 마찰 큼. "DELETE" 입력으로 단순화 검토 — <a href="DESIGNER_NOTES.md">Notes E (Open Q #5)</a>.</div>
+        <div class="note"><span class="tag add">ADD</span> 코인 환급 안내 — 코드에 명시 X. 잔여 코인 처리는 closed-loop 모델에서 사용자에게 명시. Apple 정책상 복원 못하면 환불.</div>
+        <div class="note"><span class="tag note">NOTE</span> 동일 핸들 재가입 차단 — Firestore <code>handles/{handle}</code> 에 <code>deletedAt</code> 보존. 90일 reservation 정책.</div>
+      </div>
+    </div>
+
+    <!-- ───── 51 · BUILTIN FILTER LIBRARY ──────────────────────────────── -->
+    <div class="annotated" id="builtin-library">
+      <div class="shot">
+        <div class="label"><span class="num">51</span><span class="name">Builtin Filter Library</span><span class="status ok">OK</span></div>
+        <div class="phone">
+          <div class="island"></div>
+          <div class="screen">
+            <div class="status-bar"><span>9:41</span><span class="signals">●●●●●  100%</span></div>
+            <div class="app-body">
+              <div class="top-bar">
+                <button class="icon-btn ghost">‹</button>
+                <div class="title">기본 필터</div>
+                <button class="icon-btn ghost">⓵</button>
+              </div>
+
+              <div style="padding: 0 16px;">
+                <div style="padding: 12px 14px; border-radius: 12px; background:var(--bg-1); margin-bottom:12px; font-size:12px; color:var(--text-secondary);">
+                  앱에 기본 내장된 6가지 프리셋. <button style="background:none; border:none; color:var(--accent); font-weight:600; padding:0;">내 필터 만들기 →</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                  <div class="tile">
+                    <div class="cover" style="background:linear-gradient(135deg,#a8a8a8,#3a3a3a);"></div>
+                    <div class="meta"><div class="name">Identity (원본)</div><div class="author">기본 제공</div></div>
+                  </div>
+                  <div class="tile">
+                    <div class="cover warm"></div>
+                    <div class="meta"><div class="name">Warm</div><div class="author">기본 제공</div></div>
+                  </div>
+                  <div class="tile">
+                    <div class="cover cool"></div>
+                    <div class="meta"><div class="name">Cool</div><div class="author">기본 제공</div></div>
+                  </div>
+                  <div class="tile">
+                    <div class="cover mono"></div>
+                    <div class="meta"><div class="name">Mono</div><div class="author">기본 제공</div></div>
+                  </div>
+                  <div class="tile">
+                    <div class="cover" style="background:linear-gradient(135deg,#e8b86d,#c77859);"></div>
+                    <div class="meta"><div class="name">Vivid <span style="background:var(--accent); color:#fff; font-size:8px; padding:1px 4px; border-radius:3px; margin-left:4px;">PRO</span></div><div class="author">기본 제공</div></div>
+                  </div>
+                  <div class="tile">
+                    <div class="cover" style="background:linear-gradient(135deg,#e5a8c6,#7e5fb8);"></div>
+                    <div class="meta"><div class="name">Soft <span style="background:var(--accent); color:#fff; font-size:8px; padding:1px 4px; border-radius:3px; margin-left:4px;">PRO</span></div><div class="author">기본 제공</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <div class="note"><span class="tag note">NOTE</span> 6 builtin = identity / warm / cool / mono / vivid / soft. <code>LUTPreset</code> enum 코드 ✓.</div>
+        <div class="note"><span class="tag add">ADD</span> "내 필터 만들기" — builtin 을 보고 영감 받은 메이커가 즉시 maker flow 진입. funnel 강화.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer class="canvas">
+  <p>← <a href="flow-06-profile-social.html">Profile 06</a> · <a href="index.html">Index</a> · <a href="flow-08-states-modals.html">States 08 →</a></p>
+</footer>
+
+</body>
+</html>

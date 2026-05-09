@@ -10,6 +10,7 @@
 | 원래 제품 로드맵 원본 | [TASK_LIST.md](./TASK_LIST.md) | Current |
 | 제품 요구사항 | [PRD.md](./PRD.md) | Current |
 | 개발 환경 셋업 | [SETUP.md](./SETUP.md) | Current |
+| 전체 기능 인벤토리 | [FEATURE_INVENTORY.md](./FEATURE_INVENTORY.md) | Current |
 | 네비게이션/버튼 액션 매핑 | [NAVIGATION.md](./NAVIGATION.md) | Current |
 | 화면/액션 QA 정의 | [SCREEN_ACTIONS_QA_DEFINITION.md](./SCREEN_ACTIONS_QA_DEFINITION.md) | Current |
 | QA 결과/잔여 게이트 | [QA_FINDINGS.md](./QA_FINDINGS.md) | Current |
@@ -46,6 +47,7 @@
 | [API_SPEC.md](./API_SPEC.md) | API/Firestore endpoint 설계 |
 | [FIRESTORE_RULES.md](./FIRESTORE_RULES.md) | Firestore rules 초안 |
 | [FMPKG_SCHEMA.md](./FMPKG_SCHEMA.md) | `.fmpkg` 패키지 스펙 |
+| [FEATURE_INVENTORY.md](./FEATURE_INVENTORY.md) | 현재 구현된 화면, 버튼, 백엔드 연결 인벤토리 |
 
 ### Design / UX
 
