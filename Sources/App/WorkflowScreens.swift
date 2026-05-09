@@ -92,6 +92,7 @@ struct FilterDownloadProgressScreen: View {
     @State private var phase: DownloadPhase = .preparing
     @State private var progress: Double = 0
     @State private var hasStarted = false
+    @State private var toast: FMToastMessage?
 
     private var filter: Filter? {
         store.filter(matching: filterID) ?? store.filters.first
@@ -111,6 +112,7 @@ struct FilterDownloadProgressScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle("다운로드")
         .navigationBarTitleDisplayMode(.inline)
+        .fmToastOverlay(toast: $toast)
         .task {
             await startDownloadIfNeeded()
         }
@@ -284,11 +286,13 @@ struct FilterDownloadProgressScreen: View {
         if store.downloadedFilterIDs.contains(filterIDAsUUID) {
             progress = 1
             phase = .completed
+            toast = FMToastMessage(.success, "다운로드 완료", detail: "카메라에서 적용해보세요")
             return
         }
         if let filter, store.isDownloaded(filter) {
             progress = 1
             phase = .completed
+            toast = FMToastMessage(.success, "다운로드 완료", detail: "카메라에서 적용해보세요")
             return
         }
         phase = .downloading
@@ -313,8 +317,10 @@ struct FilterDownloadProgressScreen: View {
             try await markDownloadedAfterPackageFetch()
             FMHaptic.success.play()
             phase = .completed
+            toast = FMToastMessage(.success, "다운로드 완료", detail: "카메라에서 적용해보세요")
         } catch {
             phase = .failed
+            toast = FMToastMessage(.error, "다운로드 실패", detail: "네트워크를 확인하고 다시 시도하세요")
         }
     }
 
@@ -326,8 +332,10 @@ struct FilterDownloadProgressScreen: View {
             FMHaptic.success.play()
             progress = 1
             phase = .completed
+            toast = FMToastMessage(.success, "다운로드 완료", detail: "카메라에서 적용해보세요")
         } catch {
             phase = .failed
+            toast = FMToastMessage(.error, "다운로드 실패", detail: "네트워크를 확인하고 다시 시도하세요")
         }
     }
 
