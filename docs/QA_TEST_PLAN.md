@@ -133,6 +133,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 4.11 | 코인 잔액 pill (`market.header.coinBalance`) | → AppRoute.wallet. 로그인 지갑 listener가 있으면 현재 coinBalance 표시 |  |
 | 4.12 | SearchScreen 최근 검색 | 검색 submit/추천 키워드/최근 항목 탭 시 UID별 UserDefaults에 최대 8개 저장. 앱 재시작 후 복원되고, 다른 계정/guest 키와 섞이지 않음 |  |
 | 4.13 | SearchScreen 인기 메이커 | 검색어 입력 중 인기 메이커 그룹/정렬 계산이 반복되지 않고, filter 목록 변경 시에만 캐시 갱신 |  |
+| 4.14 | `market.trending.empty` / `market.new.empty` | EmptyState CTA "새로고침" → `store.load(force: true)` 재시도 |  |
 
 ---
 
@@ -169,6 +170,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 5.23 | 다운로드 실패/화면 이탈 | 실패 시 완료 상태로 전환하지 않고 실패 alert 표시. 진행 중 dismiss 시 download task 취소 |  |
 | 5.24 | Cloud Function detail 매핑 | `description`과 category placeholder 색상이 응답 데이터에서 오고, 구매/다운로드/리뷰 라우트는 표시 제목이 아니라 filter document ID를 사용 |  |
 | 5.25 | 로컬 UUID 필터 상세 진입 | FilterDetailLoader phase가 `.localFilter`로 단일 전환되고 loading 분기에서 별도 detail view를 중복 렌더하지 않음 |  |
+| 5.26 | not-found empty CTA | EmptyState "다시 시도" → detail load 재시도 |  |
 
 ---
 
@@ -314,7 +316,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | # | Element (ID) | Expected | PASS/FAIL |
 |---|---|---|---|
 | 9.1 | 빈 상태 | "다운로드한 필터가 없어요" + "마켓 둘러보기" CTA |  |
-| 9.2 | "마켓 둘러보기" CTA | → AppRoute (no specific) |  |
+| 9.2 | "마켓 둘러보기" CTA | → SearchScreen |  |
 | 9.3 | 다운로드된 타일 (`saved.tile.<UUID>`) | → AppRoute.filterDetail. route id는 표시 title이 아니라 `filter.id.uuidString` |  |
 | 9.4 | "기본 필터" (toolbar) | → AppRoute.builtinFilters |  |
 | 9.5 | First-appear skeleton | 약 0.5s 후 실데이터로 교체 |  |

@@ -70,10 +70,16 @@ public enum FMEmptyStateKind: Sendable {
 /// 일러스트 + 헤드라인 + 서브텍스트 + 1차 CTA.
 public struct FMEmptyState: View {
     private let kind: FMEmptyStateKind
+    private let ctaTitle: String?
     private let action: (() -> Void)?
 
-    public init(_ kind: FMEmptyStateKind, action: (() -> Void)? = nil) {
+    public init(
+        _ kind: FMEmptyStateKind,
+        ctaTitle: String? = nil,
+        action: (() -> Void)? = nil
+    ) {
         self.kind = kind
+        self.ctaTitle = ctaTitle
         self.action = action
     }
 
@@ -97,7 +103,7 @@ public struct FMEmptyState: View {
                 }
             }
 
-            if let cta = kind.primaryCTA, let action {
+            if let cta = ctaTitle ?? kind.primaryCTA, let action {
                 FMButton(cta, variant: .primary, size: .md, action: action)
                     .frame(maxWidth: 240)
             }

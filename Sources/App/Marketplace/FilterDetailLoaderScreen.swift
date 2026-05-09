@@ -24,7 +24,9 @@ struct FilterDetailLoaderScreen: View {
             case .localFilter(let filter):
                 FilterDetailScreen(filter: filter)
             case .empty:
-                FMEmptyState(.emptyMarket)
+                FMEmptyState(.emptyMarket, ctaTitle: "다시 시도") {
+                    Task { await load() }
+                }
                     .padding(.horizontal, Sp.md)
             case .error(let message):
                 errorView(message)

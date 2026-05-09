@@ -18,6 +18,7 @@ struct SavedScreen: View {
     @State private var isEditing = false
     @State private var selectedFilterIDs: Set<Filter.ID> = []
     @State private var isRefreshing = false
+    @State private var showEmptySearch = false
 
     private let columns = [
         GridItem(.flexible(), spacing: Sp.sm),
@@ -114,6 +115,11 @@ struct SavedScreen: View {
             }
             .onChange(of: visibleFilters.map(\.id)) { _, visibleIDs in
                 selectedFilterIDs.formIntersection(Set(visibleIDs))
+            }
+            .navigationDestination(isPresented: $showEmptySearch) {
+                SearchScreen()
+                    .appRouteDestinations()
+                    .environmentObject(store)
             }
             .appRouteDestinations()
         }
@@ -212,7 +218,9 @@ struct SavedScreen: View {
 
     private var emptyDownloadsScroll: some View {
         ScrollView {
-            FMEmptyState(.emptyDownloads)
+            FMEmptyState(.emptyDownloads) {
+                showEmptySearch = true
+            }
                 .frame(maxWidth: .infinity)
                 .padding(.top, Sp.xxl)
                 .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)

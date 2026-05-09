@@ -157,7 +157,9 @@ struct MarketplaceScreen: View {
                 .padding(.horizontal, Sp.md)
 
             if store.trendingFilters.isEmpty {
-                FMEmptyState(.emptyMarket)
+                FMEmptyState(.emptyMarket, ctaTitle: "새로고침") {
+                    Task { await store.load(force: true) }
+                }
                     .padding(.horizontal, Sp.md)
                     .accessibilityIdentifier("market.trending.empty")
             } else {
@@ -224,7 +226,9 @@ struct MarketplaceScreen: View {
                 .padding(.horizontal, Sp.md)
 
             if filteredNewFilters.isEmpty {
-                FMEmptyState(.emptyMarket)
+                FMEmptyState(.emptyMarket, ctaTitle: "새로고침") {
+                    Task { await store.load(force: true) }
+                }
                     .padding(.horizontal, Sp.md)
                     .accessibilityIdentifier("market.new.empty")
             } else {
