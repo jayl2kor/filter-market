@@ -53,7 +53,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 |---|---|---|---|---|
 | `auth.login` | `AppRoute.login` | `LoginScreen` | Implemented | `auth.apple`, `auth.google`, `auth.email.continue`, `auth.guest.continue`, `auth.terms` |
 | `auth.email` | `AppRoute.emailLogin` | `EmailLoginScreen` | Implemented | `auth.email.input`, `auth.password.input`, `auth.signIn.submit`, `auth.signUp.submit`, `auth.passwordReset.send`, `auth.mode.toggle` |
-| `auth.delete` | `AppRoute.accountDeletion` | `AccountDeletionScreen` | Implemented, NeedsE2E | `auth.delete.confirm.input`, `auth.delete.submit`, `auth.delete.cancel` |
+| `auth.delete` | `AppRoute.accountDeletion` | `AccountDeletionScreen` | Implemented, NeedsE2E | `auth.delete.policy.ack`, `auth.delete.confirm.input`, `auth.delete.submit`, `auth.delete.cancel` |
 | `settings.export` | `AppRoute.dataExport` | `DataExportScreen` | Partial | `settings.export.cat.toggle`, `settings.export.format`, `settings.export.submit` |
 
 ### 4.2 Marketplace / Filter

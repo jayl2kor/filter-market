@@ -1122,17 +1122,35 @@ struct AccountDeletionScreen: View {
     @EnvironmentObject private var store: MooditStore
     @Environment(\.dismiss) private var dismiss
     @State private var confirmation = ""
+    @State private var didAcknowledgePolicy = false
     @State private var showDeleteAlert = false
     @State private var didRequestDeletion = false
     @State private var isDeletingAccount = false
     @State private var deletionErrorMessage: String?
 
-    private var expectedHandle: String {
-        store.editableProfile.displayHandle
+    private var expectedUsername: String {
+        store.editableProfile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var expectedDisplayUsername: String {
+        expectedUsername.isEmpty ? "등록된 이메일" : "@\(expectedUsername)"
+    }
+
+    private var expectedEmail: String {
+        Auth.auth().currentUser?.email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
     private var isConfirmationValid: Bool {
-        confirmation.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == expectedHandle.lowercased()
+        let normalized = confirmation.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !normalized.isEmpty else { return false }
+        let usernameMatches = !expectedUsername.isEmpty
+            && (normalized == expectedUsername.lowercased() || normalized == "@\(expectedUsername.lowercased())")
+        let emailMatches = !expectedEmail.isEmpty && normalized == expectedEmail.lowercased()
+        return usernameMatches || emailMatches
+    }
+
+    private var canSubmitDeletion: Bool {
+        didAcknowledgePolicy && isConfirmationValid && !isDeletingAccount
     }
 
     var body: some View {
@@ -1148,6 +1166,7 @@ struct AccountDeletionScreen: View {
                     deletionReceipt
                 } else {
                     warningCard
+                    policyAcknowledgementCard
                     confirmationCard
                     actionButtons
                 }
@@ -1160,8 +1179,8 @@ struct AccountDeletionScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .fmDestructiveAlert(
             "계정을 영구 삭제할까요?",
-            message: "요청이 접수되면 프로필과 업로드한 필터가 삭제 대기 상태로 전환됩니다.",
-            destructiveTitle: "삭제 요청",
+            message: "이 작업은 로그인 계정을 즉시 비활성화하고 공개 프로필 데이터를 삭제 상태로 전환합니다.",
+            destructiveTitle: "계정 삭제",
             isPresented: $showDeleteAlert
         ) {
             requestAccountDeletion()
@@ -1179,26 +1198,42 @@ struct AccountDeletionScreen: View {
     private var warningCard: some View {
         FMCard {
             VStack(alignment: .leading, spacing: Sp.md) {
-                deletionImpactRow("업로드한 필터 삭제", detail: "검수 중이거나 공개된 필터가 비공개 처리 후 삭제됩니다.", icon: "camera.filters")
+                deletionImpactRow("로그인 계정 즉시 비활성화", detail: "삭제 요청이 성공하면 현재 계정은 로그아웃되고 다시 로그인할 수 없습니다.", icon: "person.crop.circle.badge.xmark")
                 workflowDivider()
-                deletionImpactRow("프로필·팔로우 정보 삭제", detail: "프로필, 바이오, 팔로워/팔로잉 관계가 영구 삭제됩니다.", icon: "person.2")
+                deletionImpactRow("프로필·팔로우 정보 삭제", detail: "프로필, 유저네임, 바이오, 팔로워/팔로잉 관계가 삭제 상태로 전환됩니다.", icon: "person.2")
                 workflowDivider()
-                deletionImpactRow("다운로드한 필터 유지", detail: "다른 메이커에게 구매한 필터는 기기와 구매 내역에 유지됩니다.", icon: "checkmark.seal")
+                deletionImpactRow("업로드한 필터 처리", detail: "검수 중이거나 공개된 필터는 비공개 처리 및 후속 정리 대상이 됩니다.", icon: "camera.filters")
+                workflowDivider()
+                deletionImpactRow("다운로드한 필터와 구매 내역", detail: "기기에 저장된 파일은 자동 삭제되지 않을 수 있으며, 구매·환불 기록은 법적 보관 기간 동안 유지될 수 있습니다.", icon: "checkmark.seal")
+                workflowDivider()
+                deletionImpactRow("코인·정산·환불", detail: "남은 코인, 메이커 정산, 환불 요청은 지원팀 검토 후 정책에 따라 처리됩니다.", icon: "creditcard")
+                workflowDivider()
+                deletionImpactRow("복구 유예 없음", detail: "현재 30일 복구 유예 기간은 제공되지 않습니다. 삭제 전 데이터 내보내기를 먼저 진행하세요.", icon: "exclamationmark.triangle")
             }
+        }
+    }
+
+    private var policyAcknowledgementCard: some View {
+        FMCard {
+            Toggle("위 내용을 이해했고 계정 삭제를 계속 진행합니다.", isOn: $didAcknowledgePolicy)
+                .tint(FMColors.Semantic.error)
+                .fmTypography(.body)
+                .foregroundStyle(FMColors.Text.primary)
+                .accessibilityIdentifier("auth.delete.policy.ack")
         }
     }
 
     private var confirmationCard: some View {
         FMCard {
             VStack(alignment: .leading, spacing: Sp.sm) {
-                Text("확인을 위해 \(expectedHandle)를 입력하세요.")
+                Text("확인을 위해 \(expectedDisplayUsername) 또는 이메일을 정확히 입력하세요.")
                     .fmTypography(.body)
                     .foregroundStyle(FMColors.Text.primary)
                 FMTextField(
                     nil,
                     text: $confirmation,
-                    placeholder: expectedHandle,
-                    error: confirmation.isEmpty || isConfirmationValid ? nil : "핸들이 일치하지 않습니다.",
+                    placeholder: expectedEmail.isEmpty ? expectedDisplayUsername : expectedEmail,
+                    error: confirmation.isEmpty || isConfirmationValid ? nil : "유저네임 또는 이메일이 일치하지 않습니다.",
                     textContentType: .nickname,
                     keyboardType: .asciiCapable,
                     autocapitalization: .never,
@@ -1214,7 +1249,7 @@ struct AccountDeletionScreen: View {
             FMButton("계정 영구 삭제", icon: "trash", variant: .primary, size: .lg) {
                 showDeleteAlert = true
             }
-            .disabled(!isConfirmationValid || isDeletingAccount)
+            .disabled(!canSubmitDeletion)
             .accessibilityIdentifier("auth.delete.submit")
 
             FMButton("취소", variant: .secondary, size: .lg) {
