@@ -1,4 +1,5 @@
 import FirebaseAuth
+import FirebaseCore
 import FirebaseFirestore
 import FirebaseFunctions
 import Foundation
@@ -35,6 +36,10 @@ final class ProfileSelfStore: ObservableObject {
             return
         }
         #endif
+        guard !Self.isUnitTesting, FirebaseApp.app() != nil else {
+            attach(authUser: nil)
+            return
+        }
         authHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self else { return }
             self.attach(authUser: user)
@@ -60,6 +65,10 @@ final class ProfileSelfStore: ObservableObject {
         #if DEBUG
         if isUITesting { return }
         #endif
+        guard !Self.isUnitTesting, FirebaseApp.app() != nil else {
+            attach(authUser: nil)
+            return
+        }
         guard let authUser = Auth.auth().currentUser else {
             attach(authUser: nil)
             return
@@ -204,13 +213,29 @@ final class ProfileSelfStore: ObservableObject {
     /// FirebaseAuth.User + Firestore doc → 표시용 ProfileUser.
     /// Firestore doc이 nil이면 Auth 정보만 사용.
     static func buildBaseline(authUser: User, doc: [String: Any]?, filterCount: Int) -> ProfileUser {
+        buildBaseline(
+            authDisplayName: authUser.displayName,
+            authEmail: authUser.email,
+            uid: authUser.uid,
+            doc: doc,
+            filterCount: filterCount
+        )
+    }
+
+    static func buildBaseline(
+        authDisplayName: String?,
+        authEmail: String?,
+        uid: String,
+        doc: [String: Any]?,
+        filterCount: Int
+    ) -> ProfileUser {
         let displayName = (doc?["displayName"] as? String)
-            ?? authUser.displayName
-            ?? authUser.email?.split(separator: "@").first.map(String.init)
+            ?? authDisplayName
+            ?? authEmail?.split(separator: "@").first.map(String.init)
             ?? "사용자"
         let rawHandle = (doc?["handle"] as? String)
-            ?? authUser.email?.split(separator: "@").first.map(String.init)
-            ?? authUser.uid.prefix(8).description
+            ?? authEmail?.split(separator: "@").first.map(String.init)
+            ?? uid.prefix(8).description
         let handle = displayHandle(from: rawHandle)
         let bio = (doc?["bio"] as? String) ?? ""
         let initials = String(displayName.prefix(2)).uppercased()
@@ -240,5 +265,9 @@ final class ProfileSelfStore: ObservableObject {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "@", with: "")
         return normalized.isEmpty ? "@user" : "@\(normalized)"
+    }
+
+    private static var isUnitTesting: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
 }
