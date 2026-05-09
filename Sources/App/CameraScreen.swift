@@ -9,6 +9,24 @@ import Photos
 import SwiftUI
 import UIKit
 
+@MainActor
+final class CameraStateStore: ObservableObject {
+    @Published var aspectRatio: PhotoCropAspectRatio = .fourThree
+    @Published var timerOption: CameraTimerOption = .off
+    @Published var gridEnabled = true
+    @Published var flashMode: CameraFlashMode = .off
+    @Published var zoomPreset: Double = 1.0
+    @Published var importedPhotoData: Data?
+
+    func setImportedPhotoData(_ data: Data?) {
+        importedPhotoData = data
+    }
+
+    func resetUserScopedState() {
+        importedPhotoData = nil
+    }
+}
+
 // MARK: - CameraScreen
 //
 // Phase D4 — `mockups/screens/03-camera-live.html` + `04-filter-swipe.html` 와 정합.
@@ -20,7 +38,8 @@ struct CameraScreen: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var cameraStateStore: CameraStateStore
     @StateObject private var controller = CameraPreviewController()
     @StateObject private var permissionCoordinator = PermissionCoordinator()
     @StateObject private var recentPhotoThumbnailLoader = RecentPhotoThumbnailLoader()
@@ -126,16 +145,16 @@ struct CameraScreen: View {
         .dynamicTypeSize(...DynamicTypeSize.xLarge)
         .preferredColorScheme(.dark)
         .task {
-            controller.apply(filter: store.selectedFilter)
-            controller.setCropAspectRatio(store.cameraAspectRatio)
+            controller.apply(filter: filterLibraryStore.selectedFilter)
+            controller.setCropAspectRatio(cameraStateStore.aspectRatio)
             if !isUITesting && scenePhase == .active {
                 await controller.start()
             }
         }
-        .onChange(of: store.selectedFilterID) { _, _ in
-            controller.apply(filter: store.selectedFilter)
+        .onChange(of: filterLibraryStore.selectedFilterID) { _, _ in
+            controller.apply(filter: filterLibraryStore.selectedFilter)
         }
-        .onChange(of: store.cameraAspectRatio) { _, newValue in
+        .onChange(of: cameraStateStore.aspectRatio) { _, newValue in
             controller.setCropAspectRatio(newValue)
         }
         .onChange(of: scenePhase) { _, newPhase in
@@ -170,7 +189,6 @@ struct CameraScreen: View {
         .fullScreenCover(isPresented: $isPhotoImportPresented) {
             NavigationStack {
                 PhotoImportScreen()
-                    .environmentObject(store)
                     .appRouteDestinations()
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
@@ -310,7 +328,7 @@ struct CameraScreen: View {
     }
 
     private func aspectRatioChip(_ aspectRatio: PhotoCropAspectRatio) -> some View {
-        let isSelected = aspectRatio == store.cameraAspectRatio
+        let isSelected = aspectRatio == cameraStateStore.aspectRatio
         return Button {
             selectAspectRatio(aspectRatio)
         } label: {
@@ -339,9 +357,9 @@ struct CameraScreen: View {
     }
 
     private func selectAspectRatio(_ aspectRatio: PhotoCropAspectRatio) {
-        guard store.cameraAspectRatio != aspectRatio else { return }
+        guard cameraStateStore.aspectRatio != aspectRatio else { return }
         FMHaptic.light.play()
-        store.cameraAspectRatio = aspectRatio
+        cameraStateStore.aspectRatio = aspectRatio
         controller.setCropAspectRatio(aspectRatio)
         Telemetry.trackAction("aspect_ratio_selected", screen: .cameraLive, parameters: [
             "aspect_ratio": aspectIdentifier(aspectRatio)
@@ -362,12 +380,12 @@ struct CameraScreen: View {
             ForEach(CameraTimerOption.allCases) { option in
                 Button {
                     FMHaptic.selection.play()
-                    store.cameraTimerOption = option
+                    cameraStateStore.timerOption = option
                     Telemetry.trackAction("timer_selected", screen: .cameraLive, parameters: [
                         "seconds": option.rawValue
                     ])
                 } label: {
-                    if option == store.cameraTimerOption {
+                    if option == cameraStateStore.timerOption {
                         Label(option.label, systemImage: "checkmark")
                     } else {
                         Text(option.label)
@@ -378,23 +396,23 @@ struct CameraScreen: View {
             HStack(spacing: 4) {
                 Image(systemName: "timer")
                     .font(.system(size: 13, weight: .semibold))
-                Text(store.cameraTimerOption.label)
+                Text(cameraStateStore.timerOption.label)
                     .font(.cameraOverlayCaptionMonospaced)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
-                .foregroundStyle(store.cameraTimerOption == .off ? FMColors.Text.inverse.opacity(0.78) : FMColors.Accent.primary)
+                .foregroundStyle(cameraStateStore.timerOption == .off ? FMColors.Text.inverse.opacity(0.78) : FMColors.Accent.primary)
                 .frame(minWidth: 44, minHeight: 44)
                 .padding(.horizontal, Sp.xs)
                 .background(Color.black.opacity(0.64), in: Capsule())
                 .overlay {
                     Capsule()
-                        .fill(store.cameraTimerOption == .off ? Color.clear : FMColors.Accent.primary.opacity(0.18))
+                        .fill(cameraStateStore.timerOption == .off ? Color.clear : FMColors.Accent.primary.opacity(0.18))
                 }
                 .overlay {
                     Capsule()
                         .strokeBorder(
-                            store.cameraTimerOption == .off
+                            cameraStateStore.timerOption == .off
                                 ? Color.white.opacity(0.28)
                                 : FMColors.Accent.primary.opacity(0.65),
                             lineWidth: 1
@@ -403,18 +421,18 @@ struct CameraScreen: View {
                 .colorScheme(.dark)
         }
         .accessibilityIdentifier("camera.timer")
-        .accessibilityLabel("타이머 \(store.cameraTimerOption.label)")
+        .accessibilityLabel("타이머 \(cameraStateStore.timerOption.label)")
     }
 
     private var gridButton: some View {
         frostedIconButton(
-            systemName: store.cameraGridEnabled ? "squareshape.split.3x3" : "square",
-            label: store.cameraGridEnabled ? "그리드 끄기" : "그리드 켜기",
-            isActive: store.cameraGridEnabled
+            systemName: cameraStateStore.gridEnabled ? "squareshape.split.3x3" : "square",
+            label: cameraStateStore.gridEnabled ? "그리드 끄기" : "그리드 켜기",
+            isActive: cameraStateStore.gridEnabled
         ) {
             FMHaptic.selection.play()
-            store.cameraGridEnabled.toggle()
-            Telemetry.trackAction(store.cameraGridEnabled ? "grid_enabled" : "grid_disabled", screen: .cameraLive)
+            cameraStateStore.gridEnabled.toggle()
+            Telemetry.trackAction(cameraStateStore.gridEnabled ? "grid_enabled" : "grid_disabled", screen: .cameraLive)
         }
         .accessibilityIdentifier("camera.grid.toggle")
     }
@@ -424,12 +442,12 @@ struct CameraScreen: View {
             ForEach(CameraFlashMode.allCases) { mode in
                 Button {
                     FMHaptic.selection.play()
-                    store.cameraFlashMode = mode
+                    cameraStateStore.flashMode = mode
                     Telemetry.trackAction("flash_mode_selected", screen: .cameraLive, parameters: [
                         "mode": mode.rawValue
                     ])
                 } label: {
-                    if mode == store.cameraFlashMode {
+                    if mode == cameraStateStore.flashMode {
                         Label(mode.label, systemImage: "checkmark")
                     } else {
                         Label(mode.label, systemImage: mode.systemImage)
@@ -438,25 +456,25 @@ struct CameraScreen: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Image(systemName: store.cameraFlashMode.systemImage)
+                Image(systemName: cameraStateStore.flashMode.systemImage)
                     .font(.system(size: 14, weight: .semibold))
-                Text(store.cameraFlashMode.label)
+                Text(cameraStateStore.flashMode.label)
                     .font(.cameraOverlayCaptionMonospaced)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
-                .foregroundStyle(store.cameraFlashMode == .off ? FMColors.Text.inverse : FMColors.Accent.primary)
+                .foregroundStyle(cameraStateStore.flashMode == .off ? FMColors.Text.inverse : FMColors.Accent.primary)
                 .padding(.horizontal, Sp.xs + 2)
                 .frame(minWidth: 54, minHeight: 44)
                 .background(Color.black.opacity(0.64), in: Capsule())
                 .overlay {
                     Capsule()
-                        .fill(store.cameraFlashMode == .off ? Color.clear : FMColors.Accent.primary.opacity(0.18))
+                        .fill(cameraStateStore.flashMode == .off ? Color.clear : FMColors.Accent.primary.opacity(0.18))
                 }
                 .overlay {
                     Capsule()
                         .strokeBorder(
-                            store.cameraFlashMode == .off
+                            cameraStateStore.flashMode == .off
                                 ? Color.white.opacity(0.28)
                                 : FMColors.Accent.primary.opacity(0.65),
                             lineWidth: 1
@@ -465,7 +483,7 @@ struct CameraScreen: View {
                 .colorScheme(.dark)
         }
         .accessibilityIdentifier("camera.flash")
-        .accessibilityLabel("플래시 \(store.cameraFlashMode.label)")
+        .accessibilityLabel("플래시 \(cameraStateStore.flashMode.label)")
     }
 
     private func frostedIconButton(
@@ -505,7 +523,7 @@ struct CameraScreen: View {
                 filterSwipeOffset = CameraFilterSwipeResolver.visualOffset(
                     translation: drag.translation.width,
                     currentIndex: currentFilterIndex(),
-                    filterCount: store.filters.count
+                    filterCount: filterLibraryStore.filters.count
                 )
             }
             .onEnded { drag in
@@ -514,7 +532,7 @@ struct CameraScreen: View {
 
                 let targetIndex = CameraFilterSwipeResolver.targetIndex(
                     currentIndex: currentFilterIndex(),
-                    filterCount: store.filters.count,
+                    filterCount: filterLibraryStore.filters.count,
                     translation: drag.translation.width,
                     predictedEndTranslation: drag.predictedEndTranslation.width,
                     containerWidth: width
@@ -532,7 +550,7 @@ struct CameraScreen: View {
     private func advanceFilter(direction: Int) {
         let targetIndex = CameraFilterSwipeResolver.clampedIndex(
             currentIndex: currentFilterIndex(),
-            filterCount: store.filters.count,
+            filterCount: filterLibraryStore.filters.count,
             direction: direction,
             steps: 1
         )
@@ -545,20 +563,20 @@ struct CameraScreen: View {
     }
 
     private func currentFilterIndex() -> Int {
-        guard !store.filters.isEmpty else { return 0 }
-        let currentID = store.selectedFilterID
-        return store.filters.firstIndex(where: { $0.id == currentID }) ?? 0
+        guard !filterLibraryStore.filters.isEmpty else { return 0 }
+        let currentID = filterLibraryStore.selectedFilterID
+        return filterLibraryStore.filters.firstIndex(where: { $0.id == currentID }) ?? 0
     }
 
     private func selectFilter(at index: Int) {
-        guard !store.filters.isEmpty else { return }
-        let safeIndex = min(max(index, 0), store.filters.count - 1)
-        let nextFilter = store.filters[safeIndex]
+        guard !filterLibraryStore.filters.isEmpty else { return }
+        let safeIndex = min(max(index, 0), filterLibraryStore.filters.count - 1)
+        let nextFilter = filterLibraryStore.filters[safeIndex]
 
         filterSwipeOffset = 0
         FMHaptic.medium.play()
         withAnimation(reduceMotion ? nil : .fmSpringSwipe) {
-            store.select(nextFilter)
+            filterLibraryStore.select(nextFilter)
         }
         Telemetry.trackFunnelStep("camera_capture", step: "filter_selected", screen: .cameraLive, parameters: [
             "source": "swipe",
@@ -621,10 +639,10 @@ struct CameraScreen: View {
     }
 
     private func adjacentFilters() -> (previous: Filter?, next: Filter?)? {
-        guard store.filters.count > 1 else { return nil }
+        guard filterLibraryStore.filters.count > 1 else { return nil }
         let currentIndex = currentFilterIndex()
-        let prev = currentIndex > 0 ? store.filters[currentIndex - 1] : nil
-        let next = currentIndex < store.filters.count - 1 ? store.filters[currentIndex + 1] : nil
+        let prev = currentIndex > 0 ? filterLibraryStore.filters[currentIndex - 1] : nil
+        let next = currentIndex < filterLibraryStore.filters.count - 1 ? filterLibraryStore.filters[currentIndex + 1] : nil
         return (prev, next)
     }
 
@@ -677,7 +695,7 @@ struct CameraScreen: View {
                     .frame(width: max(proxy.size.width - frame.maxX, 0), height: frame.height)
                     .position(x: frame.maxX + max(proxy.size.width - frame.maxX, 0) / 2, y: frame.midY)
 
-                if store.cameraGridEnabled {
+                if cameraStateStore.gridEnabled {
                     ZStack {
                         cameraGridLine(width: 0.7, height: frame.height)
                             .position(x: frame.minX + frame.width / 3, y: frame.midY)
@@ -768,7 +786,7 @@ struct CameraScreen: View {
 
     @ViewBuilder
     private var currentFilterLabel: some View {
-        if let filter = store.selectedFilter {
+        if let filter = filterLibraryStore.selectedFilter {
             HStack(spacing: Sp.xs) {
                 Image(systemName: "camera.filters")
                     .font(.system(size: 12, weight: .semibold))
@@ -849,7 +867,7 @@ struct CameraScreen: View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Sp.xs) {
-                    ForEach(store.filters) { filter in
+                    ForEach(filterLibraryStore.filters) { filter in
                         filterChip(filter: filter)
                             .id(filter.id)
                     }
@@ -857,7 +875,7 @@ struct CameraScreen: View {
                 .padding(.horizontal, Sp.md)
                 .padding(.vertical, Sp.xs)
             }
-            .onChange(of: store.selectedFilterID) { _, newID in
+            .onChange(of: filterLibraryStore.selectedFilterID) { _, newID in
                 guard let newID else { return }
                 withAnimation(reduceMotion ? nil : .fmSpringSwipe) {
                     proxy.scrollTo(newID, anchor: .center)
@@ -868,12 +886,12 @@ struct CameraScreen: View {
     }
 
     private func filterChip(filter: Filter) -> some View {
-        let isActive = store.selectedFilterID == filter.id
+        let isActive = filterLibraryStore.selectedFilterID == filter.id
         return Button {
             guard !isActive else { return }
             FMHaptic.selection.play()
             withAnimation(reduceMotion ? nil : .fmSpringSwipe) {
-                store.select(filter)
+                filterLibraryStore.select(filter)
             }
             Telemetry.trackFunnelStep("camera_capture", step: "filter_selected", screen: .cameraLive, parameters: [
                 "source": "chip"
@@ -1003,7 +1021,7 @@ struct CameraScreen: View {
         guard countdownTask == nil else { return false }
         return controller.isCapturing
             || isBurstCaptureActive
-            || store.selectedFilter == nil
+            || filterLibraryStore.selectedFilter == nil
             || scenePhase != .active
     }
 
@@ -1011,7 +1029,7 @@ struct CameraScreen: View {
         countdownTask == nil
             && !controller.isCapturing
             && !isBurstCaptureActive
-            && store.selectedFilter != nil
+            && filterLibraryStore.selectedFilter != nil
             && scenePhase == .active
     }
 
@@ -1025,7 +1043,7 @@ struct CameraScreen: View {
         if controller.isCapturing {
             return .processing
         }
-        if store.selectedFilter == nil || scenePhase != .active {
+        if filterLibraryStore.selectedFilter == nil || scenePhase != .active {
             return .disabled
         }
         if shutterPressState == .pressing {
@@ -1112,14 +1130,14 @@ struct CameraScreen: View {
             ForEach([0.5, 1.0, 3.0], id: \.self) { preset in
                 Button {
                     FMHaptic.selection.play()
-                    store.cameraZoomPreset = preset
+                    cameraStateStore.zoomPreset = preset
                 } label: {
                     Text(zoomLabel(for: preset))
                         .font(.cameraOverlayCaptionMonospaced)
-                        .foregroundStyle(store.cameraZoomPreset == preset ? .black : FMColors.Text.inverse)
+                        .foregroundStyle(cameraStateStore.zoomPreset == preset ? .black : FMColors.Text.inverse)
                         .frame(width: 36, height: 32)
                         .background(
-                            store.cameraZoomPreset == preset
+                            cameraStateStore.zoomPreset == preset
                                 ? FMColors.Accent.primary
                                 : Color.black.opacity(0.46),
                             in: Capsule()
@@ -1127,10 +1145,10 @@ struct CameraScreen: View {
                         .overlay {
                             Capsule()
                                 .strokeBorder(
-                                    store.cameraZoomPreset == preset
+                                    cameraStateStore.zoomPreset == preset
                                         ? FMColors.Accent.primary.opacity(0.9)
                                         : Color.white.opacity(0.32),
-                                    lineWidth: store.cameraZoomPreset == preset ? 1.5 : 1
+                                    lineWidth: cameraStateStore.zoomPreset == preset ? 1.5 : 1
                                 )
                         }
                 }
@@ -1156,7 +1174,7 @@ struct CameraScreen: View {
 
         FMHaptic.medium.play()
         Telemetry.trackFunnelStep("camera_capture", step: "shutter_tapped", screen: .cameraLive, parameters: [
-            "timer_seconds": store.cameraTimerOption.rawValue
+            "timer_seconds": cameraStateStore.timerOption.rawValue
         ])
         if countdownTask != nil {
             cancelCountdown()
@@ -1220,7 +1238,7 @@ struct CameraScreen: View {
             countdownTask = nil
         }
         guard !controller.isCapturing, !isBurstCaptureActive, scenePhase == .active else { return }
-        let seconds = store.cameraTimerOption.rawValue
+        let seconds = cameraStateStore.timerOption.rawValue
         if seconds > 0 {
             for value in stride(from: seconds, through: 1, by: -1) {
                 countdownValue = value
@@ -1236,7 +1254,7 @@ struct CameraScreen: View {
             }
         }
         guard !Task.isCancelled, scenePhase == .active else { return }
-        let result = await controller.capture(filter: store.selectedFilter)
+        let result = await controller.capture(filter: filterLibraryStore.selectedFilter)
         if let result {
             captureResult = result
             Telemetry.trackFunnelStep("camera_capture", step: "capture_succeeded", screen: .cameraLive, parameters: [
@@ -1270,7 +1288,7 @@ struct CameraScreen: View {
         for index in 1...3 {
             guard !Task.isCancelled, scenePhase == .active else { return }
             burstCaptureCount = index
-            if let result = await controller.capture(filter: store.selectedFilter) {
+            if let result = await controller.capture(filter: filterLibraryStore.selectedFilter) {
                 lastResult = result
                 FMHaptic.selection.play()
             } else {

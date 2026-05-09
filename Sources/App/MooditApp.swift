@@ -233,6 +233,7 @@ private struct UITestLaunchHost: View {
         .environmentObject(store.walletStore)
         .environmentObject(store.editorDraftStore)
         .environmentObject(store.sessionStore)
+        .environmentObject(store.cameraStateStore)
         .task {
             store.subscribeToWallet()
             await store.load()

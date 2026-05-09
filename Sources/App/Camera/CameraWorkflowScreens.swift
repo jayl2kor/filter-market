@@ -9,7 +9,8 @@ import SwiftUI
 import UIKit
 
 struct CameraAspectPickerScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var cameraStateStore: CameraStateStore
 
     var body: some View {
         ScrollView {
@@ -24,7 +25,7 @@ struct CameraAspectPickerScreen: View {
                     ForEach(PhotoCropAspectRatio.allCases) { ratio in
                         Button {
                             FMHaptic.selection.play()
-                            store.cameraAspectRatio = ratio
+                            cameraStateStore.aspectRatio = ratio
                         } label: {
                             VStack(alignment: .leading, spacing: Sp.sm) {
                                 aspectPreview(ratio)
@@ -42,8 +43,8 @@ struct CameraAspectPickerScreen: View {
                             .overlay {
                                 RoundedRectangle(cornerRadius: R.lg)
                                     .strokeBorder(
-                                        store.cameraAspectRatio == ratio ? FMColors.Accent.primary : FMColors.Border.subtle,
-                                        lineWidth: store.cameraAspectRatio == ratio ? 2 : 1
+                                        cameraStateStore.aspectRatio == ratio ? FMColors.Accent.primary : FMColors.Border.subtle,
+                                        lineWidth: cameraStateStore.aspectRatio == ratio ? 2 : 1
                                     )
                             }
                         }
@@ -101,7 +102,8 @@ struct CameraAspectPickerScreen: View {
 }
 
 struct CameraTimerCountdownScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var cameraStateStore: CameraStateStore
     @State private var previewValue: Int?
 
     var body: some View {
@@ -118,7 +120,7 @@ struct CameraTimerCountdownScreen: View {
                         ForEach(CameraTimerOption.allCases) { option in
                             Button {
                                 FMHaptic.selection.play()
-                                store.cameraTimerOption = option
+                                cameraStateStore.timerOption = option
                                 previewValue = option.rawValue == 0 ? nil : option.rawValue
                             } label: {
                                 HStack(spacing: Sp.sm) {
@@ -130,7 +132,7 @@ struct CameraTimerCountdownScreen: View {
                                         .fmTypography(.body)
                                         .foregroundStyle(FMColors.Text.primary)
                                     Spacer()
-                                    if option == store.cameraTimerOption {
+                                    if option == cameraStateStore.timerOption {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundStyle(FMColors.Accent.primary)
                                     }
@@ -172,7 +174,8 @@ struct CameraTimerCountdownScreen: View {
 }
 
 struct PhotoImportScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var cameraStateStore: CameraStateStore
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
@@ -360,7 +363,7 @@ struct PhotoImportScreen: View {
                 return
             }
             selectedImage = image
-            store.setImportedPhotoData(data)
+            cameraStateStore.setImportedPhotoData(data)
             loadError = nil
             FMHaptic.success.play()
         } catch {
@@ -404,7 +407,8 @@ private extension UIViewController {
 }
 
 struct PhotoEditScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var cameraStateStore: CameraStateStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var intensity: Double = 0.65
     @State private var selectedFilterID: Filter.ID?
@@ -423,10 +427,10 @@ struct PhotoEditScreen: View {
 
     private var selectedFilter: Filter? {
         if let selectedFilterID,
-           let filter = store.filters.first(where: { $0.id == selectedFilterID }) {
+           let filter = filterLibraryStore.filters.first(where: { $0.id == selectedFilterID }) {
             return filter
         }
-        return store.selectedFilter ?? store.filters.first
+        return filterLibraryStore.selectedFilter ?? filterLibraryStore.filters.first
     }
 
     var body: some View {
@@ -485,8 +489,8 @@ struct PhotoEditScreen: View {
             }
         }
         .task {
-            await store.load()
-            selectedFilterID = store.selectedFilter?.id ?? store.filters.first?.id
+            await filterLibraryStore.load()
+            selectedFilterID = filterLibraryStore.selectedFilter?.id ?? filterLibraryStore.filters.first?.id
             initialEditState = currentEditState
             await render()
         }
@@ -580,7 +584,7 @@ struct PhotoEditScreen: View {
     private var filterStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Sp.xs) {
-                ForEach(store.filters) { filter in
+                ForEach(filterLibraryStore.filters) { filter in
                     let isSelected = selectedFilter?.id == filter.id
                     Button {
                         FMHaptic.selection.play()
@@ -659,7 +663,7 @@ struct PhotoEditScreen: View {
 
     private var currentEditState: PhotoEditState {
         PhotoEditState(
-            filterID: selectedFilterID ?? store.selectedFilter?.id ?? store.filters.first?.id,
+            filterID: selectedFilterID ?? filterLibraryStore.selectedFilter?.id ?? filterLibraryStore.filters.first?.id,
             intensity: intensity
         )
     }
@@ -695,7 +699,7 @@ struct PhotoEditScreen: View {
 
     private func resetEdits() {
         let target = initialEditState?.normalized ?? PhotoEditState(
-            filterID: store.selectedFilter?.id ?? store.filters.first?.id,
+            filterID: filterLibraryStore.selectedFilter?.id ?? filterLibraryStore.filters.first?.id,
             intensity: 0.65
         ).normalized
         let before = currentEditState.normalized
@@ -734,7 +738,7 @@ struct PhotoEditScreen: View {
             let filtered = try renderer.apply(
                 to: sourcePhotoData(),
                 configuration: configuration,
-                cropAspectRatio: store.cameraAspectRatio
+                cropAspectRatio: cameraStateStore.aspectRatio
             )
             renderedImage = UIImage(data: filtered.filteredData)
         } catch {
@@ -762,7 +766,7 @@ struct PhotoEditScreen: View {
     }
 
     private func sourcePhotoData() -> Data {
-        store.importedPhotoData ?? PlaceholderPhoto.makeJPEGData()
+        cameraStateStore.importedPhotoData ?? PlaceholderPhoto.makeJPEGData()
     }
 }
 

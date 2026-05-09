@@ -32,6 +32,7 @@ final class MooditStore: ObservableObject {
     let walletStore: WalletStore
     let editorDraftStore: EditorDraftStore
     let sessionStore: SessionStore
+    let cameraStateStore: CameraStateStore
     var filters: [Filter] { filterLibraryStore.filters }
     var downloadedFilterIDs: Set<Filter.ID> { filterLibraryStore.downloadedFilterIDs }
     var favoriteFilterIDs: Set<Filter.ID> { filterLibraryStore.favoriteFilterIDs }
@@ -39,12 +40,27 @@ final class MooditStore: ObservableObject {
         get { filterLibraryStore.selectedFilterID }
         set { filterLibraryStore.selectedFilterID = newValue }
     }
-    @Published var cameraAspectRatio: PhotoCropAspectRatio = .fourThree
-    @Published var cameraTimerOption: CameraTimerOption = .off
-    @Published var cameraGridEnabled = true
-    @Published var cameraFlashMode: CameraFlashMode = .off
-    @Published var cameraZoomPreset: Double = 1.0
-    @Published var importedPhotoData: Data?
+    var cameraAspectRatio: PhotoCropAspectRatio {
+        get { cameraStateStore.aspectRatio }
+        set { cameraStateStore.aspectRatio = newValue }
+    }
+    var cameraTimerOption: CameraTimerOption {
+        get { cameraStateStore.timerOption }
+        set { cameraStateStore.timerOption = newValue }
+    }
+    var cameraGridEnabled: Bool {
+        get { cameraStateStore.gridEnabled }
+        set { cameraStateStore.gridEnabled = newValue }
+    }
+    var cameraFlashMode: CameraFlashMode {
+        get { cameraStateStore.flashMode }
+        set { cameraStateStore.flashMode = newValue }
+    }
+    var cameraZoomPreset: Double {
+        get { cameraStateStore.zoomPreset }
+        set { cameraStateStore.zoomPreset = newValue }
+    }
+    var importedPhotoData: Data? { cameraStateStore.importedPhotoData }
     var editorReferencePhotoData: Data? { editorDraftStore.editorReferencePhotoData }
     var editorReferencePhotoRevision: Int { editorDraftStore.editorReferencePhotoRevision }
     var editorReferenceSampleKind: EditorReferenceSampleKind { editorDraftStore.editorReferenceSampleKind }
@@ -121,16 +137,19 @@ final class MooditStore: ObservableObject {
     private var walletCancellable: AnyCancellable?
     private var editorDraftCancellable: AnyCancellable?
     private var sessionCancellable: AnyCancellable?
+    private var cameraStateCancellable: AnyCancellable?
 
     init(repository: any FilterRepository = BundleSeedFilterRepository()) {
         let filterLibraryStore = FilterLibraryStore(repository: repository)
         let walletStore = WalletStore()
         let editorDraftStore = EditorDraftStore()
         let sessionStore = SessionStore()
+        let cameraStateStore = CameraStateStore()
         self.filterLibraryStore = filterLibraryStore
         self.walletStore = walletStore
         self.editorDraftStore = editorDraftStore
         self.sessionStore = sessionStore
+        self.cameraStateStore = cameraStateStore
         filterLibraryCancellable = filterLibraryStore.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
@@ -141,6 +160,9 @@ final class MooditStore: ObservableObject {
             self?.objectWillChange.send()
         }
         sessionCancellable = sessionStore.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        cameraStateCancellable = cameraStateStore.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
         editorDraftStore.onEditorDraftChanged = { [weak self] _ in
@@ -538,7 +560,7 @@ final class MooditStore: ObservableObject {
         accountDeletionRequestedAt = nil
         filterLibraryStore.resetUserScopedState()
         notificationPreferences = NotificationPreferences()
-        importedPhotoData = nil
+        cameraStateStore.resetUserScopedState()
         editorDraftStore.resetUserScopedState()
         exportRequests = []
         sessionStore.markProfileUnloaded()
@@ -578,7 +600,7 @@ final class MooditStore: ObservableObject {
     }
 
     func setImportedPhotoData(_ data: Data?) {
-        importedPhotoData = data
+        cameraStateStore.setImportedPhotoData(data)
     }
 
     func setEditorReferencePhotoData(_ data: Data?) {
