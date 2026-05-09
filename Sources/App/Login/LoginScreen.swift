@@ -120,13 +120,15 @@ struct LoginScreen: View {
                 }
                 Text("Apple로 계속하기")
                     .fmTypography(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(colorScheme == .dark ? FMColors.Text.primary : .white)
             .frame(maxWidth: .infinity)
-            .frame(height: 52)
+            .frame(height: 50)
             .background(
-                RoundedRectangle(cornerRadius: R.md)
-                    .fill(FMColors.Text.primary)
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(colorScheme == .dark ? .white : .black)
             )
         }
         .disabled(loadingProvider != nil)
@@ -146,18 +148,20 @@ struct LoginScreen: View {
                 } else {
                     googleIconMark
                 }
-                Text("Google로 계속하기")
+                Text("Google 계정으로 계속")
                     .fmTypography(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
             .foregroundStyle(FMColors.Text.primary)
             .frame(maxWidth: .infinity)
-            .frame(height: 52)
+            .frame(height: 50)
             .background(
-                RoundedRectangle(cornerRadius: R.md)
+                RoundedRectangle(cornerRadius: 8)
                     .fill(FMColors.Background.bg2)
             )
             .overlay {
-                RoundedRectangle(cornerRadius: R.md)
+                RoundedRectangle(cornerRadius: 8)
                     .strokeBorder(FMColors.Border.default, lineWidth: 1)
             }
         }
@@ -188,16 +192,26 @@ struct LoginScreen: View {
     }
 
     private var emailButton: some View {
-        FMButton(
-            "이메일로 계속",
-            icon: "envelope",
-            variant: .secondary,
-            size: .lg
-        ) {
+        Button {
             onContinueWithEmail?()
             navigateToEmailLogin = true
+        } label: {
+            Label("이메일로 계속", systemImage: "envelope")
+                .fmTypography(.headline)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .foregroundStyle(FMColors.Text.primary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(FMColors.Background.bg0, in: RoundedRectangle(cornerRadius: 8))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(FMColors.Border.default, lineWidth: 1)
+                }
         }
+        .buttonStyle(.plain)
         .disabled(loadingProvider != nil)
+        .accessibilityLabel("이메일로 계속")
         .accessibilityIdentifier("auth.email.continue")
     }
 
