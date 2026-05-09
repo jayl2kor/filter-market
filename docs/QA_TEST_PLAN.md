@@ -561,6 +561,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 13.2.7 | `.walletTopup` | `wallet.topup.package.com.jayl2kor.moodit.coins.550` | 550C StoreKit purchase (sandbox/local StoreKit config 필요) |  |
 | 13.2.8 | `.walletTopup` | `wallet.topup.package.com.jayl2kor.moodit.coins.1200` | 1200C StoreKit purchase (sandbox/local StoreKit config 필요) |  |
 | 13.2.9 | `.walletTopup` | `wallet.topup.package.com.jayl2kor.moodit.coins.3000` | 3000C StoreKit purchase (sandbox/local StoreKit config 필요) |  |
+| 13.2.9a | `.walletTopup` | 코인 패키지 row UX | row 전체 76pt 이상 탭 영역, press 시 bg/scale feedback, bonus capsule semibold/contrast, 결제 진행 중 가격 영역과 ProgressView 폭 고정으로 layout shift 없음 |  |
 | 13.2.10 | `.walletTopup` | `wallet.topup.restore` | StoreKit restore purchase (sandbox/local StoreKit config 필요) |  |
 | 13.2.11 | `.walletTopup` | `wallet.topup.failed_demo` | → paymentFailed |  |
 | 13.2.11b | `.walletTopup` | 결제 성공 직후 잔액 | optimistic balance 표시 후 Firestore listener 또는 10초 fallback reload로 `/users/{uid}/wallet/balance.value`와 일치 |  |

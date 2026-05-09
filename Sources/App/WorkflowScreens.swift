@@ -4992,6 +4992,7 @@ struct WalletTopupScreen: View {
         let coins = IAPProductIDs.coinAmount(for: productID) ?? 0
         let bonusLabel = bonusLabel(for: productID)
         Button {
+            FMHaptic.light.play()
             if let credit = IAPProductIDs.coinAmount(for: productID) {
                 store.creditCoinsOptimistically(credit)
             }
@@ -5005,11 +5006,12 @@ struct WalletTopupScreen: View {
                             .foregroundStyle(FMColors.Text.primary)
                         if let bonusLabel {
                             Text(bonusLabel)
-                                .font(Font.fmCaption)
+                                .font(Font.fmCaption.weight(.semibold))
                                 .foregroundStyle(FMColors.Accent.primary)
+                                .lineLimit(1)
                                 .padding(.horizontal, Sp.xs)
                                 .padding(.vertical, 2)
-                                .background(FMColors.Accent.primary.opacity(0.15))
+                                .background(FMColors.Accent.primary.opacity(0.18))
                                 .clipShape(Capsule())
                         }
                     }
@@ -5021,13 +5023,16 @@ struct WalletTopupScreen: View {
                 Text(displayPrice)
                     .font(Font.fmHeadline)
                     .foregroundStyle(FMColors.Text.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .frame(width: 112, alignment: .trailing)
             }
             .padding(Sp.md)
             .frame(maxWidth: .infinity)
-            .background(FMColors.Background.bg2)
-            .clipShape(RoundedRectangle(cornerRadius: R.lg))
+            .frame(minHeight: 76)
+            .contentShape(RoundedRectangle(cornerRadius: R.lg))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(CoinPackageRowButtonStyle())
         .accessibilityIdentifier("wallet.topup.package.\(productID)")
     }
 
@@ -5046,6 +5051,7 @@ struct WalletTopupScreen: View {
         let bonusLabel = bonusLabel(for: product.id)
         let isProcessing = purchasingProductID == product.id
         Button {
+            FMHaptic.light.play()
             Task { await initiatePurchase(product) }
         } label: {
             HStack(spacing: Sp.md) {
@@ -5056,11 +5062,12 @@ struct WalletTopupScreen: View {
                             .foregroundStyle(FMColors.Text.primary)
                         if let bonusLabel {
                             Text(bonusLabel)
-                                .font(Font.fmCaption)
+                                .font(Font.fmCaption.weight(.semibold))
                                 .foregroundStyle(FMColors.Accent.primary)
+                                .lineLimit(1)
                                 .padding(.horizontal, Sp.xs)
                                 .padding(.vertical, 2)
-                                .background(FMColors.Accent.primary.opacity(0.15))
+                                .background(FMColors.Accent.primary.opacity(0.18))
                                 .clipShape(Capsule())
                         }
                     }
@@ -5071,18 +5078,22 @@ struct WalletTopupScreen: View {
                 Spacer()
                 if isProcessing {
                     ProgressView()
+                        .frame(width: 112, alignment: .trailing)
                 } else {
                     Text(product.displayPrice)
                         .font(Font.fmHeadline)
                         .foregroundStyle(FMColors.Text.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(width: 112, alignment: .trailing)
                 }
             }
             .padding(Sp.md)
             .frame(maxWidth: .infinity)
-            .background(FMColors.Background.bg2)
-            .clipShape(RoundedRectangle(cornerRadius: R.lg))
+            .frame(minHeight: 76)
+            .contentShape(RoundedRectangle(cornerRadius: R.lg))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(CoinPackageRowButtonStyle())
         .disabled(isProcessing || storeKit.isProcessing)
         .accessibilityIdentifier("wallet.topup.package.\(product.id)")
     }
@@ -5204,6 +5215,24 @@ struct WalletTopupScreen: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("wallet.topup.failed_demo")
         }
+    }
+}
+
+private struct CoinPackageRowButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                configuration.isPressed ? FMColors.Background.bg3 : FMColors.Background.bg2,
+                in: RoundedRectangle(cornerRadius: R.lg)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: R.lg)
+                    .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+            }
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.fmFast.reducedIfNeeded(reduceMotion), value: configuration.isPressed)
     }
 }
 
