@@ -20,7 +20,7 @@ struct FilterDetailLoaderScreen: View {
             case .loading:
                 loadingView
             case .loaded(let detail):
-                FilterDetailScreen(mock: detail.toMock())
+                FilterDetailScreen(mock: detail.toMock(), onRefresh: { await load() })
             case .localFilter(let filter):
                 FilterDetailScreen(filter: filter)
             case .empty:

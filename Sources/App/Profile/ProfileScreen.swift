@@ -41,6 +41,7 @@ struct ProfileScreen: View {
     @State private var shareSheetPayload: SharePayload?
     @State private var fetchedOtherUser: ProfileUser?
     @State private var isOtherProfileLoading = false
+    @State private var isRefreshing = false
     @State private var isOtherProfileNotFound = false
     @State private var otherProfileLoadError: String?
 
@@ -115,6 +116,18 @@ struct ProfileScreen: View {
             fetchedOtherUser = nil
             otherProfileLoadError = error.localizedDescription
             isOtherProfileLoading = false
+        }
+    }
+
+    private func refreshProfile() async {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+        if otherUid == nil {
+            await profileStore.refresh()
+            await store.load(force: true)
+        } else {
+            await loadOtherProfile()
         }
     }
 
@@ -243,6 +256,9 @@ struct ProfileScreen: View {
                 }
             }
             .background(FMColors.Background.bg0)
+            .refreshable {
+                await refreshProfile()
+            }
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(shouldShowOtherProfileError ? "프로필" : user.handle)

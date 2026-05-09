@@ -17,6 +17,7 @@ struct FilterDetailScreen: View {
 
     private let filter: Filter?
     private let mock: FilterDetailMock
+    private let onRefresh: (() async -> Void)?
 
     @State private var sliderProgress: CGFloat = 0.5
     @State private var downloadState: DownloadState = .ready
@@ -27,20 +28,23 @@ struct FilterDetailScreen: View {
     @State private var sharePayload: SharePayload?
     @State private var isDescriptionExpanded = false
 
-    init(filter: Filter, mock: FilterDetailMock? = nil) {
+    init(filter: Filter, mock: FilterDetailMock? = nil, onRefresh: (() async -> Void)? = nil) {
         self.filter = filter
         self.mock = mock ?? FilterDetailMock.mock(for: filter)
+        self.onRefresh = onRefresh
     }
 
-    init(mock: FilterDetailMock) {
+    init(mock: FilterDetailMock, onRefresh: (() async -> Void)? = nil) {
         self.filter = nil
         self.mock = mock
+        self.onRefresh = onRefresh
     }
 
     /// `MarketplaceScreen` 의 navigationDestination 에서 호출.
     init(mock: FilterDetailMockHashable) {
         self.filter = nil
         self.mock = mock.mock
+        self.onRefresh = nil
     }
 
     var body: some View {
@@ -101,6 +105,17 @@ struct FilterDetailScreen: View {
                     .padding(.horizontal, Sp.md)
             }
             .padding(.bottom, Sp.xl)
+        }
+        .refreshable {
+            await refreshDetail()
+        }
+    }
+
+    private func refreshDetail() async {
+        if let onRefresh {
+            await onRefresh()
+        } else {
+            await store.load(force: true)
         }
     }
 

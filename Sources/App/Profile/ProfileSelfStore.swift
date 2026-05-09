@@ -56,6 +56,48 @@ final class ProfileSelfStore: ObservableObject {
         }
     }
 
+    func refresh() async {
+        #if DEBUG
+        if isUITesting { return }
+        #endif
+        guard let authUser = Auth.auth().currentUser else {
+            attach(authUser: nil)
+            return
+        }
+
+        let uid = authUser.uid
+        let db = Firestore.firestore()
+        do {
+            let userDoc = try await db.collection("users").document(uid).getDocument()
+            let filterDocs = try await db.collection("filters")
+                .whereField("authorUid", isEqualTo: uid)
+                .order(by: "createdAt", descending: true)
+                .limit(to: 50)
+                .getDocuments()
+            let savedDocs = try await db.collection("users").document(uid)
+                .collection("savedFilters")
+                .order(by: "savedAt", descending: true)
+                .limit(to: 100)
+                .getDocuments()
+            let captureDocs = try await db.collection("users").document(uid)
+                .collection("captures")
+                .order(by: "createdAt", descending: true)
+                .limit(to: 100)
+                .getDocuments()
+
+            myFilters = filterDocs.documents.compactMap { FirestoreFilterRepository.decode($0) }
+            savedFilterIDs = savedDocs.documents.map(\.documentID)
+            captureIDs = captureDocs.documents.map(\.documentID)
+            currentUserProfile = Self.buildBaseline(
+                authUser: authUser,
+                doc: userDoc.data(),
+                filterCount: myFilters.count
+            )
+        } catch {
+            // Listener가 계속 살아 있으므로 manual refresh 실패는 기존 화면 상태를 유지한다.
+        }
+    }
+
     private func attach(authUser: User?) {
         myFiltersListener?.remove()
         savedListener?.remove()
