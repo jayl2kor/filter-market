@@ -177,7 +177,7 @@ public enum FMColors {
             dark: UIColor(rgb: 0x5FB37C, alpha: 0.16)
         )
         public static let warning = Color(
-            light: UIColor(rgb: 0xA66B0F),
+            light: UIColor(rgb: 0x8B5E1F),
             dark: UIColor(rgb: 0xD9A441)
         )
         public static let warningBg = Color(

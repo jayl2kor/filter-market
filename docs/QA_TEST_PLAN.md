@@ -140,6 +140,17 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 
 ---
 
+## 3.12 Dark Mode Token Contrast
+
+**자동 검증**: `AppTests/FMColorsContrastTests`는 `FMColors`의 light/dark resolved color를 `UITraitCollection`으로 평가해 WCAG 대비 기준을 검증한다.
+
+| # | Token group | Coverage | PASS/FAIL |
+|---|-------------|----------|-----------|
+| 3.12.1 | Text tokens | `primary` 4.5:1 이상, `secondary`/`tertiary` 3.0:1 이상을 `bg0`~`bg3` light/dark에서 검증 |  |
+| 3.12.2 | Accent/Semantic tokens | `accent.primary` 3.0:1 이상, `success`/`warning`/`error`/`info` 4.5:1 이상을 `bg0`/`bg2` light/dark에서 검증 |  |
+
+---
+
 ## 4. Marketplace (루트 탭)
 
 **도달 경로**: 로그인 후 탭바 1번째
