@@ -70,10 +70,9 @@ const suite = describe(
       // Seed a filter doc owned by MAKER_UID via the privileged admin path so
       // collection-level rules don't block setup.
       await env.withSecurityRulesDisabled(async (ctx) => {
-        await ctx
-          .firestore()
-          .doc(`filters/${FILTER_ID}`)
-          .set({ authorUid: MAKER_UID, useCount: 0 });
+        const db = ctx.firestore();
+        await db.doc(`filters/${FILTER_ID}`).set({ authorUid: MAKER_UID, useCount: 0 });
+        await db.doc(`users/${AUTHOR_UID}/savedFilters/${FILTER_ID}`).set({ filterId: FILTER_ID });
       });
     });
 
@@ -96,6 +95,9 @@ const suite = describe(
     it("rejects a second review for the same (uid, filterId)", async () => {
       // First write under a fresh author to avoid coupling to test ordering.
       const dupUid = "u-dup";
+      await env.withSecurityRulesDisabled(async (admin) => {
+        await admin.firestore().doc(`users/${dupUid}/savedFilters/${FILTER_ID}`).set({ filterId: FILTER_ID });
+      });
       const ctx = env.authenticatedContext(dupUid);
       await assertSucceeds(
         ctx
@@ -127,11 +129,37 @@ const suite = describe(
 
     it("rejects a review with stars out of range", async () => {
       const ctx = env.authenticatedContext("u-stars");
+      await env.withSecurityRulesDisabled(async (admin) => {
+        await admin.firestore().doc(`users/u-stars/savedFilters/${FILTER_ID}`).set({ filterId: FILTER_ID });
+      });
       await assertFails(
         ctx
           .firestore()
           .doc(`filters/${FILTER_ID}/reviews/u-stars`)
           .set(reviewDoc({ authorUid: "u-stars", stars: 7 }))
+      );
+    });
+
+    it("rejects review creation before the user downloads or buys the filter", async () => {
+      const ctx = env.authenticatedContext("u-not-downloaded");
+      await assertFails(
+        ctx
+          .firestore()
+          .doc(`filters/${FILTER_ID}/reviews/u-not-downloaded`)
+          .set(reviewDoc({ authorUid: "u-not-downloaded" }))
+      );
+    });
+
+    it("rejects maker self-review creation even with a saved filter edge", async () => {
+      await env.withSecurityRulesDisabled(async (admin) => {
+        await admin.firestore().doc(`users/${MAKER_UID}/savedFilters/${FILTER_ID}`).set({ filterId: FILTER_ID });
+      });
+      const maker = env.authenticatedContext(MAKER_UID);
+      await assertFails(
+        maker
+          .firestore()
+          .doc(`filters/${FILTER_ID}/reviews/${MAKER_UID}`)
+          .set(reviewDoc({ authorUid: MAKER_UID }))
       );
     });
 

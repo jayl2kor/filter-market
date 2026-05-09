@@ -16,6 +16,7 @@ export {
   uploadInit,
   uploadFinalize,
   reviewImageUploadInit,
+  submitReview,
   submitForReview,
   recordUse,
   getFilterDetail,

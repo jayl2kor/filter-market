@@ -5,7 +5,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { applyGetFilterDetail, applyReviewImageUploadInit } from "../lib/http/filters.js";
+import { applyGetFilterDetail, applyReviewImageUploadInit, applySubmitReview } from "../lib/http/filters.js";
 
 function makeFakeFirestore(initialDocs = {}) {
   const data = new Map(Object.entries(initialDocs));
@@ -18,8 +18,22 @@ function makeFakeFirestore(initialDocs = {}) {
         exists: record !== undefined,
         id: path.split("/").at(-1),
         ref: docRef(path),
+        get(field) { return record?.[field]; },
         data: () => record,
       };
+    },
+    async set(record, options = {}) {
+      const current = data.get(path) ?? {};
+      data.set(path, options.merge ? { ...current, ...record } : record);
+    },
+    async update(record) {
+      const current = data.get(path);
+      if (current === undefined) {
+        const error = new Error(`missing document: ${path}`);
+        error.code = 5;
+        throw error;
+      }
+      data.set(path, { ...current, ...record });
     },
   });
   const collectionRef = (path) => ({
@@ -44,6 +58,7 @@ function makeFakeFirestore(initialDocs = {}) {
     },
   });
   return {
+    _data: data,
     collection(name) { return collectionRef(name); },
   };
 }
@@ -315,6 +330,90 @@ describe("applyReviewImageUploadInit", () => {
         },
       ),
       (err) => err && err.code === "not-found",
+    );
+  });
+});
+
+describe("applySubmitReview", () => {
+  it("creates a verified review when the user has downloaded the filter", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/abc-123": {
+        status: "approved",
+        authorUid: "maker-1",
+      },
+      "users/u-reviewer/savedFilters/abc-123": {
+        filterId: "abc-123",
+      },
+      "users/u-reviewer": {
+        displayName: "Hana",
+        handle: "hana.film",
+      },
+    });
+
+    const result = await applySubmitReview(
+      "u-reviewer",
+      {
+        filterId: "abc-123",
+        stars: 5,
+        body: "따뜻한 톤이 마음에 들어요.",
+        photoUrl: "https://cdn.test/review.jpg",
+        photoObjectKey: "reviews/abc-123/u-reviewer/review.jpg",
+      },
+      { firestore },
+    );
+
+    assert.deepEqual(result, {
+      ok: true,
+      filterId: "abc-123",
+      reviewId: "u-reviewer",
+      isVerifiedDownload: true,
+    });
+    const saved = firestore._data.get("filters/abc-123/reviews/u-reviewer");
+    assert.equal(saved.authorUid, "u-reviewer");
+    assert.equal(saved.authorDisplayName, "Hana");
+    assert.equal(saved.authorHandle, "@hana.film");
+    assert.equal(saved.stars, 5);
+    assert.equal(saved.body, "따뜻한 톤이 마음에 들어요.");
+    assert.equal(saved.isVerifiedDownload, true);
+    assert.equal(saved.photoUrl, "https://cdn.test/review.jpg");
+  });
+
+  it("rejects reviews without a download, entitlement, or active Pro", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/abc-123": {
+        status: "approved",
+        authorUid: "maker-1",
+      },
+    });
+
+    await assert.rejects(
+      () => applySubmitReview(
+        "u-reviewer",
+        { filterId: "abc-123", stars: 4, body: "다운로드 없이 작성" },
+        { firestore },
+      ),
+      (err) => err && err.code === "failed-precondition" && /download_required/.test(err.message),
+    );
+  });
+
+  it("rejects maker self reviews", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/abc-123": {
+        status: "approved",
+        authorUid: "maker-1",
+      },
+      "users/maker-1/savedFilters/abc-123": {
+        filterId: "abc-123",
+      },
+    });
+
+    await assert.rejects(
+      () => applySubmitReview(
+        "maker-1",
+        { filterId: "abc-123", stars: 5, body: "내 필터 리뷰" },
+        { firestore },
+      ),
+      (err) => err && err.code === "failed-precondition" && /maker_cannot_review/.test(err.message),
     );
   });
 });

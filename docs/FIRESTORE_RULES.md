@@ -191,17 +191,24 @@ match /filters/{filterId}/ratings/{raterUid} {
 }
 ```
 
-#### `filters/{filterId}/comments/{commentId}` — 댓글
+#### `filters/{filterId}/reviews/{authorUid}` — 리뷰
 
 ```javascript
-match /filters/{filterId}/comments/{commentId} {
-  allow read: if resource.data.status == 'visible' || isModerator();
-  allow create: if isAuthenticated() && validComment(request.resource.data);
-  allow update: if isOwner(resource.data.authorUid)
-    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body','updatedAt']);
-  allow delete: if isOwner(resource.data.authorUid) || isModerator();
+match /filters/{filterId}/reviews/{authorUid} {
+  allow read: if true;
+  allow create: if isOwner(authorUid)
+    && hasReviewEntitlement(filterId)
+    && !isFilterMaker(filterId)
+    && validReviewCreate(request.resource.data, filterId);
+  allow update: if (isOwner(authorUid) && validReviewSelfUpdate(request.resource.data))
+    || (isAuthenticated() && validHelpfulChange(request.resource.data))
+    || (isAuthenticated() && validMakerReplyAttach(request.resource.data, filterId));
+  allow delete: if isOwner(authorUid) || isModerator();
 }
 ```
+
+프로덕션 작성 경로는 `submitReview` callable이다. 클라이언트 direct create는 동일 정책으로 방어만 하며,
+다운로드 이력은 `users/{uid}/savedFilters/{filterId}`, `entitlements/{filterId}`, 또는 active Pro 상태 중 하나로 인정한다.
 
 #### `filters/{filterId}/likes/{uid}` — 좋아요
 

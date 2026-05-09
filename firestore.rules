@@ -35,6 +35,17 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/filters/$(filterId))
         && get(/databases/$(database)/documents/filters/$(filterId)).data.authorUid == request.auth.uid;
     }
+    function hasReviewEntitlement(filterId) {
+      return isAuthenticated()
+        && (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)/savedFilters/$(filterId))
+          || exists(/databases/$(database)/documents/users/$(request.auth.uid)/entitlements/$(filterId))
+          || (
+            exists(/databases/$(database)/documents/users/$(request.auth.uid)/proStatus/status)
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)/proStatus/status).data.active == true
+          )
+        );
+    }
     function isValidString(field, minLen, maxLen) {
       return field is string && field.size() >= minLen && field.size() <= maxLen;
     }
@@ -45,8 +56,10 @@ service cloud.firestore {
       return d.keys().hasAll(['filterId','authorUid','authorHandle','stars','body','isVerifiedDownload','helpfulCount','createdAt'])
         && d.filterId == filterId
         && d.authorUid == request.auth.uid
+        && hasReviewEntitlement(filterId)
+        && !isFilterMaker(filterId)
         && d.stars is int && d.stars >= 1 && d.stars <= 5
-        && isValidString(d.body, 1, 280)
+        && isValidString(d.body, 1, 500)
         && (!('intensity' in d) || (d.intensity is int && d.intensity >= 0 && d.intensity <= 100))
         && d.helpfulCount == 0
         && (!('makerReply' in d) || d.makerReply == null);
@@ -59,7 +72,7 @@ service cloud.firestore {
       let changed = d.diff(resource.data).affectedKeys();
       return changed.hasOnly(mutable)
         && d.stars is int && d.stars >= 1 && d.stars <= 5
-        && isValidString(d.body, 1, 280);
+        && isValidString(d.body, 1, 500);
     }
 
     function validHelpfulChange(d) {

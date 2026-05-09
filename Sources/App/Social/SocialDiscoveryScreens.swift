@@ -874,7 +874,7 @@ struct ReviewComposeScreen: View {
         }
     }
 
-    /// Firestore /filters/{filterID}/reviews/{uid}에 리뷰 작성/수정 (#26, #175).
+    /// Cloud Function submitReview를 통해 다운로드/구매 이력이 검증된 리뷰만 작성/수정한다 (#64).
     /// 실패 시 화면 유지 + haptic 에러; 성공 시 dismiss.
     private func submitReview() async {
         guard !isSubmitting else { return }
@@ -905,40 +905,17 @@ struct ReviewComposeScreen: View {
         defer { isSubmitting = false }
         do {
             let upload = try await uploadAttachedImageIfNeeded(uid: uid)
-            let reviewDocumentID = initialReview?.id ?? uid
-            let reviewRef = Firestore.firestore()
-                .collection("filters").document(filterID)
-                .collection("reviews").document(reviewDocumentID)
-            if initialReview != nil {
-                var payload: [String: Any] = [
-                    "body": body,
-                    "stars": rating,
-                    "updatedAt": FieldValue.serverTimestamp(),
-                ]
-                if let upload {
-                    payload["photoUrl"] = upload.publicURL.absoluteString
-                }
-                try await reviewRef.updateData(payload)
-            } else {
-                var payload: [String: Any] = [
-                    "authorUid": uid,
-                    "authorHandle": reviewAuthorHandle(uid: uid),
-                    "authorDisplayName": reviewAuthorDisplayName(uid: uid),
-                    "authorName": reviewAuthorDisplayName(uid: uid),
-                    "body": body,
-                    "filterId": filterID,
-                    "stars": rating,
-                    "status": "active",
-                    "isVerifiedDownload": false,
-                    "helpfulCount": 0,
-                    "createdAt": FieldValue.serverTimestamp(),
-                ]
-                if let upload {
-                    payload["photoUrl"] = upload.publicURL.absoluteString
-                    payload["photoObjectKey"] = upload.objectKey
-                }
-                try await reviewRef.setData(payload)
+            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("submitReview")
+            var payload: [String: Any] = [
+                "filterId": filterID,
+                "stars": rating,
+                "body": body,
+            ]
+            if let upload {
+                payload["photoUrl"] = upload.publicURL.absoluteString
+                payload["photoObjectKey"] = upload.objectKey
             }
+            _ = try await callable.call(payload)
             FMHaptic.success.play()
             dismiss()
         } catch {

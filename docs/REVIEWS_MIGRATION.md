@@ -62,7 +62,7 @@ Review
 ├── authorHandle: String  (e.g. "@minji.lab")
 ├── authorAvatar: URL?
 ├── stars: Int (1...5)
-├── body: String (최대 280자)
+├── body: String (앱 입력 제한 280자, 서버/Rules 상한 500자)
 ├── photoUrl: URL? (선택 — 이 필터로 찍은 사진 1장)
 ├── intensity: Int? (선택 — 0...100, 사용한 강도)
 ├── lightingTag: LightingTag? (선택 — 카페 / 야외 / 실내 / 야경)
@@ -76,7 +76,7 @@ Review
 
 ### 2.2 작성 규칙
 
-- **다운로드 후만 작성 가능** — `isVerifiedDownload = true` 표시.
+- **다운로드 후만 작성 가능** — `submitReview` callable이 `savedFilters`, `entitlements`, active Pro 상태를 검증하고 `isVerifiedDownload = true`로 작성.
 - **1인 1리뷰** — 수정 가능, 삭제 가능.
 - **별점 필수**, 본문 / 사진 / 강도 / 조명 태그 모두 선택.
 - **메이커 답글 1회** — 자기 자신은 리뷰 작성 불가.

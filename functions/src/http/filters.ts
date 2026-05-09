@@ -253,6 +253,14 @@ const reviewImageUploadInitSchema = z.object({
   imageBytes: z.number().int().min(1).max(2_500_000),
 });
 
+const submitReviewSchema = z.object({
+  filterId: z.string().min(1).max(128),
+  stars: z.number().int().min(1).max(5),
+  body: z.string().trim().min(5).max(500),
+  photoUrl: z.string().url().optional(),
+  photoObjectKey: z.string().min(1).max(512).optional(),
+});
+
 export interface ReviewImageUploadInitDeps {
   firestore?: Firestore;
   publicBaseURL?: string;
@@ -330,6 +338,111 @@ export const reviewImageUploadInit = onCall(
   async (req: CallableRequest) => {
     const uid = requireAuth(req);
     return applyReviewImageUploadInit(uid, req.data);
+  },
+);
+
+export interface SubmitReviewDeps {
+  firestore?: Firestore;
+}
+
+export interface SubmitReviewResult {
+  ok: true;
+  filterId: string;
+  reviewId: string;
+  isVerifiedDownload: boolean;
+}
+
+async function hasReviewEntitlement(db: Firestore, uid: string, filterId: string): Promise<boolean> {
+  const [savedSnap, entitlementSnap, proSnap] = await Promise.all([
+    db.collection("users").doc(uid).collection("savedFilters").doc(filterId).get(),
+    db.collection("users").doc(uid).collection("entitlements").doc(filterId).get(),
+    db.collection("users").doc(uid).collection("proStatus").doc("status").get(),
+  ]);
+  return savedSnap.exists ||
+    entitlementSnap.exists ||
+    (proSnap.data()?.active as boolean | undefined) === true;
+}
+
+function filterAuthorUid(data: Record<string, unknown>): string | null {
+  const direct = data.authorUid;
+  if (typeof direct === "string" && direct.length > 0) return direct;
+  const author = data.author as { uid?: unknown } | undefined;
+  return typeof author?.uid === "string" && author.uid.length > 0 ? author.uid : null;
+}
+
+export async function applySubmitReview(
+  uid: string,
+  rawData: unknown,
+  deps: SubmitReviewDeps = {},
+): Promise<SubmitReviewResult> {
+  const parsed = submitReviewSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId, stars, body, photoUrl, photoObjectKey } = parsed.data;
+  const db = deps.firestore ?? getFirestore();
+  const filterRef = db.collection("filters").doc(filterId);
+  const filterSnap = await filterRef.get();
+  if (!filterSnap.exists) {
+    throw new HttpsError("not-found", `filter ${filterId} not found`);
+  }
+  const filterData = filterSnap.data() ?? {};
+  if (filterData.status !== "approved") {
+    throw new HttpsError("failed-precondition", "filter_not_available");
+  }
+  if (filterAuthorUid(filterData) === uid) {
+    throw new HttpsError("failed-precondition", "maker_cannot_review_own_filter");
+  }
+  const isVerifiedDownload = await hasReviewEntitlement(db, uid, filterId);
+  if (!isVerifiedDownload) {
+    throw new HttpsError("failed-precondition", "download_required");
+  }
+
+  const profileSnap = await db.collection("users").doc(uid).get();
+  const profile = profileSnap.data() ?? {};
+  const handle = typeof profile.handle === "string" && profile.handle.length > 0
+    ? `@${profile.handle.replace(/^@+/, "")}`
+    : `@${uid.slice(0, 8)}`;
+  const displayName = typeof profile.displayName === "string" && profile.displayName.length > 0
+    ? profile.displayName
+    : handle;
+
+  const reviewRef = filterRef.collection("reviews").doc(uid);
+  const reviewSnap = await reviewRef.get();
+  const basePayload: Record<string, unknown> = {
+    body,
+    stars,
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+  if (photoUrl) basePayload.photoUrl = photoUrl;
+  if (photoObjectKey) basePayload.photoObjectKey = photoObjectKey;
+
+  if (reviewSnap.exists) {
+    await reviewRef.update(basePayload);
+  } else {
+    await reviewRef.set({
+      ...basePayload,
+      filterId,
+      authorUid: uid,
+      authorHandle: handle,
+      authorDisplayName: displayName,
+      authorName: displayName,
+      status: "active",
+      isVerifiedDownload: true,
+      helpfulCount: 0,
+      flagCount: 0,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  }
+
+  return { ok: true, filterId, reviewId: uid, isVerifiedDownload };
+}
+
+export const submitReview = onCall(
+  { region, cors: true, enforceAppCheck: true },
+  async (req: CallableRequest) => {
+    const uid = requireAuth(req);
+    return applySubmitReview(uid, req.data);
   },
 );
 
