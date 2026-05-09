@@ -143,17 +143,22 @@ public struct FMFilterTile: View {
     }
 
     private var infoBlock: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: Sp.xxs) {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .top, spacing: Sp.xxs) {
                 if let hint = data.categoryHint {
                     Circle()
                         .fill(hint)
                         .frame(width: 6, height: 6)
+                        .padding(.top, 6)
                 }
                 Text(data.title)
                     .fmTypography(.subhead)
+                    .fontWeight(.semibold)
                     .foregroundStyle(.white)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.9)
+                    .truncationMode(.tail)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             HStack(spacing: Sp.xxs) {
                 Text(data.makerName)
@@ -171,8 +176,10 @@ public struct FMFilterTile: View {
                     .foregroundStyle(.white.opacity(0.78))
                     .fmCounter()
             }
+            .lineLimit(1)
         }
         .padding(Sp.sm)
+        .frame(maxWidth: .infinity, minHeight: 58, alignment: .bottomLeading)
     }
 }
 
