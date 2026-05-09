@@ -17,6 +17,7 @@ struct SavedScreen: View {
     @State private var category: SavedCategory = .all
     @State private var isEditing = false
     @State private var selectedFilterIDs: Set<Filter.ID> = []
+    @State private var isRefreshing = false
 
     private let columns = [
         GridItem(.flexible(), spacing: Sp.sm),
@@ -59,8 +60,7 @@ struct SavedScreen: View {
                 if isLoading {
                     skeletonGrid
                 } else if store.libraryFilters.isEmpty {
-                    FMEmptyState(.emptyDownloads)
-                        .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+                    emptyDownloadsScroll
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: Sp.md) {
@@ -82,6 +82,9 @@ struct SavedScreen: View {
                         .padding(.bottom, FMLayout.tabBarHeight + Sp.xxl)
                     }
                 }
+            }
+            .refreshable {
+                await refreshSavedFilters()
             }
             .background(FMColors.Background.bg1)
             .navigationTitle("저장됨")
@@ -207,6 +210,15 @@ struct SavedScreen: View {
         .frame(maxWidth: .infinity)
     }
 
+    private var emptyDownloadsScroll: some View {
+        ScrollView {
+            FMEmptyState(.emptyDownloads)
+                .frame(maxWidth: .infinity)
+                .padding(.top, Sp.xxl)
+                .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+    }
+
     @ViewBuilder
     private func savedTile(_ filter: Filter) -> some View {
         let isSelected = selectedFilterIDs.contains(filter.id)
@@ -260,6 +272,13 @@ struct SavedScreen: View {
         selectedFilterIDs.removeAll()
         isEditing = false
         FMHaptic.success.play()
+    }
+
+    private func refreshSavedFilters() async {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+        await store.load(force: true)
     }
 
     private var skeletonGrid: some View {
