@@ -8,6 +8,7 @@ struct PaywallSingleScreen: View {
     let filterID: String
 
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var walletStore: WalletStore
     @Environment(\.dismiss) private var dismiss
 
@@ -165,7 +166,7 @@ struct PaywallSingleScreen: View {
             isProcessing = true
             defer { isProcessing = false }
             do {
-                if let filter = store.filter(matching: filterID) {
+                if let filter = filterLibraryStore.filter(matching: filterID) {
                     try await store.download(filter)
                 } else {
                     try await store.download(filterID: filterID)
@@ -194,7 +195,7 @@ struct PaywallSingleScreen: View {
             _ = try await callable.call(["filterId": filterID])
             // (#31) 구매 성공 → 자동 다운로드 마크 + 잔액 차감 (낙관적). filterAfterDownload로 이동.
             walletStore.creditCoinsOptimistically(-priceCoins)  // 음수 가산으로 차감
-            if let filter = store.filter(matching: filterID) {
+            if let filter = filterLibraryStore.filter(matching: filterID) {
                 try? await store.download(filter)
             }
             Telemetry.log(.filterPurchaseSucceeded, parameters: ["filter_id": filterID, "price_coins": priceCoins])
@@ -1290,6 +1291,7 @@ struct WalletTransactionsScreen: View {
 
 struct InsufficientBalanceScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var walletStore: WalletStore
     @Environment(\.dismiss) private var dismiss
 
@@ -1409,7 +1411,7 @@ struct InsufficientBalanceScreen: View {
             let callable = Functions.functions(region: "asia-northeast3").httpsCallable("purchaseFilter")
             _ = try await callable.call(["filterId": filterID])
             walletStore.creditCoinsOptimistically(-requiredCoins)
-            if let filter = store.filter(matching: filterID) {
+            if let filter = filterLibraryStore.filter(matching: filterID) {
                 try? await store.download(filter)
             } else {
                 try? await store.download(filterID: filterID)
