@@ -34,6 +34,7 @@ public struct FilteredPhoto: Equatable, Sendable {
 
 public enum PhotoCropAspectRatio: String, CaseIterable, Hashable, Identifiable, Sendable {
     case square
+    case fourFive
     case fourThree
     case sixteenNine
 
@@ -45,6 +46,8 @@ public enum PhotoCropAspectRatio: String, CaseIterable, Hashable, Identifiable, 
         switch self {
         case .square:
             "1:1"
+        case .fourFive:
+            "4:5"
         case .fourThree:
             "4:3"
         case .sixteenNine:
@@ -56,6 +59,8 @@ public enum PhotoCropAspectRatio: String, CaseIterable, Hashable, Identifiable, 
         let landscapeAspectRatio: CGFloat = switch self {
         case .square:
             1
+        case .fourFive:
+            5.0 / 4.0
         case .fourThree:
             4.0 / 3.0
         case .sixteenNine:

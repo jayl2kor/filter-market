@@ -623,6 +623,7 @@ struct CameraAspectPickerScreen: View {
     private func previewAspect(_ ratio: PhotoCropAspectRatio) -> CGFloat {
         switch ratio {
         case .square: 1
+        case .fourFive: 4.0 / 5.0
         case .fourThree: 4.0 / 3.0
         case .sixteenNine: 16.0 / 9.0
         }
@@ -631,6 +632,7 @@ struct CameraAspectPickerScreen: View {
     private func aspectDescription(_ ratio: PhotoCropAspectRatio) -> String {
         switch ratio {
         case .square: "프로필과 컬렉션 커버에 적합"
+        case .fourFive: "세로 피드와 인물 사진에 적합"
         case .fourThree: "기본 카메라 사진에 적합"
         case .sixteenNine: "스토리와 가로 장면에 적합"
         }
@@ -639,6 +641,7 @@ struct CameraAspectPickerScreen: View {
     private func aspectIdentifier(_ ratio: PhotoCropAspectRatio) -> String {
         switch ratio {
         case .square: "1_1"
+        case .fourFive: "4_5"
         case .fourThree: "4_3"
         case .sixteenNine: "16_9"
         }

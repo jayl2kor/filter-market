@@ -89,6 +89,10 @@ final class PhotoFilterRendererTests: XCTestCase {
             3.0 / 4.0
         )
         XCTAssertEqual(
+            PhotoCropAspectRatio.fourFive.targetAspectRatio(for: CGSize(width: 400, height: 700)),
+            4.0 / 5.0
+        )
+        XCTAssertEqual(
             PhotoCropAspectRatio.sixteenNine.targetAspectRatio(for: CGSize(width: 900, height: 1600)),
             9.0 / 16.0
         )

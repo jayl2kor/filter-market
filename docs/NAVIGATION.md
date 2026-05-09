@@ -289,7 +289,7 @@ graph TD
 | `camera.openLibrary` | 갤러리 | navigate | `AppRoute.photoImport` | `if:perm.photos.granted` |
 | `camera.flip` | 전후면 | mutate-state | — | — |
 | `camera.flash` | 플래시 | mutate-state | — | — |
-| `camera.aspectRatio` | 비율 | navigate | `AppRoute.cameraAspect` | — |
+| `camera.aspectRatio` | 비율 chip strip | mutate-state | `store.cameraAspectRatio` | 1:1 / 4:5 / 4:3 / 16:9, viewfinder mask 즉시 반영 |
 | `camera.zoom.*` | 0.5x/1x/3x | mutate-state | — | — |
 | `camera.timer` | 타이머 | navigate | `AppRoute.cameraTimer` | — |
 | `camera.filter.*` | 필터 선택 | mutate-state | — | — |
@@ -396,6 +396,7 @@ graph TD
 | Action ID | Label | Type | Target |
 |---|---|---|---|
 | `cam.aspect.set.1_1` | 1:1 | dismiss + mutate-state | `03-camera-live.html` |
+| `cam.aspect.set.4_5` | 4:5 | dismiss + mutate-state | `03-camera-live.html` |
 | `cam.aspect.set.4_3` | 4:3 | dismiss + mutate-state | `03-camera-live.html` |
 | `cam.aspect.set.16_9` | 16:9 | dismiss + mutate-state | `03-camera-live.html` |
 | `cam.timer.set.off` | OFF | dismiss + mutate-state | `03-camera-live.html` |

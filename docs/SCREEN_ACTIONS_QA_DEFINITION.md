@@ -90,7 +90,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 |---|---|---|---|---|
 | `camera.live` | `tab.shutter`, UI test route | `CameraScreen` | Partial, Blocked on real device | `camera.dismiss`, `camera.flip`, `camera.aspectRatio`, `camera.timer`, `camera.grid.toggle`, `camera.flash`, `camera.filterIntensity`, `camera.filter.*`, `camera.openLibrary`, `camera.shutter`, `camera.zoom.*` |
 | `camera.capturePreview` | after shutter | `CapturePreviewScreen` | Partial, Blocked on camera | `preview.dismiss`, `preview.more`, `preview.more.info`, `preview.more.changeFilter`, `preview.more.copyMetadata`, `preview.retake`, `preview.changeFilter`, `preview.edit`, `preview.discard`, `preview.save` (Photos save + `/users/{uid}/captures` metadata), `preview.share` |
-| `camera.aspect` | `AppRoute.cameraAspect` | `CameraAspectPickerScreen` | Implemented | `cam.aspect.set.1_1`, `cam.aspect.set.4_3`, `cam.aspect.set.16_9` |
+| `camera.aspect` | `AppRoute.cameraAspect` | `CameraAspectPickerScreen` | Implemented | `cam.aspect.set.1_1`, `cam.aspect.set.4_5`, `cam.aspect.set.4_3`, `cam.aspect.set.16_9` |
 | `camera.timer` | `AppRoute.cameraTimer` | `CameraTimerCountdownScreen` | Implemented | `cam.timer.set.off`, `cam.timer.set.3`, `cam.timer.set.10`, `cam.timer.cancel` |
 | `photo.import` | `AppRoute.photoImport` | `PhotoImportScreen` | Partial, Blocked on photos permission | `photo.import.cell.tap`, `photo.import.next` |
 | `photo.edit` | `AppRoute.photoEdit` | `PhotoEditScreen` | Partial | `photo.edit.filter.tap`, `photo.edit.filter.*`, `photo.edit.intensity`, `photo.edit.done`, `photo.edit.save_share` |

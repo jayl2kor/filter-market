@@ -414,7 +414,7 @@ extension AppRoute {
 
     var subtitle: String {
         switch self {
-        case .cameraAspect: "1:1, 4:3, 16:9 촬영 가이드를 선택합니다."
+        case .cameraAspect: "1:1, 4:5, 4:3, 16:9 촬영 가이드를 선택합니다."
         case .cameraTimer: "OFF, 3초, 5초, 10초 타이머를 선택하고 카운트다운을 시작합니다."
         case .photoImport: "사진 접근 권한 이후 후보정할 이미지를 선택합니다."
         case .photoEdit: "필터와 강도를 조정하고 저장 또는 공유합니다."
@@ -470,6 +470,7 @@ extension AppRoute {
         case .cameraAspect:
             [
                 .init("cam.aspect.set.1_1", "1:1 선택", systemImage: "square"),
+                .init("cam.aspect.set.4_5", "4:5 선택", systemImage: "rectangle.portrait"),
                 .init("cam.aspect.set.4_3", "4:3 선택", systemImage: "rectangle"),
                 .init("cam.aspect.set.16_9", "16:9 선택", systemImage: "rectangle.compress.vertical")
             ]

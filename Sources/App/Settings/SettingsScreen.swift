@@ -9,6 +9,7 @@ import UIKit
 /// 카메라 기본 비율 picker.
 enum SettingsAspectRatio: String, CaseIterable, Identifiable, Hashable {
     case square = "1:1"
+    case fourFive = "4:5"
     case fourThree = "4:3"
     case sixteenNine = "16:9"
     case full = "풀스크린"

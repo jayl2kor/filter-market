@@ -59,6 +59,7 @@ final class PhaseAE2ETests: XCTestCase {
     func testAspectAndTimerConfigurationScreens() {
         launch(route: "cameraAspect")
         tap("cam.aspect.set.1_1", timeout: 4)
+        tap("cam.aspect.set.4_5")
         tap("cam.aspect.set.16_9")
         tap("cam.aspect.set.4_3")
 

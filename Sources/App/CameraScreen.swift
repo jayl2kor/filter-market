@@ -100,6 +100,9 @@ struct CameraScreen: View {
                         .padding(.horizontal, Sp.md)
                         .padding(.top, Sp.sm)
 
+                    aspectRatioMenu
+                        .padding(.top, Sp.xs)
+
                     Spacer(minLength: 0)
 
                     bottomStack
@@ -258,7 +261,6 @@ struct CameraScreen: View {
                 timerButton
                 gridButton
                 flashMenu
-                aspectRatioMenu
                 frostedIconButton(systemName: "camera.rotate", label: "전후면 전환") {
                     FMHaptic.light.play()
                     Task { await controller.switchCamera() }
@@ -284,36 +286,61 @@ struct CameraScreen: View {
     }
 
     private var aspectRatioMenu: some View {
-        Menu {
-            ForEach(PhotoCropAspectRatio.allCases) { aspectRatio in
-                Button {
-                    FMHaptic.selection.play()
-                    store.cameraAspectRatio = aspectRatio
-                    controller.setCropAspectRatio(aspectRatio)
-                } label: {
-                    if aspectRatio == store.cameraAspectRatio {
-                        Label(aspectRatio.label, systemImage: "checkmark")
-                    } else {
-                        Text(aspectRatio.label)
-                    }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Sp.xs) {
+                ForEach(PhotoCropAspectRatio.allCases) { aspectRatio in
+                    aspectRatioChip(aspectRatio)
                 }
             }
-        } label: {
-            Text(store.cameraAspectRatio.label)
-                .font(.cameraOverlayCaption)
-                .tracking(0.3)
-                .foregroundStyle(FMColors.Text.inverse)
-                .frame(minWidth: 44, minHeight: 44)
-                .padding(.horizontal, Sp.xs)
-                .background(Color.black.opacity(0.64), in: Capsule())
-                .overlay {
-                    Capsule()
-                        .strokeBorder(Color.white.opacity(0.28), lineWidth: 1)
-                }
-                .colorScheme(.dark)
+            .padding(.horizontal, Sp.md)
         }
         .accessibilityIdentifier("camera.aspectRatio")
-        .accessibilityLabel("비율 \(store.cameraAspectRatio.label)")
+        .accessibilityElement(children: .contain)
+    }
+
+    private func aspectRatioChip(_ aspectRatio: PhotoCropAspectRatio) -> some View {
+        let isSelected = aspectRatio == store.cameraAspectRatio
+        return Button {
+            selectAspectRatio(aspectRatio)
+        } label: {
+            Text(aspectRatio.label)
+                .font(.cameraOverlayCaption)
+                .tracking(0.3)
+                .foregroundStyle(isSelected ? FMColors.Text.inverse : Color.white.opacity(0.88))
+                .frame(minWidth: 52, minHeight: 36)
+                .padding(.horizontal, Sp.xs)
+                .background(
+                    isSelected ? FMColors.Accent.primary.opacity(0.92) : Color.black.opacity(0.54),
+                    in: Capsule()
+                )
+                .overlay {
+                    Capsule()
+                        .strokeBorder(isSelected ? Color.white.opacity(0.24) : Color.white.opacity(0.28), lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("camera.aspectRatio.\(aspectIdentifier(aspectRatio))")
+        .accessibilityLabel("비율 \(aspectRatio.label) 선택")
+        .accessibilityValue(isSelected ? "현재 비율" : "선택 안 됨")
+        .accessibilityHint("뷰파인더의 비율을 변경합니다")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .colorScheme(.dark)
+    }
+
+    private func selectAspectRatio(_ aspectRatio: PhotoCropAspectRatio) {
+        guard store.cameraAspectRatio != aspectRatio else { return }
+        FMHaptic.light.play()
+        store.cameraAspectRatio = aspectRatio
+        controller.setCropAspectRatio(aspectRatio)
+    }
+
+    private func aspectIdentifier(_ aspectRatio: PhotoCropAspectRatio) -> String {
+        switch aspectRatio {
+        case .square: "1_1"
+        case .fourFive: "4_5"
+        case .fourThree: "4_3"
+        case .sixteenNine: "16_9"
+        }
     }
 
     private var timerButton: some View {
@@ -607,6 +634,7 @@ struct CameraScreen: View {
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: controller.cropAspectRatio)
     }
 
     private func cameraGridLine(width: CGFloat, height: CGFloat) -> some View {

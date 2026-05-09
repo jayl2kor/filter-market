@@ -299,7 +299,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | # | Element (ID) | Expected action | PASS/FAIL |
 |---|---|-----------------|-----------|
 | 7.1 | X 닫기 (`camera.dismiss`) | dismiss (cover로 띄웠을 때만 표시) |  |
-| 7.2 | aspect ratio 메뉴 (`camera.aspectRatio`) | 1:1/4:3/16:9 선택, 체크마크 표시 |  |
+| 7.2 | aspect ratio chip strip (`camera.aspectRatio`) | 1:1/4:5/4:3/16:9 chip이 동일 height/spacing/corner radius로 표시, active는 accent fill, inactive는 outline. 선택 시 viewfinder mask가 200ms 이내 반영되고 Reduce Motion에서는 즉시 반영 |  |
 | 7.3 | timer 메뉴 (`camera.timer`) | OFF/3s/10s 선택 |  |
 | 7.4 | grid 토글 (`camera.grid.toggle`) | 그리드 라인 표시/숨김 |  |
 | 7.5 | flash 메뉴 (`camera.flash`) | OFF/AUTO/ON 선택 |  |
@@ -340,8 +340,9 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | # | ID | Expected | PASS/FAIL |
 |---|---|---|---|
 | 7.x.1 | `cam.aspect.set.1_1` | aspect = .square |  |
-| 7.x.2 | `cam.aspect.set.4_3` | aspect = .fourThree |  |
-| 7.x.3 | `cam.aspect.set.16_9` | aspect = .sixteenNine |  |
+| 7.x.2 | `cam.aspect.set.4_5` | aspect = .fourFive |  |
+| 7.x.3 | `cam.aspect.set.4_3` | aspect = .fourThree |  |
+| 7.x.4 | `cam.aspect.set.16_9` | aspect = .sixteenNine |  |
 
 ### 7.y CameraTimerCountdownScreen — `AppRoute.cameraTimer`
 | # | ID | Expected | PASS/FAIL |
