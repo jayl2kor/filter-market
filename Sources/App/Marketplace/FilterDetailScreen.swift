@@ -20,6 +20,8 @@ struct FilterDetailScreen: View {
     private let onRefresh: (() async -> Void)?
 
     @State private var sliderProgress: CGFloat = 0.5
+    @State private var isBeforeAfterDragging = false
+    @GestureState private var isBeforeAfterPressed = false
     @State private var downloadState: DownloadState = .ready
     @State private var downloadTask: Task<Void, Never>?
     @State private var downloadErrorMessage: String?
@@ -127,29 +129,31 @@ struct FilterDetailScreen: View {
                 beforeHeroLayer
 
                 // AFTER — mock 의 카테고리 색을 반영한 그라디언트
-                LinearGradient(
-                    colors: [
-                        mock.categoryHint.opacity(0.55),
-                        Color.black.opacity(0.7)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .overlay {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 36, weight: .light))
-                        .foregroundStyle(.white.opacity(0.9))
-                }
-                .mask(alignment: .leading) {
-                    Rectangle()
-                        .frame(width: max(0, geo.size.width * sliderProgress))
-                }
-                .overlay {
+                if !isBeforeAfterPressed {
                     LinearGradient(
-                        colors: [.clear, Color.black.opacity(0.25)],
-                        startPoint: .top,
-                        endPoint: .bottom
+                        colors: [
+                            mock.categoryHint.opacity(0.55),
+                            Color.black.opacity(0.7)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
+                    .overlay {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 36, weight: .light))
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
+                    .mask(alignment: .leading) {
+                        Rectangle()
+                            .frame(width: max(0, geo.size.width * sliderProgress))
+                    }
+                    .overlay {
+                        LinearGradient(
+                            colors: [.clear, Color.black.opacity(0.25)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
                 }
 
                 // 라벨
@@ -184,13 +188,23 @@ struct FilterDetailScreen: View {
                     .onChanged { drag in
                         let raw = drag.location.x / max(1, geo.size.width)
                         sliderProgress = min(1, max(0, raw))
+                        isBeforeAfterDragging = true
+                    }
+                    .onEnded { _ in
+                        isBeforeAfterDragging = false
+                    }
+            )
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.28)
+                    .updating($isBeforeAfterPressed) { value, state, _ in
+                        state = value
                     }
             )
         }
         .aspectRatio(4.0/5.0, contentMode: .fit)
         .accessibilityElement()
         .accessibilityLabel("비포/애프터 슬라이더")
-        .accessibilityValue("\(Int(sliderProgress * 100))%")
+        .accessibilityValue("비포 비율 \(Int((1 - sliderProgress) * 100))%, 애프터 비율 \(Int(sliderProgress * 100))%")
         .accessibilityAdjustableAction { direction in
             let step: CGFloat = 0.05
             switch direction {
@@ -238,23 +252,41 @@ struct FilterDetailScreen: View {
 
     private func handle(in size: CGSize) -> some View {
         let x = max(0, min(size.width, size.width * sliderProgress))
+        let y = size.height / 2
+        let popoverX = min(max(x, 88), max(88, size.width - 88))
         return ZStack {
             Rectangle()
                 .fill(.white)
                 .frame(width: 2)
                 .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 0)
+                .position(x: x, y: y)
 
             Circle()
                 .fill(.white)
-                .frame(width: 36, height: 36)
+                .frame(width: 44, height: 44)
                 .overlay {
                     Image(systemName: "arrow.left.and.right")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(FMColors.Text.primary)
                 }
                 .shadow(color: Color.black.opacity(0.25), radius: 4, x: 0, y: 2)
+                .position(x: x, y: y)
+
+            if isBeforeAfterDragging || isBeforeAfterPressed {
+                Text(isBeforeAfterPressed ? "원본 비교" : "애프터 \(Int(sliderProgress * 100))%")
+                    .font(.system(size: 12, weight: .bold).monospacedDigit())
+                    .foregroundStyle(FMColors.Text.primary)
+                    .padding(.horizontal, Sp.sm)
+                    .padding(.vertical, 7)
+                    .background(.regularMaterial, in: Capsule())
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(Color.white.opacity(0.4), lineWidth: 1)
+                    }
+                    .position(x: popoverX, y: max(30, y - 58))
+                    .accessibilityHidden(true)
+            }
         }
-        .position(x: x, y: size.height / 2)
     }
 
     // MARK: - Maker

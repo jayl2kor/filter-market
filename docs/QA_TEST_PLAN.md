@@ -184,9 +184,10 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 |---|---------|-----------------|-----------|
 | 5.1 | ← Back (좌상단) | dismiss |  |
 | 5.2 | Share 아이콘 (우상단, `filter.detail.share`) | UIActivityViewController 시트 표시 (제목 + URL `https://moodit.app/f/<slug>`) |  |
-| 5.3 | Before/After 슬라이더 | 드래그 → sliderProgress 갱신 (0~1) |  |
-| 5.4 | Before/After 접근성 increment | 5%씩 증가 |  |
+| 5.3 | Before/After 슬라이더 | 드래그 → sliderProgress 갱신 (0~1), 44pt 핸들 + 진행률 말풍선으로 손가락 가림을 완화 |  |
+| 5.4 | Before/After 접근성 increment | VoiceOver adjustable action으로 5%씩 증가, value는 비포/애프터 비율을 함께 읽음 |  |
 | 5.5 | Before/After 접근성 decrement | 5%씩 감소 |  |
+| 5.5a | Before/After 롱프레스 | 누르고 있는 동안 원본 비교 상태로 전환되고 "원본 비교" 말풍선 표시 |  |
 | 5.6 | 메이커 핸들 (@jisoo.films) | → AppRoute.otherProfile(uid:) |  |
 | 5.7 | "팔로우" 버튼 | isFollowing 토글 → "팔로잉"으로 변경 |  |
 | 5.8 | "팔로잉" 버튼 | isFollowing 토글 → "팔로우"로 변경 |  |
