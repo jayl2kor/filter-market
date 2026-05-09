@@ -31,6 +31,9 @@ struct SearchScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var store: MooditStore
     @State private var query: String = ""
+    @State private var debouncedQuery: String = ""
+    @State private var isSearchDebouncing = false
+    @State private var searchDebounceTask: Task<Void, Never>?
     // (#39) 사용자별 최근 검색어 — UserDefaults 영속화. 신규 사용자는 빈 배열에서 시작.
     @State private var recentSearches: [String] = []
     @State private var recentSearchesStorageKey: String = ""
@@ -48,6 +51,7 @@ struct SearchScreen: View {
     init(initialQuery: String? = nil, initialCategory: String? = nil) {
         let query = initialQuery ?? initialCategory ?? ""
         self._query = State(initialValue: query)
+        self._debouncedQuery = State(initialValue: query)
         self._phase = State(initialValue: query.isEmpty ? .browsing : .results)
         self.initialCategory = initialCategory
     }
@@ -70,6 +74,9 @@ struct SearchScreen: View {
                 .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
             }
             .scrollDismissesKeyboard(.interactively)
+            .refreshable {
+                await refreshSearchResults()
+            }
         }
         .background(FMColors.Background.bg0)
         .toolbar(.hidden, for: .navigationBar)
@@ -86,14 +93,13 @@ struct SearchScreen: View {
             refreshPopularMakers(from: filters)
         }
         .onChange(of: query) { _, newValue in
-            if newValue.isEmpty {
-                phase = .browsing
-            } else if phase != .results {
-                phase = .typing
-            }
+            scheduleDebouncedSearch(for: newValue)
         }
         .onChange(of: store.isAuthenticated) { _, _ in
             loadRecentSearches()
+        }
+        .onDisappear {
+            searchDebounceTask?.cancel()
         }
     }
 
@@ -108,6 +114,9 @@ struct SearchScreen: View {
             .focused($isFieldFocused)
             .onSubmit {
                 guard !query.isEmpty else { return }
+                searchDebounceTask?.cancel()
+                debouncedQuery = query
+                isSearchDebouncing = false
                 phase = .results
                 rememberSearch(query)
             }
@@ -383,6 +392,19 @@ struct SearchScreen: View {
                         }
                     }
                 }
+
+                if isSearchDebouncing {
+                    HStack(spacing: Sp.xs) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("검색 결과를 갱신하고 있어요.")
+                            .fmTypography(.subhead)
+                            .foregroundStyle(FMColors.Text.tertiary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, Sp.md)
+                    .accessibilityIdentifier("search.debouncing")
+                }
             }
             .padding(.horizontal, Sp.md)
             .padding(.vertical, Sp.md)
@@ -462,8 +484,9 @@ struct SearchScreen: View {
     }
 
     private var filteredFilters: [Filter] {
-        guard !query.isEmpty else { return [] }
-        let normalized = normalizedSearchToken(query)
+        let searchQuery = activeSearchQuery
+        guard !searchQuery.isEmpty else { return [] }
+        let normalized = normalizedSearchToken(searchQuery)
         // 컬렉션 분기는 카테고리 필터로만 — 결과 비어있으면 FMEmptyState(.noSearchResults).
         if let initialCategory, initialCategory == "컬렉션" {
             return store.newFiltersList
@@ -478,9 +501,14 @@ struct SearchScreen: View {
     }
 
     private var filteredMakers: [PopularMaker] {
-        guard !query.isEmpty else { return [] }
-        let lower = normalizedSearchToken(query)
+        let searchQuery = activeSearchQuery
+        guard !searchQuery.isEmpty else { return [] }
+        let lower = normalizedSearchToken(searchQuery)
         return cachedPopularMakers.filter { $0.handle.lowercased().contains(lower) }
+    }
+
+    private var activeSearchQuery: String {
+        phase == .typing ? debouncedQuery : query
     }
 
     private static func computePopularMakers(from filters: [Filter]) -> [PopularMaker] {
@@ -534,10 +562,39 @@ struct SearchScreen: View {
     }
 
     private func cancelSearch() {
+        searchDebounceTask?.cancel()
         withAnimation(.fmFast) {
             query = ""
+            debouncedQuery = ""
+            isSearchDebouncing = false
             phase = .browsing
         }
+    }
+
+    private func scheduleDebouncedSearch(for newValue: String) {
+        searchDebounceTask?.cancel()
+        let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            debouncedQuery = ""
+            isSearchDebouncing = false
+            phase = .browsing
+            return
+        }
+
+        phase = .typing
+        isSearchDebouncing = true
+        searchDebounceTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            guard !Task.isCancelled, query == newValue else { return }
+            debouncedQuery = newValue
+            isSearchDebouncing = false
+        }
+    }
+
+    private func refreshSearchResults() async {
+        guard phase == .results else { return }
+        await store.load(force: true)
+        debouncedQuery = query
     }
 
     private func rememberSearch(_ term: String) {
