@@ -599,11 +599,12 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 13.3.8 | `.reportForm(target:)` | 사유 picker | NSFW/저작권/스팸/폭력/기타 |  |
 | 13.3.9 | `.reportForm(target:)` | 제출 | target별 callable(`reportFilter`/`reportReview`/`reportUser`) 호출 후 receipt + dismiss |  |
 | 13.3.10 | `.filterRejected(id:)` | 고객지원 (?) | mailto:support@moodit.app |  |
-| 13.3.11 | `.filterRejected(id:)` | 거부 사유 list | 표시 only |  |
+| 13.3.11 | `.filterRejected(id:)` | 거부 사유 list | 운영자 사유/메모 표시, body text selection으로 복사 가능 |  |
 | 13.3.12 | `.filterRejected(id:)` | 검수 결과 확인 | 모달 |  |
-| 13.3.13 | `.filterRejected(id:)` | 에디터 수정 | → editor |  |
+| 13.3.13 | `.filterRejected(id:)` | `mod.rejected.edit` | "재편집 후 재제출" → editor |  |
 | 13.3.14 | `.filterRejected(id:)` | 이의 제기 | external link |  |
-| 13.3.15 | `.filterRejected(id:)` | 상세로 돌아가기 | → filterDetail(id:) |  |
+| 13.3.15 | `.filterRejected(id:)` | `mod.rejected.policy` | 48시간 재심사, 24시간 재제출 제한 가능성, 이의 제기 안내 표시 |  |
+| 13.3.16 | `.filterRejected(id:)` | `mod.rejected.delete` | destructive confirmation 후 삭제/dismiss |  |
 
 ---
 

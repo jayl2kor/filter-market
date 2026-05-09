@@ -12,6 +12,7 @@ struct FilterRejectedScreen: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @State private var showDeleteConfirm = false
 
     private var data: RejectionData { RejectionData.mock(forID: filterID) }
 
@@ -24,6 +25,7 @@ struct FilterRejectedScreen: View {
                     reasonsSection
                     moderatorNote
                     timelineSection
+                    policySection
                     appealLink
                 }
                 .padding(Sp.md)
@@ -37,15 +39,25 @@ struct FilterRejectedScreen: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    if let url = URL(string: "mailto:support@moodit.app?subject=Filter%20Rejection%20Question") {
-                        openURL(url)
-                    }
+                    contactSupport()
                 } label: {
                     Image(systemName: "questionmark.circle")
                 }
                 .accessibilityLabel("고객지원")
                 .accessibilityIdentifier("mod.rejected.support")
             }
+        }
+        .fmConfirmationDialog(
+            "필터를 삭제할까요?",
+            isPresented: $showDeleteConfirm
+        ) {
+            Button("필터 삭제", role: .destructive) {
+                FMHaptic.warning.play()
+                dismiss()
+            }
+            Button("계속 보기", role: .cancel) {}
+        } message: {
+            Text("삭제하면 이 거절 항목과 이어 작성하던 초안으로 돌아갈 수 없어요.")
         }
     }
 
@@ -194,6 +206,7 @@ struct FilterRejectedScreen: View {
                     .fmTypography(.subhead)
                     .foregroundStyle(FMColors.Text.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
             }
 
             Spacer(minLength: 0)
@@ -223,6 +236,7 @@ struct FilterRejectedScreen: View {
                 .fmTypography(.subhead)
                 .foregroundStyle(FMColors.Text.primary)
                 .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Sp.md)
@@ -235,6 +249,43 @@ struct FilterRejectedScreen: View {
                 .frame(width: 3)
         }
         .clipShape(RoundedRectangle(cornerRadius: R.md))
+    }
+
+    // MARK: - Policy
+
+    private var policySection: some View {
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            Text("다음 단계")
+                .fmTypography(.callout)
+                .fontWeight(.bold)
+                .foregroundStyle(FMColors.Text.primary)
+
+            VStack(alignment: .leading, spacing: Sp.xs) {
+                policyRow("재제출하면 다시 처음부터 심사가 진행되며 보통 48시간 이내 결과가 도착해요.")
+                policyRow("같은 항목을 반복 제출하면 24시간 재제출 제한이 걸릴 수 있어요.")
+                policyRow("결과에 이의가 있다면 고객센터로 사유와 필터 ID를 함께 보내주세요.")
+            }
+            .padding(Sp.md)
+            .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+            .overlay {
+                RoundedRectangle(cornerRadius: R.md)
+                    .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+            }
+        }
+        .accessibilityIdentifier("mod.rejected.policy")
+    }
+
+    private func policyRow(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: Sp.xs) {
+            Image(systemName: "info.circle.fill")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(FMColors.Semantic.info)
+                .padding(.top, 2)
+            Text(text)
+                .fmTypography(.subhead)
+                .foregroundStyle(FMColors.Text.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     // MARK: - Timeline
@@ -311,16 +362,11 @@ struct FilterRejectedScreen: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack(spacing: Sp.xs) {
-            FMButton("취소", variant: .secondary, size: .lg) {
-                dismiss()
-            }
-            .accessibilityIdentifier("mod.rejected.cancel")
-
+        VStack(spacing: Sp.xs) {
             NavigationLink(value: AppRoute.editor) {
                 HStack(spacing: Sp.xs) {
                     Image(systemName: "slider.horizontal.3")
-                    Text("에디터에서 수정")
+                    Text("재편집 후 재제출")
                         .fmTypography(.callout)
                         .fontWeight(.semibold)
                 }
@@ -331,6 +377,18 @@ struct FilterRejectedScreen: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("mod.rejected.edit")
+
+            HStack(spacing: Sp.xs) {
+                FMButton("고객센터 문의", icon: "envelope", variant: .secondary, size: .lg) {
+                    contactSupport()
+                }
+                .accessibilityIdentifier("mod.rejected.support.footer")
+
+                FMButton("필터 삭제", icon: "trash", variant: .destructive, size: .lg) {
+                    showDeleteConfirm = true
+                }
+                .accessibilityIdentifier("mod.rejected.delete")
+            }
         }
         .padding(.horizontal, Sp.md)
         .padding(.top, Sp.md)
@@ -340,6 +398,12 @@ struct FilterRejectedScreen: View {
             Rectangle()
                 .fill(FMColors.Border.subtle)
                 .frame(height: 1)
+        }
+    }
+
+    private func contactSupport() {
+        if let url = URL(string: "mailto:support@moodit.app?subject=Filter%20Rejection%20Question") {
+            openURL(url)
         }
     }
 }
