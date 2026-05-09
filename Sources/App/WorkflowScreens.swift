@@ -2236,30 +2236,27 @@ struct EditorParametersScreen: View {
         FMCard {
             VStack(spacing: Sp.md) {
                 ForEach(parameters, id: \.self) { key in
-                    VStack(alignment: .leading, spacing: Sp.xs) {
-                        HStack {
-                            Text(parameterTitle(key))
-                                .fmTypography(.body)
-                                .foregroundStyle(FMColors.Text.primary)
-                            Spacer()
-                            Text("\(Int((store.editorDraft.parameterValues[key] ?? 0) * 100))")
-                                .fmTypography(.caption)
-                                .foregroundStyle(FMColors.Text.tertiary)
-                        }
-                        Slider(
-                            value: Binding(
-                                get: { store.editorDraft.parameterValues[key] ?? 0 },
-                                set: { store.updateEditorParameter(key, value: $0) }
-                            ),
-                            in: -1...1
-                        )
-                        .tint(FMColors.Accent.primary)
-                        .accessibilityIdentifier("editor.param.slider.\(key)")
-                    }
+                    FMSlider(
+                        value: Binding(
+                            get: { store.editorDraft.parameterValues[key] ?? 0 },
+                            set: { store.updateEditorParameter(key, value: $0) }
+                        ),
+                        range: -1...1,
+                        label: parameterTitle(key),
+                        valueFormatter: parameterValueLabel
+                    )
+                    .accessibilityIdentifier("editor.param.slider.\(key)")
                 }
             }
             .accessibilityIdentifier("editor.param.slider")
         }
+    }
+
+    private func parameterValueLabel(_ value: Double) -> String {
+        if abs(value) < 0.0001 {
+            return "원본"
+        }
+        return String(format: "%+.2f", value)
     }
 
     private var compareCard: some View {
