@@ -16,7 +16,7 @@ struct LoginScreen: View {
     @State private var externalURL: ExternalURL?
     @State private var navigateToEmailLogin = false
     @Environment(\.colorScheme) private var colorScheme
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var sessionStore: SessionStore
 
     /// 인증 성공 콜백. 현재는 호출되지 않으나 향후 `AuthState` 변경 트리거로 연결 예정.
     var onAuthenticated: (() -> Void)?
@@ -375,7 +375,7 @@ struct LoginScreen: View {
     @MainActor
     private func completeAuthentication() {
         if Auth.auth().currentUser == nil {
-            store.setLocalAuthenticationFallback(true)
+            sessionStore.setLocalAuthenticationFallback(true)
         }
         loadingProvider = nil
         FMHaptic.success.play()
@@ -398,14 +398,17 @@ struct LoginScreen: View {
 
 #Preview("LoginScreen — Light") {
     LoginScreen()
+        .environmentObject(SessionStore())
 }
 
 #Preview("LoginScreen — Dark") {
     LoginScreen()
+        .environmentObject(SessionStore())
         .preferredColorScheme(.dark)
 }
 
 #Preview("LoginScreen — XXXLarge") {
     LoginScreen()
+        .environmentObject(SessionStore())
         .dynamicTypeSize(.xxxLarge)
 }
