@@ -697,6 +697,25 @@ const listSamplesSchema = z.object({
   cursor: z.string().min(1).max(512).optional(),
 });
 
+const reviewActionSchema = z.object({
+  filterId: z.string().min(1).max(128),
+  reviewId: z.string().min(1).max(128),
+});
+
+const markReviewHelpfulSchema = reviewActionSchema.extend({
+  helpful: z.boolean(),
+});
+
+const removeSampleSchema = z.object({
+  filterId: z.string().min(1).max(128),
+  sampleId: z.string().min(1).max(128),
+});
+
+const toggleFilterLikeSchema = z.object({
+  filterId: z.string().min(1).max(128),
+  liked: z.boolean(),
+});
+
 export interface GetFilterDetailDeps {
   firestore?: Firestore;
   presignGetURL?: (objectKey: string) => Promise<{ url: string; expiresAt: number }>;
@@ -767,6 +786,28 @@ export interface ListSamplesResult {
   nextCursor: string | null;
 }
 
+export interface ReviewActionResult {
+  ok: true;
+  filterId: string;
+  reviewId: string;
+}
+
+export interface MarkReviewHelpfulResult extends ReviewActionResult {
+  helpful: boolean;
+}
+
+export interface RemoveSampleResult {
+  ok: true;
+  filterId: string;
+  sampleId: string;
+}
+
+export interface ToggleFilterLikeResult {
+  ok: true;
+  filterId: string;
+  liked: boolean;
+}
+
 interface PageCursor {
   id: string;
   createdAt: number | null;
@@ -814,6 +855,12 @@ function pageStartIndex<T extends { id: string }>(items: T[], cursor: PageCursor
   if (!cursor) return 0;
   const index = items.findIndex((item) => item.id === cursor.id);
   return index >= 0 ? index + 1 : 0;
+}
+
+function stableEdgeID(...parts: string[]): string {
+  return parts.join("_")
+    .replace(/[^A-Za-z0-9_-]/g, "_")
+    .slice(0, 256);
 }
 
 function nextPageCursor<T extends { id: string; createdAt: number | null }>(
@@ -1061,6 +1108,152 @@ export async function applyListSamples(
 export const listSamples = onCall(
   { region, cors: true, enforceAppCheck: true },
   async (req: CallableRequest) => applyListSamples(req.data),
+);
+
+export async function applyDeleteReview(
+  uid: string,
+  rawData: unknown,
+  deps: { firestore?: Firestore } = {},
+): Promise<ReviewActionResult> {
+  const parsed = reviewActionSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId, reviewId } = parsed.data;
+  const db = deps.firestore ?? getFirestore();
+  const filterSnap = await requireApprovedFilter(db, filterId);
+  const reviewRef = filterSnap.ref.collection("reviews").doc(reviewId);
+  const reviewSnap = await reviewRef.get();
+  if (!reviewSnap.exists) {
+    throw new HttpsError("not-found", "review_not_found");
+  }
+  if (reviewSnap.data()?.authorUid !== uid) {
+    throw new HttpsError("permission-denied", "not_review_owner");
+  }
+  await reviewRef.delete();
+  return { ok: true, filterId, reviewId };
+}
+
+export const deleteReview = onCall(
+  { region, cors: true, enforceAppCheck: true },
+  async (req: CallableRequest) => {
+    const uid = requireAuth(req);
+    return applyDeleteReview(uid, req.data);
+  },
+);
+
+export async function applyMarkReviewHelpful(
+  uid: string,
+  rawData: unknown,
+  deps: { firestore?: Firestore } = {},
+): Promise<MarkReviewHelpfulResult> {
+  const parsed = markReviewHelpfulSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId, reviewId, helpful } = parsed.data;
+  const db = deps.firestore ?? getFirestore();
+  const filterSnap = await requireApprovedFilter(db, filterId);
+  const reviewRef = filterSnap.ref.collection("reviews").doc(reviewId);
+  const reviewSnap = await reviewRef.get();
+  if (!reviewSnap.exists) {
+    throw new HttpsError("not-found", "review_not_found");
+  }
+  const reviewData = reviewSnap.data() ?? {};
+  const status = (reviewData.status as string | undefined) ?? "active";
+  if (status !== "active" && status !== "published") {
+    throw new HttpsError("failed-precondition", "review_not_visible");
+  }
+  if (reviewData.authorUid === uid) {
+    throw new HttpsError("failed-precondition", "cannot_mark_own_review_helpful");
+  }
+
+  const edgeID = stableEdgeID(filterId, reviewId);
+  const edgeRef = db.collection("users").doc(uid).collection("reviewHelpful").doc(edgeID);
+  const edgeSnap = await edgeRef.get();
+  if (helpful && !edgeSnap.exists) {
+    await reviewRef.update({ helpfulCount: FieldValue.increment(1) });
+    await edgeRef.set({
+      filterId,
+      reviewId,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  } else if (!helpful && edgeSnap.exists) {
+    await reviewRef.update({ helpfulCount: FieldValue.increment(-1) });
+    await edgeRef.delete();
+  }
+  return { ok: true, filterId, reviewId, helpful };
+}
+
+export const markReviewHelpful = onCall(
+  { region, cors: true, enforceAppCheck: true },
+  async (req: CallableRequest) => {
+    const uid = requireAuth(req);
+    return applyMarkReviewHelpful(uid, req.data);
+  },
+);
+
+export async function applyRemoveSample(
+  uid: string,
+  rawData: unknown,
+  deps: { firestore?: Firestore } = {},
+): Promise<RemoveSampleResult> {
+  const parsed = removeSampleSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId, sampleId } = parsed.data;
+  const db = deps.firestore ?? getFirestore();
+  const filterSnap = await requireApprovedFilter(db, filterId);
+  const filterData = filterSnap.data() ?? {};
+  const sampleRef = filterSnap.ref.collection("samples").doc(sampleId);
+  const sampleSnap = await sampleRef.get();
+  if (!sampleSnap.exists) {
+    throw new HttpsError("not-found", "sample_not_found");
+  }
+  const sampleAuthorUid = sampleSnap.data()?.authorUid;
+  if (sampleAuthorUid !== uid && filterAuthorUid(filterData) !== uid) {
+    throw new HttpsError("permission-denied", "not_sample_owner_or_filter_owner");
+  }
+  await sampleRef.delete();
+  return { ok: true, filterId, sampleId };
+}
+
+export const removeSample = onCall(
+  { region, cors: true, enforceAppCheck: true },
+  async (req: CallableRequest) => {
+    const uid = requireAuth(req);
+    return applyRemoveSample(uid, req.data);
+  },
+);
+
+export async function applyToggleFilterLike(
+  uid: string,
+  rawData: unknown,
+  deps: { firestore?: Firestore } = {},
+): Promise<ToggleFilterLikeResult> {
+  const parsed = toggleFilterLikeSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId, liked } = parsed.data;
+  const db = deps.firestore ?? getFirestore();
+  const filterSnap = await requireApprovedFilter(db, filterId);
+  const likeRef = filterSnap.ref.collection("likes").doc(uid);
+  if (liked) {
+    await likeRef.set({ uid, createdAt: FieldValue.serverTimestamp() }, { merge: true });
+  } else {
+    await likeRef.delete();
+  }
+  return { ok: true, filterId, liked };
+}
+
+export const toggleFilterLike = onCall(
+  { region, cors: true, enforceAppCheck: true },
+  async (req: CallableRequest) => {
+    const uid = requireAuth(req);
+    return applyToggleFilterLike(uid, req.data);
+  },
 );
 
 /** POST /filters/{id}/report — see API_SPEC.md §5.6. */

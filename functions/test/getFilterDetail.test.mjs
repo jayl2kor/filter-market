@@ -7,12 +7,16 @@ import assert from "node:assert/strict";
 
 import {
   applyAddUserSample,
+  applyDeleteReview,
   applyGetFilterDetail,
   applyListReviews,
   applyListSamples,
+  applyMarkReviewHelpful,
+  applyRemoveSample,
   applyReviewImageUploadInit,
   applySampleImageUploadInit,
   applySubmitReview,
+  applyToggleFilterLike,
 } from "../lib/http/filters.js";
 
 function makeFakeFirestore(initialDocs = {}) {
@@ -42,6 +46,9 @@ function makeFakeFirestore(initialDocs = {}) {
         throw error;
       }
       data.set(path, { ...current, ...record });
+    },
+    async delete() {
+      data.delete(path);
     },
   });
   const collectionRef = (path) => ({
@@ -651,5 +658,134 @@ describe("listReviews and listSamples", () => {
       () => applyListSamples({ filterId: "missing" }, { firestore }),
       (err) => err && err.code === "not-found",
     );
+  });
+});
+
+describe("filter detail action callables", () => {
+  it("deletes only the current user's own review", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/abc-123": {
+        status: "approved",
+      },
+      "filters/abc-123/reviews/u-reviewer": {
+        authorUid: "u-reviewer",
+        status: "active",
+      },
+      "filters/abc-123/reviews/other": {
+        authorUid: "other",
+        status: "active",
+      },
+    });
+
+    const result = await applyDeleteReview(
+      "u-reviewer",
+      { filterId: "abc-123", reviewId: "u-reviewer" },
+      { firestore },
+    );
+
+    assert.deepEqual(result, { ok: true, filterId: "abc-123", reviewId: "u-reviewer" });
+    assert.equal(firestore._data.has("filters/abc-123/reviews/u-reviewer"), false);
+    await assert.rejects(
+      () => applyDeleteReview(
+        "u-reviewer",
+        { filterId: "abc-123", reviewId: "other" },
+        { firestore },
+      ),
+      (err) => err && err.code === "permission-denied",
+    );
+  });
+
+  it("marks and unmarks another user's review as helpful", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/abc-123": {
+        status: "approved",
+      },
+      "filters/abc-123/reviews/review-1": {
+        authorUid: "author-1",
+        status: "active",
+        helpfulCount: 0,
+      },
+    });
+
+    const mark = await applyMarkReviewHelpful(
+      "u-reader",
+      { filterId: "abc-123", reviewId: "review-1", helpful: true },
+      { firestore },
+    );
+
+    assert.equal(mark.helpful, true);
+    assert.equal(firestore._data.has("users/u-reader/reviewHelpful/abc-123_review-1"), true);
+
+    const unmark = await applyMarkReviewHelpful(
+      "u-reader",
+      { filterId: "abc-123", reviewId: "review-1", helpful: false },
+      { firestore },
+    );
+
+    assert.equal(unmark.helpful, false);
+    assert.equal(firestore._data.has("users/u-reader/reviewHelpful/abc-123_review-1"), false);
+    await assert.rejects(
+      () => applyMarkReviewHelpful(
+        "author-1",
+        { filterId: "abc-123", reviewId: "review-1", helpful: true },
+        { firestore },
+      ),
+      (err) => err && err.code === "failed-precondition" && /own_review/.test(err.message),
+    );
+  });
+
+  it("removes samples for the sample author or filter owner only", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/abc-123": {
+        status: "approved",
+        authorUid: "maker-1",
+      },
+      "filters/abc-123/samples/sample-1": {
+        authorUid: "u-sample",
+        kind: "user",
+      },
+      "filters/abc-123/samples/sample-2": {
+        authorUid: "u-sample",
+        kind: "user",
+      },
+    });
+
+    await applyRemoveSample(
+      "u-sample",
+      { filterId: "abc-123", sampleId: "sample-1" },
+      { firestore },
+    );
+    assert.equal(firestore._data.has("filters/abc-123/samples/sample-1"), false);
+
+    await applyRemoveSample(
+      "maker-1",
+      { filterId: "abc-123", sampleId: "sample-2" },
+      { firestore },
+    );
+    assert.equal(firestore._data.has("filters/abc-123/samples/sample-2"), false);
+  });
+
+  it("toggles a filter like idempotently", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/abc-123": {
+        status: "approved",
+      },
+    });
+
+    const liked = await applyToggleFilterLike(
+      "u-reader",
+      { filterId: "abc-123", liked: true },
+      { firestore },
+    );
+    assert.equal(liked.liked, true);
+    assert.equal(firestore._data.get("filters/abc-123/likes/u-reader").uid, "u-reader");
+
+    const unliked = await applyToggleFilterLike(
+      "u-reader",
+      { filterId: "abc-123", liked: false },
+      { firestore },
+    );
+    assert.equal(unliked.liked, false);
+    assert.equal(firestore._data.has("filters/abc-123/likes/u-reader"), false);
   });
 });

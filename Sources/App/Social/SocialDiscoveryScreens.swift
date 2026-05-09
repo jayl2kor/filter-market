@@ -632,7 +632,7 @@ struct ReviewsListScreen: View {
             return
         }
         #endif
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard Auth.auth().currentUser?.uid != nil else {
             FMHaptic.warning.play()
             return
         }
@@ -644,40 +644,13 @@ struct ReviewsListScreen: View {
             helpfulIDs.insert(review.id)
         }
 
-        let filterID = filterID
-        let reviewID = review.id
-        let edgeID = helpfulEdgeID(reviewID: review.id)
-
         do {
-            _ = try await Task.detached(priority: .userInitiated) {
-                let db = Firestore.firestore()
-                let reviewRef = db.collection("filters").document(filterID)
-                    .collection("reviews").document(reviewID)
-                let edgeRef = db.collection("users").document(uid)
-                    .collection("reviewHelpful").document(edgeID)
-
-                _ = try await db.runTransaction { transaction, errorPointer in
-                    do {
-                        let edgeSnapshot = try transaction.getDocument(edgeRef)
-                        if wasHelpful {
-                            if edgeSnapshot.exists {
-                                transaction.updateData(["helpfulCount": FieldValue.increment(Int64(-1))], forDocument: reviewRef)
-                                transaction.deleteDocument(edgeRef)
-                            }
-                        } else if !edgeSnapshot.exists {
-                            transaction.updateData(["helpfulCount": FieldValue.increment(Int64(1))], forDocument: reviewRef)
-                            transaction.setData([
-                                "filterId": filterID,
-                                "reviewId": reviewID,
-                                "createdAt": FieldValue.serverTimestamp()
-                            ], forDocument: edgeRef)
-                        }
-                    } catch {
-                        errorPointer?.pointee = error as NSError
-                    }
-                    return nil
-                }
-            }.value
+            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("markReviewHelpful")
+            _ = try await callable.call([
+                "filterId": filterID,
+                "reviewId": review.id,
+                "helpful": !wasHelpful,
+            ])
             FMHaptic.success.play()
         } catch {
             if wasHelpful {
@@ -687,15 +660,6 @@ struct ReviewsListScreen: View {
             }
             FMHaptic.warning.play()
         }
-    }
-
-    private func helpfulEdgeID(reviewID: String) -> String {
-        "\(filterID)_\(reviewID)"
-            .map { character -> Character in
-                character.isLetter || character.isNumber || character == "-" || character == "_" ? character : "_"
-            }
-            .map(String.init)
-            .joined()
     }
 
     @MainActor
@@ -770,10 +734,11 @@ struct ReviewsListScreen: View {
         deletingReview = nil
 
         do {
-            try await Firestore.firestore()
-                .collection("filters").document(filterID)
-                .collection("reviews").document(review.id)
-                .delete()
+            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("deleteReview")
+            _ = try await callable.call([
+                "filterId": filterID,
+                "reviewId": review.id,
+            ])
             FMHaptic.success.play()
         } catch {
             rawReviews = previousRaw

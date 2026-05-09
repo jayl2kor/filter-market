@@ -1,7 +1,6 @@
 import DesignSystem
 import FirebaseAuth
 import FirebaseCore
-import FirebaseFirestore
 import FirebaseFunctions
 import FilterEngine
 import Models
@@ -870,24 +869,18 @@ struct FilterDetailScreen: View {
         Telemetry.trackAction(targetState ? "filter_liked" : "filter_unliked", screen: .filterDetail)
 
         guard FirebaseApp.app() != nil,
-              let uid = Auth.auth().currentUser?.uid,
+              Auth.auth().currentUser?.uid != nil,
               let sourceID = mock.sourceID
         else {
             return
         }
 
         do {
-            let ref = Firestore.firestore()
-                .collection("filters").document(sourceID)
-                .collection("likes").document(uid)
-            if targetState {
-                try await ref.setData([
-                    "uid": uid,
-                    "createdAt": FieldValue.serverTimestamp()
-                ], merge: true)
-            } else {
-                try await ref.delete()
-            }
+            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("toggleFilterLike")
+            _ = try await callable.call([
+                "filterId": sourceID,
+                "liked": targetState,
+            ])
         } catch {
             didLikeMockFilter.toggle()
             Telemetry.record(error: error, context: ["where": "FilterDetailScreen.toggleLike", "filter_id": sourceID])
