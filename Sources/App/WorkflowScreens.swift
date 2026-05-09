@@ -5252,7 +5252,7 @@ struct WalletTransactionsScreen: View {
                 } else if ledger.isLoading {
                     loadingView
                 } else {
-                    FMEmptyState(.emptyMarket)
+                    transactionEmptyState
                         .padding(.horizontal, Sp.md)
                         .accessibilityIdentifier("wallet.transactions.empty")
                 }
@@ -5286,10 +5286,12 @@ struct WalletTransactionsScreen: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Sp.xs) {
                 transactionFilterChip("전체", isSelected: selectedKind == nil) {
+                    FMHaptic.light.play()
                     selectedKind = nil
                 }
                 ForEach([WalletLedgerEntry.Kind.topup, .purchase, .refund, .bonus], id: \.self) { kind in
                     transactionFilterChip(label(for: kind), isSelected: selectedKind == kind) {
+                        FMHaptic.light.play()
                         selectedKind = kind
                     }
                 }
@@ -5303,14 +5305,71 @@ struct WalletTransactionsScreen: View {
     private func transactionFilterChip(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(Font.fmCaption)
-                .foregroundStyle(isSelected ? .white : FMColors.Text.secondary)
+                .font(isSelected ? Font.fmCaption.weight(.semibold) : Font.fmCaption)
+                .foregroundStyle(isSelected ? FMColors.Text.inverse : FMColors.Text.tertiary)
+                .lineLimit(1)
                 .padding(.horizontal, Sp.sm)
-                .padding(.vertical, 6)
-                .background(isSelected ? FMColors.Accent.primary : FMColors.Background.bg2)
-                .clipShape(Capsule())
+                .frame(minHeight: 32)
+                .background(isSelected ? FMColors.Accent.primary : Color.clear, in: Capsule())
+                .overlay {
+                    Capsule()
+                        .strokeBorder(isSelected ? Color.clear : FMColors.Border.default, lineWidth: 1)
+                }
         }
         .buttonStyle(.plain)
+        .accessibilityValue(isSelected ? "선택됨" : "선택 안 됨")
+    }
+
+    @ViewBuilder
+    private var transactionEmptyState: some View {
+        VStack(spacing: Sp.md) {
+            FMEmptyStateIllustration(.downloads, size: 96)
+                .frame(width: 96, height: 96)
+
+            VStack(spacing: Sp.xs) {
+                Text(selectedKind == nil ? "아직 거래 내역이 없어요" : "\(label(for: selectedKind ?? .unknown)) 내역이 없어요")
+                    .font(Font.fmHeadline)
+                    .foregroundStyle(FMColors.Text.primary)
+                    .multilineTextAlignment(.center)
+                Text(selectedKind == nil ? "코인을 충전하거나 필터를 구매하면 이곳에 기록돼요." : "다른 거래 유형을 선택하거나 전체 내역을 확인해 보세요.")
+                    .font(Font.fmBody)
+                    .foregroundStyle(FMColors.Text.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            if ledger.entries.isEmpty {
+                NavigationLink(value: AppRoute.walletTopup) {
+                    Text("코인 충전하기")
+                        .font(Font.fmCallout.weight(.semibold))
+                        .foregroundStyle(FMColors.Text.inverse)
+                        .frame(maxWidth: 240)
+                        .frame(height: 44)
+                        .background(FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("wallet.transactions.empty.topup")
+            } else {
+                Button {
+                    FMHaptic.light.play()
+                    selectedKind = nil
+                } label: {
+                    Text("전체 거래 보기")
+                        .font(Font.fmCallout.weight(.semibold))
+                        .foregroundStyle(FMColors.Accent.primary)
+                        .frame(maxWidth: 240)
+                        .frame(height: 44)
+                        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: R.md)
+                                .strokeBorder(FMColors.Border.default, lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("wallet.transactions.empty.clearFilter")
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, Sp.xxl)
     }
 
     @ViewBuilder
@@ -5353,6 +5412,7 @@ struct WalletTransactionsScreen: View {
             Spacer()
             Text(amountText(entry.amount))
                 .font(Font.fmHeadline)
+                .monospacedDigit()
                 .foregroundStyle(amountColor(entry.amount))
         }
         .padding(.vertical, Sp.xs)

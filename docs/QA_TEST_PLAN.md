@@ -565,6 +565,8 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 13.2.10 | `.walletTopup` | `wallet.topup.restore` | StoreKit restore purchase (sandbox/local StoreKit config 필요) |  |
 | 13.2.11 | `.walletTopup` | `wallet.topup.failed_demo` | → paymentFailed |  |
 | 13.2.11b | `.walletTopup` | 결제 성공 직후 잔액 | optimistic balance 표시 후 Firestore listener 또는 10초 fallback reload로 `/users/{uid}/wallet/balance.value`와 일치 |  |
+| 13.2.11c | `.walletTransactions` | `wallet.transactions.empty` | 전체 내역 없음: "아직 거래 내역이 없어요" + `wallet.transactions.empty.topup` CTA. 선택 필터만 없음: "전체 거래 보기" CTA로 필터 해제 |  |
+| 13.2.11d | `.walletTransactions` | `wallet.tx.filter.cat` | 전체/충전/사용/환불/보너스 segmented chips, active accent fill + inactive outline, 선택 시 haptic, VoiceOver selected value |  |
 | 13.2.12 | `.proSubscription` | `pro.plan.toggle` | 월간/연간 가격 표시 변경 |  |
 | 13.2.13 | `.proSubscription` | `pro.subscribe.com.jayl2kor.moodit.pro.monthly` | 월간 Pro StoreKit subscription (sandbox/local StoreKit config 필요) |  |
 | 13.2.14 | `.proSubscription` | `pro.subscribe.com.jayl2kor.moodit.pro.yearly` | 연간 Pro StoreKit subscription (sandbox/local StoreKit config 필요) |  |
