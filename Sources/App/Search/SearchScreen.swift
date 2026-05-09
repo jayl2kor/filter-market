@@ -28,6 +28,7 @@ struct PopularMaker: Identifiable, Sendable {
 /// Phase D3 — `mockups/screens/08-search.html` 와 정합.
 /// 헤더 + 입력 + 취소 / browsing(최근/추천/메이커) / typing(필터 + 메이커) / results(그리드 + 빈상태).
 struct SearchScreen: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var store: MooditStore
     @State private var query: String = ""
     // (#39) 사용자별 최근 검색어 — UserDefaults 영속화. 신규 사용자는 빈 배열에서 시작.
@@ -102,7 +103,7 @@ struct SearchScreen: View {
         HStack(spacing: Sp.xs) {
             FMTextField.search(
                 text: $query,
-                placeholder: "필터, 메이커, 분위기"
+                placeholder: "검색"
             )
             .focused($isFieldFocused)
             .onSubmit {
@@ -111,6 +112,7 @@ struct SearchScreen: View {
                 rememberSearch(query)
             }
             .frame(maxWidth: .infinity)
+            .layoutPriority(1)
 
             if !query.isEmpty || phase == .results {
                 Button {
@@ -120,11 +122,19 @@ struct SearchScreen: View {
                         .fmTypography(.callout)
                         .fontWeight(.semibold)
                         .foregroundStyle(FMColors.Accent.primary)
-                        .padding(.horizontal, Sp.xxs)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .frame(minWidth: 60, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("검색 취소")
-                .transition(.opacity.combined(with: .move(edge: .trailing)))
+                .transition(
+                    .fmReducible(
+                        .opacity.combined(with: .move(edge: .trailing)),
+                        reduceMotion: reduceMotion
+                    )
+                )
             }
         }
         .padding(.horizontal, Sp.md)
@@ -243,6 +253,8 @@ struct SearchScreen: View {
                         phase = .results
                         rememberSearch(stripped)
                     }
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                     .accessibilityIdentifier("search.suggested.\(keyword)")
                 }
             }
@@ -300,14 +312,19 @@ struct SearchScreen: View {
                     .fmTypography(.subhead)
                     .fontWeight(.semibold)
                     .foregroundStyle(FMColors.Text.primary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
                 Text("필터 \(maker.filterCount)")
-                    .font(.system(size: 10, weight: .regular))
+                    .fmTypography(.caption)
                     .foregroundStyle(FMColors.Text.tertiary)
+                    .lineLimit(1)
             }
-            .frame(width: 96)
+            .frame(width: 112)
+            .frame(minHeight: 116)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Typing (live)
@@ -586,41 +603,40 @@ private struct FlowLayout: Layout {
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
+        let maxWidth = proposal.width ?? 0
         var totalHeight: CGFloat = 0
-        var currentLineWidth: CGFloat = 0
-        var currentLineHeight: CGFloat = 0
+        var rowWidth: CGFloat = 0
+        var rowHeight: CGFloat = 0
 
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
-            if currentLineWidth + size.width > maxWidth, currentLineWidth > 0 {
-                totalHeight += currentLineHeight + lineSpacing
-                currentLineWidth = size.width + spacing
-                currentLineHeight = size.height
-            } else {
-                currentLineWidth += size.width + spacing
-                currentLineHeight = max(currentLineHeight, size.height)
+            if rowWidth > 0, rowWidth + spacing + size.width > maxWidth {
+                totalHeight += rowHeight + lineSpacing
+                rowWidth = 0
+                rowHeight = 0
             }
+            rowWidth += (rowWidth > 0 ? spacing : 0) + size.width
+            rowHeight = max(rowHeight, size.height)
         }
-        totalHeight += currentLineHeight
-        return CGSize(width: maxWidth.isFinite ? maxWidth : currentLineWidth, height: totalHeight)
+        totalHeight += rowHeight
+        return CGSize(width: maxWidth, height: totalHeight)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var x = bounds.minX
         var y = bounds.minY
-        var currentLineHeight: CGFloat = 0
+        var rowHeight: CGFloat = 0
 
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
             if x + size.width > bounds.maxX, x > bounds.minX {
                 x = bounds.minX
-                y += currentLineHeight + lineSpacing
-                currentLineHeight = 0
+                y += rowHeight + lineSpacing
+                rowHeight = 0
             }
             subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
             x += size.width + spacing
-            currentLineHeight = max(currentLineHeight, size.height)
+            rowHeight = max(rowHeight, size.height)
         }
     }
 }
