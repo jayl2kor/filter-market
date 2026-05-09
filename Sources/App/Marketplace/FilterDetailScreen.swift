@@ -477,6 +477,11 @@ struct FilterDetailScreen: View {
     }
 
     private var sampleItems: [FilterDetailSampleItem] {
+        let remoteSamples = mock.samples.map { FilterDetailSampleItem.remote($0) }
+        if !remoteSamples.isEmpty {
+            return remoteSamples
+        }
+
         var items: [FilterDetailSampleItem] = []
         if let signatureURL = mock.signatureSampleURL ?? mock.coverURL {
             items.append(.signature(url: signatureURL))
@@ -801,6 +806,7 @@ struct FilterDetailScreen: View {
 private struct FilterDetailSampleItem: Identifiable, Equatable {
     enum Kind: Equatable {
         case signature(URL)
+        case remote(FilterDetailMock.Sample)
         case reference(EditorReferenceSampleKind)
     }
 
@@ -810,6 +816,8 @@ private struct FilterDetailSampleItem: Identifiable, Equatable {
         switch kind {
         case .signature(let url):
             "signature-\(url.absoluteString)"
+        case .remote(let sample):
+            "remote-\(sample.id)"
         case .reference(let sampleKind):
             "reference-\(sampleKind.rawValue)"
         }
@@ -819,6 +827,8 @@ private struct FilterDetailSampleItem: Identifiable, Equatable {
         switch kind {
         case .signature:
             "시그니처"
+        case .remote(let sample):
+            sample.title
         case .reference(let sampleKind):
             sampleKind.title
         }
@@ -826,6 +836,10 @@ private struct FilterDetailSampleItem: Identifiable, Equatable {
 
     static func signature(url: URL) -> FilterDetailSampleItem {
         FilterDetailSampleItem(kind: .signature(url))
+    }
+
+    static func remote(_ sample: FilterDetailMock.Sample) -> FilterDetailSampleItem {
+        FilterDetailSampleItem(kind: .remote(sample))
     }
 
     static func reference(_ kind: EditorReferenceSampleKind) -> FilterDetailSampleItem {
@@ -862,6 +876,8 @@ private struct SampleGalleryView: View {
         switch sample.kind {
         case .signature(let url):
             SignatureSampleTile(url: url, categoryHint: mock.categoryHint)
+        case .remote(let sample):
+            RemoteSampleTile(sample: sample, categoryHint: mock.categoryHint)
         case .reference(let kind):
             ReferenceSampleTile(
                 kind: kind,
@@ -894,6 +910,44 @@ private struct SignatureSampleTile: View {
         }
         .accessibilityLabel("메이커 시그니처 샘플")
         .accessibilityIdentifier("filter.detail.sample.signature")
+    }
+
+    private var samplePlaceholder: some View {
+        ZStack {
+            LinearGradient(
+                colors: [categoryHint.opacity(0.45), Color.black.opacity(0.55)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            Image(systemName: "photo")
+                .font(.system(size: 28, weight: .light))
+                .foregroundStyle(.white.opacity(0.85))
+        }
+    }
+}
+
+private struct RemoteSampleTile: View {
+    let sample: FilterDetailMock.Sample
+    let categoryHint: Color
+
+    var body: some View {
+        FMRemoteImage(
+            url: sample.thumbnailURL ?? sample.imageURL,
+            cornerRadius: R.md,
+            placeholder: {
+                samplePlaceholder
+            },
+            failure: {
+                samplePlaceholder
+            }
+        )
+        .frame(width: 172, height: 220)
+        .overlay(alignment: .topLeading) {
+            sampleBadge(sample.title.uppercased())
+                .padding(Sp.xs)
+        }
+        .accessibilityLabel(sample.title)
+        .accessibilityIdentifier("filter.detail.sample.remote")
     }
 
     private var samplePlaceholder: some View {
@@ -1101,6 +1155,19 @@ private struct SampleLightboxView: View {
         case .signature(let url):
             FMRemoteImage(
                 url: url,
+                cornerRadius: R.lg,
+                contentMode: .fit,
+                placeholder: {
+                    samplePlaceholder
+                },
+                failure: {
+                    samplePlaceholder
+                }
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .remote(let sample):
+            FMRemoteImage(
+                url: sample.imageURL,
                 cornerRadius: R.lg,
                 contentMode: .fit,
                 placeholder: {

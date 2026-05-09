@@ -193,6 +193,7 @@ struct FilterDetailMock: Sendable {
     let tags: [String]
     let coverURL: URL?
     let signatureSampleURL: URL?
+    let samples: [Sample]
     let filterCategory: FilterCategory
     let reviews: [Review]
     let categoryHint: Color
@@ -213,6 +214,7 @@ struct FilterDetailMock: Sendable {
         tags: [String],
         coverURL: URL?,
         signatureSampleURL: URL?,
+        samples: [Sample] = [],
         filterCategory: FilterCategory,
         reviews: [Review],
         categoryHint: Color,
@@ -232,6 +234,7 @@ struct FilterDetailMock: Sendable {
         self.tags = tags
         self.coverURL = coverURL
         self.signatureSampleURL = signatureSampleURL
+        self.samples = samples
         self.filterCategory = filterCategory
         self.reviews = reviews
         self.categoryHint = categoryHint
@@ -248,6 +251,15 @@ struct FilterDetailMock: Sendable {
         let body: String
         let stars: Int
         let isVerifiedDownload: Bool
+    }
+
+    struct Sample: Identifiable, Equatable, Sendable {
+        let id: String
+        let kind: String
+        let title: String
+        let imageURL: URL
+        let thumbnailURL: URL?
+        let categoryHint: String?
     }
 }
 

@@ -97,3 +97,105 @@ export const onFollowDeleted = onDocumentDeleted(
     ]);
   },
 );
+
+async function recalculateReviewStats(filterId: string): Promise<void> {
+  const db = getFirestore();
+  const reviewsSnap = await db.collection("filters").doc(filterId)
+    .collection("reviews")
+    .where("status", "in", ["active", "published"])
+    .get();
+
+  let totalStars = 0;
+  for (const doc of reviewsSnap.docs) {
+    const stars = doc.get("stars");
+    if (typeof stars === "number") {
+      totalStars += stars;
+    }
+  }
+
+  const reviewCount = reviewsSnap.size;
+  await db.collection("filters").doc(filterId).set({
+    reviewCount,
+    ratingAvg: reviewCount > 0 ? Math.round((totalStars / reviewCount) * 10) / 10 : null,
+    updatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
+}
+
+export const onReviewCreated = onDocumentCreated(
+  { region, document: "filters/{filterId}/reviews/{reviewId}" },
+  async (event) => {
+    const filterId = event.params.filterId;
+    if (!filterId) return;
+    await recalculateReviewStats(filterId);
+  },
+);
+
+export const onReviewUpdated = onDocumentUpdated(
+  { region, document: "filters/{filterId}/reviews/{reviewId}" },
+  async (event) => {
+    const filterId = event.params.filterId;
+    if (!filterId) return;
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) return;
+    if (before.stars === after.stars && before.status === after.status) return;
+    await recalculateReviewStats(filterId);
+  },
+);
+
+export const onReviewDeleted = onDocumentDeleted(
+  { region, document: "filters/{filterId}/reviews/{reviewId}" },
+  async (event) => {
+    const filterId = event.params.filterId;
+    if (!filterId) return;
+    await recalculateReviewStats(filterId);
+  },
+);
+
+export const onSampleCreated = onDocumentCreated(
+  { region, document: "filters/{filterId}/samples/{sampleId}" },
+  async (event) => {
+    const filterId = event.params.filterId;
+    if (!filterId) return;
+    await getFirestore().collection("filters").doc(filterId).set({
+      sampleCount: FieldValue.increment(1),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  },
+);
+
+export const onSampleDeleted = onDocumentDeleted(
+  { region, document: "filters/{filterId}/samples/{sampleId}" },
+  async (event) => {
+    const filterId = event.params.filterId;
+    if (!filterId) return;
+    await getFirestore().collection("filters").doc(filterId).set({
+      sampleCount: FieldValue.increment(-1),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  },
+);
+
+export const onFilterLikeCreated = onDocumentCreated(
+  { region, document: "filters/{filterId}/likes/{uid}" },
+  async (event) => {
+    const filterId = event.params.filterId;
+    if (!filterId) return;
+    await getFirestore().collection("filters").doc(filterId).set({
+      likeCount: FieldValue.increment(1),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  },
+);
+
+export const onFilterLikeDeleted = onDocumentDeleted(
+  { region, document: "filters/{filterId}/likes/{uid}" },
+  async (event) => {
+    const filterId = event.params.filterId;
+    if (!filterId) return;
+    await getFirestore().collection("filters").doc(filterId).set({
+      likeCount: FieldValue.increment(-1),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  },
+);

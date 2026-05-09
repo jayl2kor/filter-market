@@ -62,7 +62,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 |---|---|---|---|---|
 | `market.home` | root tab `market` | `MarketplaceScreen` | Partial, NeedsE2E | `market.header.coinBalance`, `market.trending.*`, `market.category.*`, `market.tile.*`, `market.collection.*`, `market.loadError.retry`, notification button |
 | `market.search` | root tab `search`, `AppRoute.search` | `SearchScreen` | Implemented, NeedsE2E | `search.recent.*`, `search.suggested.*`, `search.maker.*`, `search.typing.tile.*`, `search.result.tile.*` |
-| `filter.detail` | `AppRoute.filterDetail(id:)` | `FilterDetailLoaderScreen` or `FilterDetailScreen` | Partial, NeedsE2E | `filter.detail.share`, `filter.detail.like`, `filter.detail.sample.gallery`, `filter.detail.sample.signature`, `filter.detail.sample.reference.*`, `filter.detail.sample.lightbox`, `filter.detail.sample.lightbox.close`, `filter.detail.sample.lightbox.counter`, `filter.detail.tag.*`, maker profile, follow toggle, CTA download/purchase, review/download/like count, reviews link |
+| `filter.detail` | `AppRoute.filterDetail(id:)` | `FilterDetailLoaderScreen` or `FilterDetailScreen` | Partial, NeedsE2E | `filter.detail.share`, `filter.detail.like`, `filter.detail.sample.gallery`, `filter.detail.sample.remote`, `filter.detail.sample.signature`, `filter.detail.sample.reference.*`, `filter.detail.sample.lightbox`, `filter.detail.sample.lightbox.close`, `filter.detail.sample.lightbox.counter`, `filter.detail.tag.*`, maker profile, follow toggle, CTA download/purchase, review/download/like count, reviews link |
 | `filter.download` | `AppRoute.filterDownload(id:)` | `FilterDownloadProgressScreen` | Partial | `filter.download.cancel`, `filter.download.retry`, `filter.download.completed.next`, `filter.apply` |
 | `filter.afterDownload` | `AppRoute.filterAfterDownload(id:)` | `FilterAfterDownloadScreen` | Partial | `filter.apply`, `filter.favorite.toggle`, `filter.collection.add`, `filter.remove` |
 | `filter.builtin` | `AppRoute.builtinFilters` | `BuiltinFilterLibraryScreen` | Implemented, NeedsOSQA | `builtin.search`, `builtin.category.*`, `builtin.filter.tap.*`, `builtin.filter.apply.*`, `builtin.filter.locked.*`, `builtin.filter.locked.pro`, `builtin.filter.info.*`, `builtin.manage` |
@@ -220,7 +220,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | mock route id가 title 문자열인 곳 존재 | Firestore document id와 불일치 가능 | 실제 UUID filter에서 상세/리뷰/다운로드 확인 |
 | 프로필 avatar 변경 | 현재 QA 대상은 PhotosPicker 선택과 로컬 preview/persist 경로이며, 원격 Storage 업로드/URL 배포는 별도 백엔드 작업 필요 | 선택 이미지가 EditProfile/Profile에 반영되는지 확인하고, 릴리스 전 Storage 업로드 이슈 분리 |
 | 팔로우 리스트 | Firestore root `follows` edge와 `users/{uid}` profile/count listener를 사용 | 실제 Firebase seed에서 followers/following row, count, toggle round-trip 확인 |
-| 상세 backend metadata | `getFilterDetail`이 tags, samples, reviews, review/like/download count, userHasLiked를 내려주는 계약으로 확장 | 실제 filter 문서와 subcollection seed에서 detail UI count/preview 표시 확인 |
+| 상세 backend metadata | `getFilterDetail`이 tags, samples, reviews, review/like/download count, userHasLiked를 내려주고 FilterDetail이 remote samples를 우선 렌더링 | 실제 filter 문서와 subcollection seed에서 detail UI count/preview/remote sample 표시 확인 |
 | Push 권한 요청이 앱 시작 시 발생 가능 | 첫 실행 UX 회귀 | Onboarding/Login 전 알림 prompt 발생 여부 |
 | Payout은 closed-loop coin 정책상 후순위 | 불필요한 진입점 노출 위험 | 사용자가 볼 수 있는 entry point인지 확인 |
 | StoreKit/Google/Apple sign-in은 sandbox/실기기 의존 | 시뮬레이터만으로 검증 불가 | 실기기 QA checklist 별도 표시 |

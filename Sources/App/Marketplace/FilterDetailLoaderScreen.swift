@@ -58,11 +58,16 @@ struct FilterDetailLoaderScreen: View {
 
     private func load() async {
         phase = .loading
-        // Local fast-path: 번들/인메모리 store.filters 에 있는 필터면 즉시 사용 (테스트/오프라인 호환).
+        // Local fast-path: 번들/인메모리 store.filters 에 있는 필터면 즉시 표시한 뒤,
+        // production에서는 getFilterDetail 응답으로 샘플/리뷰/카운터를 갱신한다.
         if let uuid = UUID(uuidString: filterId),
            let local = store.filters.first(where: { $0.id == uuid }) {
             phase = .localFilter(local)
-            return
+            #if DEBUG
+            if isUITesting {
+                return
+            }
+            #endif
         }
         do {
             let detail = try await Self.fetchDetail(filterId: filterId)
@@ -148,9 +153,18 @@ struct FilterDetailResponse {
     let createdAt: Date?
     let authorUid: String
     let authorDisplayName: String
+    let samples: [SamplePreview]
     let reviews: [ReviewPreview]
     let signedDownloadURL: URL
     let expiresAt: Date
+
+    struct SamplePreview {
+        let id: String
+        let kind: String
+        let categoryHint: String?
+        let coverURL: URL?
+        let thumbnailURL: URL?
+    }
 
     struct ReviewPreview {
         let authorDisplayName: String
@@ -194,6 +208,18 @@ struct FilterDetailResponse {
         let authorDict = (filterDict["author"] as? [String: Any]) ?? [:]
         self.authorUid = (authorDict["uid"] as? String) ?? "unknown"
         self.authorDisplayName = (authorDict["displayName"] as? String) ?? "Unknown"
+        self.samples = ((dict["samples"] as? [[String: Any]]) ?? []).compactMap { sampleDict in
+            let coverURL = (sampleDict["coverURL"] as? String).flatMap { URL(string: $0) }
+            let thumbnailURL = (sampleDict["thumbnailURL"] as? String).flatMap { URL(string: $0) }
+            guard coverURL != nil || thumbnailURL != nil else { return nil }
+            return SamplePreview(
+                id: (sampleDict["id"] as? String) ?? UUID().uuidString,
+                kind: (sampleDict["kind"] as? String) ?? "user",
+                categoryHint: sampleDict["categoryHint"] as? String,
+                coverURL: coverURL,
+                thumbnailURL: thumbnailURL
+            )
+        }
         self.reviews = ((dict["reviews"] as? [[String: Any]]) ?? []).map { reviewDict in
             let createdAt: Date?
             if let createdAtMs = reviewDict["createdAt"] as? Double, createdAtMs > 0 {
@@ -234,6 +260,17 @@ struct FilterDetailResponse {
             tags: tags.map { $0.hasPrefix("#") ? $0 : "#\($0)" },
             coverURL: coverURL,
             signatureSampleURL: signatureSampleURL,
+            samples: samples.compactMap { sample in
+                guard let imageURL = sample.coverURL ?? sample.thumbnailURL else { return nil }
+                return FilterDetailMock.Sample(
+                    id: sample.id,
+                    kind: sample.kind,
+                    title: sample.kind == "signature" ? "시그니처" : "사용자 샘플",
+                    imageURL: imageURL,
+                    thumbnailURL: sample.thumbnailURL,
+                    categoryHint: sample.categoryHint
+                )
+            },
             filterCategory: filterCategory,
             reviews: reviews.map { review in
                 FilterDetailMock.Review(

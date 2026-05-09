@@ -34,4 +34,16 @@ export {
 } from "./http/wallet.js";
 
 // Firestore triggers — counters, notifications, denormalized writes.
-export { onFilterPublished, onReportCreated, onFollowCreated, onFollowDeleted } from "./triggers/index.js";
+export {
+  onFilterPublished,
+  onReportCreated,
+  onFollowCreated,
+  onFollowDeleted,
+  onReviewCreated,
+  onReviewUpdated,
+  onReviewDeleted,
+  onSampleCreated,
+  onSampleDeleted,
+  onFilterLikeCreated,
+  onFilterLikeDeleted,
+} from "./triggers/index.js";
