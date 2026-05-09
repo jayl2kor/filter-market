@@ -402,7 +402,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 10.2.8 | `editor.reference.sample.<kind>` | portrait/landscape/indoor/lifestyle 임시 샘플 중 하나 선택, 사용자 photo가 있으면 clear 후 선택 적용 |  |
 | 10.2.9 | `editor.param.slider` | 노출/대비/채도/그레인/비네트 값 변경, long-press 정밀 모드, 0 snap "원본", 더블탭 reset, floating value label, VoiceOver 5% 조정 지원. 16ms render delay 후 800px preview input + CGImage direct render로 갱신 |  |
 | 10.2.10 | `editor.compare.hold` | 손을 누르고 있을 동안 비포 표시 |  |
-| 10.2.11 | `editor.lut.import` | UIDocumentPicker 표시 (.cube 파일 선택), 파싱 성공 시 LUT 카드와 preview 갱신, 실패 시 에러 alert |  |
+| 10.2.11 | `editor.lut.import` | UIDocumentPicker 표시 (.cube 파일 선택), 가이드 카드에 지원 포맷/권장 크기/실패 원인 표시. 파싱 성공 시 LUT 카드와 preview 갱신, 실패 시 원인 안내 + "다시 선택" CTA alert |  |
 | 10.2.12 | `editor.lut.replace` | LUT 교체 |  |
 | 10.2.13 | `editor.draft.save` | 초안 저장 → AppRoute.myFilters |  |
 | 10.2.14 | `editor.draft.publish` | 바로 → AppRoute.uploadCover |  |

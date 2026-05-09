@@ -2293,6 +2293,7 @@ struct EditorLUTImportScreen: View {
                     symbol: "cube.transparent"
                 )
                 lutCard
+                lutGuideCard
                 validationCard
                 EditorReferencePreview(height: 300)
                 NavigationLink(value: AppRoute.editorDraft) {
@@ -2314,9 +2315,12 @@ struct EditorLUTImportScreen: View {
         }
         .alert(item: $importError) { error in
             Alert(
-                title: Text("LUT 가져오기 실패"),
+                title: Text("이 LUT는 지원되지 않아요"),
                 message: Text(error.message),
-                dismissButton: .default(Text("확인"))
+                primaryButton: .default(Text("다시 선택")) {
+                    showingImporter = true
+                },
+                secondaryButton: .cancel(Text("닫기"))
             )
         }
     }
@@ -2339,25 +2343,26 @@ struct EditorLUTImportScreen: View {
     }
 
     private func friendlyMessage(for error: Error) -> String {
+        let recovery = "\n\n지원 포맷은 .cube 1D/3D이고, 권장 크기는 33x33x33입니다. 영상, 이미지, .3dl, 손상된 파일은 가져올 수 없어요."
         if let parseError = error as? CubeLUTParser.ParseError {
             switch parseError {
             case .missingSizeHeader:
-                return "LUT_1D_SIZE 또는 LUT_3D_SIZE 헤더를 찾을 수 없어요."
+                return "LUT_1D_SIZE 또는 LUT_3D_SIZE 헤더를 찾을 수 없어요." + recovery
             case .duplicateSizeHeader:
-                return "1D와 3D LUT 헤더가 모두 있어요. 둘 중 하나만 남겨주세요."
+                return "1D와 3D LUT 헤더가 모두 있어요. 둘 중 하나만 남겨주세요." + recovery
             case .invalidSizeValue(let line, _):
-                return "LUT 크기 값을 읽을 수 없어요 (\(line)번째 줄)."
+                return "LUT 크기 값을 읽을 수 없어요 (\(line)번째 줄)." + recovery
             case .sizeOutOfRange(_, let size, let allowed):
-                return "지원 범위(\(allowed.lowerBound)~\(allowed.upperBound)) 밖의 크기예요: \(size)."
+                return "지원 범위(\(allowed.lowerBound)~\(allowed.upperBound)) 밖의 크기예요: \(size)." + recovery
             case .malformedDataLine(let line, _):
-                return "데이터 줄 형식이 잘못됐어요 (\(line)번째 줄). 각 줄은 R G B 세 값이어야 합니다."
+                return "데이터 줄 형식이 잘못됐어요 (\(line)번째 줄). 각 줄은 R G B 세 값이어야 합니다." + recovery
             case .rowCountMismatch(let expected, let actual):
-                return "데이터 행 수가 맞지 않아요. 예상 \(expected) / 실제 \(actual)."
+                return "데이터 행 수가 맞지 않아요. 예상 \(expected) / 실제 \(actual)." + recovery
             case .valueNotFinite(let line):
-                return "유효하지 않은 숫자가 포함돼 있어요 (\(line)번째 줄)."
+                return "유효하지 않은 숫자가 포함돼 있어요 (\(line)번째 줄)." + recovery
             }
         }
-        return error.localizedDescription
+        return error.localizedDescription + recovery
     }
 
     private func previewLUT(from parsed: CubeLUTParser.LUT) -> LUT3D? {
@@ -2418,26 +2423,57 @@ struct EditorLUTImportScreen: View {
                         showingImporter = true
                     }
                     .accessibilityIdentifier("editor.lut.import")
+                    .accessibilityLabel("LUT 파일 가져오기")
 
                     FMButton("교체", icon: "arrow.triangle.2.circlepath", variant: .secondary) {
                         showingImporter = true
                     }
                     .accessibilityIdentifier("editor.lut.replace")
+                    .accessibilityLabel("LUT 파일 교체")
                 }
             }
         }
+    }
+
+    private var lutGuideCard: some View {
+        FMCard {
+            VStack(alignment: .leading, spacing: Sp.sm) {
+                sectionLabel("가져오기 가이드")
+                guideRow("지원 포맷", "Adobe .cube 1D/3D")
+                workflowDivider()
+                guideRow("권장 크기", "33x33x33 · 최대 64x64x64")
+                workflowDivider()
+                guideRow("실패 원인", "손상 파일, 비표준 행 수, 영상/이미지/.3dl 파일")
+            }
+        }
+        .accessibilityIdentifier("editor.lut.guide")
     }
 
     private var validationCard: some View {
         FMCard {
             VStack(alignment: .leading, spacing: Sp.sm) {
                 sectionLabel("검증")
-                validationRow("파일 형식", value: "Cube LUT", isPassed: store.editorDraft.lutFileName != nil)
+                validationRow("파일 형식", value: store.editorDraft.lutFileName == nil ? "검증 전" : "Cube LUT", isPassed: store.editorDraft.lutFileName != nil)
                 workflowDivider()
-                validationRow("색공간", value: "sRGB", isPassed: true)
+                validationRow("권장 크기", value: "33x33x33", isPassed: store.editorDraft.lutFileName != nil)
+                workflowDivider()
+                validationRow("색공간", value: store.editorDraft.lutFileName == nil ? "검증 전" : "sRGB", isPassed: store.editorDraft.lutFileName != nil)
                 workflowDivider()
                 validationRow("앱 호환성", value: "iOS 17+", isPassed: true)
             }
+        }
+    }
+
+    private func guideRow(_ title: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .fmTypography(.subhead)
+                .foregroundStyle(FMColors.Text.secondary)
+            Spacer(minLength: Sp.md)
+            Text(value)
+                .fmTypography(.subhead)
+                .foregroundStyle(FMColors.Text.primary)
+                .multilineTextAlignment(.trailing)
         }
     }
 
