@@ -103,6 +103,7 @@
 		739A5350A83C9F4C319AC344 /* Storage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 55E4166718CCDBCEA85DADDC /* Storage.framework */; };
 		74D91101BA09C2626EBA493F /* FMSegmentedControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0E964CBD9F708F068F5A6D /* FMSegmentedControl.swift */; };
 		75A416B3410AC840412C0A6F /* MooditStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309D364AADCB11180774B6FA /* MooditStore.swift */; };
+		B1800201B1800201B1800201 /* MooditStoreModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1800200B1800200B1800200 /* MooditStoreModels.swift */; };
 		75F33C73DA3BC861435F6AC7 /* FMFilterTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE714DB5A01C5928F5C1BFE /* FMFilterTile.swift */; };
 		7B97A97197A97197A9710097 /* FMRemoteImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B97A97097A97097A9700097 /* FMRemoteImage.swift */; };
 		779C514D860B6D87A3C81EDF /* ProfileScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E614651E5A9700CB58E8A1E /* ProfileScreen.swift */; };
@@ -536,6 +537,7 @@
 		AB94A4B9C756853CECD34ED5 /* ProfileSelfStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelfStore.swift; sourceTree = "<group>"; };
 		B1800000B1800000B1800000 /* MooditStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditStoreTests.swift; sourceTree = "<group>"; };
 		B1840100B1840100B1840100 /* ProfileSelfStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelfStoreTests.swift; sourceTree = "<group>"; };
+		B1800200B1800200B1800200 /* MooditStoreModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditStoreModels.swift; sourceTree = "<group>"; };
 		AE15FDD0D63491F42DC3EB6B /* CapturePreviewScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePreviewScreen.swift; sourceTree = "<group>"; };
 		AF562476D5DB9EC655372E76 /* FilterDetailLoaderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterDetailLoaderScreen.swift; sourceTree = "<group>"; };
 		B11666E56545174DA99CF8B2 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
@@ -698,6 +700,7 @@
 				C6766587713A1D4A74464579 /* Info.plist */,
 				DB733F6CAB461FE90147DBD6 /* MooditApp.swift */,
 				309D364AADCB11180774B6FA /* MooditStore.swift */,
+				B1800200B1800200B1800200 /* MooditStoreModels.swift */,
 				73490DCE4E96064FA169A8B8 /* PushRegistration.swift */,
 				4A85F65669CA14E88C1B508F /* RootShell.swift */,
 				E8FCFE1455B495581E5BF208 /* SavedScreen.swift */,
@@ -1735,6 +1738,7 @@
 				C0CE9687820E1E8BE09532A7 /* MarketplaceScreen.swift in Sources */,
 				B80F787C93D3C014C92565C2 /* MooditApp.swift in Sources */,
 				75A416B3410AC840412C0A6F /* MooditStore.swift in Sources */,
+				B1800201B1800201B1800201 /* MooditStoreModels.swift in Sources */,
 				E9D22557765D14D78A6539F7 /* NotificationsInboxScreen.swift in Sources */,
 				43BA995454F15C2354801DB6 /* NotificationsInboxStore.swift in Sources */,
 				A85BBAAB57804A22E4B51461 /* NotificationsPermissionDenied.swift in Sources */,
