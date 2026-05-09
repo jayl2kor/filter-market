@@ -8,6 +8,7 @@ struct PaywallSingleScreen: View {
     let filterID: String
 
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var walletStore: WalletStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var filterTitle: String = "필터"
@@ -34,7 +35,7 @@ struct PaywallSingleScreen: View {
             Button("확인", role: .cancel) { purchaseError = nil }
         }, message: { Text(purchaseError ?? "") })
         .navigationDestination(isPresented: $showInsufficient) {
-            InsufficientBalanceScreen(filterID: filterID, requiredCoins: priceCoins, currentBalance: store.coinBalance)
+            InsufficientBalanceScreen(filterID: filterID, requiredCoins: priceCoins, currentBalance: walletStore.coinBalance)
         }
         .navigationDestination(isPresented: $didPurchase) {
             FilterAfterDownloadScreen(filterID: filterID)
@@ -73,14 +74,14 @@ struct PaywallSingleScreen: View {
             HStack {
                 Text("현재 잔액").font(Font.fmCaption).foregroundStyle(FMColors.Text.secondary)
                 Spacer()
-                Text("\(store.coinBalance.formatted()) 코인")
+                Text("\(walletStore.coinBalance.formatted()) 코인")
                     .font(Font.fmHeadline)
                     .foregroundStyle(FMColors.Text.primary)
             }
             HStack {
                 Text("결제 후 잔액").font(Font.fmCaption).foregroundStyle(FMColors.Text.secondary)
                 Spacer()
-                let after = isIncludedWithPro ? store.coinBalance : store.coinBalance - priceCoins
+                let after = isIncludedWithPro ? walletStore.coinBalance : walletStore.coinBalance - priceCoins
                 Text(isIncludedWithPro ? "\(after.formatted()) 코인 · 차감 없음" : "\(after.formatted()) 코인")
                     .font(Font.fmCaption)
                     .foregroundStyle(after < 0 ? FMColors.Semantic.error : FMColors.Text.secondary)
@@ -131,7 +132,7 @@ struct PaywallSingleScreen: View {
     }
 
     private var isIncludedWithPro: Bool {
-        store.isProActive && priceCoins > 0
+        walletStore.isProActive && priceCoins > 0
     }
 
     private func loadFilterDetail() async {
@@ -181,8 +182,8 @@ struct PaywallSingleScreen: View {
             }
             return
         }
-        if store.coinBalance < priceCoins {
-            Telemetry.log(.filterPurchaseInsufficient, parameters: ["filter_id": filterID, "price_coins": priceCoins, "balance": store.coinBalance])
+        if walletStore.coinBalance < priceCoins {
+            Telemetry.log(.filterPurchaseInsufficient, parameters: ["filter_id": filterID, "price_coins": priceCoins, "balance": walletStore.coinBalance])
             showInsufficient = true
             return
         }
@@ -192,7 +193,7 @@ struct PaywallSingleScreen: View {
             let callable = Functions.functions(region: "asia-northeast3").httpsCallable("purchaseFilter")
             _ = try await callable.call(["filterId": filterID])
             // (#31) 구매 성공 → 자동 다운로드 마크 + 잔액 차감 (낙관적). filterAfterDownload로 이동.
-            store.creditCoinsOptimistically(-priceCoins)  // 음수 가산으로 차감
+            walletStore.creditCoinsOptimistically(-priceCoins)  // 음수 가산으로 차감
             if let filter = store.filter(matching: filterID) {
                 try? await store.download(filter)
             }
@@ -210,7 +211,7 @@ struct PaywallSingleScreen: View {
 }
 
 struct ProSubscriptionScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var walletStore: WalletStore
     @StateObject private var storeKit = StoreKitManager()
     @Environment(\.dismiss) private var dismiss
     @State private var purchaseError: String?
@@ -429,7 +430,7 @@ struct ProSubscriptionScreen: View {
         switch outcome {
         case .success:
             // (#27) 낙관적 Pro 활성화 — listener 도착 전이라도 ProStatusScreen으로 즉시 이동.
-            store.markProActiveOptimistically()
+            walletStore.markProActiveOptimistically()
             navigateToStatus = true
         case .userCancelled:
             break
@@ -437,7 +438,7 @@ struct ProSubscriptionScreen: View {
             purchaseError = "결제가 보류 중입니다."
         case .failed(let message):
             purchaseError = message
-            store.lastPaymentErrorMessage = message  // (#41) PaymentFailedScreen 진입 시 활용
+            walletStore.lastPaymentErrorMessage = message  // (#41) PaymentFailedScreen 진입 시 활용
         }
     }
 
@@ -450,7 +451,7 @@ struct ProSubscriptionScreen: View {
 }
 
 struct ProStatusScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var walletStore: WalletStore
 
     var body: some View {
         ScrollView {
@@ -464,7 +465,6 @@ struct ProStatusScreen: View {
         .background(FMColors.Background.bg1.ignoresSafeArea())
         .navigationTitle("Pro 상태")
         .navigationBarTitleDisplayMode(.inline)
-        .task { store.subscribeToWallet() }
     }
 
     @ViewBuilder
@@ -473,11 +473,11 @@ struct ProStatusScreen: View {
             HStack {
                 Image(systemName: "sparkles")
                     .foregroundStyle(FMColors.Accent.primary)
-                Text(store.isProActive ? "Pro 활성" : "Pro 비활성")
+                Text(walletStore.isProActive ? "Pro 활성" : "Pro 비활성")
                     .font(Font.fmHeadline)
                     .foregroundStyle(FMColors.Text.primary)
             }
-            Text(store.isProActive
+            Text(walletStore.isProActive
                  ? "현재 Pro 멤버십이 활성화되어 있습니다."
                  : "Pro에 가입하지 않았습니다.")
                 .font(Font.fmBody)
@@ -600,7 +600,7 @@ struct OrdersHistoryScreen: View {
 }
 
 struct WalletScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var walletStore: WalletStore
 
     var body: some View {
         ScrollView {
@@ -614,7 +614,6 @@ struct WalletScreen: View {
         .background(FMColors.Background.bg1.ignoresSafeArea())
         .navigationTitle("지갑")
         .navigationBarTitleDisplayMode(.inline)
-        .task { store.subscribeToWallet() }
     }
 
     @ViewBuilder
@@ -627,14 +626,14 @@ struct WalletScreen: View {
                 Image(systemName: "circle.hexagongrid.circle.fill")
                     .font(.system(size: 24, weight: .semibold))
                     .foregroundStyle(FMColors.Accent.primary)
-                Text("\(store.coinBalance.formatted())")
+                Text("\(walletStore.coinBalance.formatted())")
                     .font(Font.fmTitleLarge)
                     .foregroundStyle(FMColors.Text.primary)
                 Text("코인")
                     .font(Font.fmBody)
                     .foregroundStyle(FMColors.Text.secondary)
             }
-            if store.isProActive {
+            if walletStore.isProActive {
                 Label("Pro 멤버십 활성", systemImage: "sparkles")
                     .font(Font.fmCaption)
                     .foregroundStyle(FMColors.Accent.primary)
@@ -655,9 +654,9 @@ struct WalletScreen: View {
             divider
             walletAction(icon: "list.bullet.rectangle", title: "거래 내역", subtitle: "충전 / 사용 / 환불 기록", route: .walletTransactions)
             divider
-            walletAction(icon: "sparkles", title: store.isProActive ? "Pro 상태" : "Pro 시작",
-                         subtitle: store.isProActive ? "현재 구독 정보" : "Pro 멤버십 가입",
-                         route: store.isProActive ? .proStatus : .proSubscription)
+            walletAction(icon: "sparkles", title: walletStore.isProActive ? "Pro 상태" : "Pro 시작",
+                         subtitle: walletStore.isProActive ? "현재 구독 정보" : "Pro 멤버십 가입",
+                         route: walletStore.isProActive ? .proStatus : .proSubscription)
             divider
             walletAction(icon: "doc.text.magnifyingglass", title: "주문 내역", subtitle: "필터 구매 내역", route: .ordersHistory)
         }
@@ -705,7 +704,7 @@ struct WalletScreen: View {
 }
 
 struct WalletTopupScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var walletStore: WalletStore
     @Environment(\.dismiss) private var dismiss
     @StateObject private var storeKit = StoreKitManager()
 
@@ -739,7 +738,6 @@ struct WalletTopupScreen: View {
             Text(purchaseError ?? "")
         })
         .task {
-            store.subscribeToWallet()
             if storeKit.products.isEmpty {
                 await storeKit.loadProducts(ids: IAPProductIDs.coinIDs)
             }
@@ -772,7 +770,7 @@ struct WalletTopupScreen: View {
             HStack(spacing: Sp.xs) {
                 Image(systemName: "circle.hexagongrid.circle.fill")
                     .foregroundStyle(FMColors.Accent.primary)
-                Text("\(store.coinBalance.formatted()) 코인")
+                Text("\(walletStore.coinBalance.formatted()) 코인")
                     .font(Font.fmTitle)
                     .foregroundStyle(FMColors.Text.primary)
             }
@@ -800,7 +798,7 @@ struct WalletTopupScreen: View {
         Button {
             FMHaptic.light.play()
             if let credit = IAPProductIDs.coinAmount(for: productID) {
-                store.creditCoinsOptimistically(credit)
+                walletStore.creditCoinsOptimistically(credit)
             }
             dismiss()
         } label: {
@@ -930,10 +928,10 @@ struct WalletTopupScreen: View {
         switch outcome {
         case .success:
             if let creditResult = storeKit.lastCoinCreditResult {
-                store.reconcileCoinBalance(creditResult.balance)
+                walletStore.reconcileCoinBalance(creditResult.balance)
             } else if let credit = IAPProductIDs.coinAmount(for: product.id) {
                 // Fallback for local StoreKit/test paths where callable response parsing is unavailable.
-                store.creditCoinsOptimistically(credit)
+                walletStore.creditCoinsOptimistically(credit)
             }
             dismiss()
         case .userCancelled:
@@ -942,7 +940,7 @@ struct WalletTopupScreen: View {
             purchaseError = "결제가 보류 중입니다. 약관 승인 후 자동 완료됩니다."
         case .failed(let message):
             purchaseError = message
-            store.lastPaymentErrorMessage = message  // (#41) PaymentFailedScreen 진입 시 활용
+            walletStore.lastPaymentErrorMessage = message  // (#41) PaymentFailedScreen 진입 시 활용
         }
     }
 
@@ -1292,6 +1290,7 @@ struct WalletTransactionsScreen: View {
 
 struct InsufficientBalanceScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var walletStore: WalletStore
     @Environment(\.dismiss) private var dismiss
 
     let filterID: String
@@ -1375,13 +1374,13 @@ struct InsufficientBalanceScreen: View {
             store.subscribeToWallet()
             await retryIfBalanceIsReady()
         }
-        .onChange(of: store.coinBalance) { _, _ in
+        .onChange(of: walletStore.coinBalance) { _, _ in
             Task { await retryIfBalanceIsReady() }
         }
     }
 
     private var displayedBalance: Int {
-        store.coinBalance == 0 && currentBalance > 0 ? currentBalance : store.coinBalance
+        walletStore.coinBalance == 0 && currentBalance > 0 ? currentBalance : walletStore.coinBalance
     }
 
     private var canRetryPurchase: Bool {
@@ -1409,7 +1408,7 @@ struct InsufficientBalanceScreen: View {
         do {
             let callable = Functions.functions(region: "asia-northeast3").httpsCallable("purchaseFilter")
             _ = try await callable.call(["filterId": filterID])
-            store.creditCoinsOptimistically(-requiredCoins)
+            walletStore.creditCoinsOptimistically(-requiredCoins)
             if let filter = store.filter(matching: filterID) {
                 try? await store.download(filter)
             } else {
@@ -1419,7 +1418,7 @@ struct InsufficientBalanceScreen: View {
             didCompletePurchase = true
         } catch let error as NSError where error.localizedDescription.contains("insufficient_balance") {
             didAutoRetry = false
-            Telemetry.log(.filterPurchaseInsufficient, parameters: ["filter_id": filterID, "price_coins": requiredCoins, "balance": store.coinBalance])
+            Telemetry.log(.filterPurchaseInsufficient, parameters: ["filter_id": filterID, "price_coins": requiredCoins, "balance": walletStore.coinBalance])
             purchaseError = "아직 코인이 부족합니다."
         } catch {
             didAutoRetry = false
@@ -1431,12 +1430,12 @@ struct InsufficientBalanceScreen: View {
 }
 
 struct PaymentFailedScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var walletStore: WalletStore
     @Environment(\.openURL) private var openURL
     @StateObject private var storeKit = StoreKitManager()
-    /// (#41) store.lastPaymentErrorMessage 우선, fallback은 일반 텍스트.
+    /// (#41) walletStore.lastPaymentErrorMessage 우선, fallback은 일반 텍스트.
     private var lastErrorMessage: String {
-        store.lastPaymentErrorMessage ?? "결제가 처리되지 않았습니다."
+        walletStore.lastPaymentErrorMessage ?? "결제가 처리되지 않았습니다."
     }
 
     var body: some View {
@@ -1491,7 +1490,7 @@ struct PaymentFailedScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .onDisappear {
             // (#41 후속) 화면 떠날 때 에러 메시지 reset — 다음 진입 시 stale 에러 노출 방지.
-            store.lastPaymentErrorMessage = nil
+            walletStore.lastPaymentErrorMessage = nil
         }
     }
 }

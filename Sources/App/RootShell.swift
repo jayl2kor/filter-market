@@ -68,6 +68,10 @@ struct RootShell: View {
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .background(FMColors.Background.bg1)
         .environmentObject(store)
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.walletStore)
+        .environmentObject(store.editorDraftStore)
+        .environmentObject(store.sessionStore)
         .task {
             await store.load()
             store.subscribeToWallet()

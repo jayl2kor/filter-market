@@ -229,6 +229,10 @@ private struct UITestLaunchHost: View {
         }
         .environment(\.dynamicTypeSize, launchDynamicTypeSize)
         .environmentObject(store)
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.walletStore)
+        .environmentObject(store.editorDraftStore)
+        .environmentObject(store.sessionStore)
         .task {
             await store.load()
         }
