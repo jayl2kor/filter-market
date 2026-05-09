@@ -10,6 +10,7 @@ import SwiftUI
 /// Phase D3 — `mockups/screens/06-marketplace-home.html` 와 정합.
 /// 검색 헤더 + 인사 + 트렌딩 캐러셀 + 카테고리 칩 + 신규 그리드 + 큐레이션.
 struct MarketplaceScreen: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var store: MooditStore
 
     @State private var selectedCategory: String = "전체"
@@ -186,20 +187,32 @@ struct MarketplaceScreen: View {
             sectionHeader(title: "카테고리", more: nil)
                 .padding(.horizontal, Sp.md)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Sp.xs) {
-                    ForEach(categoryChips, id: \.self) { category in
-                        FMChip(
-                            category,
-                            isSelected: category == selectedCategory,
-                            size: .sm
-                        ) {
-                            selectedCategory = category
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: Sp.xs) {
+                        ForEach(categoryChips, id: \.self) { category in
+                            FMChip(
+                                category,
+                                isSelected: category == selectedCategory,
+                                size: .sm
+                            ) {
+                                selectedCategory = category
+                            }
+                            .id(category)
+                            .accessibilityIdentifier("market.category.\(category)")
+                            .accessibilityValue(category == selectedCategory ? "선택됨" : "미선택")
                         }
-                        .accessibilityIdentifier("market.category.\(category)")
+                    }
+                    .padding(.horizontal, Sp.md)
+                }
+                .onAppear {
+                    proxy.scrollTo(selectedCategory, anchor: .center)
+                }
+                .onChange(of: selectedCategory) { _, category in
+                    withAnimation(reduceMotion ? nil : .fmSpringSwipe) {
+                        proxy.scrollTo(category, anchor: .center)
                     }
                 }
-                .padding(.horizontal, Sp.md)
             }
         }
     }
