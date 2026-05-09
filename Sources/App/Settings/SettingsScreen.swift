@@ -36,7 +36,11 @@ enum SensitiveFilterLevel: String, CaseIterable, Identifiable, Hashable {
 struct SettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var sessionStore: SessionStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var walletStore: WalletStore
+    @EnvironmentObject private var editorDraftStore: EditorDraftStore
+    @EnvironmentObject private var cameraStateStore: CameraStateStore
 
     // 카메라 (#22 — UserDefaults 영속화)
     @AppStorage("settings.cam.defaultAspectRatio") private var defaultAspectRatioRaw: String = SettingsAspectRatio.fourThree.rawValue
@@ -117,7 +121,7 @@ struct SettingsScreen: View {
                     navigationRow(
                         icon: "bell",
                         title: "푸시 알림",
-                        accessory: .value(text: store.notificationPreferences.systemEnabled ? "켬" : "끔", chevron: true),
+                        accessory: .value(text: sessionStore.notificationPreferences.systemEnabled ? "켬" : "끔", chevron: true),
                         route: .notificationSettings
                     )
                     divider
@@ -297,14 +301,23 @@ struct SettingsScreen: View {
                 print("[Settings] signOut failed: \(error.localizedDescription)")
                 #endif
                 // signOut 실패 시 fallback으로 명시 reset.
-                store.resetUserScopedState()
+                resetUserScopedState()
             }
         } else {
             // Firebase 미구성 환경 (시뮬레이터 등) — 명시 reset.
-            store.resetUserScopedState()
+            resetUserScopedState()
         }
-        store.setLocalAuthenticationFallback(false)
+        sessionStore.setLocalAuthenticationFallback(false)
         dismiss()
+    }
+
+    private func resetUserScopedState() {
+        walletStore.reset()
+        filterLibraryStore.resetUserScopedState()
+        sessionStore.resetUserScopedState()
+        cameraStateStore.resetUserScopedState()
+        editorDraftStore.resetUserScopedState()
+        sessionStore.markProfileUnloaded()
     }
 
     private func openSystemSettings() {
@@ -316,17 +329,17 @@ struct SettingsScreen: View {
 
     private var profileCard: some View {
         HStack(spacing: Sp.md) {
-            FMAvatar(url: store.editableProfile.avatarURL, size: .md, fallback: store.editableProfile.initials)
+            FMAvatar(url: sessionStore.editableProfile.avatarURL, size: .md, fallback: sessionStore.editableProfile.initials)
 
             VStack(alignment: .leading, spacing: Sp.xxs) {
-                Text(store.editableProfile.displayName.isEmpty
-                     ? store.editableProfile.handle.isEmpty ? "사용자" : store.editableProfile.handle
-                     : store.editableProfile.displayName)
+                Text(sessionStore.editableProfile.displayName.isEmpty
+                     ? sessionStore.editableProfile.handle.isEmpty ? "사용자" : sessionStore.editableProfile.handle
+                     : sessionStore.editableProfile.displayName)
                     .fmTypography(.headline)
                     .foregroundStyle(FMColors.Text.primary)
 
-                if !store.editableProfile.handle.isEmpty {
-                    Text(store.editableProfile.displayHandle)
+                if !sessionStore.editableProfile.handle.isEmpty {
+                    Text(sessionStore.editableProfile.displayHandle)
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Text.secondary)
                 } else {

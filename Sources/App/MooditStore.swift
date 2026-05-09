@@ -1,6 +1,5 @@
 import Combine
 import FirebaseFirestore
-import FirebaseFunctions
 import Foundation
 import FilterEngine
 import Marketplace
@@ -8,23 +7,6 @@ import Models
 
 // Disambiguate from FirebaseFirestore.Filter (which is bridged from FIRFilter).
 typealias Filter = Models.Filter
-
-private enum ProfileAvatarUploadError: LocalizedError {
-    case imageTooLarge
-    case invalidUploadResponse
-    case uploadFailed
-
-    var errorDescription: String? {
-        switch self {
-        case .imageTooLarge:
-            "프로필 사진 용량이 너무 커요. 다른 사진을 선택해주세요."
-        case .invalidUploadResponse:
-            "프로필 사진 업로드 정보를 읽지 못했어요."
-        case .uploadFailed:
-            "프로필 사진 업로드에 실패했어요."
-        }
-    }
-}
 
 @MainActor
 final class MooditStore: ObservableObject {
@@ -64,19 +46,22 @@ final class MooditStore: ObservableObject {
     var editorReferencePhotoData: Data? { editorDraftStore.editorReferencePhotoData }
     var editorReferencePhotoRevision: Int { editorDraftStore.editorReferencePhotoRevision }
     var editorReferenceSampleKind: EditorReferenceSampleKind { editorDraftStore.editorReferenceSampleKind }
-    @Published var editableProfile = EditableProfile.empty
-    @Published var lastProfileSavedAt: Date?
-    @Published var accountDeletionRequestedAt: Date?
-    @Published var selectedExportCategories: Set<DataExportCategory> = Set(DataExportCategory.allCases)
-    @Published var selectedExportFormat: DataExportFormat = .json
-    /// 데이터 내보내기 요청 이력 — 진짜 데이터는 Firestore /users/{uid}/exportRequests에서 들어와야 함.
-    /// (이전: 2개 하드코딩 mock 잔재 — 사용자가 요청한 적 없는 export 이력이 노출되는 문제 해결)
-    @Published var exportRequests: [DataExportRequest] = []
-    @Published var notificationPreferences = NotificationPreferences() {
-        didSet {
-            ForegroundNotificationPolicy.shared.update(preferences: notificationPreferences)
-        }
+    var editableProfile: EditableProfile {
+        get { sessionStore.editableProfile }
+        set { sessionStore.editableProfile = newValue }
     }
+    var lastProfileSavedAt: Date? { sessionStore.lastProfileSavedAt }
+    var accountDeletionRequestedAt: Date? { sessionStore.accountDeletionRequestedAt }
+    var selectedExportCategories: Set<DataExportCategory> {
+        get { sessionStore.selectedExportCategories }
+        set { sessionStore.selectedExportCategories = newValue }
+    }
+    var selectedExportFormat: DataExportFormat {
+        get { sessionStore.selectedExportFormat }
+        set { sessionStore.selectedExportFormat = newValue }
+    }
+    var exportRequests: [DataExportRequest] { sessionStore.exportRequests }
+    var notificationPreferences: NotificationPreferences { sessionStore.notificationPreferences }
     var editorDraft: MakerFilterDraft {
         get { editorDraftStore.editorDraft }
         set { editorDraftStore.editorDraft = newValue }
@@ -120,15 +105,8 @@ final class MooditStore: ObservableObject {
     private var exportRequestsListener: ListenerRegistration?
     private var makerDraftsListener: ListenerRegistration?
     private var editorDraftListener: ListenerRegistration?
-    private var notificationPreferencesSaveTask: Task<Void, Never>?
     private var editorDraftSaveTask: Task<Void, Never>?
-    private var saveProfileTask: Task<Void, Never>?
-    private var saveProfileGeneration = 0
     private var isApplyingRemoteEditorDraft = false
-    private struct ProfileAvatarUpload {
-        let publicURL: URL
-        let objectKey: String
-    }
     /// Universal Link / push tap에서 도착한 라우트. RootShell이 관찰해 표시한다.
     /// 한 번 처리되면 nil로 리셋한다.
     @Published var pendingDeepLinkRoute: AppRoute?
@@ -232,7 +210,6 @@ final class MooditStore: ObservableObject {
         exportRequestsListener?.remove()
         makerDraftsListener?.remove()
         editorDraftListener?.remove()
-        notificationPreferencesSaveTask?.cancel()
         editorDraftSaveTask?.cancel()
         userDocListener = nil
         notificationPrefsListener = nil
@@ -241,7 +218,6 @@ final class MooditStore: ObservableObject {
         exportRequestsListener = nil
         makerDraftsListener = nil
         editorDraftListener = nil
-        notificationPreferencesSaveTask = nil
         editorDraftSaveTask = nil
         sessionStore.attach(uid: uid)
         walletStore.attach(uid: uid)
@@ -254,19 +230,8 @@ final class MooditStore: ObservableObject {
         }
         restoreEditorDraftFromDisk(uid: uid)
         let db = Firestore.firestore()
-        // Auth.currentUser의 displayName/email 즉시 사용해 editableProfile 부분 채움.
         if let authUser = SessionStore.currentFirebaseUser {
-            editableProfile = EditableProfile(
-                displayName: authUser.displayName ?? authUser.email?.split(separator: "@").first.map(String.init) ?? "",
-                handle: authUser.email?.split(separator: "@").first.map(String.init) ?? String(authUser.uid.prefix(8)),
-                bio: editableProfile.bio,
-                website: editableProfile.website,
-                makerPageVisible: editableProfile.makerPageVisible,
-                photoSharingAllowed: editableProfile.photoSharingAllowed,
-                avatarVariant: editableProfile.avatarVariant,
-                avatarImageData: editableProfile.avatarImageData,
-                avatarURL: editableProfile.avatarURL
-            )
+            sessionStore.applyAuthUserBaseline(authUser)
         }
         userDocListener = db.collection("users").document(uid)
             .addSnapshotListener { [weak self] snapshot, _ in
@@ -274,19 +239,7 @@ final class MooditStore: ObservableObject {
                 Task { @MainActor in
                     self.sessionStore.markProfileLoaded()  // (#47) 첫 snapshot 도착 신호
                     guard let data = snapshot?.data() else { return }
-                    self.editableProfile = EditableProfile(
-                        displayName: (data["displayName"] as? String) ?? self.editableProfile.displayName,
-                        handle: (data["handle"] as? String) ?? self.editableProfile.handle,
-                        bio: (data["bio"] as? String) ?? self.editableProfile.bio,
-                        website: (data["website"] as? String) ?? self.editableProfile.website,
-                        makerPageVisible: (data["makerPageVisible"] as? Bool) ?? self.editableProfile.makerPageVisible,
-                        photoSharingAllowed: (data["photoSharingAllowed"] as? Bool) ?? self.editableProfile.photoSharingAllowed,
-                        avatarVariant: (data["avatarVariant"] as? Int) ?? self.editableProfile.avatarVariant,
-                        avatarImageData: self.editableProfile.avatarImageData,
-                        avatarURL: Self.url(from: data["avatarURL"])
-                            ?? Self.url(from: data["photoURL"])
-                            ?? self.editableProfile.avatarURL
-                    )
+                    self.sessionStore.applyUserDocument(data)
                 }
             }
         // (#45) /users/{uid}/notificationPreferences/main listener — 사용자 토글 변경 즉시 반영.
@@ -296,21 +249,7 @@ final class MooditStore: ObservableObject {
                 guard let self else { return }
                 Task { @MainActor in
                     guard let data = snapshot?.data() else { return }
-                    let remotePreferences = NotificationPreferences(
-                        systemEnabled: (data["systemEnabled"] as? Bool) ?? self.notificationPreferences.systemEnabled,
-                        social: (data["social"] as? Bool) ?? self.notificationPreferences.social,
-                        reviews: (data["reviews"] as? Bool) ?? self.notificationPreferences.reviews,
-                        marketplace: (data["marketplace"] as? Bool) ?? self.notificationPreferences.marketplace,
-                        creator: (data["creator"] as? Bool) ?? self.notificationPreferences.creator,
-                        wallet: (data["wallet"] as? Bool) ?? self.notificationPreferences.wallet,
-                        product: (data["product"] as? Bool) ?? self.notificationPreferences.product,
-                        quietHoursEnabled: (data["quietHoursEnabled"] as? Bool) ?? self.notificationPreferences.quietHoursEnabled,
-                        quietStart: (data["quietStart"] as? String) ?? self.notificationPreferences.quietStart,
-                        quietEnd: (data["quietEnd"] as? String) ?? self.notificationPreferences.quietEnd
-                    )
-                    if remotePreferences != self.notificationPreferences {
-                        self.notificationPreferences = remotePreferences
-                    }
+                    self.sessionStore.applyRemoteNotificationPreferences(data)
                 }
             }
         savedFiltersListener = db.collection("users").document(uid)
@@ -344,7 +283,7 @@ final class MooditStore: ObservableObject {
             .addSnapshotListener { [weak self] snapshot, _ in
                 guard let self else { return }
                 Task { @MainActor in
-                    self.exportRequests = snapshot?.documents.compactMap(Self.decodeExportRequest) ?? []
+                    self.sessionStore.setExportRequests(snapshot?.documents.compactMap(Self.decodeExportRequest) ?? [])
                 }
             }
 
@@ -481,63 +420,11 @@ final class MooditStore: ObservableObject {
         _ keyPath: WritableKeyPath<NotificationPreferences, Value>,
         to value: Value
     ) {
-        var preferences = notificationPreferences
-        guard preferences[keyPath: keyPath] != value else { return }
-        preferences[keyPath: keyPath] = value
-        notificationPreferences = preferences
-        scheduleNotificationPreferencesSave(preferences)
+        sessionStore.setNotificationPreference(keyPath, to: value)
     }
 
-    /// NotificationPreferences를 Firestore /users/{uid}/notificationPreferences/main에 저장 (#45).
-    /// 사용자 입력에서만 호출하고, listener로 들어온 remote snapshot은 다시 저장하지 않는다.
     func scheduleNotificationPreferencesSave() {
-        scheduleNotificationPreferencesSave(notificationPreferences)
-    }
-
-    private func scheduleNotificationPreferencesSave(_ preferences: NotificationPreferences) {
-        #if DEBUG
-        guard !isUITesting else { return }
-        #endif
-        guard SessionStore.currentFirebaseUID != nil else { return }
-        notificationPreferencesSaveTask?.cancel()
-        notificationPreferencesSaveTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 800_000_000)
-            guard !Task.isCancelled else { return }
-            await self?.persistNotificationPreferences(preferences)
-        }
-    }
-
-    private func persistNotificationPreferences(_ preferences: NotificationPreferences) async {
-        guard let uid = SessionStore.currentFirebaseUID else { return }
-        let ref = Firestore.firestore()
-            .collection("users").document(uid)
-            .collection("notificationPreferences").document("main")
-        do {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                ref.setData([
-                    "systemEnabled": preferences.systemEnabled,
-                    "social": preferences.social,
-                    "reviews": preferences.reviews,
-                    "marketplace": preferences.marketplace,
-                    "creator": preferences.creator,
-                    "wallet": preferences.wallet,
-                    "product": preferences.product,
-                    "quietHoursEnabled": preferences.quietHoursEnabled,
-                    "quietStart": preferences.quietStart,
-                    "quietEnd": preferences.quietEnd,
-                    "updatedAt": FieldValue.serverTimestamp()
-                ], merge: true) { error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else {
-                        continuation.resume()
-                    }
-                }
-            }
-            notificationPreferencesSaveTask = nil
-        } catch {
-            lastSubmitErrorMessage = "알림 설정 저장 실패: \(error.localizedDescription)"
-        }
+        sessionStore.scheduleNotificationPreferencesSave()
     }
 
     /// 코인 잔액 낙관적 조정 (#29 적립, #31 차감). listener가 도착하면 정정.
@@ -555,20 +442,13 @@ final class MooditStore: ObservableObject {
     /// `Auth.signOut()` 호출 직후 또는 attachWalletListeners(uid: nil)에서 사용.
     func resetUserScopedState() {
         walletStore.reset()
-        editableProfile = .empty
-        lastProfileSavedAt = nil
-        accountDeletionRequestedAt = nil
         filterLibraryStore.resetUserScopedState()
-        notificationPreferences = NotificationPreferences()
+        sessionStore.resetUserScopedState()
         cameraStateStore.resetUserScopedState()
         editorDraftStore.resetUserScopedState()
-        exportRequests = []
         sessionStore.markProfileUnloaded()
         lastPaymentErrorMessage = nil
         lastSubmitErrorMessage = nil
-        saveProfileTask?.cancel()
-        saveProfileTask = nil
-        saveProfileGeneration += 1
     }
 
     func select(_ filter: Filter) {
@@ -611,146 +491,20 @@ final class MooditStore: ObservableObject {
         editorDraftStore.setEditorReferenceSampleKind(kind)
     }
 
-    private func uploadProfileAvatarImageData(_ data: Data?) async throws -> ProfileAvatarUpload? {
-        guard let data else { return nil }
-        guard data.count <= 1_500_000 else {
-            throw ProfileAvatarUploadError.imageTooLarge
-        }
-
-        let callable = Functions.functions(region: "asia-northeast3").httpsCallable("profileAvatarUploadInit")
-        let result = try await callable.call([
-            "contentType": "image/jpeg",
-            "imageBytes": data.count
-        ])
-        guard let payload = result.data as? [String: Any],
-              let uploadURLString = payload["uploadUrl"] as? String,
-              let uploadURL = URL(string: uploadURLString),
-              let publicURLString = payload["publicURL"] as? String,
-              let publicURL = URL(string: publicURLString),
-              let objectKey = payload["objectKey"] as? String else {
-            throw ProfileAvatarUploadError.invalidUploadResponse
-        }
-
-        var request = URLRequest(url: uploadURL)
-        request.httpMethod = "PUT"
-        request.httpBody = data
-        let headers = payload["uploadHeaders"] as? [String: String] ?? [:]
-        for (field, value) in headers {
-            request.setValue(value, forHTTPHeaderField: field)
-        }
-        request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
-
-        let (_, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200..<300).contains(httpResponse.statusCode) else {
-            throw ProfileAvatarUploadError.uploadFailed
-        }
-
-        return ProfileAvatarUpload(publicURL: publicURL, objectKey: objectKey)
-    }
-
     func saveProfile(_ profile: EditableProfile) {
-        editableProfile = profile
-        lastProfileSavedAt = Date()
-        lastSubmitErrorMessage = nil
-        saveProfileTask?.cancel()
-        saveProfileGeneration += 1
-        let generation = saveProfileGeneration
-        // Firestore /users/{uid} 영속화 — Cloud Function updateProfile callable로 위임 (서버 측 검증 + 일관 schema).
-        // 핸들 변경은 별도 setHandle callable로 분리 (uniqueness check + reservation 보호).
-        saveProfileTask = Task { [weak self, profile, generation] in
-            let region = "asia-northeast3"
-            do {
-                guard let self else { return }
-                let avatarUpload = try await self.uploadProfileAvatarImageData(profile.avatarImageData)
-                let avatarURL = avatarUpload?.publicURL ?? profile.avatarURL
-                var payload: [String: Any] = [
-                    "displayName": profile.displayName,
-                    "bio": profile.bio,
-                    "website": profile.website,
-                    "makerPageVisible": profile.makerPageVisible,
-                    "photoSharingAllowed": profile.photoSharingAllowed,
-                    "avatarVariant": profile.avatarVariant
-                ]
-                if let avatarURL {
-                    payload["avatarURL"] = avatarURL.absoluteString
-                    payload["photoURL"] = avatarURL.absoluteString
-                }
-                if let avatarUpload {
-                    payload["avatarObjectKey"] = avatarUpload.objectKey
-                }
-                let updateCallable = Functions.functions(region: region).httpsCallable("updateProfile")
-                _ = try await updateCallable.call(payload)
-                if !profile.handle.isEmpty {
-                    let handleCallable = Functions.functions(region: region).httpsCallable("setHandle")
-                    _ = try await handleCallable.call(["handle": profile.handle])
-                }
-                guard !Task.isCancelled else { return }
-                await MainActor.run { [weak self] in
-                    guard let self, self.saveProfileGeneration == generation else { return }
-                    if let avatarURL {
-                        self.editableProfile.avatarURL = avatarURL
-                    }
-                    self.lastSubmitErrorMessage = nil
-                    self.saveProfileTask = nil
-                }
-            } catch {
-                guard !Task.isCancelled else { return }
-                // (#47) silent failure 제거 — 사용자 알림 surface.
-                await MainActor.run { [weak self] in
-                    guard let self, self.saveProfileGeneration == generation else { return }
-                    self.lastSubmitErrorMessage = "프로필 저장 실패: \(error.localizedDescription)"
-                    self.saveProfileTask = nil
-                }
-            }
-        }
+        sessionStore.saveProfile(profile)
     }
 
     func markAccountDeletionRequested() async throws {
-        let callable = Functions.functions(region: "asia-northeast3").httpsCallable("deleteAccount")
-        _ = try await callable.call([:] as [String: Any])
-        accountDeletionRequestedAt = Date()
+        try await sessionStore.markAccountDeletionRequested()
     }
 
     func toggleExportCategory(_ category: DataExportCategory) {
-        if selectedExportCategories.contains(category) {
-            selectedExportCategories.remove(category)
-        } else {
-            selectedExportCategories.insert(category)
-        }
+        sessionStore.toggleExportCategory(category)
     }
 
     func requestDataExport() {
-        guard !selectedExportCategories.isEmpty else { return }
-        let uid = SessionStore.currentFirebaseUID
-        let ref = uid.map {
-            Firestore.firestore()
-                .collection("users").document($0)
-                .collection("exportRequests").document()
-        }
-        let request = DataExportRequest(
-            id: ref?.documentID ?? UUID().uuidString,
-            categories: selectedExportCategories,
-            format: selectedExportFormat,
-            requestedAt: Date(),
-            status: "요청됨",
-            downloadURL: nil
-        )
-        exportRequests.insert(request, at: 0)
-        // (#42) Firestore /users/{uid}/exportRequests/{auto} 영속화 — 앱 재실행/다른 디바이스 일관성.
-        guard let ref else { return }
-        let categoriesArray = selectedExportCategories.map { $0.rawValue }
-        ref.setData([
-            "categories": categoriesArray,
-            "format": selectedExportFormat.rawValue,
-            "status": "requested",
-            "requestedAt": FieldValue.serverTimestamp()
-        ]) { [weak self] error in
-            guard let error else { return }
-            Task { @MainActor in
-                self?.lastSubmitErrorMessage = "데이터 내보내기 요청 실패: \(error.localizedDescription)"
-            }
-        }
+        sessionStore.requestDataExport()
     }
 
     func resetEditorDraft() {

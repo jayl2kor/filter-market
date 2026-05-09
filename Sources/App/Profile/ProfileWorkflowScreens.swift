@@ -8,7 +8,7 @@ import SwiftUI
 import UIKit
 
 struct AccountDeletionScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var sessionStore: SessionStore
     @Environment(\.dismiss) private var dismiss
     @State private var confirmation = ""
     @State private var didAcknowledgePolicy = false
@@ -18,7 +18,7 @@ struct AccountDeletionScreen: View {
     @State private var deletionErrorMessage: String?
 
     private var expectedUsername: String {
-        store.editableProfile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
+        sessionStore.editableProfile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private var expectedDisplayUsername: String {
@@ -56,7 +56,7 @@ struct AccountDeletionScreen: View {
                     symbol: "person.crop.circle.badge.xmark"
                 )
 
-                if didRequestDeletion || store.accountDeletionRequestedAt != nil {
+                if didRequestDeletion || sessionStore.accountDeletionRequestedAt != nil {
                     deletionReceipt
                 } else {
                     warningCard
@@ -174,7 +174,7 @@ struct AccountDeletionScreen: View {
         isDeletingAccount = true
         Task {
             do {
-                try await store.markAccountDeletionRequested()
+                try await sessionStore.markAccountDeletionRequested()
                 #if DEBUG
                 if !isUITesting {
                     try? Auth.auth().signOut()
@@ -214,10 +214,10 @@ struct AccountDeletionScreen: View {
 }
 
 struct EditProfileScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var sessionStore: SessionStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// 빈 상태에서 시작해 .onAppear에서 store.editableProfile (Firebase Auth + Firestore 합성)로 초기화.
+    /// 빈 상태에서 시작해 .onAppear에서 sessionStore.editableProfile (Firebase Auth + Firestore 합성)로 초기화.
     /// (이전: EditableProfile.preview = 강지수 — 사용자 본인 데이터로 자동 채워지도록 수정)
     @State private var draft = EditableProfile.empty
     @State private var initialHandle = ""
@@ -274,7 +274,7 @@ struct EditProfileScreen: View {
     }
 
     private var hasUnsavedChanges: Bool {
-        draft != store.editableProfile
+        draft != sessionStore.editableProfile
     }
 
     var body: some View {
@@ -307,8 +307,8 @@ struct EditProfileScreen: View {
             }
         }
         .onAppear {
-            draft = store.editableProfile
-            initialHandle = normalizedHandle(store.editableProfile.handle)
+            draft = sessionStore.editableProfile
+            initialHandle = normalizedHandle(sessionStore.editableProfile.handle)
             handleStatus = initialHandle.isEmpty ? .idle : .available
             lastCheckedHandle = initialHandle
         }
@@ -483,7 +483,7 @@ struct EditProfileScreen: View {
 
     @ViewBuilder
     private var saveReceipt: some View {
-        if let savedAt = store.lastProfileSavedAt {
+        if let savedAt = sessionStore.lastProfileSavedAt {
             Text("저장됨 · \(workflowTimeString(savedAt))")
                 .fmTypography(.caption)
                 .foregroundStyle(FMColors.Text.tertiary)
@@ -619,7 +619,7 @@ struct EditProfileScreen: View {
 
     private func save() {
         guard canSave else { return }
-        store.saveProfile(draft)
+        sessionStore.saveProfile(draft)
         dismiss()
     }
 }

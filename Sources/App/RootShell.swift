@@ -122,9 +122,8 @@ struct RootShell: View {
             NavigationStack {
                 EditProfileScreen()
             }
-            .environmentObject(store)
         }
-        .onReceive(store.$editableProfile) { profile in
+        .onReceive(store.sessionStore.$editableProfile) { profile in
             // (#32) 핸들 미설정 + 인증 + listener 첫 도착 후에만 sheet trigger.
             syncHandleOnboarding(profile: profile)
         }

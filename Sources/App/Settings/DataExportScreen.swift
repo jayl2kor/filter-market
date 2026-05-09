@@ -3,7 +3,7 @@ import Foundation
 import SwiftUI
 
 struct DataExportScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var sessionStore: SessionStore
     @Environment(\.openURL) private var openURL
     @State private var showSubmitAlert = false
 
@@ -24,7 +24,7 @@ struct DataExportScreen: View {
                 FMButton("데이터 사본 요청", icon: "paperplane.fill", variant: .primary, size: .lg) {
                     showSubmitAlert = true
                 }
-                .disabled(store.selectedExportCategories.isEmpty)
+                .disabled(sessionStore.selectedExportCategories.isEmpty)
                 .accessibilityIdentifier("settings.export.submit")
             }
             .padding(Sp.md)
@@ -35,7 +35,7 @@ struct DataExportScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .alert("데이터 사본을 요청할까요?", isPresented: $showSubmitAlert) {
             Button("요청") {
-                store.requestDataExport()
+                sessionStore.requestDataExport()
             }
             Button("취소", role: .cancel) {}
         } message: {
@@ -50,11 +50,11 @@ struct DataExportScreen: View {
                 VStack(spacing: 0) {
                     ForEach(DataExportCategory.allCases) { category in
                         Button {
-                            store.toggleExportCategory(category)
+                            sessionStore.toggleExportCategory(category)
                         } label: {
                             HStack(alignment: .top, spacing: Sp.sm) {
-                                Image(systemName: store.selectedExportCategories.contains(category) ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(store.selectedExportCategories.contains(category) ? FMColors.Accent.primary : FMColors.Text.tertiary)
+                                Image(systemName: sessionStore.selectedExportCategories.contains(category) ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(sessionStore.selectedExportCategories.contains(category) ? FMColors.Accent.primary : FMColors.Text.tertiary)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(category.title)
                                         .fmTypography(.headline)
@@ -86,7 +86,7 @@ struct DataExportScreen: View {
             HStack(spacing: Sp.xs) {
                 ForEach(DataExportFormat.allCases) { format in
                     Button {
-                        store.selectedExportFormat = format
+                        sessionStore.selectedExportFormat = format
                     } label: {
                         VStack(spacing: 2) {
                             Text(format.rawValue)
@@ -95,16 +95,16 @@ struct DataExportScreen: View {
                                 .font(.caption2)
                                 .lineLimit(1)
                         }
-                        .foregroundStyle(store.selectedExportFormat == format ? .white : FMColors.Text.primary)
+                        .foregroundStyle(sessionStore.selectedExportFormat == format ? .white : FMColors.Text.primary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 58)
                         .background(
-                            store.selectedExportFormat == format ? FMColors.Accent.primary : FMColors.Background.bg2,
+                            sessionStore.selectedExportFormat == format ? FMColors.Accent.primary : FMColors.Background.bg2,
                             in: RoundedRectangle(cornerRadius: R.md)
                         )
                         .overlay {
                             RoundedRectangle(cornerRadius: R.md)
-                                .strokeBorder(FMColors.Border.default, lineWidth: store.selectedExportFormat == format ? 0 : 1)
+                                .strokeBorder(FMColors.Border.default, lineWidth: sessionStore.selectedExportFormat == format ? 0 : 1)
                         }
                     }
                     .buttonStyle(.plain)
@@ -119,7 +119,7 @@ struct DataExportScreen: View {
             sectionLabel("이전 요청")
             FMCard {
                 VStack(spacing: 0) {
-                    ForEach(store.exportRequests) { request in
+                    ForEach(sessionStore.exportRequests) { request in
                         HStack(spacing: Sp.sm) {
                             Image(systemName: request.status == "만료" ? "clock.badge.exclamationmark" : "doc.text")
                                 .foregroundStyle(request.status == "만료" ? FMColors.Text.tertiary : FMColors.Accent.primary)
@@ -147,7 +147,7 @@ struct DataExportScreen: View {
                             }
                         }
                         .padding(.vertical, Sp.xs)
-                        if request.id != store.exportRequests.last?.id {
+                        if request.id != sessionStore.exportRequests.last?.id {
                             workflowDivider()
                         }
                     }

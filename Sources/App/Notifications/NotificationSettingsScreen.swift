@@ -4,7 +4,7 @@ import UIKit
 import UserNotifications
 
 struct NotificationSettingsScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var sessionStore: SessionStore
     @Environment(\.openURL) private var openURL
     @State private var systemAuthorizationStatus: UNAuthorizationStatus?
 
@@ -99,17 +99,17 @@ struct NotificationSettingsScreen: View {
                     )
                     .accessibilityIdentifier("notif.quiet.toggle")
                     workflowDivider()
-                    quietRow("시작", value: store.notificationPreferences.quietStart) {
-                        store.setNotificationPreference(
+                    quietRow("시작", value: sessionStore.notificationPreferences.quietStart) {
+                        sessionStore.setNotificationPreference(
                             \.quietStart,
-                            to: nextQuietStart(after: store.notificationPreferences.quietStart)
+                            to: nextQuietStart(after: sessionStore.notificationPreferences.quietStart)
                         )
                     }
                     workflowDivider()
-                    quietRow("종료", value: store.notificationPreferences.quietEnd) {
-                        store.setNotificationPreference(
+                    quietRow("종료", value: sessionStore.notificationPreferences.quietEnd) {
+                        sessionStore.setNotificationPreference(
                             \.quietEnd,
-                            to: nextQuietEnd(after: store.notificationPreferences.quietEnd)
+                            to: nextQuietEnd(after: sessionStore.notificationPreferences.quietEnd)
                         )
                     }
                 }
@@ -166,8 +166,8 @@ struct NotificationSettingsScreen: View {
 
     private func preferenceBinding(_ keyPath: WritableKeyPath<NotificationPreferences, Bool>) -> Binding<Bool> {
         Binding(
-            get: { store.notificationPreferences[keyPath: keyPath] },
-            set: { store.setNotificationPreference(keyPath, to: $0) }
+            get: { sessionStore.notificationPreferences[keyPath: keyPath] },
+            set: { sessionStore.setNotificationPreference(keyPath, to: $0) }
         )
     }
 
