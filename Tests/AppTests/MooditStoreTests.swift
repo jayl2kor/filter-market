@@ -31,7 +31,7 @@ final class MooditStoreTests: XCTestCase {
 
         XCTAssertEqual(store.filters.map(\.title), ["Older", "Newer", "Rejected"])
         XCTAssertEqual(store.selectedFilterID, older.id)
-        XCTAssertEqual(store.downloadedFilterIDs, [older.id])
+        XCTAssertTrue(store.downloadedFilterIDs.isEmpty)
         XCTAssertEqual(store.trendingFilters.map(\.title), ["Newer", "Older"])
         XCTAssertEqual(store.newFiltersList.map(\.title), ["Newer", "Older"])
         XCTAssertNil(store.loadError)

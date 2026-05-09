@@ -741,7 +741,7 @@ export interface FilterDetailResponse {
     sampleCount: number;
     tags: string[];
     createdAt: number | null;
-    author: { uid: string; displayName: string };
+    author: { uid: string; displayName: string; avatarURL: string | null; photoURL: string | null };
   };
   samples: Array<{
     id: string;
@@ -762,8 +762,9 @@ export interface FilterDetailResponse {
     createdAt: number | null;
   }>;
   userHasLiked: boolean;
-  signedDownloadURL: string;
-  expiresAt: number;
+  signedDownloadURL?: string;
+  expiresAt?: number;
+  paywall: boolean;
 }
 
 export interface ListReviewsDeps {
@@ -901,32 +902,41 @@ export async function applyGetFilterDetail(
     throw new HttpsError("internal", "filter has no objectKey");
   }
   const priceCoins = (data.priceCoins as number | undefined) ?? 0;
-  if (priceCoins > 0) {
+  const requiresEntitlement = priceCoins > 0;
+  let paywall = false;
+  if (requiresEntitlement) {
     if (!deps.uid) {
-      throw new HttpsError("permission-denied", "not_entitled");
-    }
-    const entitlementSnap = await db.collection("users").doc(deps.uid)
-      .collection("entitlements").doc(filterId)
-      .get();
-    const proSnap = await db.collection("users").doc(deps.uid)
-      .collection("proStatus").doc("status")
-      .get();
-    const hasActivePro = (proSnap.data()?.active as boolean | undefined) === true;
-    if (!entitlementSnap.exists && !hasActivePro) {
-      throw new HttpsError("permission-denied", "not_entitled");
+      paywall = true;
+    } else {
+      const entitlementSnap = await db.collection("users").doc(deps.uid)
+        .collection("entitlements").doc(filterId)
+        .get();
+      const proSnap = await db.collection("users").doc(deps.uid)
+        .collection("proStatus").doc("status")
+        .get();
+      const hasActivePro = (proSnap.data()?.active as boolean | undefined) === true;
+      if (!entitlementSnap.exists && !hasActivePro) {
+        throw new HttpsError("permission-denied", "not_entitled");
+      }
     }
   }
 
-  const presigner =
-    deps.presignGetURL ??
-    (async (key: string) => {
-      const cfg = loadR2Config();
-      const presigned = await presignGet(cfg, key, 600);
-      return { url: presigned.url, expiresAt: presigned.expiresAt };
-    });
-  const { url: signedDownloadURL, expiresAt } = await presigner(objectKey);
+  const presigned = paywall
+    ? undefined
+    : await (deps.presignGetURL ??
+      (async (key: string) => {
+        const cfg = loadR2Config();
+        const result = await presignGet(cfg, key, 600);
+        return { url: result.url, expiresAt: result.expiresAt };
+      }))(objectKey);
 
   const author = (data.author as { uid?: string; displayName?: string } | undefined) ?? {};
+  const authorAvatarURL =
+    (author as { avatarURL?: string; photoURL?: string }).avatarURL ??
+    (author as { avatarURL?: string; photoURL?: string }).photoURL ??
+    (data.authorAvatarURL as string | undefined) ??
+    (data.authorPhotoURL as string | undefined) ??
+    null;
   const createdAtRaw = data.createdAt;
   const createdAt =
     createdAtRaw && typeof createdAtRaw === "object" && "toMillis" in createdAtRaw &&
@@ -969,6 +979,8 @@ export async function applyGetFilterDetail(
       author: {
         uid: author.uid ?? (data.authorUid as string | undefined) ?? "unknown",
         displayName: author.displayName ?? "Unknown",
+        avatarURL: authorAvatarURL,
+        photoURL: authorAvatarURL,
       },
     },
     samples: samplesSnap.docs.map((sample) => {
@@ -999,8 +1011,9 @@ export async function applyGetFilterDetail(
       };
     }),
     userHasLiked,
-    signedDownloadURL,
-    expiresAt,
+    signedDownloadURL: presigned?.url,
+    expiresAt: presigned?.expiresAt,
+    paywall,
   };
 }
 
@@ -1008,9 +1021,8 @@ export async function applyGetFilterDetail(
 export const getFilterDetail = onCall(
   { region, cors: true, secrets: r2Secrets, enforceAppCheck: true },
   async (req: CallableRequest) => {
-    // (#46) 유료 필터 R2 presigned URL을 비인증 사용자에게 노출하지 않도록 인증 강제.
-    const uid = requireAuth(req);
-    return applyGetFilterDetail(req.data, { uid });
+    // 무료 필터는 공개 열람/다운로드를 허용하되, 유료 필터 URL은 entitlement 확인 후에만 발급한다.
+    return applyGetFilterDetail(req.data, { uid: req.auth?.uid });
   },
 );
 

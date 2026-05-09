@@ -57,7 +57,8 @@ final class PhaseDE2ETests: MooditUITestCase {
     func testDiscoveryFeedsExposeDownloadCountsAndSocialActions() {
         launch(route: "forYou")
 
-        XCTAssertTrue(app.staticTexts["Airy Trip"].waitForExistence(timeout: 6))
+        XCTAssertTrue(app.staticTexts["Cinestill Night"].waitForExistence(timeout: 6))
+        assertStaticText(containing: "↓ 9.1천")
         XCTAssertTrue(element("social.foryou.hero.apply").exists)
         XCTAssertTrue(element("social.foryou.hero.save").exists)
         tap("social.foryou.hero.save")

@@ -37,6 +37,10 @@ final class EditorDraftStore: ObservableObject {
         lastSubmitErrorMessage = nil
     }
 
+    func clearLastSubmitError() {
+        lastSubmitErrorMessage = nil
+    }
+
     func setEditorReferencePhotoData(_ data: Data?) {
         editorReferencePhotoData = data
         editorReferencePhotoRevision += 1
@@ -198,6 +202,19 @@ final class EditorDraftStore: ObservableObject {
         makerFilters = drafts
     }
 
+    func makerFilter(matchingRejectionRouteID routeID: String) -> MakerFilterDraft? {
+        let normalized = routeID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else { return nil }
+        if let uuid = UUID(uuidString: normalized),
+           let match = makerFilters.first(where: { $0.id == uuid }) {
+            return match
+        }
+        if let match = makerFilters.first(where: { $0.firestoreFilterId == normalized }) {
+            return match
+        }
+        return makerFilters.first { $0.name == normalized }
+    }
+
     @discardableResult
     func markMakerFilterPrivate(_ draft: MakerFilterDraft) -> MakerFilterDraft? {
         guard let existing = makerFilters.first(where: { $0.id == draft.id }) else { return nil }
@@ -244,6 +261,15 @@ final class EditorDraftStore: ObservableObject {
         }
         if let submittedAt = draft.submittedAt {
             payload["submittedAt"] = Timestamp(date: submittedAt)
+        }
+        if let rejectionReasons = draft.rejectionReasons, !rejectionReasons.isEmpty {
+            payload["rejectionReasons"] = rejectionReasons.map { ["title": $0.title, "body": $0.body] }
+        }
+        if let moderatorNote = draft.moderatorNote {
+            payload["moderatorNote"] = moderatorNote
+        }
+        if let rejectedAt = draft.rejectedAt {
+            payload["rejectedAt"] = Timestamp(date: rejectedAt)
         }
         if let firestoreFilterId = draft.firestoreFilterId {
             payload["firestoreFilterId"] = firestoreFilterId

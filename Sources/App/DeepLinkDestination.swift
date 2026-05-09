@@ -51,7 +51,7 @@ struct DeepLinkDestination: View {
         case .notifications:
             NotificationsInboxScreen()
         case .search(let initialQuery, let category):
-            SearchScreen(initialQuery: initialQuery, initialCategory: category)
+            SearchScreen(initialQuery: initialQuery, initialCategory: category, showsBackButton: true)
         case .cameraAspect:
             CameraAspectPickerScreen()
         case .cameraTimer:

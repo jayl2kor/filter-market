@@ -90,10 +90,12 @@ public enum FilterStatus: String, Codable, Sendable {
 public struct FilterAuthor: Codable, Equatable, Sendable {
     public let uid: String
     public let displayName: String
+    public let avatarURL: URL?
 
-    public init(uid: String, displayName: String) {
+    public init(uid: String, displayName: String, avatarURL: URL? = nil) {
         self.uid = uid
         self.displayName = displayName
+        self.avatarURL = avatarURL
     }
 }
 

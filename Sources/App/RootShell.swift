@@ -8,7 +8,7 @@ import UIKit
 /// 5탭 + 중앙 셔터 셸.
 ///
 /// Phase D2 — `docs/DESIGN_INTEGRATION_PLAN.md` §3.
-/// 마켓 / 검색 / 셔터(카메라) / 저장됨 / 프로필 5개 탭.
+/// 마켓 / 발견 / 셔터(카메라) / 저장됨 / 프로필 5개 탭.
 /// 셔터 탭은 selection 으로 사용되지 않고 `.fullScreenCover` 로 카메라를 띄움.
 struct RootShell: View {
     @StateObject private var store = MooditStore()
@@ -17,10 +17,10 @@ struct RootShell: View {
     @AppStorage("hasOnboarded") private var hasOnboarded: Bool = false
 
     @State private var selectedTab: FMTab = .market
-    @State private var marketNavigationPath = NavigationPath()
-    @State private var searchNavigationPath = NavigationPath()
-    @State private var savedNavigationPath = NavigationPath()
-    @State private var profileNavigationPath = NavigationPath()
+    @State private var marketNavigationPath: [AppRoute] = []
+    @State private var searchNavigationPath: [AppRoute] = []
+    @State private var savedNavigationPath: [AppRoute] = []
+    @State private var profileNavigationPath: [AppRoute] = []
     @State private var isCameraPresented = false
     @State private var showHandleOnboarding = false
     @State private var deferredDeepLinkRoute: AppRoute?
@@ -29,6 +29,9 @@ struct RootShell: View {
     @State private var didPrimeNotificationBadge = false
     @State private var foregroundPushBanner: ForegroundPushBannerPayload?
     @State private var foregroundPushDismissTask: Task<Void, Never>?
+    #if DEBUG
+    @State private var didHandleUITestingInitialDeepLink = false
+    #endif
     /// 신규 사용자 첫 로그인 후 listener가 도착할 시간을 약간 둔 뒤 핸들 검사.
     /// (#32) 너무 일찍 검사하면 .empty 초기값을 보고 잘못 trigger.
     @State private var didCheckHandle = false
@@ -40,27 +43,29 @@ struct RootShell: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(FMColors.Background.bg1)
 
-            FMTabBar(
-                selection: Binding(
-                    get: { selectedTab },
-                    set: { newValue in
-                        // 셔터는 selection 으로 들어오지 않지만 방어적으로 처리.
-                        guard newValue != .shutter else { return }
-                        selectedTab = newValue
-                        Telemetry.trackAction("tab_selected", screen: newValue.telemetryScreen, parameters: [
-                            "tab": newValue.telemetryName
+            if !isTabBarHidden {
+                FMTabBar(
+                    selection: Binding(
+                        get: { selectedTab },
+                        set: { newValue in
+                            // 셔터는 selection 으로 들어오지 않지만 방어적으로 처리.
+                            guard newValue != .shutter else { return }
+                            selectedTab = newValue
+                            Telemetry.trackAction("tab_selected", screen: newValue.telemetryScreen, parameters: [
+                                "tab": newValue.telemetryName
+                            ])
+                        }
+                    ),
+                    badges: tabBadges,
+                    onShutter: {
+                        FMHaptic.medium.play()
+                        Telemetry.trackFunnelStep("camera_capture", step: "camera_opened", screen: .cameraLive, parameters: [
+                            "source": "tab_bar"
                         ])
+                        isCameraPresented = true
                     }
-                ),
-                badges: tabBadges,
-                onShutter: {
-                    FMHaptic.medium.play()
-                    Telemetry.trackFunnelStep("camera_capture", step: "camera_opened", screen: .cameraLive, parameters: [
-                        "source": "tab_bar"
-                    ])
-                    isCameraPresented = true
-                }
-            )
+                )
+            }
         }
         .overlay(alignment: .top) {
             foregroundPushBannerView
@@ -74,7 +79,6 @@ struct RootShell: View {
         .environmentObject(store.sessionStore)
         .environmentObject(store.cameraStateStore)
         .task {
-            await store.load()
             store.subscribeToWallet()
             syncNotificationBadgeListener()
             PushRegistration.shared.deepLinkHandler = { route in
@@ -85,19 +89,13 @@ struct RootShell: View {
             PushRegistration.shared.foregroundBannerHandler = { payload in
                 showForegroundPushBanner(payload)
             }
-            #if DEBUG
-            // UI test launch arg: `-deepLink <url>` simulates the URL arriving
-            // through `.onOpenURL` so PhaseAE2ETests can exercise the deep-link
-            // path without Springboard/Safari indirection.
-            if let url = uiTestingDeepLinkURL() {
-                if let route = UniversalLinkParser.route(for: url) {
-                    handleIncomingDeepLink(route)
-                } else {
-                    handleFailedDeepLink(url, reason: "ui_test_parse_failed")
-                }
-            }
-            #endif
+            await store.load()
         }
+        #if DEBUG
+        .onAppear {
+            handleUITestingInitialDeepLinkIfNeeded()
+        }
+        #endif
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraScreen(isPresentedAsCover: true)
                 .environmentObject(store)
@@ -193,14 +191,43 @@ struct RootShell: View {
 
     @ViewBuilder
     private var tabContent: some View {
-        NavigationStack(path: selectedTabNavigationPath) {
-            selectedTabContent
-                .fmTrackScreen(selectedTab.telemetryScreen, parameters: ["tab": selectedTab.telemetryName])
-                .appRouteDestinations()
+        ZStack {
+            tabNavigationStack(.market, path: $marketNavigationPath) {
+                MarketplaceScreen(ownsNavigationStack: false)
+            }
+
+            tabNavigationStack(.search, path: $searchNavigationPath) {
+                SearchScreen()
+            }
+
+            tabNavigationStack(.saved, path: $savedNavigationPath) {
+                SavedScreen(ownsNavigationStack: false)
+            }
+
+            tabNavigationStack(.profile, path: $profileNavigationPath) {
+                ProfileScreen(ownsNavigationStack: false)
+            }
         }
     }
 
-    private var selectedTabNavigationPath: Binding<NavigationPath> {
+    @ViewBuilder
+    private func tabNavigationStack<Content: View>(
+        _ tab: FMTab,
+        path: Binding<[AppRoute]>,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        NavigationStack(path: path) {
+            content()
+                .fmTrackScreen(tab.telemetryScreen, parameters: ["tab": tab.telemetryName])
+                .appRouteDestinations()
+        }
+        .opacity(selectedTab == tab ? 1 : 0)
+        .allowsHitTesting(selectedTab == tab)
+        .accessibilityHidden(selectedTab != tab)
+        .zIndex(selectedTab == tab ? 1 : 0)
+    }
+
+    private var selectedTabNavigationPath: Binding<[AppRoute]> {
         switch selectedTab {
         case .market:
             $marketNavigationPath
@@ -216,21 +243,23 @@ struct RootShell: View {
         }
     }
 
-    @ViewBuilder
-    private var selectedTabContent: some View {
+    private var selectedTabPathValue: [AppRoute] {
         switch selectedTab {
         case .market:
-            MarketplaceScreen(ownsNavigationStack: false)
+            marketNavigationPath
         case .search:
-            SearchScreen()
+            searchNavigationPath
         case .shutter:
-            // 도달하지 않음 — fullScreenCover 로 처리.
-            MarketplaceScreen(ownsNavigationStack: false)
+            []
         case .saved:
-            SavedScreen(ownsNavigationStack: false)
+            savedNavigationPath
         case .profile:
-            ProfileScreen(ownsNavigationStack: false)
+            profileNavigationPath
         }
+    }
+
+    private var isTabBarHidden: Bool {
+        !selectedTabPathValue.isEmpty
     }
 
     private var handleOnboardingUID: String {
@@ -309,9 +338,27 @@ struct RootShell: View {
     }
 
     private func canPresentDeepLink(_ route: AppRoute) -> Bool {
-        guard hasOnboarded else { return false }
-        guard !route.requiresAuthentication || store.isAuthenticated else { return false }
+        guard hasCompletedOnboardingForRouting else { return false }
+        guard !route.requiresAuthentication || isAuthenticatedForRouting else { return false }
         return true
+    }
+
+    private var hasCompletedOnboardingForRouting: Bool {
+        #if DEBUG
+        if isUITesting {
+            return true
+        }
+        #endif
+        return hasOnboarded
+    }
+
+    private var isAuthenticatedForRouting: Bool {
+        #if DEBUG
+        if isUITesting {
+            return Self.uiTestingAuthenticationFlag()
+        }
+        #endif
+        return store.isAuthenticated
     }
 
     private func syncHandleOnboarding(profile: EditableProfile) {
@@ -397,6 +444,30 @@ struct RootShell: View {
         guard let flagIndex = args.firstIndex(of: "-deepLink"),
               args.indices.contains(flagIndex + 1) else { return nil }
         return URL(string: args[flagIndex + 1])
+    }
+
+    private func handleUITestingInitialDeepLinkIfNeeded() {
+        guard !didHandleUITestingInitialDeepLink,
+              let url = uiTestingDeepLinkURL() else { return }
+        didHandleUITestingInitialDeepLink = true
+
+        // Present after the first RootShell render so SwiftUI has attached the
+        // sheet host. This mirrors a real URL arriving after launch.
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            if let route = UniversalLinkParser.route(for: url) {
+                handleIncomingDeepLink(route)
+            } else {
+                handleFailedDeepLink(url, reason: "ui_test_parse_failed")
+            }
+        }
+    }
+
+    private static func uiTestingAuthenticationFlag() -> Bool {
+        let args = ProcessInfo.processInfo.arguments
+        guard let flagIndex = args.firstIndex(of: "-isAuthenticated"),
+              args.indices.contains(flagIndex + 1) else { return false }
+        return ["1", "true", "yes"].contains(args[flagIndex + 1].lowercased())
     }
     #endif
 }

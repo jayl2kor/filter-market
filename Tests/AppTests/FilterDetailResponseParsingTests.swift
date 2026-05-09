@@ -23,7 +23,8 @@ struct FilterDetailResponseParsingTests {
                 "tags": ["warm", "#film"],
                 "author": [
                     "uid": "maker-1",
-                    "displayName": "Maker"
+                    "displayName": "Maker",
+                    "avatarURL": "https://cdn.example.com/maker.jpg",
                 ],
             ],
             "samples": [
@@ -53,9 +54,38 @@ struct FilterDetailResponseParsingTests {
         #expect(response.userHasLiked)
         #expect(mock.userHasLiked)
         #expect(mock.likeCount == 9)
+        #expect(mock.makerUID == "maker-1")
+        #expect(mock.makerAvatarURL == URL(string: "https://cdn.example.com/maker.jpg"))
         #expect(mock.reviewCount == 3)
         #expect(mock.samples.count == 1)
         #expect(mock.reviews.count == 1)
         #expect(mock.tags == ["#warm", "#film"])
+    }
+
+    @Test("paid guest detail can omit signed download URL")
+    func paidGuestDetailWithoutSignedURLStillParses() throws {
+        let response = try FilterDetailResponse(json: [
+            "filter": [
+                "id": "paid-filter",
+                "title": "Paid Film",
+                "description": "Remote description",
+                "category": "cinematic",
+                "status": "approved",
+                "priceCoins": 120,
+                "author": [
+                    "uid": "maker-1",
+                    "displayName": "Maker"
+                ],
+            ],
+            "samples": [],
+            "reviews": [],
+            "userHasLiked": false,
+            "paywall": true,
+        ])
+
+        #expect(response.signedDownloadURL == nil)
+        #expect(response.expiresAt == nil)
+        #expect(response.paywall)
+        #expect(response.toMock().isPaid)
     }
 }

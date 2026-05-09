@@ -3,8 +3,16 @@
     "id": "01900B14-7B1C-7C20-A4F4-000000000001",
     "title": "Sunlit Portra",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["portrait", "skin", "warm", "daily"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "portrait",
+      "skin",
+      "warm",
+      "daily"
+    ],
     "category": "portrait",
     "engine": {
       "type": "lut+params",
@@ -12,14 +20,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/sunlit-portra.png"
-    }
+    },
+    "useCount": 5820,
+    "downloadCount": 5820
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-000000000002",
     "title": "Golden Hour",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["golden", "warm", "sunset", "glow"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "golden",
+      "warm",
+      "sunset",
+      "glow"
+    ],
     "category": "cinematic",
     "engine": {
       "type": "lut+params",
@@ -27,14 +45,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/golden-hour.png"
-    }
+    },
+    "useCount": 7340,
+    "downloadCount": 7340
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-000000000003",
     "title": "Soft Velvia",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["travel", "landscape", "natural", "subtle"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "travel",
+      "landscape",
+      "natural",
+      "subtle"
+    ],
     "category": "travel",
     "engine": {
       "type": "lut+params",
@@ -42,14 +70,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/soft-velvia.png"
-    }
+    },
+    "useCount": 4210,
+    "downloadCount": 4210
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-000000000004",
     "title": "Pro 400H",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["pastel", "airy", "soft", "fuji"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "pastel",
+      "airy",
+      "soft",
+      "fuji"
+    ],
     "category": "pastel",
     "engine": {
       "type": "lut+params",
@@ -57,14 +95,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/pro-400h.png"
-    }
+    },
+    "useCount": 3890,
+    "downloadCount": 3890
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-000000000005",
     "title": "Cinestill Night",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["night", "neon", "moody", "tungsten"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "night",
+      "neon",
+      "moody",
+      "tungsten"
+    ],
     "category": "moody",
     "engine": {
       "type": "lut+params",
@@ -72,14 +120,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/cinestill-night.png"
-    }
+    },
+    "useCount": 9120,
+    "downloadCount": 9120
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-000000000006",
     "title": "Tri-X Mono",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["bw", "contrast", "classic", "film"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "bw",
+      "contrast",
+      "classic",
+      "film"
+    ],
     "category": "bw",
     "engine": {
       "type": "lut+params",
@@ -87,14 +145,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/tri-x-mono.png"
-    }
+    },
+    "useCount": 2760,
+    "downloadCount": 2760
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-000000000007",
     "title": "Acros Soft",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["bw", "soft", "smooth", "neutral"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "bw",
+      "soft",
+      "smooth",
+      "neutral"
+    ],
     "category": "bw",
     "engine": {
       "type": "lut+params",
@@ -102,14 +170,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/acros-soft.png"
-    }
+    },
+    "useCount": 1910,
+    "downloadCount": 1910
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-000000000008",
     "title": "Sepia Memory",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["vintage", "sepia", "faded", "memory"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "vintage",
+      "sepia",
+      "faded",
+      "memory"
+    ],
     "category": "vintage",
     "engine": {
       "type": "lut+params",
@@ -117,14 +195,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/sepia-memory.png"
-    }
+    },
+    "useCount": 2540,
+    "downloadCount": 2540
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-000000000009",
     "title": "Teal & Orange",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["cinematic", "hollywood", "contrast", "split"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "cinematic",
+      "hollywood",
+      "contrast",
+      "split"
+    ],
     "category": "cinematic",
     "engine": {
       "type": "lut+params",
@@ -132,14 +220,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/teal-orange.png"
-    }
+    },
+    "useCount": 6880,
+    "downloadCount": 6880
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-00000000000A",
     "title": "Bleach Bypass",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["moody", "desat", "documentary", "high-contrast"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "moody",
+      "desat",
+      "documentary",
+      "high-contrast"
+    ],
     "category": "moody",
     "engine": {
       "type": "lut+params",
@@ -147,14 +245,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/bleach-bypass.png"
-    }
+    },
+    "useCount": 3120,
+    "downloadCount": 3120
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-00000000000B",
     "title": "Polaroid Fade",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["polaroid", "faded", "instant", "soft"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "polaroid",
+      "faded",
+      "instant",
+      "soft"
+    ],
     "category": "vintage",
     "engine": {
       "type": "lut+params",
@@ -162,14 +270,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/polaroid-fade.png"
-    }
+    },
+    "useCount": 4980,
+    "downloadCount": 4980
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-00000000000C",
     "title": "Lomo Mood",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["lomo", "mood", "contrast", "analog"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "lomo",
+      "mood",
+      "contrast",
+      "analog"
+    ],
     "category": "vintage",
     "engine": {
       "type": "lut+params",
@@ -177,14 +295,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/lomo-mood.png"
-    }
+    },
+    "useCount": 4630,
+    "downloadCount": 4630
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-00000000000D",
     "title": "Cafe Cream",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["food", "cafe", "warm", "cream"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "food",
+      "cafe",
+      "warm",
+      "cream"
+    ],
     "category": "food",
     "engine": {
       "type": "lut+params",
@@ -192,14 +320,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/cafe-cream-mooditor.png"
-    }
+    },
+    "useCount": 4320,
+    "downloadCount": 4320
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-00000000000E",
     "title": "Honey Glow",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["food", "honey", "warm", "golden"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "food",
+      "honey",
+      "warm",
+      "golden"
+    ],
     "category": "food",
     "engine": {
       "type": "lut+params",
@@ -207,14 +345,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/honey-glow.png"
-    }
+    },
+    "useCount": 3200,
+    "downloadCount": 3200
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-00000000000F",
     "title": "Seoul Night",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["night", "city", "urban", "neon"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "night",
+      "city",
+      "urban",
+      "neon"
+    ],
     "category": "mood",
     "engine": {
       "type": "lut+params",
@@ -222,14 +370,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/seoul-night-mooditor.png"
-    }
+    },
+    "useCount": 3980,
+    "downloadCount": 3980
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-000000000010",
     "title": "Cherry Blossom",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["pastel", "pink", "blossom", "spring"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "pastel",
+      "pink",
+      "blossom",
+      "spring"
+    ],
     "category": "pastel",
     "engine": {
       "type": "lut+params",
@@ -237,14 +395,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/cherry-blossom.png"
-    }
+    },
+    "useCount": 2140,
+    "downloadCount": 2140
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-000000000011",
     "title": "Cobalt Sky",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["travel", "sky", "blue", "clear"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "travel",
+      "sky",
+      "blue",
+      "clear"
+    ],
     "category": "travel",
     "engine": {
       "type": "lut+params",
@@ -252,14 +420,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/cobalt-sky.png"
-    }
+    },
+    "useCount": 3650,
+    "downloadCount": 3650
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-000000000012",
     "title": "Anime Cel",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["anime", "cel", "stylized", "soft"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "anime",
+      "cel",
+      "stylized",
+      "soft"
+    ],
     "category": "anime",
     "engine": {
       "type": "lut+params",
@@ -267,14 +445,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/anime-cel.png"
-    }
+    },
+    "useCount": 1510,
+    "downloadCount": 1510
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-000000000013",
     "title": "Indigo Fog",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["fog", "cool", "atmospheric", "indigo"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "fog",
+      "cool",
+      "atmospheric",
+      "indigo"
+    ],
     "category": "mood",
     "engine": {
       "type": "lut+params",
@@ -282,14 +470,24 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/indigo-fog.png"
-    }
+    },
+    "useCount": 2750,
+    "downloadCount": 2750
   },
   {
     "id": "01900B14-7B1C-7C20-A4F4-000000000014",
     "title": "Skin Bloom",
     "version": "1.0.0",
-    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
-    "tags": ["skin", "portrait", "glow", "soft"],
+    "author": {
+      "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1",
+      "displayName": "mooditor"
+    },
+    "tags": [
+      "skin",
+      "portrait",
+      "glow",
+      "soft"
+    ],
     "category": "skin",
     "engine": {
       "type": "lut+params",
@@ -297,6 +495,8 @@
       "minIOSVersion": "17.0",
       "lutSize": 33,
       "lutFile": "SeedFilters/luts/skin-bloom.png"
-    }
+    },
+    "useCount": 880,
+    "downloadCount": 880
   }
 ]

@@ -39,7 +39,8 @@ final class P0CoreActionTests: MooditUITestCase {
     func testRootTabShellSearchSavedAndProfileGuestFlow() {
         launch(isAuthenticated: false)
         tap("tab.search")
-        XCTAssertTrue(app.staticTexts["최근 검색"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["발견"].waitForExistence(timeout: 4))
+        assertExists("discover.feed")
 
         tap("tab.saved")
         XCTAssertTrue(app.staticTexts["저장됨"].waitForExistence(timeout: 4))
@@ -49,10 +50,48 @@ final class P0CoreActionTests: MooditUITestCase {
         assertExists("profile.login")
     }
 
+    func testGuestProfileCanOpenSettings() {
+        launch(isAuthenticated: false)
+
+        tap("tab.profile")
+        tap("profile.settings", timeout: 4)
+
+        XCTAssertTrue(app.staticTexts["설정"].waitForExistence(timeout: 4))
+        assertExists("settings.row.그리드 표시")
+        assertExists("settings.row.이용약관")
+        assertExists("settings.locked.프로필 편집")
+        assertExists("settings.login")
+    }
+
+    func testProfileLoginCanContinueAsGuestWithoutTabBarLeak() {
+        launch(isAuthenticated: false)
+
+        tap("tab.profile")
+        tap("profile.login", timeout: 4)
+
+        assertExists("auth.apple", timeout: 4)
+        XCTAssertFalse(element("tab.market").exists)
+
+        tap("auth.guest.continue")
+        XCTAssertTrue(element("tab.profile").waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["로그인이 필요해요"].waitForExistence(timeout: 4))
+    }
+
     func testRootTabShellReturnsToMarket() {
         launch(isAuthenticated: false)
         tap("tab.search")
         tap("tab.market")
+        XCTAssertTrue(app.staticTexts["오늘의 빛,"].waitForExistence(timeout: 4))
+    }
+
+    func testMarketplaceSearchPushCanReturnWithBackButton() {
+        launch(isAuthenticated: false)
+
+        XCTAssertTrue(app.staticTexts["필터, 메이커, 분위기 검색"].waitForExistence(timeout: 8))
+        app.staticTexts["필터, 메이커, 분위기 검색"].tap()
+
+        assertExists("search.back", timeout: 4)
+        tap("search.back")
         XCTAssertTrue(app.staticTexts["오늘의 빛,"].waitForExistence(timeout: 4))
     }
 

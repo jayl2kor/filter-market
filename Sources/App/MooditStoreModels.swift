@@ -260,6 +260,9 @@ struct MakerFilterDraft: Identifiable, Equatable, Codable {
     var status: MakerFilterStatus
     var updatedAt: Date
     var submittedAt: Date?
+    var rejectionReasons: [RejectionReason]?
+    var moderatorNote: String?
+    var rejectedAt: Date?
     /// uploadInit Cloud Function이 반환한 Firestore /filters/{id} 문서 ID (#44).
     /// nil이면 아직 R2 업로드 init 전 — submitCurrentDraft가 submitForReview 호출 가드.
     var firestoreFilterId: String? = nil
@@ -281,7 +284,10 @@ struct MakerFilterDraft: Identifiable, Equatable, Codable {
         tosCommercial: false,
         status: .draft,
         updatedAt: Date(),
-        submittedAt: nil
+        submittedAt: nil,
+        rejectionReasons: nil,
+        moderatorNote: nil,
+        rejectedAt: nil
     )
 
     /// Preview / SwiftUI Preview 전용 — 실제 앱에서는 사용 안 함.

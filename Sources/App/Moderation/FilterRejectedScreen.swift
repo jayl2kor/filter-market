@@ -10,28 +10,41 @@ import UIKit
 struct FilterRejectedScreen: View {
     let filterID: String
 
+    @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @State private var showDeleteConfirm = false
 
-    private var data: RejectionData { RejectionData.mock(forID: filterID) }
+    private var draft: MakerFilterDraft? {
+        editorDraftStore.makerFilter(matchingRejectionRouteID: filterID)
+    }
+
+    private var data: RejectionData? {
+        draft.map(RejectionData.init(draft:))
+    }
 
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Sp.md) {
-                    heroCard
-                    filterCard
-                    reasonsSection
-                    moderatorNote
-                    timelineSection
-                    policySection
-                    appealLink
-                }
-                .padding(Sp.md)
-            }
+        Group {
+            if let data {
+                VStack(spacing: 0) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: Sp.md) {
+                            heroCard(data)
+                            filterCard(data)
+                            reasonsSection(data)
+                            moderatorNote(data)
+                            timelineSection(data)
+                            policySection
+                            appealLink
+                        }
+                        .padding(Sp.md)
+                    }
 
-            footer
+                    footer
+                }
+            } else {
+                unavailableState
+            }
         }
         .background(FMColors.Background.bg1)
         .navigationTitle("검수 결과")
@@ -61,9 +74,34 @@ struct FilterRejectedScreen: View {
         }
     }
 
+    private var unavailableState: some View {
+        VStack(spacing: Sp.md) {
+            Spacer(minLength: Sp.xxl)
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 34, weight: .regular))
+                .foregroundStyle(FMColors.Text.tertiary)
+            Text("검수 결과를 찾을 수 없습니다")
+                .fmTypography(.headline)
+                .foregroundStyle(FMColors.Text.primary)
+            Text("반려된 초안 목록에서 다시 열거나, 동기화가 완료된 뒤 재시도해 주세요.")
+                .fmTypography(.subhead)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(FMColors.Text.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            FMButton("고객센터 문의", icon: "envelope", variant: .secondary, size: .lg) {
+                contactSupport()
+            }
+            .accessibilityIdentifier("mod.rejected.support")
+            Spacer(minLength: Sp.xxl)
+        }
+        .padding(Sp.md)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityIdentifier("mod.rejected.empty")
+    }
+
     // MARK: - Hero
 
-    private var heroCard: some View {
+    private func heroCard(_ data: RejectionData) -> some View {
         HStack(alignment: .top, spacing: Sp.sm) {
             Image(systemName: "xmark.circle")
                 .font(.system(size: 22, weight: .regular))
@@ -115,7 +153,7 @@ struct FilterRejectedScreen: View {
 
     // MARK: - Filter card
 
-    private var filterCard: some View {
+    private func filterCard(_ data: RejectionData) -> some View {
         HStack(spacing: Sp.sm) {
             RoundedRectangle(cornerRadius: R.sm)
                 .fill(
@@ -165,7 +203,7 @@ struct FilterRejectedScreen: View {
 
     // MARK: - Reasons
 
-    private var reasonsSection: some View {
+    private func reasonsSection(_ data: RejectionData) -> some View {
         VStack(alignment: .leading, spacing: Sp.xs) {
             Text("거부 사유")
                 .fmTypography(.callout)
@@ -177,12 +215,28 @@ struct FilterRejectedScreen: View {
                 .foregroundStyle(FMColors.Text.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            VStack(spacing: Sp.xs) {
-                ForEach(Array(data.reasons.enumerated()), id: \.offset) { index, reason in
-                    reasonRow(number: index + 1, reason: reason)
+            if data.reasons.isEmpty {
+                Text("검수 사유가 아직 동기화되지 않았습니다. 잠시 후 다시 확인하거나 고객센터에 문의해 주세요.")
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Text.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, Sp.md)
+                    .padding(.vertical, Sp.sm)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(FMColors.Background.bg2)
+                    .clipShape(RoundedRectangle(cornerRadius: R.md))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: R.md)
+                            .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+                    }
+            } else {
+                VStack(spacing: Sp.xs) {
+                    ForEach(Array(data.reasons.enumerated()), id: \.offset) { index, reason in
+                        reasonRow(number: index + 1, reason: reason)
+                    }
                 }
+                .padding(.top, Sp.xs)
             }
-            .padding(.top, Sp.xs)
         }
     }
 
@@ -224,7 +278,7 @@ struct FilterRejectedScreen: View {
 
     // MARK: - Moderator note
 
-    private var moderatorNote: some View {
+    private func moderatorNote(_ data: RejectionData) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("검수자 메모")
                 .font(.system(size: 10, weight: .bold))
@@ -290,7 +344,7 @@ struct FilterRejectedScreen: View {
 
     // MARK: - Timeline
 
-    private var timelineSection: some View {
+    private func timelineSection(_ data: RejectionData) -> some View {
         VStack(alignment: .leading, spacing: Sp.xs) {
             Text("처리 이력")
                 .fmTypography(.callout)
@@ -419,6 +473,97 @@ struct RejectionData {
     let moderatorNote: String
     let timeline: [TimelineEntry]
 
+    init(draft: MakerFilterDraft) {
+        filterName = draft.name.isEmpty ? "제목 없는 필터" : draft.name
+        submittedAt = draft.submittedAt.map { "제출 \(Self.dateString($0))" } ?? "제출일 없음"
+        heroTitle = "검수자가 수정 요청을 남겼어요"
+        heroDesc = "아래 사유와 메모를 확인한 뒤 에디터에서 수정해 재제출할 수 있습니다."
+        reasons = draft.rejectionReasons ?? []
+        moderatorNote = draft.moderatorNote?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            ? draft.moderatorNote!
+            : "검수자 메모가 아직 동기화되지 않았습니다."
+        var entries: [TimelineEntry] = []
+        if let submittedAt = draft.submittedAt {
+            entries.append(TimelineEntry(time: Self.shortDateString(submittedAt), event: "업로드 제출", isRejection: false))
+        }
+        entries.append(
+            TimelineEntry(
+                time: Self.shortDateString(draft.rejectedAt ?? draft.updatedAt),
+                event: "검수 반려\(reasons.isEmpty ? "" : " — 사유 \(reasons.count)건")",
+                isRejection: true
+            )
+        )
+        timeline = entries
+    }
+
+    static let preview = RejectionData(
+        filterName: "Strange Vibe",
+        submittedAt: "제출 2026.05.04 14:22",
+        heroTitle: "검수자가 수정 요청을 남겼어요",
+        heroDesc: "아래 사유와 메모를 확인한 뒤 에디터에서 수정해 재제출할 수 있습니다.",
+        reasons: [
+            RejectionReason(
+                title: "기존 필터와 LUT 92% 유사",
+                body: "기존 공개 필터와 색조·대비 곡선이 거의 동일합니다."
+            ),
+            RejectionReason(
+                title: "표지 사진 1장 부족",
+                body: "최소 3장의 비포·애프터 표지가 필요합니다 (현재 2장)."
+            )
+        ],
+        moderatorNote: "새로운 LUT 곡선으로 재작업하시고, 표지를 한 장 더 추가해 주세요.",
+        timeline: [
+            TimelineEntry(time: "05.04 14:22", event: "업로드 제출", isRejection: false),
+            TimelineEntry(time: "05.06 09:41", event: "검수 반려 — 사유 2건", isRejection: true)
+        ]
+    )
+
+    private init(
+        filterName: String,
+        submittedAt: String,
+        heroTitle: String,
+        heroDesc: String,
+        reasons: [RejectionReason],
+        moderatorNote: String,
+        timeline: [TimelineEntry]
+    ) {
+        self.filterName = filterName
+        self.submittedAt = submittedAt
+        self.heroTitle = heroTitle
+        self.heroDesc = heroDesc
+        self.reasons = reasons
+        self.moderatorNote = moderatorNote
+        self.timeline = timeline
+    }
+
+    private static func dateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy.MM.dd HH:mm"
+        return formatter.string(from: date)
+    }
+
+    private static func shortDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM.dd HH:mm"
+        return formatter.string(from: date)
+    }
+
+    static func previewDraft() -> MakerFilterDraft {
+        var draft = MakerFilterDraft.empty
+        draft.id = UUID(uuidString: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3C48")!
+        draft.name = "Strange Vibe"
+        draft.summary = "Cinematic night tone"
+        draft.coverCount = 2
+        draft.status = .rejected
+        draft.submittedAt = Date(timeIntervalSince1970: 1_714_806_120)
+        draft.updatedAt = Date(timeIntervalSince1970: 1_714_960_860)
+        draft.rejectedAt = draft.updatedAt
+        draft.rejectionReasons = preview.reasons
+        draft.moderatorNote = preview.moderatorNote
+        return draft
+    }
+
+    @available(*, unavailable, message: "Use live draft data or previewDraft() instead.")
     static func mock(forID id: String) -> RejectionData {
         RejectionData(
             filterName: id.isEmpty ? "Strange Vibe" : id,
@@ -450,7 +595,7 @@ struct RejectionData {
     }
 }
 
-struct RejectionReason: Hashable {
+struct RejectionReason: Hashable, Codable {
     let title: String
     let body: String
 }
@@ -466,13 +611,26 @@ struct TimelineEntry: Identifiable, Hashable {
 
 #Preview("Filter rejected") {
     NavigationStack {
-        FilterRejectedScreen(filterID: "Strange Vibe")
+        FilterRejectedScreen(filterID: FilterRejectedPreview.draft.id.uuidString)
     }
+    .environmentObject(FilterRejectedPreview.store())
 }
 
 #Preview("Filter rejected — Dark") {
     NavigationStack {
-        FilterRejectedScreen(filterID: "Strange Vibe")
+        FilterRejectedScreen(filterID: FilterRejectedPreview.draft.id.uuidString)
     }
+    .environmentObject(FilterRejectedPreview.store())
     .preferredColorScheme(.dark)
+}
+
+private enum FilterRejectedPreview {
+    static let draft = RejectionData.previewDraft()
+
+    @MainActor
+    static func store() -> EditorDraftStore {
+        let store = EditorDraftStore()
+        store.setMakerFilters([draft])
+        return store
+    }
 }

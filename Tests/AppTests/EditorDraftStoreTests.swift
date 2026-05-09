@@ -84,4 +84,27 @@ struct EditorDraftStoreTests {
         #expect(store.selectedMakerStatus == .all)
         #expect(store.makerFilters.isEmpty)
     }
+
+    @Test("rejected draft lookup uses stable draft and firestore ids")
+    func rejectedDraftLookupUsesStableIDs() {
+        let store = EditorDraftStore()
+        var rejected = MakerFilterDraft.empty
+        rejected.id = UUID(uuidString: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3D48")!
+        rejected.name = "Renamable Title"
+        rejected.status = .rejected
+        rejected.firestoreFilterId = "filters-live-id"
+        rejected.rejectionReasons = [
+            RejectionReason(title: "표지 부족", body: "최소 3장의 표지가 필요합니다.")
+        ]
+        rejected.moderatorNote = "표지를 추가해 주세요."
+        store.setMakerFilters([rejected])
+
+        #expect(store.makerFilter(matchingRejectionRouteID: rejected.id.uuidString)?.id == rejected.id)
+        #expect(store.makerFilter(matchingRejectionRouteID: "filters-live-id")?.id == rejected.id)
+        #expect(store.makerFilter(matchingRejectionRouteID: "Renamable Title")?.id == rejected.id)
+        let data = RejectionData(draft: rejected)
+        #expect(data.filterName == "Renamable Title")
+        #expect(data.reasons.first?.title == "표지 부족")
+        #expect(data.moderatorNote == "표지를 추가해 주세요.")
+    }
 }

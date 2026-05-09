@@ -1,7 +1,4 @@
 import DesignSystem
-import FirebaseAuth
-import FirebaseCore
-import FirebaseFunctions
 import FilterEngine
 import Models
 import OSLog
@@ -116,6 +113,12 @@ struct FilterDetailScreen: View {
         } message: {
             Text(sampleUploadErrorMessage ?? "")
         }
+        .storeErrorToast(
+            message: filterLibraryStore.lastSyncErrorMessage,
+            title: "좋아요 동기화 실패"
+        ) {
+            filterLibraryStore.clearLastSyncError()
+        }
     }
 
     // MARK: - Scroll content
@@ -165,35 +168,12 @@ struct FilterDetailScreen: View {
     private var beforeAfterSection: some View {
         GeometryReader { geo in
             ZStack {
-                beforeHeroLayer
-
-                // AFTER — mock 의 카테고리 색을 반영한 그라디언트
-                if !isBeforeAfterPressed {
-                    LinearGradient(
-                        colors: [
-                            mock.categoryHint.opacity(0.55),
-                            Color.black.opacity(0.7)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .overlay {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 36, weight: .light))
-                            .foregroundStyle(.white.opacity(0.9))
-                    }
-                    .mask(alignment: .leading) {
-                        Rectangle()
-                            .frame(width: max(0, geo.size.width * sliderProgress))
-                    }
-                    .overlay {
-                        LinearGradient(
-                            colors: [.clear, Color.black.opacity(0.25)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    }
-                }
+                DetailBeforeAfterLayer(
+                    category: mock.filterCategory,
+                    filterKey: filterRouteID,
+                    dividerProgress: sliderProgress,
+                    showsBeforeOnly: isBeforeAfterPressed
+                )
 
                 // 라벨
                 HStack {
@@ -243,7 +223,7 @@ struct FilterDetailScreen: View {
         .aspectRatio(4.0/5.0, contentMode: .fit)
         .accessibilityElement()
         .accessibilityLabel("비포/애프터 슬라이더")
-        .accessibilityValue("비포 비율 \(Int((1 - sliderProgress) * 100))%, 애프터 비율 \(Int(sliderProgress * 100))%")
+        .accessibilityValue("비포 비율 \(Int(sliderProgress * 100))%, 애프터 비율 \(Int((1 - sliderProgress) * 100))%")
         .accessibilityAdjustableAction { direction in
             let step: CGFloat = 0.05
             switch direction {
@@ -251,41 +231,6 @@ struct FilterDetailScreen: View {
             case .decrement: sliderProgress = max(0, sliderProgress - step)
             @unknown default: break
             }
-        }
-    }
-
-    @ViewBuilder
-    private var beforeHeroLayer: some View {
-        let url = mock.signatureSampleURL ?? mock.coverURL
-        FMRemoteImage(
-            url: url,
-            placeholder: {
-                placeholderHeroLayer
-            },
-            failure: {
-                placeholderHeroLayer
-            }
-        )
-        .overlay {
-            if url != nil {
-                Color.black.opacity(0.18)
-            }
-        }
-    }
-
-    private var placeholderHeroLayer: some View {
-        LinearGradient(
-            colors: [
-                FMColors.Background.bg3,
-                FMColors.Background.bg1
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .overlay {
-            Image(systemName: "photo")
-                .font(.system(size: 56, weight: .ultraLight))
-                .foregroundStyle(FMColors.Text.tertiary)
         }
     }
 
@@ -337,7 +282,7 @@ struct FilterDetailScreen: View {
                 .foregroundStyle(FMColors.Text.primary)
 
             HStack(spacing: Sp.xs) {
-                FMAvatar(initials: mock.makerInitials, size: .md)
+                FMAvatar(url: mock.makerAvatarURL, size: .md, fallback: mock.makerInitials)
 
                 Text(mock.makerHandle.replacingOccurrences(of: "@", with: ""))
                     .fmTypography(.subhead)
@@ -725,7 +670,7 @@ struct FilterDetailScreen: View {
             .accessibilityIdentifier("filter.detail.like")
             .accessibilityValue("\(likeDisplayCount)개")
 
-            if downloadState == .ready {
+            if !isOwnedByCurrentUser, downloadState == .ready {
                 NavigationLink(value: mock.isPaid ? AppRoute.paywallSingle(filterId: filterRouteID) : AppRoute.filterDownload(id: filterRouteID)) {
                     HStack(spacing: Sp.xs) {
                         Image(systemName: ctaIcon ?? "arrow.right")
@@ -746,7 +691,7 @@ struct FilterDetailScreen: View {
                     ])
                 })
                 .accessibilityIdentifier(mock.isPaid ? "filter.detail.purchase" : "filter.detail.download")
-            } else {
+            } else if !isOwnedByCurrentUser {
                 FMButton(
                     ctaTitle,
                     icon: ctaIcon,
@@ -845,6 +790,15 @@ struct FilterDetailScreen: View {
         return didLikeMockFilter
     }
 
+    private var isOwnedByCurrentUser: Bool {
+        guard let makerUID = mock.makerUID?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !makerUID.isEmpty else {
+            return false
+        }
+        let currentUID = sessionStore.currentUserID ?? FirebaseSideEffects.currentUID
+        return currentUID == makerUID
+    }
+
     private var likeDisplayCount: Int {
         let delta: Int
         switch (mock.userHasLiked, isLiked) {
@@ -869,16 +823,14 @@ struct FilterDetailScreen: View {
         FMHaptic.light.play()
         Telemetry.trackAction(targetState ? "filter_liked" : "filter_unliked", screen: .filterDetail)
 
-        guard FirebaseApp.app() != nil,
-              Auth.auth().currentUser?.uid != nil,
+        guard FirebaseSideEffects.hasCurrentUser,
               let sourceID = mock.sourceID
         else {
             return
         }
 
         do {
-            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("toggleFilterLike")
-            _ = try await callable.call([
+            _ = try await FirebaseSideEffects.callFunction("toggleFilterLike", data: [
                 "filterId": sourceID,
                 "liked": targetState,
             ])
@@ -897,12 +849,12 @@ struct FilterDetailScreen: View {
             return
         }
         #endif
-        guard FirebaseApp.app() != nil else {
+        guard FirebaseSideEffects.isConfigured else {
             sampleUploadErrorMessage = "Firebase 설정을 확인해주세요."
             FMHaptic.warning.play()
             return
         }
-        guard let uid = Auth.auth().currentUser?.uid, sessionStore.isAuthenticated else {
+        guard let uid = FirebaseSideEffects.currentUID, sessionStore.isAuthenticated else {
             sampleUploadErrorMessage = "로그인이 필요합니다."
             FMHaptic.warning.play()
             return
@@ -931,8 +883,7 @@ struct FilterDetailScreen: View {
         do {
             let upload = try await requestSampleUpload(filterID: filterID, imageBytes: imageData.count)
             try await putSampleImage(imageData, upload: upload)
-            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("addUserSample")
-            _ = try await callable.call([
+            _ = try await FirebaseSideEffects.callFunction("addUserSample", data: [
                 "filterId": filterID,
                 "objectKey": upload.objectKey,
                 "publicURL": upload.publicURL.absoluteString,
@@ -960,8 +911,7 @@ struct FilterDetailScreen: View {
     }
 
     private func requestSampleUpload(filterID: String, imageBytes: Int) async throws -> SampleUploadInit {
-        let callable = Functions.functions(region: "asia-northeast3").httpsCallable("sampleImageUploadInit")
-        let result = try await callable.call([
+        let result = try await FirebaseSideEffects.callFunction("sampleImageUploadInit", data: [
             "filterId": filterID,
             "contentType": "image/jpeg",
             "imageBytes": imageBytes,
@@ -1239,6 +1189,113 @@ private struct RemoteSampleTile: View {
             Image(systemName: "photo")
                 .font(.system(size: 28, weight: .light))
                 .foregroundStyle(.white.opacity(0.85))
+        }
+    }
+}
+
+private struct DetailBeforeAfterLayer: View {
+    let category: FilterCategory
+    let filterKey: String
+    let dividerProgress: CGFloat
+    let showsBeforeOnly: Bool
+
+    @State private var sourceImage: UIImage?
+    @State private var renderedImage: UIImage?
+    @State private var isRendering = false
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                if let sourceImage {
+                    Image(uiImage: sourceImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
+                } else {
+                    placeholderHeroLayer
+                }
+
+                if !showsBeforeOnly {
+                    if let image = renderedImage ?? sourceImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .clipped()
+                            .mask(alignment: .trailing) {
+                                Rectangle()
+                                    .frame(width: max(0, geo.size.width * (1 - dividerProgress)))
+                            }
+                    }
+
+                    LinearGradient(
+                        colors: [.clear, Color.black.opacity(0.22)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
+
+                if isRendering {
+                    ProgressView()
+                        .tint(.white)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+        }
+        .task(id: cacheKey) {
+            await render()
+        }
+    }
+
+    private var cacheKey: String {
+        "detail-before-after-\(filterKey)-\(category.rawValue)"
+    }
+
+    private var placeholderHeroLayer: some View {
+        LinearGradient(
+            colors: [
+                FMColors.Background.bg3,
+                FMColors.Background.bg1
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .overlay {
+            Image(systemName: "photo")
+                .font(.system(size: 56, weight: .ultraLight))
+                .foregroundStyle(FMColors.Text.tertiary)
+        }
+    }
+
+    @MainActor
+    private func render() async {
+        let sourceData = EditorReferenceSampleImage.makeJPEGData(kind: .portrait)
+        sourceImage = UIImage(data: sourceData)
+
+        if let cached = await SampleReferenceRenderCache.shared.data(for: cacheKey) {
+            renderedImage = UIImage(data: cached)
+            return
+        }
+
+        isRendering = true
+        defer { isRendering = false }
+
+        do {
+            let renderedData = try await Task.detached(priority: .userInitiated) {
+                let sourceLUT = LUT3D.preset(LUTPreset.preset(for: category), size: 33)
+                let renderer = PhotoFilterRenderer(jpegCompressionQuality: 0.9)
+                return try renderer.renderJPEG(
+                    to: sourceData,
+                    sourceLUT: sourceLUT,
+                    intensity: .full,
+                    cropAspectRatio: nil
+                )
+            }.value
+            await SampleReferenceRenderCache.shared.store(renderedData, for: cacheKey)
+            renderedImage = UIImage(data: renderedData)
+        } catch {
+            renderedImage = sourceImage
         }
     }
 }

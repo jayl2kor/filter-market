@@ -4,11 +4,11 @@ import Testing
 @MainActor
 @Suite("Session store")
 struct SessionStoreTests {
-    @Test("local authentication fallback updates auth and clears user context")
-    func localAuthenticationFallback() {
+    @Test("local sign-out fallback clears user context")
+    func localSignOutFallback() {
         let store = SessionStore()
 
-        store.setLocalAuthenticationFallback(true)
+        store.setAuthenticated(true)
         store.attach(uid: "user-1")
         store.markProfileLoaded()
 

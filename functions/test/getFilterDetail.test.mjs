@@ -148,10 +148,35 @@ describe("applyGetFilterDetail", () => {
     assert.equal(result.reviews[0].authorDisplayName, "Soojin");
     assert.equal(result.reviews[0].photoUrl, "https://cdn.test/review.jpg");
     assert.equal(result.userHasLiked, true);
+    assert.equal(result.paywall, false);
     assert.equal(result.filter.author.uid, "u-1");
     assert.equal(result.filter.author.displayName, "Alex");
     assert.equal(result.signedDownloadURL, "https://r2.test/signed?key=filters%2Fu-1%2Fabc-123.fmpkg");
     assert.equal(result.expiresAt, 9_999_999);
+  });
+
+  it("returns free filter download URL without a signed-in user", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/free-guest": {
+        title: "Free Guest",
+        status: "approved",
+        priceCoins: 0,
+        objectKey: "filters/u/free-guest.fmpkg",
+      },
+    });
+
+    const result = await applyGetFilterDetail(
+      { filterId: "free-guest" },
+      {
+        firestore,
+        presignGetURL: async () => ({ url: "https://r2.test/free", expiresAt: 10 }),
+      },
+    );
+
+    assert.equal(result.userHasLiked, false);
+    assert.equal(result.paywall, false);
+    assert.equal(result.signedDownloadURL, "https://r2.test/free");
+    assert.equal(result.expiresAt, 10);
   });
 
   it("rejects invalid arguments", async () => {
@@ -251,6 +276,35 @@ describe("applyGetFilterDetail", () => {
     assert.equal(didPresign, false);
   });
 
+  it("returns paid filter metadata without a URL for guests", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/paid-guest": {
+        title: "Paid Guest",
+        status: "approved",
+        priceCoins: 120,
+        objectKey: "filters/u/paid-guest.fmpkg",
+      },
+    });
+    let didPresign = false;
+
+    const result = await applyGetFilterDetail(
+      { filterId: "paid-guest" },
+      {
+        firestore,
+        presignGetURL: async () => {
+          didPresign = true;
+          return { url: "https://r2.test/paid", expiresAt: 10 };
+        },
+      },
+    );
+
+    assert.equal(didPresign, false);
+    assert.equal(result.filter.priceCoins, 120);
+    assert.equal(result.paywall, true);
+    assert.equal(result.signedDownloadURL, undefined);
+    assert.equal(result.expiresAt, undefined);
+  });
+
   it("returns a paid filter when the user has an entitlement", async () => {
     const firestore = makeFakeFirestore({
       "filters/paid-1": {
@@ -272,6 +326,7 @@ describe("applyGetFilterDetail", () => {
       },
     );
     assert.equal(result.filter.priceCoins, 120);
+    assert.equal(result.paywall, false);
     assert.equal(result.signedDownloadURL, "https://r2.test/paid");
   });
 
@@ -296,6 +351,7 @@ describe("applyGetFilterDetail", () => {
       },
     );
     assert.equal(result.filter.priceCoins, 240);
+    assert.equal(result.paywall, false);
     assert.equal(result.signedDownloadURL, "https://r2.test/pro");
   });
 });

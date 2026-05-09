@@ -7,7 +7,7 @@ import Testing
 @MainActor
 @Suite("Filter library store")
 struct FilterLibraryStoreTests {
-    @Test("load derives selected, downloaded, trending, and new filters")
+    @Test("load derives selected, trending, and new filters without default download")
     func loadDerivesLibraryState() async {
         let older = makeFilter(
             id: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E4A01",
@@ -27,7 +27,7 @@ struct FilterLibraryStoreTests {
 
         #expect(store.filters.map(\.title) == ["Older", "Newer"])
         #expect(store.selectedFilterID == older.id)
-        #expect(store.downloadedFilterIDs == [older.id])
+        #expect(store.downloadedFilterIDs.isEmpty)
         #expect(store.trendingFilters.map(\.title) == ["Newer", "Older"])
         #expect(store.newFiltersList.map(\.title) == ["Newer", "Older"])
         #expect(store.loadError == nil)
@@ -59,6 +59,43 @@ struct FilterLibraryStoreTests {
 
         #expect(store.isDownloaded(second))
         #expect(!store.isFavorite(second))
+    }
+
+    @Test("force reload preserves selected, downloaded, and favorite state")
+    func forceReloadPreservesUserState() async {
+        let first = makeFilter(id: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E4D01", title: "First")
+        let second = makeFilter(id: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E4D02", title: "Second")
+        let third = makeFilter(id: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E4D03", title: "Third")
+        let repository = MutableFilterRepository(filters: [first, second])
+        let store = FilterLibraryStore(repository: repository)
+
+        await store.load()
+        store.select(second)
+        store.markDownloaded(second.id)
+        _ = store.toggleFavorite(second)
+        await repository.setFilters([third, second, first])
+
+        await store.load(force: true)
+
+        #expect(store.filters.map(\.id) == [third.id, second.id, first.id])
+        #expect(store.selectedFilterID == second.id)
+        #expect(store.downloadedFilterIDs == [second.id])
+        #expect(store.favoriteFilterIDs == [second.id])
+    }
+
+    @Test("load does not seed downloads and select does not mark downloaded")
+    func loadAndSelectDoNotMarkDownloads() async {
+        let first = makeFilter(id: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E4E01", title: "First")
+        let second = makeFilter(id: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E4E02", title: "Second")
+        let store = FilterLibraryStore(repository: MockFilterRepository(filters: [first, second]))
+
+        await store.load()
+        store.select(second)
+
+        await store.load(force: true)
+
+        #expect(store.downloadedFilterIDs.isEmpty)
+        #expect(store.selectedFilterID == second.id)
     }
 
     @Test("route lookup supports uuid, normalized title, and partial tokens")
@@ -95,5 +132,28 @@ struct FilterLibraryStoreTests {
             createdAt: createdAt,
             status: .approved
         )
+    }
+}
+
+private actor MutableFilterRepository: FilterRepository {
+    private var filters: [AppFilter]
+
+    init(filters: [AppFilter]) {
+        self.filters = filters
+    }
+
+    func setFilters(_ filters: [AppFilter]) {
+        self.filters = filters
+    }
+
+    func listFilters() async throws -> [AppFilter] {
+        filters
+    }
+
+    func filter(id: AppFilter.ID) async throws -> AppFilter {
+        guard let filter = filters.first(where: { $0.id == id }) else {
+            throw MockFilterRepositoryError.notFound
+        }
+        return filter
     }
 }

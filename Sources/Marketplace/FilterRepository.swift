@@ -105,7 +105,9 @@ public extension Filter {
                 minIOSVersion: "17.0",
                 lutSize: 33,
                 lutFile: "luts/soft-portra.png"
-            )
+            ),
+            useCount: 5_840,
+            downloadCount: 5_840
         ),
         Filter(
             id: UUID(uuidString: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4C")!,
@@ -119,7 +121,9 @@ public extension Filter {
                 minIOSVersion: "17.0",
                 lutSize: 33,
                 lutFile: "luts/seoul-night.png"
-            )
+            ),
+            useCount: 3_980,
+            downloadCount: 3_980
         ),
         Filter(
             id: UUID(uuidString: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4D")!,
@@ -133,7 +137,9 @@ public extension Filter {
                 minIOSVersion: "17.0",
                 lutSize: 33,
                 lutFile: "luts/cafe-cream.png"
-            )
+            ),
+            useCount: 4_320,
+            downloadCount: 4_320
         ),
         Filter(
             id: UUID(uuidString: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4E")!,
@@ -147,7 +153,9 @@ public extension Filter {
                 minIOSVersion: "17.0",
                 lutSize: 33,
                 lutFile: "luts/airy-trip.png"
-            )
+            ),
+            useCount: 6_510,
+            downloadCount: 6_510
         ),
     ]
 }

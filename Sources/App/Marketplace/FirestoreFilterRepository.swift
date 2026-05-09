@@ -113,7 +113,13 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
         let authorMap = data["author"] as? [String: Any]
         let authorUid = (authorMap?["uid"] as? String) ?? (data["authorUid"] as? String) ?? "unknown"
         let authorDisplayName = (authorMap?["displayName"] as? String) ?? "Unknown"
-        let author = FilterAuthor(uid: authorUid, displayName: authorDisplayName)
+        let authorAvatarURL = Self.url(
+            authorMap?["avatarURL"],
+            authorMap?["photoURL"],
+            data["authorAvatarURL"],
+            data["authorPhotoURL"]
+        )
+        let author = FilterAuthor(uid: authorUid, displayName: authorDisplayName, avatarURL: authorAvatarURL)
 
         let engineMap = data["engine"] as? [String: Any]
         let engineTypeRaw = (engineMap?["type"] as? String) ?? FilterEngineType.lutParams.rawValue
@@ -146,6 +152,16 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
             ratingAvg: ratingAvg,
             downloadCount: downloadCount
         )
+    }
+
+    private static func url(_ values: Any?...) -> URL? {
+        for value in values {
+            if let string = value as? String,
+               let url = URL(string: string) {
+                return url
+            }
+        }
+        return nil
     }
 }
 

@@ -9,7 +9,7 @@ final class BundleSeedFilterRepositoryTests: XCTestCase {
         let filters = try await repository.listFilters()
 
         XCTAssertGreaterThanOrEqual(filters.count, 5)
-        XCTAssertEqual(filters.first?.title, "Sunset Vibes")
+        XCTAssertEqual(filters.first?.title, "Sunlit Portra")
         XCTAssertTrue(filters.allSatisfy { $0.engine.type == .lutParams })
         XCTAssertTrue(filters.allSatisfy { $0.engine.lutSize == 33 })
         XCTAssertTrue(filters.allSatisfy { ($0.engine.lutFile ?? "").hasPrefix("SeedFilters/luts/") })
@@ -28,12 +28,12 @@ final class BundleSeedFilterRepositoryTests: XCTestCase {
 
     func testLoadSeedFilterByID() async throws {
         let repository = BundleSeedFilterRepository()
-        let expectedID = UUID(uuidString: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4E")!
+        let expectedID = UUID(uuidString: "01900B14-7B1C-7C20-A4F4-000000000014")!
 
         let filter = try await repository.filter(id: expectedID)
 
-        XCTAssertEqual(filter.title, "Airy Trip")
-        XCTAssertEqual(filter.category, .travel)
+        XCTAssertEqual(filter.title, "Skin Bloom")
+        XCTAssertEqual(filter.category, .skin)
     }
 
     func testMissingSeedFilterThrowsNotFound() async throws {

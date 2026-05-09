@@ -32,7 +32,7 @@ public enum FMTab: Hashable, CaseIterable, Sendable {
     var label: String {
         switch self {
         case .market: "마켓"
-        case .search: "검색"
+        case .search: "발견"
         case .shutter: "촬영"
         case .saved: "저장됨"
         case .profile: "프로필"
@@ -43,7 +43,7 @@ public enum FMTab: Hashable, CaseIterable, Sendable {
     var accessibilityLabel: String {
         switch self {
         case .market: "마켓 탭"
-        case .search: "검색 탭"
+        case .search: "발견 탭"
         case .shutter: "카메라 열기"
         case .saved: "저장된 필터 탭"
         case .profile: "프로필 탭"

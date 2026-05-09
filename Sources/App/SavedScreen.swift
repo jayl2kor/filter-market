@@ -73,6 +73,12 @@ struct SavedScreen: View {
                 content
             }
         }
+        .storeErrorToast(
+            message: filterLibraryStore.lastSyncErrorMessage,
+            title: "저장 동기화 실패"
+        ) {
+            filterLibraryStore.clearLastSyncError()
+        }
     }
 
     private var content: some View {
@@ -136,7 +142,7 @@ struct SavedScreen: View {
             selectedFilterIDs.formIntersection(Set(visibleIDs))
         }
         .navigationDestination(isPresented: $showEmptySearch) {
-            SearchScreen()
+            SearchScreen(showsBackButton: true)
         }
     }
 

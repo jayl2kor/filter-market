@@ -10,6 +10,7 @@ extension Filter {
         FMFilterTileData(
             title: title,
             makerName: "@\(author.displayName)",
+            makerAvatarURL: author.avatarURL,
             downloadCount: downloadCount > 0 ? downloadCount : useCount,
             priceLabel: priceCoins > 0 ? "\(priceCoins) 코인" : nil,
             categoryHint: category.hintColor,

@@ -1,5 +1,4 @@
 import DesignSystem
-import FirebaseFunctions
 import Models
 import SwiftUI
 
@@ -58,11 +57,13 @@ struct FilterDetailLoaderScreen: View {
 
     private func load() async {
         phase = .loading
+        var hasLocalFallback = false
         // Local fast-path: 번들/인메모리 filterLibraryStore.filters 에 있는 필터면 즉시 표시한 뒤,
         // production에서는 getFilterDetail 응답으로 샘플/리뷰/카운터를 갱신한다.
         if let uuid = UUID(uuidString: filterId),
            let local = filterLibraryStore.filters.first(where: { $0.id == uuid }) {
             phase = .localFilter(local)
+            hasLocalFallback = true
             #if DEBUG
             if isUITesting {
                 return
@@ -72,19 +73,19 @@ struct FilterDetailLoaderScreen: View {
         do {
             let detail = try await Self.fetchDetail(filterId: filterId)
             phase = .loaded(detail)
-        } catch let error as NSError where error.domain == FunctionsErrorDomain
-            && error.code == FunctionsErrorCode.notFound.rawValue {
-            phase = .empty
         } catch {
+            guard !hasLocalFallback else { return }
+            if FirebaseSideEffects.isFunctionNotFound(error) {
+                phase = .empty
+                return
+            }
             phase = .error(error.localizedDescription)
         }
     }
 
     /// 실제 Cloud Function 호출. 테스트 가능하도록 static — 추후 의존성 주입으로 분리 가능.
     static func fetchDetail(filterId: String) async throws -> FilterDetailResponse {
-        let callable = Functions.functions(region: "asia-northeast3")
-            .httpsCallable("getFilterDetail")
-        let result = try await callable.call(["filterId": filterId])
+        let result = try await FirebaseSideEffects.callFunction("getFilterDetail", data: ["filterId": filterId])
         guard let dict = result.data as? [String: Any] else {
             throw FilterDetailLoaderError.invalidPayload
         }
@@ -153,11 +154,14 @@ struct FilterDetailResponse {
     let createdAt: Date?
     let authorUid: String
     let authorDisplayName: String
+    let authorAvatarURL: URL?
     let samples: [SamplePreview]
     let reviews: [ReviewPreview]
     let userHasLiked: Bool
-    let signedDownloadURL: URL
-    let expiresAt: Date
+    let signedDownloadURL: URL?
+    let packageSHA256: String?
+    let expiresAt: Date?
+    let paywall: Bool
 
     struct SamplePreview {
         let id: String
@@ -180,9 +184,7 @@ struct FilterDetailResponse {
             throw FilterDetailLoaderError.invalidPayload
         }
         guard let id = filterDict["id"] as? String,
-              let title = filterDict["title"] as? String,
-              let signedURLString = dict["signedDownloadURL"] as? String,
-              let signedURL = URL(string: signedURLString) else {
+              let title = filterDict["title"] as? String else {
             throw FilterDetailLoaderError.invalidPayload
         }
 
@@ -209,6 +211,12 @@ struct FilterDetailResponse {
         let authorDict = (filterDict["author"] as? [String: Any]) ?? [:]
         self.authorUid = (authorDict["uid"] as? String) ?? "unknown"
         self.authorDisplayName = (authorDict["displayName"] as? String) ?? "Unknown"
+        self.authorAvatarURL = Self.urlValue(
+            authorDict["avatarURL"],
+            authorDict["photoURL"],
+            filterDict["authorAvatarURL"],
+            filterDict["authorPhotoURL"]
+        )
         self.samples = ((dict["samples"] as? [[String: Any]]) ?? []).compactMap { sampleDict in
             let coverURL = (sampleDict["coverURL"] as? String).flatMap { URL(string: $0) }
             let thumbnailURL = (sampleDict["thumbnailURL"] as? String).flatMap { URL(string: $0) }
@@ -237,9 +245,45 @@ struct FilterDetailResponse {
             )
         }
         self.userHasLiked = (dict["userHasLiked"] as? Bool) ?? false
-        self.signedDownloadURL = signedURL
-        let expiresAtSeconds = (dict["expiresAt"] as? Double) ?? 0
-        self.expiresAt = Date(timeIntervalSince1970: expiresAtSeconds)
+        if let signedURLString = dict["signedDownloadURL"] as? String,
+           let signedURL = URL(string: signedURLString) {
+            self.signedDownloadURL = signedURL
+        } else {
+            self.signedDownloadURL = nil
+        }
+        self.packageSHA256 = Self.stringValue(
+            dict["packageSHA256"],
+            dict["contentSha256"],
+            filterDict["packageSHA256"],
+            filterDict["contentSha256"],
+            filterDict["sha256"]
+        )
+        if let expiresAtSeconds = dict["expiresAt"] as? Double, expiresAtSeconds > 0 {
+            self.expiresAt = Date(timeIntervalSince1970: expiresAtSeconds)
+        } else {
+            self.expiresAt = nil
+        }
+        self.paywall = (dict["paywall"] as? Bool) ?? false
+    }
+
+    private static func stringValue(_ values: Any?...) -> String? {
+        for value in values {
+            if let string = value as? String,
+               !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return string
+            }
+        }
+        return nil
+    }
+
+    private static func urlValue(_ values: Any?...) -> URL? {
+        for value in values {
+            if let string = value as? String,
+               let url = URL(string: string) {
+                return url
+            }
+        }
+        return nil
     }
 
     /// 응답 → 기존 `FilterDetailMock` 으로 매핑. FilterDetailScreen 의 mock-기반 렌더링을
@@ -250,9 +294,11 @@ struct FilterDetailResponse {
         let displayDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
         return FilterDetailMock(
             sourceID: id,
+            makerUID: authorUid,
             displayTitle: title,
             makerHandle: "@\(authorDisplayName)",
             makerInitials: initials,
+            makerAvatarURL: authorAvatarURL,
             categoryLabel: priceCoins > 0 ? "유료 필터 · \(priceCoins) 코인" : "무료 필터",
             downloadCount: downloadCount > 0 ? downloadCount : useCount,
             rating: ratingAvg ?? 0,

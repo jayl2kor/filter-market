@@ -111,6 +111,8 @@ struct MooditApp: App {
             #if DEBUG
             if let route = UITestLaunchRoute.current {
                 UITestLaunchHost(route: route)
+            } else if let route = UITestDeepLinkLaunchRoute.current {
+                UITestDeepLinkLaunchHost(route: route)
             } else {
                 rootContent
             }
@@ -134,6 +136,20 @@ struct MooditApp: App {
 }
 
 #if DEBUG
+private enum UITestDeepLinkLaunchRoute {
+    static var current: AppRoute? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard arguments.contains("-ui-testing"),
+              let deepLinkFlagIndex = arguments.firstIndex(of: "-deepLink"),
+              arguments.indices.contains(deepLinkFlagIndex + 1),
+              let url = URL(string: arguments[deepLinkFlagIndex + 1])
+        else {
+            return nil
+        }
+        return UniversalLinkParser.route(for: url)
+    }
+}
+
 private enum UITestLaunchRoute: String {
     case login
     case emailLogin
@@ -218,6 +234,28 @@ private enum UITestLaunchRoute: String {
     }
 }
 
+private struct UITestDeepLinkLaunchHost: View {
+    @StateObject private var store = MooditStore()
+    let route: AppRoute
+
+    var body: some View {
+        NavigationStack {
+            DeepLinkDestination(route: route)
+                .appRouteDestinations()
+        }
+        .environmentObject(store)
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.walletStore)
+        .environmentObject(store.editorDraftStore)
+        .environmentObject(store.sessionStore)
+        .environmentObject(store.cameraStateStore)
+        .task {
+            store.subscribeToWallet()
+            await store.load()
+        }
+    }
+}
+
 private struct UITestLaunchHost: View {
     @StateObject private var store = MooditStore()
     let route: UITestLaunchRoute
@@ -236,6 +274,7 @@ private struct UITestLaunchHost: View {
         .environmentObject(store.cameraStateStore)
         .task {
             store.subscribeToWallet()
+            seedUITestFixturesIfNeeded()
             await store.load()
         }
     }
@@ -393,6 +432,25 @@ private struct UITestLaunchHost: View {
     private func openAppSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
+    }
+
+    private func seedUITestFixturesIfNeeded() {
+        guard route == .filterRejected else { return }
+        var draft = MakerFilterDraft.empty
+        draft.id = UUID(uuidString: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3D48")!
+        draft.name = "검수 반려 샘플"
+        draft.summary = "UI 테스트용 반려 초안"
+        draft.status = .rejected
+        draft.firestoreFilterId = "sample-filter"
+        draft.tags = ["portrait", "warm"]
+        draft.category = .portrait
+        draft.rejectionReasons = [
+            RejectionReason(title: "커버 이미지 보완 필요", body: "필터 적용 전후를 명확히 비교할 수 있는 커버를 추가해 주세요."),
+            RejectionReason(title: "태그 정리 필요", body: "검색 품질을 위해 중복 태그를 제거해 주세요.")
+        ]
+        draft.moderatorNote = "수정 후 다시 제출하면 우선 검토하겠습니다."
+        draft.rejectedAt = Date(timeIntervalSince1970: 1_700_000_000)
+        store.editorDraftStore.setMakerFilters([draft])
     }
 
     private var launchDynamicTypeSize: DynamicTypeSize {

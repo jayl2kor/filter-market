@@ -35,6 +35,12 @@ struct NotificationSettingsScreen: View {
                 await refreshSystemAuthorizationStatus()
             }
         }
+        .storeErrorToast(
+            message: sessionStore.lastSubmitErrorMessage,
+            title: "알림 설정 저장 실패"
+        ) {
+            sessionStore.clearLastSubmitError()
+        }
     }
 
     private var systemCard: some View {

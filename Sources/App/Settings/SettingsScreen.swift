@@ -1,6 +1,4 @@
 import DesignSystem
-import FirebaseAuth
-import FirebaseCore
 import SwiftUI
 import UIKit
 
@@ -67,12 +65,19 @@ struct SettingsScreen: View {
 
     // 다이얼로그
     @State private var showLogoutAlert = false
+    @State private var showLoginRequiredDialog = false
+    @State private var navigateToLogin = false
 
     // 운영 권한 (Firebase ID token의 `role` custom claim — admin/moderator)
     @State private var role: String?
 
     // 외부 링크 (이용약관 / 개인정보처리방침) — SafariView로 표시.
     @State private var externalURL: ExternalURL?
+    @State private var downloadStorageUsageBytes: Int64 = 0
+
+    private var downloadStorageUsageText: String {
+        SignedFilterPackageDownloader.formattedCacheUsage(usedBytes: downloadStorageUsageBytes)
+    }
 
     var body: some View {
         ScrollView {
@@ -80,17 +85,15 @@ struct SettingsScreen: View {
                 profileCard
 
                 section(title: "계정") {
-                    navigationRow(
+                    gatedNavigationRow(
                         icon: "person.crop.circle",
                         title: "프로필 정보",
-                        accessory: .chevron,
                         route: .editProfile
                     )
                     divider
-                    navigationRow(
+                    gatedNavigationRow(
                         icon: "lock.shield",
                         title: "개인정보 및 보안",
-                        accessory: .chevron,
                         route: .dataExport
                     )
                 }
@@ -118,7 +121,7 @@ struct SettingsScreen: View {
                 }
 
                 section(title: "알림") {
-                    navigationRow(
+                    gatedNavigationRow(
                         icon: "bell",
                         title: "푸시 알림",
                         accessory: .value(text: sessionStore.notificationPreferences.systemEnabled ? "켬" : "끔", chevron: true),
@@ -139,7 +142,7 @@ struct SettingsScreen: View {
                 }
 
                 section(title: "데이터") {
-                    navigationRow(
+                    gatedNavigationRow(
                         icon: "creditcard",
                         title: "결제 및 구독",
                         accessory: .badge(text: "PRO", chevron: true),
@@ -149,14 +152,13 @@ struct SettingsScreen: View {
                     navigationRow(
                         icon: "arrow.down.circle",
                         title: "다운로드 관리",
-                        accessory: .value(text: "42 / 200MB", chevron: true),
+                        accessory: .value(text: downloadStorageUsageText, chevron: true),
                         route: .savedFilters
                     )
                     divider
-                    navigationRow(
+                    gatedNavigationRow(
                         icon: "person.crop.circle.badge.xmark",
                         title: "차단 사용자",
-                        accessory: .chevron,
                         route: .blockList
                     )
                 }
@@ -211,25 +213,49 @@ struct SettingsScreen: View {
                     .accessibilityIdentifier("settings.admin.section")
                 }
 
-                section(title: "위험 영역") {
-                    listRow(
-                        icon: "rectangle.portrait.and.arrow.right",
-                        title: "로그아웃",
-                        tone: .secondaryAction,
-                        accessory: .chevron
-                    ) {
-                        showLogoutAlert = true
+                if sessionStore.isAuthenticated {
+                    section(title: "위험 영역") {
+                        listRow(
+                            icon: "rectangle.portrait.and.arrow.right",
+                            title: "로그아웃",
+                            tone: .secondaryAction,
+                            accessory: .chevron
+                        ) {
+                            showLogoutAlert = true
+                        }
+                        divider
+                        navigationRow(
+                            icon: "trash",
+                            title: "계정 삭제",
+                            tone: .destructiveAction,
+                            accessory: .chevron,
+                            route: .accountDeletion
+                        )
                     }
-                    divider
-                    navigationRow(
-                        icon: "trash",
-                        title: "계정 삭제",
-                        tone: .destructiveAction,
-                        accessory: .chevron,
-                        route: .accountDeletion
-                    )
+                    .padding(.top, Sp.md)
+                } else {
+                    section(title: "로그인") {
+                        NavigationLink(value: AppRoute.login) {
+                            HStack(spacing: Sp.sm) {
+                                Image(systemName: "person.crop.circle.badge.plus")
+                                    .font(.system(size: IconSize.md, weight: .regular))
+                                    .foregroundStyle(FMColors.Accent.primary)
+                                    .frame(width: 28, height: 28)
+                                Text("로그인하기")
+                                    .fmTypography(.body)
+                                    .foregroundStyle(FMColors.Accent.primary)
+                                Spacer(minLength: Sp.xs)
+                                chevron
+                            }
+                            .padding(.horizontal, Sp.md)
+                            .frame(minHeight: 52)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("settings.login")
+                    }
+                    .padding(.top, Sp.md)
                 }
-                .padding(.top, Sp.md)
 
                 footerNote
             }
@@ -242,9 +268,30 @@ struct SettingsScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(FMColors.Background.bg1, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .task { await refreshRoleClaim() }
+        .navigationDestination(isPresented: $navigateToLogin) {
+            LoginScreen(onAuthenticated: {
+                navigateToLogin = false
+            }, onContinueAsGuest: {
+                navigateToLogin = false
+            })
+        }
+        .task {
+            refreshDownloadStorageUsage()
+            await refreshRoleClaim()
+        }
+        .onReceive(filterLibraryStore.$downloadedFilterIDs) { _ in
+            refreshDownloadStorageUsage()
+        }
         .sheet(item: $externalURL) { external in
             SafariView(url: external.value)
+        }
+        .alert("로그인이 필요해요", isPresented: $showLoginRequiredDialog) {
+            Button("취소", role: .cancel) {}
+            Button("로그인하기") {
+                navigateToLogin = true
+            }
+        } message: {
+            Text("이 기능을 사용하려면 먼저 로그인해주세요.")
         }
         .fmDestructiveAlert(
             "로그아웃 하시겠어요?",
@@ -267,13 +314,8 @@ struct SettingsScreen: View {
     /// `tools/bootstrap-admin.mjs` 또는 `setRole` Cloud Function이 변경한 역할이
     /// 다음 진입에서 즉시 반영되도록 함 (기본 캐시는 ~1시간).
     private func refreshRoleClaim() async {
-        guard FirebaseApp.app() != nil, let user = Auth.auth().currentUser else {
-            role = nil
-            return
-        }
         do {
-            let result = try await user.getIDTokenResult(forcingRefresh: true)
-            role = result.claims["role"] as? String
+            role = try await FirebaseSideEffects.refreshedRoleClaim()
         } catch {
             #if DEBUG
             print("[Settings] Failed to refresh role claim: \(error.localizedDescription)")
@@ -282,20 +324,24 @@ struct SettingsScreen: View {
         }
     }
 
+    private func refreshDownloadStorageUsage() {
+        downloadStorageUsageBytes = SignedFilterPackageDownloader.packageCacheUsageBytes()
+    }
+
     /// Firebase Auth 세션 종료. SessionStore auth listener owns authenticated state.
     /// Firebase가 미설정인 경우(GoogleService-Info.plist 누락 시뮬레이터 등)에도
     /// store의 로컬 fallback 상태를 정리한다.
     private func performSignOut() {
         // (#48) signOut 흐름 race 제거 — listener teardown 먼저, 그 사이 stale snapshot 노출 방지.
         // 1. 현재 사용자의 디바이스 토큰 doc 삭제 (#23) — Auth.signOut() 전에 uid를 잡아야 함.
-        if FirebaseApp.app() != nil, let uid = Auth.auth().currentUser?.uid {
+        if let uid = FirebaseSideEffects.currentUID {
             PushRegistration.shared.unregisterCurrentDevice(uid: uid)
         }
         // 2. Auth.signOut() — store의 authStateDidChangeListener가 attachWalletListeners(uid: nil) 호출 →
         //    모든 listener teardown + resetUserScopedState 자동 진행. 이중 cleanup race 제거.
-        if FirebaseApp.app() != nil {
+        if FirebaseSideEffects.isConfigured {
             do {
-                try Auth.auth().signOut()
+                try FirebaseSideEffects.signOut()
             } catch {
                 #if DEBUG
                 print("[Settings] signOut failed: \(error.localizedDescription)")
@@ -329,21 +375,23 @@ struct SettingsScreen: View {
 
     private var profileCard: some View {
         HStack(spacing: Sp.md) {
-            FMAvatar(url: sessionStore.editableProfile.avatarURL, size: .md, fallback: sessionStore.editableProfile.initials)
+            FMAvatar(
+                url: sessionStore.isAuthenticated ? sessionStore.editableProfile.avatarURL : nil,
+                size: .md,
+                fallback: sessionStore.isAuthenticated ? sessionStore.editableProfile.initials : "G"
+            )
 
             VStack(alignment: .leading, spacing: Sp.xxs) {
-                Text(sessionStore.editableProfile.displayName.isEmpty
-                     ? sessionStore.editableProfile.handle.isEmpty ? "사용자" : sessionStore.editableProfile.handle
-                     : sessionStore.editableProfile.displayName)
+                Text(profileDisplayTitle)
                     .fmTypography(.headline)
                     .foregroundStyle(FMColors.Text.primary)
 
-                if !sessionStore.editableProfile.handle.isEmpty {
+                if sessionStore.isAuthenticated, !sessionStore.editableProfile.handle.isEmpty {
                     Text(sessionStore.editableProfile.displayHandle)
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Text.secondary)
                 } else {
-                    Text("유저네임을 설정하세요")
+                    Text(sessionStore.isAuthenticated ? "유저네임을 설정하세요" : "로그인하면 프로필과 구매 내역이 동기화돼요")
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Text.tertiary)
                 }
@@ -351,21 +399,35 @@ struct SettingsScreen: View {
 
             Spacer(minLength: 0)
 
-            NavigationLink(value: AppRoute.editProfile) {
-                Text("편집")
-                    .fmTypography(.subhead)
-                    .fontWeight(.medium)
-                    .padding(.horizontal, Sp.sm)
-                    .padding(.vertical, 6)
-                    .foregroundStyle(FMColors.Text.secondary)
-                    .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: R.md)
-                            .strokeBorder(FMColors.Border.default, lineWidth: 1)
-                    }
+            if sessionStore.isAuthenticated {
+                NavigationLink(value: AppRoute.editProfile) {
+                    Text("편집")
+                        .fmTypography(.subhead)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, Sp.sm)
+                        .padding(.vertical, 6)
+                        .foregroundStyle(FMColors.Text.secondary)
+                        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: R.md)
+                                .strokeBorder(FMColors.Border.default, lineWidth: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("프로필 편집")
+            } else {
+                NavigationLink(value: AppRoute.login) {
+                    Text("로그인")
+                        .fmTypography(.subhead)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, Sp.sm)
+                        .padding(.vertical, 6)
+                        .foregroundStyle(FMColors.Accent.primary)
+                        .background(FMColors.Accent.bg, in: RoundedRectangle(cornerRadius: R.md))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("로그인하기")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("프로필 편집")
         }
         .padding(Sp.md)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -376,6 +438,13 @@ struct SettingsScreen: View {
                 .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
         }
         .shadow(color: FMColors.Border.subtle.opacity(0.45), radius: 1, x: 0, y: 1)
+    }
+
+    private var profileDisplayTitle: String {
+        guard sessionStore.isAuthenticated else { return "게스트" }
+        return sessionStore.editableProfile.displayName.isEmpty
+            ? sessionStore.editableProfile.handle.isEmpty ? "사용자" : sessionStore.editableProfile.handle
+            : sessionStore.editableProfile.displayName
     }
 
     // MARK: - Section
@@ -520,6 +589,47 @@ struct SettingsScreen: View {
         .buttonStyle(.plain)
         .accessibilityLabel(title)
         .accessibilityIdentifier("settings.nav.\(route.title)")
+    }
+
+    @ViewBuilder
+    private func gatedNavigationRow(
+        icon: String,
+        title: String,
+        tone: RowTone = .normal,
+        accessory: RowAccessory = .chevron,
+        route: AppRoute
+    ) -> some View {
+        if sessionStore.isAuthenticated {
+            navigationRow(icon: icon, title: title, tone: tone, accessory: accessory, route: route)
+        } else {
+            Button {
+                showLoginRequiredDialog = true
+            } label: {
+                HStack(spacing: Sp.sm) {
+                    Image(systemName: icon)
+                        .font(.system(size: IconSize.md, weight: .regular))
+                        .foregroundStyle(FMColors.Text.tertiary)
+                        .frame(width: 28, height: 28)
+
+                    Text(title)
+                        .fmTypography(.body)
+                        .foregroundStyle(FMColors.Text.tertiary)
+
+                    Spacer(minLength: Sp.xs)
+
+                    Image(systemName: "lock")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(FMColors.Text.tertiary)
+                        .accessibilityLabel("로그인 필요")
+                }
+                .padding(.horizontal, Sp.md)
+                .frame(minHeight: 52)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(title), 로그인 필요")
+            .accessibilityIdentifier("settings.locked.\(route.title)")
+        }
     }
 
     @ViewBuilder

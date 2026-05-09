@@ -17,8 +17,13 @@ struct MarketplaceScreen: View {
     @State private var selectedCategory: String = "전체"
     @State private var hasAppeared = false
     @State private var prefetchedImageURLs: Set<URL> = []
+    @State private var pendingPrefetchImageURLs: Set<URL> = []
+    @State private var coverPrefetchQueue: [URL] = []
+    @State private var coverPrefetchTask: Task<Void, Never>?
 
     private let ownsNavigationStack: Bool
+    private static let coverPrefetchConcurrency = 3
+    private static let coverPrefetchBatchSize = 12
 
     init(ownsNavigationStack: Bool = true) {
         self.ownsNavigationStack = ownsNavigationStack
@@ -45,6 +50,12 @@ struct MarketplaceScreen: View {
             // skeleton/empty/content를 분기. (#18 hardcoded 350ms sleep 제거)
             hasAppeared = true
         }
+        .storeErrorToast(
+            message: filterLibraryStore.lastSyncErrorMessage,
+            title: "동기화 실패"
+        ) {
+            filterLibraryStore.clearLastSyncError()
+        }
     }
 
     private var content: some View {
@@ -68,6 +79,9 @@ struct MarketplaceScreen: View {
         .refreshable {
             Telemetry.trackPullToRefresh(.marketplaceHome)
             await filterLibraryStore.load(force: true)
+        }
+        .onDisappear {
+            cancelCoverPrefetch()
         }
         .background(FMColors.Background.bg0)
         .toolbar(.hidden, for: .navigationBar)
@@ -450,13 +464,97 @@ struct MarketplaceScreen: View {
     private func prefetchCovers(in filters: [Filter]) {
         let urls = filters
             .compactMap { $0.toTileData().previewImageURL }
-            .filter { !prefetchedImageURLs.contains($0) }
+            .filter { !prefetchedImageURLs.contains($0) && !pendingPrefetchImageURLs.contains($0) }
         guard !urls.isEmpty else { return }
-        prefetchedImageURLs.formUnion(urls)
-        urls.forEach { url in
-            Task.detached(priority: .utility) {
-                _ = try? await URLSession.shared.data(from: url)
+        pendingPrefetchImageURLs.formUnion(urls)
+        coverPrefetchQueue.append(contentsOf: urls)
+        startCoverPrefetchIfNeeded()
+    }
+
+    private func startCoverPrefetchIfNeeded() {
+        guard coverPrefetchTask == nil else { return }
+        coverPrefetchTask = Task(priority: .utility) {
+            defer {
+                Task { @MainActor in
+                    coverPrefetchTask = nil
+                }
             }
+            while !Task.isCancelled {
+                let batch = await MainActor.run {
+                    dequeueNextCoverPrefetchBatch()
+                }
+                guard !batch.isEmpty else { return }
+                await Self.prefetchCoverURLs(batch, maxConcurrent: Self.coverPrefetchConcurrency)
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    pendingPrefetchImageURLs.subtract(batch)
+                    prefetchedImageURLs.formUnion(batch)
+                }
+            }
+        }
+    }
+
+    private func dequeueNextCoverPrefetchBatch() -> [URL] {
+        guard !coverPrefetchQueue.isEmpty else { return [] }
+        let count = min(Self.coverPrefetchBatchSize, coverPrefetchQueue.count)
+        let batch = Array(coverPrefetchQueue.prefix(count))
+        coverPrefetchQueue.removeFirst(count)
+        return batch
+    }
+
+    private func cancelCoverPrefetch() {
+        coverPrefetchTask?.cancel()
+        coverPrefetchTask = nil
+        coverPrefetchQueue.removeAll()
+        pendingPrefetchImageURLs.removeAll()
+    }
+
+    private static func prefetchCoverURLs(_ urls: [URL], maxConcurrent: Int) async {
+        guard maxConcurrent > 0 else { return }
+        var iterator = urls.makeIterator()
+
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<maxConcurrent {
+                guard let url = iterator.next() else { return }
+                group.addTask {
+                    await prefetchCoverURL(url)
+                }
+            }
+
+            while await group.next() != nil {
+                guard !Task.isCancelled else {
+                    group.cancelAll()
+                    return
+                }
+                if let url = iterator.next() {
+                    group.addTask {
+                        await prefetchCoverURL(url)
+                    }
+                }
+            }
+        }
+    }
+
+    private static func prefetchCoverURL(_ url: URL) async {
+        guard !Task.isCancelled else { return }
+        var request = URLRequest(url: url)
+        request.cachePolicy = .returnCacheDataElseLoad
+        request.timeoutInterval = 10
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            #if DEBUG
+            if let httpResponse = response as? HTTPURLResponse,
+               !(200..<300).contains(httpResponse.statusCode) {
+                debugPrint("[MarketplacePrefetch] cover image returned HTTP \(httpResponse.statusCode): \(url.absoluteString)")
+            }
+            #endif
+        } catch is CancellationError {
+            return
+        } catch {
+            #if DEBUG
+            debugPrint("[MarketplacePrefetch] cover image failed: \(url.absoluteString) \(error.localizedDescription)")
+            #endif
         }
     }
 

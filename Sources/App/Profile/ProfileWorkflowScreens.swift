@@ -1,7 +1,4 @@
 import DesignSystem
-import FirebaseAuth
-import FirebaseCore
-import FirebaseFirestore
 import Foundation
 import PhotosUI
 import SwiftUI
@@ -31,7 +28,7 @@ struct AccountDeletionScreen: View {
             return "tester@moodit.app"
         }
         #endif
-        return Auth.auth().currentUser?.email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return FirebaseSideEffects.currentUserEmail ?? ""
     }
 
     private var isConfirmationValid: Bool {
@@ -177,10 +174,10 @@ struct AccountDeletionScreen: View {
                 try await sessionStore.markAccountDeletionRequested()
                 #if DEBUG
                 if !isUITesting {
-                    try? Auth.auth().signOut()
+                    try? FirebaseSideEffects.signOut()
                 }
                 #else
-                try? Auth.auth().signOut()
+                try? FirebaseSideEffects.signOut()
                 #endif
                 await MainActor.run {
                     didRequestDeletion = true
@@ -221,51 +218,11 @@ struct EditProfileScreen: View {
     /// (이전: EditableProfile.preview = 강지수 — 사용자 본인 데이터로 자동 채워지도록 수정)
     @State private var draft = EditableProfile.empty
     @State private var initialHandle = ""
-    @State private var handleStatus: HandleStatus = .idle
+    @State private var handleStatus: HandleValidationStatus = .idle
     @State private var handleCheckTask: Task<Void, Never>?
     @State private var lastCheckedHandle = ""
     @State private var isAvatarPickerPresented = false
     @State private var showDiscardChangesDialog = false
-
-    private enum HandleStatus: Equatable {
-        case idle
-        case checking
-        case available
-        case unavailable
-        case invalid
-        case failed
-
-        var message: String {
-            switch self {
-            case .idle: "유저네임을 입력해 주세요."
-            case .checking: "확인 중..."
-            case .available: "이 이름 사용 가능해요."
-            case .unavailable: "이미 사용 중이에요."
-            case .invalid: "3~20자, 영문/숫자/_ 만 사용할 수 있어요."
-            case .failed: "확인하지 못했어요. 다시 시도해 주세요."
-            }
-        }
-
-        var tint: Color {
-            switch self {
-            case .available: FMColors.Accent.primary
-            case .unavailable: FMColors.Semantic.error
-            case .invalid: FMColors.Semantic.warning
-            case .checking: FMColors.Text.secondary
-            case .idle, .failed: FMColors.Text.tertiary
-            }
-        }
-
-        var iconName: String? {
-            switch self {
-            case .idle: nil
-            case .checking: nil
-            case .available: "checkmark.circle.fill"
-            case .unavailable: "xmark.circle.fill"
-            case .invalid, .failed: "exclamationmark.circle.fill"
-            }
-        }
-    }
 
     private var canSave: Bool {
         !draft.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -308,12 +265,18 @@ struct EditProfileScreen: View {
         }
         .onAppear {
             draft = sessionStore.editableProfile
-            initialHandle = normalizedHandle(sessionStore.editableProfile.handle)
+            initialHandle = HandleValidator.normalized(sessionStore.editableProfile.handle)
             handleStatus = initialHandle.isEmpty ? .idle : .available
             lastCheckedHandle = initialHandle
         }
         .onDisappear {
             handleCheckTask?.cancel()
+        }
+        .storeErrorToast(
+            message: sessionStore.lastSubmitErrorMessage,
+            title: "프로필 저장 실패"
+        ) {
+            sessionStore.clearLastSubmitError()
         }
         .interactiveDismissDisabled(hasUnsavedChanges)
         .confirmationDialog(
@@ -523,7 +486,7 @@ struct EditProfileScreen: View {
     }
 
     private func updateHandleInput(_ value: String) {
-        let normalized = normalizedHandle(value)
+        let normalized = HandleValidator.normalized(value)
         guard normalized != draft.handle else { return }
         draft.handle = normalized
         scheduleHandleCheck(for: normalized)
@@ -535,13 +498,13 @@ struct EditProfileScreen: View {
         force: Bool = false
     ) {
         handleCheckTask?.cancel()
-        let normalized = normalizedHandle(value)
+        let normalized = HandleValidator.normalized(value)
 
         guard !normalized.isEmpty else {
             setHandleStatus(.idle)
             return
         }
-        guard isValidHandle(normalized) else {
+        guard HandleValidator.isValid(normalized) else {
             setHandleStatus(.invalid)
             return
         }
@@ -568,53 +531,14 @@ struct EditProfileScreen: View {
         }
     }
 
-    private func resolveHandleStatus(for handle: String) async -> HandleStatus {
-        if reservedHandles.contains(handle) {
-            return .unavailable
-        }
-        if handle == initialHandle {
-            return .available
-        }
-        guard !isUITesting, FirebaseApp.app() != nil else {
-            return .available
-        }
-
-        do {
-            let snapshot = try await Firestore.firestore()
-                .collection("handles")
-                .document(handle)
-                .getDocument()
-            guard snapshot.exists else { return .available }
-            let ownerUID = snapshot.data()?["uid"] as? String
-            if ownerUID == Auth.auth().currentUser?.uid {
-                return .available
-            }
-            return .unavailable
-        } catch {
-            return .failed
-        }
+    private func resolveHandleStatus(for handle: String) async -> HandleValidationStatus {
+        await HandleAvailabilityChecker.status(for: handle, initialHandle: initialHandle)
     }
 
-    private func setHandleStatus(_ status: HandleStatus) {
+    private func setHandleStatus(_ status: HandleValidationStatus) {
         guard handleStatus != status else { return }
         handleStatus = status
         UIAccessibility.post(notification: .announcement, argument: status.message)
-    }
-
-    private var reservedHandles: Set<String> {
-        ["admin", "moodit", "support"]
-    }
-
-    private func normalizedHandle(_ value: String) -> String {
-        value
-            .replacingOccurrences(of: "@", with: "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-    }
-
-    private func isValidHandle(_ value: String) -> Bool {
-        guard (3 ... 20).contains(value.count) else { return false }
-        return value.range(of: #"^[a-z0-9_]+$"#, options: .regularExpression) != nil
     }
 
     private func save() {

@@ -1,40 +1,70 @@
 import DesignSystem
+import CryptoKit
+import FilterEngine
 import Foundation
 import Marketplace
 import Models
 import SwiftUI
 
-private enum SignedFilterPackageDownloader {
+enum SignedFilterPackageDownloader {
+    enum DownloadError: Error, Equatable {
+        case invalidFilterID
+        case httpStatus(Int)
+        case responseTooLarge(Int64)
+        case fileTooLarge(Int)
+        case checksumMismatch(expected: String, actualHex: String, actualBase64: String)
+        case invalidLUTPayload
+        case missingSignedDownloadURL
+    }
+
+    static let defaultMaxBytes = 25 * 1024 * 1024
+    static let defaultCacheQuotaBytes: Int64 = 200 * 1024 * 1024
+
     static func download(
         from url: URL,
         filterID: String,
+        expectedSHA256: String? = nil,
+        maxBytes: Int = defaultMaxBytes,
+        session: URLSession = .shared,
+        directory: URL? = nil,
         onProgress: @escaping @Sendable (Double) -> Void
     ) async throws -> URL {
-        let (bytes, response) = try await URLSession.shared.bytes(from: url)
-        if let http = response as? HTTPURLResponse,
-           !(200 ..< 300).contains(http.statusCode) {
-            throw URLError(.badServerResponse)
-        }
-
-        let directory = try packageDirectory()
-        let safeID = filterID.map { character -> Character in
-            character.isLetter || character.isNumber || character == "-" || character == "_" ? character : "_"
-        }
-        .map(String.init)
-        .joined()
+        let directory = try packageDirectory(override: directory)
+        let safeID = sanitizedFilterID(cacheKey(filterID: filterID, expectedSHA256: expectedSHA256))
+        guard !safeID.isEmpty else { throw DownloadError.invalidFilterID }
         let destination = directory.appendingPathComponent("\(safeID).fmpkg")
         let temporary = directory.appendingPathComponent("\(safeID).fmpkg.download")
+        if FileManager.default.fileExists(atPath: destination.path) {
+            try validateDownloadedPayload(at: destination, expectedSHA256: expectedSHA256)
+            onProgress(1)
+            return destination
+        }
+
+        let (bytes, response) = try await session.bytes(from: url)
+        if let http = response as? HTTPURLResponse,
+           !(200 ..< 300).contains(http.statusCode) {
+            throw DownloadError.httpStatus(http.statusCode)
+        }
+        let expectedBytes = response.expectedContentLength
+        if expectedBytes > Int64(maxBytes) {
+            throw DownloadError.responseTooLarge(expectedBytes)
+        }
+        if FileManager.default.fileExists(atPath: temporary.path) {
+            try FileManager.default.removeItem(at: temporary)
+        }
         FileManager.default.createFile(atPath: temporary.path, contents: nil)
         let handle = try FileHandle(forWritingTo: temporary)
         var receivedBytes = 0
         var buffer = Data()
-        let expectedBytes = response.expectedContentLength
 
         do {
             for try await byte in bytes {
                 try Task.checkCancellation()
-                buffer.append(byte)
                 receivedBytes += 1
+                if receivedBytes > maxBytes {
+                    throw DownloadError.fileTooLarge(receivedBytes)
+                }
+                buffer.append(byte)
                 if buffer.count >= 64 * 1024 {
                     try handle.write(contentsOf: buffer)
                     buffer.removeAll(keepingCapacity: true)
@@ -45,6 +75,7 @@ private enum SignedFilterPackageDownloader {
                 try handle.write(contentsOf: buffer)
             }
             try handle.close()
+            try validateDownloadedPayload(at: temporary, expectedSHA256: expectedSHA256)
             if FileManager.default.fileExists(atPath: destination.path) {
                 try FileManager.default.removeItem(at: destination)
             }
@@ -58,11 +89,87 @@ private enum SignedFilterPackageDownloader {
         }
     }
 
-    private static func packageDirectory() throws -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let directory = base.appendingPathComponent("moodit/downloaded-packages", isDirectory: true)
+    private static func sanitizedFilterID(_ filterID: String) -> String {
+        filterID.map { character -> Character in
+            character.isLetter || character.isNumber || character == "-" || character == "_" ? character : "_"
+        }
+        .map(String.init)
+        .joined()
+    }
+
+    private static func cacheKey(filterID: String, expectedSHA256: String?) -> String {
+        let checksum = expectedSHA256?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return checksum.isEmpty ? filterID : checksum
+    }
+
+    private static func packageDirectory(override: URL?) throws -> URL {
+        if let override {
+            try FileManager.default.createDirectory(at: override, withIntermediateDirectories: true)
+            return override
+        }
+        let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        let directory = base.appendingPathComponent("filterPackages", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         return directory
+    }
+
+    static func packageCacheUsageBytes(directory: URL? = nil) -> Int64 {
+        let resolvedDirectory: URL
+        if let directory {
+            resolvedDirectory = directory
+        } else {
+            let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            resolvedDirectory = base.appendingPathComponent("filterPackages", isDirectory: true)
+        }
+        guard let enumerator = FileManager.default.enumerator(
+            at: resolvedDirectory,
+            includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return 0
+        }
+
+        var total: Int64 = 0
+        for case let url as URL in enumerator {
+            guard let values = try? url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey]),
+                  values.isRegularFile == true else {
+                continue
+            }
+            total += Int64(values.fileSize ?? 0)
+        }
+        return total
+    }
+
+    static func formattedCacheUsage(
+        usedBytes: Int64,
+        quotaBytes: Int64 = defaultCacheQuotaBytes
+    ) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return "\(formatter.string(fromByteCount: usedBytes)) / \(formatter.string(fromByteCount: quotaBytes))"
+    }
+
+    private static func validateDownloadedPayload(at url: URL, expectedSHA256: String?) throws {
+        let data = try Data(contentsOf: url)
+        if let expectedSHA256,
+           !expectedSHA256.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let digest = SHA256.hash(data: data)
+            let actualHex = digest.map { String(format: "%02x", $0) }.joined()
+            let actualBase64 = Data(digest).base64EncodedString()
+            let expected = expectedSHA256.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard expected.caseInsensitiveCompare(actualHex) == .orderedSame || expected == actualBase64 else {
+                throw DownloadError.checksumMismatch(
+                    expected: expected,
+                    actualHex: actualHex,
+                    actualBase64: actualBase64
+                )
+            }
+        }
+
+        guard let parsed = try? CubeLUTParser.parse(String(decoding: data, as: UTF8.self)),
+              case .threeDimensional = parsed else {
+            throw DownloadError.invalidLUTPayload
+        }
     }
 
     private static func reportProgress(
@@ -296,9 +403,13 @@ struct FilterDownloadProgressScreen: View {
 
         do {
             let detail = try await FilterDetailLoaderScreen.fetchDetail(filterId: filterID)
+            guard let signedDownloadURL = detail.signedDownloadURL else {
+                throw SignedFilterPackageDownloader.DownloadError.missingSignedDownloadURL
+            }
             _ = try await SignedFilterPackageDownloader.download(
-                from: detail.signedDownloadURL,
-                filterID: filterID
+                from: signedDownloadURL,
+                filterID: filterID,
+                expectedSHA256: detail.packageSHA256
             ) { value in
                 Task { @MainActor in
                     progress = value

@@ -41,6 +41,12 @@ struct DataExportScreen: View {
         } message: {
             Text("요청 후 최대 30일 이내 보안 링크로 안내됩니다.")
         }
+        .storeErrorToast(
+            message: sessionStore.lastSubmitErrorMessage,
+            title: "요청 실패"
+        ) {
+            sessionStore.clearLastSubmitError()
+        }
     }
 
     private var categorySection: some View {

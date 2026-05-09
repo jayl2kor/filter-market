@@ -8,6 +8,7 @@ import SwiftUI
 public struct FMFilterTileData: Equatable, Sendable {
     public let title: String
     public let makerName: String
+    public let makerAvatarURL: URL?
     public let downloadCount: Int
     public let priceLabel: String?       // nil 이면 무료
     public let categoryHint: Color?      // 카테고리 점/언더라인 색
@@ -19,6 +20,7 @@ public struct FMFilterTileData: Equatable, Sendable {
     public init(
         title: String,
         makerName: String,
+        makerAvatarURL: URL? = nil,
         downloadCount: Int,
         priceLabel: String? = nil,
         categoryHint: Color? = nil,
@@ -29,6 +31,7 @@ public struct FMFilterTileData: Equatable, Sendable {
     ) {
         self.title = title
         self.makerName = makerName
+        self.makerAvatarURL = makerAvatarURL
         self.downloadCount = downloadCount
         self.priceLabel = priceLabel
         self.categoryHint = categoryHint
@@ -176,6 +179,7 @@ public struct FMFilterTile: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             HStack(spacing: Sp.xxs) {
+                FMAvatar(url: data.makerAvatarURL, size: .xs, fallback: String(data.makerName.replacingOccurrences(of: "@", with: "").prefix(2)).uppercased())
                 Text(data.makerName)
                     .fmTypography(.caption)
                     .foregroundStyle(.white.opacity(0.78))

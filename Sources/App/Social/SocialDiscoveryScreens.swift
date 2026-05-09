@@ -1,7 +1,5 @@
 import DesignSystem
-import FirebaseAuth
 import FirebaseFirestore
-import FirebaseFunctions
 import Foundation
 import Models
 import SwiftUI
@@ -153,7 +151,7 @@ struct ReviewsListScreen: View {
     /// /filters/{filterID}/reviews.order(by: createdAt desc).limit(50) listener.
     private func attachReviewsListener() {
         reviewsListener?.remove()
-        reviewsListener = Firestore.firestore()
+        reviewsListener = FirebaseSideEffects.firestore()
             .collection("filters").document(filterID)
             .collection("reviews")
             .order(by: "createdAt", descending: true)
@@ -241,7 +239,7 @@ struct ReviewsListScreen: View {
 
     private func loadFilterSummary() async {
         do {
-            let snapshot = try await Firestore.firestore()
+            let snapshot = try await FirebaseSideEffects.firestore()
                 .collection("filters").document(filterID)
                 .getDocument()
             guard let data = snapshot.data() else { return }
@@ -262,11 +260,11 @@ struct ReviewsListScreen: View {
 
     private func attachHelpfulListener() {
         helpfulListener?.remove()
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = FirebaseSideEffects.currentUID else {
             helpfulIDs = []
             return
         }
-        helpfulListener = Firestore.firestore()
+        helpfulListener = FirebaseSideEffects.firestore()
             .collection("users").document(uid)
             .collection("reviewHelpful")
             .whereField("filterId", isEqualTo: filterID)
@@ -280,12 +278,12 @@ struct ReviewsListScreen: View {
 
     private func attachBlocksListener() {
         blocksListener?.remove()
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = FirebaseSideEffects.currentUID else {
             blockedAuthorUIDs = []
             applyBlockedReviewFilter()
             return
         }
-        blocksListener = Firestore.firestore()
+        blocksListener = FirebaseSideEffects.firestore()
             .collection("blocks")
             .whereField("actorUid", isEqualTo: uid)
             .limit(to: 200)
@@ -633,7 +631,7 @@ struct ReviewsListScreen: View {
             return
         }
         #endif
-        guard Auth.auth().currentUser?.uid != nil else {
+        guard FirebaseSideEffects.hasCurrentUser else {
             FMHaptic.warning.play()
             return
         }
@@ -646,8 +644,7 @@ struct ReviewsListScreen: View {
         }
 
         do {
-            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("markReviewHelpful")
-            _ = try await callable.call([
+            _ = try await FirebaseSideEffects.callFunction("markReviewHelpful", data: [
                 "filterId": filterID,
                 "reviewId": review.id,
                 "helpful": !wasHelpful,
@@ -675,7 +672,7 @@ struct ReviewsListScreen: View {
             return
         }
         #endif
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = FirebaseSideEffects.currentUID else {
             blockStatusMessage = "로그인 후 작성자를 차단할 수 있어요."
             return
         }
@@ -688,7 +685,7 @@ struct ReviewsListScreen: View {
         applyBlockedReviewFilter()
 
         do {
-            try await Firestore.firestore()
+            try await FirebaseSideEffects.firestore()
                 .collection("blocks").document("\(uid)_\(review.authorUid)")
                 .setData([
                     "actorUid": uid,
@@ -712,7 +709,7 @@ struct ReviewsListScreen: View {
             return sessionStore.isAuthenticated && review.authorUid == "minji.lab"
         }
         #endif
-        return Auth.auth().currentUser?.uid == review.authorUid
+        return FirebaseSideEffects.currentUID == review.authorUid
     }
 
     private func reviewAccessibilityLabel(_ review: SocialReview) -> String {
@@ -735,8 +732,7 @@ struct ReviewsListScreen: View {
         deletingReview = nil
 
         do {
-            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("deleteReview")
-            _ = try await callable.call([
+            _ = try await FirebaseSideEffects.callFunction("deleteReview", data: [
                 "filterId": filterID,
                 "reviewId": review.id,
             ])
@@ -862,7 +858,7 @@ struct ReviewComposeScreen: View {
             return
         }
         #endif
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = FirebaseSideEffects.currentUID else {
             errorMessage = "로그인이 필요합니다."
             FMHaptic.warning.play()
             return
@@ -871,7 +867,6 @@ struct ReviewComposeScreen: View {
         defer { isSubmitting = false }
         do {
             let upload = try await uploadAttachedImageIfNeeded(uid: uid)
-            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("submitReview")
             var payload: [String: Any] = [
                 "filterId": filterID,
                 "stars": rating,
@@ -881,7 +876,7 @@ struct ReviewComposeScreen: View {
                 payload["photoUrl"] = upload.publicURL.absoluteString
                 payload["photoObjectKey"] = upload.objectKey
             }
-            _ = try await callable.call(payload)
+            _ = try await FirebaseSideEffects.callFunction("submitReview", data: payload)
             FMHaptic.success.play()
             dismiss()
         } catch {
@@ -946,8 +941,7 @@ struct ReviewComposeScreen: View {
             throw ReviewComposeError.imageTooLarge
         }
 
-        let callable = Functions.functions(region: "asia-northeast3").httpsCallable("reviewImageUploadInit")
-        let result = try await callable.call([
+        let result = try await FirebaseSideEffects.callFunction("reviewImageUploadInit", data: [
             "filterId": filterID,
             "contentType": "image/jpeg",
             "imageBytes": imageData.count,
@@ -983,8 +977,8 @@ struct ReviewComposeScreen: View {
             return "테스트 사용자"
         }
         #endif
-        return Auth.auth().currentUser?.displayName
-            ?? Auth.auth().currentUser?.email?.split(separator: "@").first.map(String.init)
+        return FirebaseSideEffects.currentUserDisplayName
+            ?? FirebaseSideEffects.currentUserEmail?.split(separator: "@").first.map(String.init)
             ?? String(uid.prefix(8))
     }
 
@@ -1312,7 +1306,7 @@ struct ReviewComposeScreen: View {
             return "ui-test-user"
         }
         #endif
-        return Auth.auth().currentUser?.uid ?? ""
+        return FirebaseSideEffects.currentUID ?? ""
     }
 
     private var loginGate: some View {
@@ -1347,7 +1341,7 @@ struct RatingFormScreen: View {
     /// uid 키로 1개만 — 재제출 시 덮어쓰기.
     private func submitRating() async {
         guard rating > 0 else { return }
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = FirebaseSideEffects.currentUID else {
             FMHaptic.warning.play()
             errorMessage = "로그인이 필요합니다."
             return
@@ -1361,7 +1355,7 @@ struct RatingFormScreen: View {
             "updatedAt": FieldValue.serverTimestamp(),
         ]
         do {
-            try await Firestore.firestore()
+            try await FirebaseSideEffects.firestore()
                 .collection("filters").document(filterID)
                 .collection("ratings").document(uid)
                 .setData(payload, merge: true)
@@ -1777,7 +1771,7 @@ private struct FollowListScreen: View {
             titleHandle = userID == "me" ? "@me" : "@sample.maker"
             return
         }
-        let db = Firestore.firestore()
+        let db = FirebaseSideEffects.firestore()
         profileListener?.remove()
         profileListener = db.collection("users").document(normalizedUserID)
             .addSnapshotListener { snapshot, _ in
@@ -1805,7 +1799,7 @@ private struct FollowListScreen: View {
     }
 
     private func loadUsers(for docs: [QueryDocumentSnapshot]) async -> [SocialUser] {
-        let db = Firestore.firestore()
+        let db = FirebaseSideEffects.firestore()
         var result: [SocialUser] = []
         for doc in docs {
             let data = doc.data()
@@ -1849,7 +1843,7 @@ private struct FollowListScreen: View {
             return
         }
 
-        let db = Firestore.firestore()
+        let db = FirebaseSideEffects.firestore()
         do {
             let profile = try await db.collection("users").document(normalizedUserID).getDocument()
             let data = profile.data() ?? [:]
@@ -1879,7 +1873,7 @@ private struct FollowListScreen: View {
             return
         }
         #endif
-        guard let actorUid = Auth.auth().currentUser?.uid, let targetUid = user.uid, actorUid != targetUid else {
+        guard let actorUid = FirebaseSideEffects.currentUID, let targetUid = user.uid, actorUid != targetUid else {
             guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
             users[index].relationship = users[index].relationship.toggled
             FMHaptic.selection.play()
@@ -1890,7 +1884,7 @@ private struct FollowListScreen: View {
         users[index].relationship = next
         FMHaptic.selection.play()
 
-        let edgeRef = Firestore.firestore().collection("follows").document("\(actorUid)_\(targetUid)")
+        let edgeRef = FirebaseSideEffects.firestore().collection("follows").document("\(actorUid)_\(targetUid)")
         do {
             if next == .notFollowing {
                 try await edgeRef.delete()
@@ -1994,6 +1988,12 @@ struct ForYouFeedScreen: View {
         }
         .task {
             await filterLibraryStore.load()
+        }
+        .storeErrorToast(
+            message: filterLibraryStore.lastSyncErrorMessage,
+            title: "저장 동기화 실패"
+        ) {
+            filterLibraryStore.clearLastSyncError()
         }
     }
 
@@ -2297,6 +2297,12 @@ struct FollowingFeedScreen: View {
             feedActionsListener?.remove()
             feedActionsListener = nil
         }
+        .storeErrorToast(
+            message: filterLibraryStore.lastSyncErrorMessage,
+            title: "저장 동기화 실패"
+        ) {
+            filterLibraryStore.clearLastSyncError()
+        }
     }
 
     private func newFilterCard(_ post: FollowingFeedPost) -> some View {
@@ -2440,13 +2446,13 @@ struct FollowingFeedScreen: View {
             posts = SocialPost.mock.compactMap { $0.toFollowingFeedPost(filterLibraryStore: filterLibraryStore) }
             return
         }
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = FirebaseSideEffects.currentUID else {
             posts = []
             return
         }
 
         followsListener?.remove()
-        followsListener = Firestore.firestore().collection("follows")
+        followsListener = FirebaseSideEffects.firestore().collection("follows")
             .whereField("actorUid", isEqualTo: uid)
             .addSnapshotListener { snapshot, _ in
                 let targetUIDs = Array(Set((snapshot?.documents ?? []).compactMap { $0.data()["targetUid"] as? String }))
@@ -2459,7 +2465,7 @@ struct FollowingFeedScreen: View {
             }
 
         feedActionsListener?.remove()
-        feedActionsListener = Firestore.firestore()
+        feedActionsListener = FirebaseSideEffects.firestore()
             .collection("users").document(uid)
             .collection("feedActions")
             .addSnapshotListener { snapshot, _ in
@@ -2476,7 +2482,7 @@ struct FollowingFeedScreen: View {
 
     private func loadPosts(for targetUIDs: [String]) async -> [FollowingFeedPost] {
         guard !targetUIDs.isEmpty else { return [] }
-        let db = Firestore.firestore()
+        let db = FirebaseSideEffects.firestore()
         var loaded: [FollowingFeedPost] = []
         for uid in targetUIDs.prefix(25) {
             do {
@@ -2511,7 +2517,7 @@ struct FollowingFeedScreen: View {
             return
         }
         #endif
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = FirebaseSideEffects.currentUID else {
             if likedFilterIDs.contains(post.id) {
                 likedFilterIDs.remove(post.id)
             } else {
@@ -2526,7 +2532,7 @@ struct FollowingFeedScreen: View {
             likedFilterIDs.remove(post.id)
         }
         do {
-            try await Firestore.firestore()
+            try await FirebaseSideEffects.firestore()
                 .collection("users").document(uid)
                 .collection("feedActions").document(post.id)
                 .setData([
@@ -2550,14 +2556,14 @@ struct FollowingFeedScreen: View {
             return
         }
         #endif
-        guard let uid = Auth.auth().currentUser?.uid else {
+        guard let uid = FirebaseSideEffects.currentUID else {
             posts.removeAll { $0.id == post.id }
             return
         }
         hiddenFilterIDs.insert(post.id)
         posts.removeAll { $0.id == post.id }
         do {
-            try await Firestore.firestore()
+            try await FirebaseSideEffects.firestore()
                 .collection("users").document(uid)
                 .collection("feedActions").document(post.id)
                 .setData([

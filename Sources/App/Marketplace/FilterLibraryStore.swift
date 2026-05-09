@@ -42,11 +42,7 @@ final class FilterLibraryStore: ObservableObject {
 
         do {
             let loadedFilters = try await repository.listFilters()
-            filters = loadedFilters
-            selectedFilterID = loadedFilters.first?.id
-            if let firstFilter = loadedFilters.first {
-                downloadedFilterIDs.insert(firstFilter.id)
-            }
+            applyLoadedFilters(loadedFilters)
             do {
                 trendingFilters = try await repository.trending(limit: 24)
             } catch {
@@ -77,6 +73,10 @@ final class FilterLibraryStore: ObservableObject {
         lastSyncErrorMessage = nil
     }
 
+    func clearLastSyncError() {
+        lastSyncErrorMessage = nil
+    }
+
     func setDownloadedFilterIDs(_ ids: Set<AppFilter.ID>) {
         downloadedFilterIDs = ids
     }
@@ -87,7 +87,6 @@ final class FilterLibraryStore: ObservableObject {
 
     func select(_ filter: AppFilter) {
         selectedFilterID = filter.id
-        downloadedFilterIDs.insert(filter.id)
     }
 
     func markDownloaded(_ id: AppFilter.ID) {
@@ -236,6 +235,21 @@ final class FilterLibraryStore: ObservableObject {
                     }
                 }
             }
+        }
+    }
+
+    private func applyLoadedFilters(_ loadedFilters: [AppFilter]) {
+        let previousSelectedFilterID = selectedFilterID
+
+        filters = loadedFilters
+
+        if let previousSelectedFilterID,
+           loadedFilters.contains(where: { $0.id == previousSelectedFilterID }) {
+            selectedFilterID = previousSelectedFilterID
+        } else if let firstDownloadedFilter = loadedFilters.first(where: { downloadedFilterIDs.contains($0.id) }) {
+            selectedFilterID = firstDownloadedFilter.id
+        } else {
+            selectedFilterID = loadedFilters.first?.id
         }
     }
 

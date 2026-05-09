@@ -181,9 +181,11 @@ enum MarketplaceMockData {
 /// 상세 화면 mock — `Filter` 도메인 모델만으로는 부족한 표시 정보(다운로드/리뷰/태그/샘플/댓글)를 보강.
 struct FilterDetailMock: Sendable {
     let sourceID: String?
+    let makerUID: String?
     let displayTitle: String
     let makerHandle: String
     let makerInitials: String
+    let makerAvatarURL: URL?
     let categoryLabel: String
     let downloadCount: Int
     let rating: Double
@@ -203,9 +205,11 @@ struct FilterDetailMock: Sendable {
 
     init(
         sourceID: String? = nil,
+        makerUID: String? = nil,
         displayTitle: String,
         makerHandle: String,
         makerInitials: String,
+        makerAvatarURL: URL? = nil,
         categoryLabel: String,
         downloadCount: Int,
         rating: Double,
@@ -224,9 +228,11 @@ struct FilterDetailMock: Sendable {
         userHasLiked: Bool = false
     ) {
         self.sourceID = sourceID
+        self.makerUID = makerUID
         self.displayTitle = displayTitle
         self.makerHandle = makerHandle
         self.makerInitials = makerInitials
+        self.makerAvatarURL = makerAvatarURL
         self.categoryLabel = categoryLabel
         self.downloadCount = downloadCount
         self.rating = rating
@@ -320,9 +326,11 @@ extension FilterDetailMock {
     static func mock(for filter: Filter) -> FilterDetailMock {
         FilterDetailMock(
             sourceID: filter.id.uuidString,
+            makerUID: filter.author.uid,
             displayTitle: filter.title,
             makerHandle: "@" + filter.author.displayName.lowercased(),
             makerInitials: String(filter.author.displayName.prefix(2)).uppercased(),
+            makerAvatarURL: filter.author.avatarURL,
             categoryLabel: filter.category.displayTitle,
             downloadCount: 4_280,
             rating: 4.6,

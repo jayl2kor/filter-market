@@ -1,6 +1,4 @@
 import DesignSystem
-import FirebaseAuth
-import FirebaseCore
 import FirebaseFirestore
 import Models
 import SwiftUI
@@ -40,7 +38,6 @@ struct ProfileScreen: View {
     private let ownsNavigationStack: Bool
     @State private var selectedSection: ProfileSection = .myFilters
     @State private var hasAppeared = false
-    @State private var navigateToLogin = false
     @State private var shareSheetPayload: SharePayload?
     @State private var fetchedOtherUser: ProfileUser?
     @State private var isOtherProfileLoading = false
@@ -102,7 +99,7 @@ struct ProfileScreen: View {
         }
         #endif
         do {
-            let snap = try await Firestore.firestore().collection("users").document(uid).getDocument()
+            let snap = try await FirebaseSideEffects.firestore().collection("users").document(uid).getDocument()
             guard snap.exists, let data = snap.data() else {
                 fetchedOtherUser = nil
                 isOtherProfileNotFound = true
@@ -205,9 +202,17 @@ struct ProfileScreen: View {
                         .padding(.horizontal, Sp.xl)
                 }
 
-                FMButton("로그인하기", variant: .primary, size: .lg) {
-                    navigateToLogin = true
+                NavigationLink(value: AppRoute.login) {
+                    HStack(spacing: Sp.xs) {
+                        Text("로그인하기")
+                            .fmTypography(.headline)
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
                 }
+                .buttonStyle(.plain)
                 .accessibilityIdentifier("profile.login")
                 .padding(.horizontal, Sp.xl)
                 .padding(.top, Sp.md)
@@ -224,14 +229,19 @@ struct ProfileScreen: View {
                         .fmTypography(.headline)
                         .foregroundStyle(FMColors.Text.primary)
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(value: AppRoute.settings) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: IconSize.lg - 4, weight: .regular))
+                            .foregroundStyle(FMColors.Text.primary)
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel("설정 열기")
+                    .accessibilityIdentifier("profile.settings")
+                }
             }
             .toolbarBackground(FMColors.Background.bg0, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .navigationDestination(isPresented: $navigateToLogin) {
-                LoginScreen(onAuthenticated: {
-                    navigateToLogin = false
-                })
-            }
         }
     }
 
@@ -457,10 +467,10 @@ struct ProfileScreen: View {
 
     private var followListUserID: String {
         if let otherUid { return otherUid }
-        guard !isUITesting, FirebaseApp.app() != nil else {
+        guard !isUITesting, FirebaseSideEffects.isConfigured else {
             return user.handle.replacingOccurrences(of: "@", with: "")
         }
-        if let uid = Auth.auth().currentUser?.uid { return uid }
+        if let uid = FirebaseSideEffects.currentUID { return uid }
         return user.handle.replacingOccurrences(of: "@", with: "")
     }
 
@@ -751,11 +761,11 @@ struct ProfileScreen: View {
         detachOtherFollowState()
         guard let targetUid = otherUid,
               !isUITesting,
-              FirebaseApp.app() != nil,
-              let actorUid = Auth.auth().currentUser?.uid,
+              FirebaseSideEffects.isConfigured,
+              let actorUid = FirebaseSideEffects.currentUID,
               actorUid != targetUid else { return }
 
-        otherFollowListener = Firestore.firestore()
+        otherFollowListener = FirebaseSideEffects.firestore()
             .collection("follows").document("\(actorUid)_\(targetUid)")
             .addSnapshotListener { snapshot, _ in
                 let exists = snapshot?.exists == true
@@ -775,8 +785,8 @@ struct ProfileScreen: View {
         guard !isUpdatingFollow else { return }
         guard let targetUid = otherUid,
               !isUITesting,
-              FirebaseApp.app() != nil,
-              let actorUid = Auth.auth().currentUser?.uid,
+              FirebaseSideEffects.isConfigured,
+              let actorUid = FirebaseSideEffects.currentUID,
               actorUid != targetUid else {
             isFollowingOtherProfile.toggle()
             FMHaptic.selection.play()
@@ -789,7 +799,7 @@ struct ProfileScreen: View {
         FMHaptic.selection.play()
         defer { isUpdatingFollow = false }
 
-        let edgeRef = Firestore.firestore()
+        let edgeRef = FirebaseSideEffects.firestore()
             .collection("follows").document("\(actorUid)_\(targetUid)")
         do {
             if isFollowingOtherProfile {
@@ -812,15 +822,15 @@ struct ProfileScreen: View {
         let targetUid = reportTargetUserID
         guard !targetUid.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard !isUITesting,
-              FirebaseApp.app() != nil,
-              let actorUid = Auth.auth().currentUser?.uid,
+              FirebaseSideEffects.isConfigured,
+              let actorUid = FirebaseSideEffects.currentUID,
               actorUid != targetUid else {
             profileActionMessage = "\(user.handle) 사용자를 차단했어요."
             return
         }
 
         do {
-            try await Firestore.firestore()
+            try await FirebaseSideEffects.firestore()
                 .collection("blocks").document("\(actorUid)_\(targetUid)")
                 .setData([
                     "actorUid": actorUid,
@@ -1016,7 +1026,7 @@ struct ProfileHandleResolverScreen: View {
         isLoading = true
         errorMessage = nil
         do {
-            let snapshot = try await Firestore.firestore()
+            let snapshot = try await FirebaseSideEffects.firestore()
                 .collection("handles").document(normalizedHandle)
                 .getDocument()
             guard let uid = snapshot.data()?["uid"] as? String, !uid.isEmpty else {

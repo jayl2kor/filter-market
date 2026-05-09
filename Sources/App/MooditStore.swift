@@ -379,8 +379,37 @@ final class MooditStore: ObservableObject {
             status: MakerFilterStatus(rawValue: statusRaw) ?? .draft,
             updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue() ?? Date(),
             submittedAt: (data["submittedAt"] as? Timestamp)?.dateValue(),
+            rejectionReasons: decodeRejectionReasons(data),
+            moderatorNote: data["moderatorNote"] as? String,
+            rejectedAt: (data["rejectedAt"] as? Timestamp)?.dateValue(),
             firestoreFilterId: data["firestoreFilterId"] as? String
         )
+    }
+
+    private static func decodeRejectionReasons(_ data: [String: Any]) -> [RejectionReason]? {
+        if let structured = data["rejectionReasons"] as? [[String: Any]] {
+            let reasons = structured.compactMap { item -> RejectionReason? in
+                let title = (item["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let body = (item["body"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    ?? (item["message"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    ?? ""
+                guard !title.isEmpty || !body.isEmpty else { return nil }
+                return RejectionReason(title: title.isEmpty ? "검수 사유" : title, body: body)
+            }
+            return reasons.isEmpty ? nil : reasons
+        }
+        if let rawReasons = data["rejectionReasons"] as? [String] {
+            let reasons = rawReasons
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .map { RejectionReason(title: "검수 사유", body: $0) }
+            return reasons.isEmpty ? nil : reasons
+        }
+        if let reason = (data["rejectionReason"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !reason.isEmpty {
+            return [RejectionReason(title: "검수 사유", body: reason)]
+        }
+        return nil
     }
 
     var selectedFilter: Filter? {

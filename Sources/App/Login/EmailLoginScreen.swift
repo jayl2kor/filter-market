@@ -15,6 +15,7 @@ import SwiftUI
 /// 위해 동일 규칙을 적용한다.
 struct EmailLoginScreen: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var sessionStore: SessionStore
 
     enum Mode {
         case signIn
@@ -50,6 +51,10 @@ struct EmailLoginScreen: View {
     @State private var showPasswordReset: Bool = false
     @State private var resetEmailSent: Bool = false
     @State private var isPasswordVisible: Bool = false
+    @State private var handle: String = ""
+    @State private var handleStatus: HandleValidationStatus = .idle
+    @State private var handleCheckTask: Task<Void, Never>?
+    @State private var lastCheckedHandle = ""
 
     private var isFormValid: Bool {
         guard !email.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
@@ -57,7 +62,7 @@ struct EmailLoginScreen: View {
         case .signIn:
             return password.count >= 1
         case .signUp:
-            return Self.isValidPassword(password)
+            return Self.isValidPassword(password) && handleStatus == .available
         }
     }
 
@@ -66,6 +71,9 @@ struct EmailLoginScreen: View {
             VStack(alignment: .leading, spacing: Sp.lg) {
                 header
                 emailField
+                if mode == .signUp {
+                    handleField
+                }
                 passwordField
                 if mode == .signUp {
                     passwordHint
@@ -87,6 +95,12 @@ struct EmailLoginScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle(mode.ctaTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: handle) { _, newValue in
+            scheduleHandleCheck(for: newValue)
+        }
+        .onDisappear {
+            handleCheckTask?.cancel()
+        }
     }
 
     // MARK: - Sections
@@ -160,6 +174,51 @@ struct EmailLoginScreen: View {
         }
     }
 
+    private var handleField: some View {
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            Text("유저네임")
+                .fmTypography(.caption)
+                .foregroundStyle(FMColors.Text.secondary)
+
+            HStack(spacing: Sp.xs) {
+                Text("@")
+                    .fmTypography(.body)
+                    .foregroundStyle(FMColors.Text.tertiary)
+                TextField("mood_maker", text: Binding(
+                    get: { handle },
+                    set: { handle = HandleValidator.normalized($0) }
+                ))
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .textContentType(.username)
+                .accessibilityIdentifier("auth.handle.input")
+
+                if handleStatus == .checking {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(handleStatus.tint)
+                } else if let iconName = handleStatus.iconName {
+                    Image(systemName: iconName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(handleStatus.tint)
+                }
+            }
+            .padding(.leading, Sp.sm)
+            .padding(.trailing, Sp.xs)
+            .padding(.vertical, Sp.sm)
+            .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+            .overlay {
+                RoundedRectangle(cornerRadius: R.md)
+                    .strokeBorder(FMColors.Border.default, lineWidth: 1)
+            }
+
+            Text(handleStatus.message)
+                .fmTypography(.caption)
+                .foregroundStyle(handleStatus.tint)
+                .accessibilityIdentifier("auth.handle.status")
+        }
+    }
+
     private var passwordHint: some View {
         VStack(alignment: .leading, spacing: Sp.xs) {
             HStack(spacing: Sp.xs) {
@@ -208,6 +267,12 @@ struct EmailLoginScreen: View {
             mode = mode.toggled
             errorMessage = nil
             resetEmailSent = false
+            if mode == .signIn {
+                handleCheckTask?.cancel()
+                handle = ""
+                handleStatus = .idle
+                lastCheckedHandle = ""
+            }
         } label: {
             Text(mode.toggleTitle)
                 .fmTypography(.subhead)
@@ -256,7 +321,15 @@ struct EmailLoginScreen: View {
                 case .signIn:
                     _ = try await Auth.auth().signIn(withEmail: trimmedEmail, password: password)
                 case .signUp:
-                    _ = try await Auth.auth().createUser(withEmail: trimmedEmail, password: password)
+                    let normalizedHandle = HandleValidator.normalized(handle)
+                    let result = try await Auth.auth().createUser(withEmail: trimmedEmail, password: password)
+                    do {
+                        try await FirebaseSideEffects.reserveHandle(normalizedHandle, for: result.user.uid)
+                        applySignedUpHandle(normalizedHandle, user: result.user)
+                    } catch {
+                        try? await result.user.delete()
+                        throw error
+                    }
                 }
                 FMHaptic.success.play()
                 dismiss()
@@ -290,6 +363,55 @@ struct EmailLoginScreen: View {
             }
             isLoading = false
         }
+    }
+
+    private func scheduleHandleCheck(
+        for value: String,
+        delayNanoseconds: UInt64 = 400_000_000
+    ) {
+        handleCheckTask?.cancel()
+        let normalized = HandleValidator.normalized(value)
+        guard !normalized.isEmpty else {
+            setHandleStatus(.idle)
+            return
+        }
+        guard HandleValidator.isValid(normalized) else {
+            setHandleStatus(.invalid)
+            return
+        }
+        guard normalized != lastCheckedHandle else { return }
+
+        setHandleStatus(.checking)
+        handleCheckTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: delayNanoseconds)
+                guard !Task.isCancelled else { return }
+                let status = await HandleAvailabilityChecker.status(for: normalized)
+                guard !Task.isCancelled, handle == normalized else { return }
+                lastCheckedHandle = normalized
+                setHandleStatus(status)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard !Task.isCancelled else { return }
+                setHandleStatus(.failed)
+            }
+        }
+    }
+
+    private func setHandleStatus(_ status: HandleValidationStatus) {
+        guard handleStatus != status else { return }
+        handleStatus = status
+        UIAccessibility.post(notification: .announcement, argument: status.message)
+    }
+
+    private func applySignedUpHandle(_ normalizedHandle: String, user: User) {
+        var profile = sessionStore.editableProfile
+        if profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            profile.displayName = user.email?.split(separator: "@").first.map(String.init) ?? normalizedHandle
+        }
+        profile.handle = normalizedHandle
+        sessionStore.editableProfile = profile
     }
 
     /// Map Firebase Auth `AuthErrorCode` to user-friendly Korean text.

@@ -56,6 +56,8 @@ targets:
         product: FirebaseCrashlytics
       - package: Firebase
         product: FirebaseAnalytics
+      - package: Firebase
+        product: FirebaseAppCheck
       - package: GoogleSignIn
         product: GoogleSignIn
       - package: GoogleSignIn

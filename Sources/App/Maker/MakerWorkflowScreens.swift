@@ -707,6 +707,12 @@ struct EditorDraftSaveScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle("초안 저장")
         .navigationBarTitleDisplayMode(.inline)
+        .storeErrorToast(
+            message: editorDraftStore.lastSubmitErrorMessage,
+            title: "초안 저장 실패"
+        ) {
+            editorDraftStore.clearLastSubmitError()
+        }
     }
 
     private var draftForm: some View {
@@ -861,6 +867,12 @@ struct UploadCoverScreen: View {
         }
         .onDisappear {
             editorDraftStore.saveCurrentUploadDraftIfNeeded()
+        }
+        .storeErrorToast(
+            message: editorDraftStore.lastSubmitErrorMessage,
+            title: "초안 저장 실패"
+        ) {
+            editorDraftStore.clearLastSubmitError()
         }
     }
 
@@ -1089,6 +1101,12 @@ struct UploadTagsCategoryScreen: View {
         .onDisappear {
             editorDraftStore.saveCurrentUploadDraftIfNeeded()
         }
+        .storeErrorToast(
+            message: editorDraftStore.lastSubmitErrorMessage,
+            title: "초안 저장 실패"
+        ) {
+            editorDraftStore.clearLastSubmitError()
+        }
     }
 
     private var tagSection: some View {
@@ -1226,6 +1244,12 @@ struct UploadTOSSubmitScreen: View {
         }
         .onDisappear {
             editorDraftStore.saveCurrentUploadDraftIfNeeded()
+        }
+        .storeErrorToast(
+            message: editorDraftStore.lastSubmitErrorMessage,
+            title: "검수 제출 실패"
+        ) {
+            editorDraftStore.clearLastSubmitError()
         }
     }
 
@@ -1420,6 +1444,12 @@ struct MyFiltersScreen: View {
         } message: {
             Text("마켓 노출이 중지되고 초안 상태로 돌아갑니다.")
         }
+        .storeErrorToast(
+            message: editorDraftStore.lastSubmitErrorMessage,
+            title: "상태 변경 실패"
+        ) {
+            editorDraftStore.clearLastSubmitError()
+        }
     }
 
     private var header: some View {
@@ -1475,7 +1505,7 @@ struct MyFiltersScreen: View {
                 }
 
                 HStack(spacing: Sp.sm) {
-                    NavigationLink(value: draft.status == .rejected ? AppRoute.filterRejected(id: draft.name) : AppRoute.editor) {
+                    NavigationLink(value: draft.status == .rejected ? AppRoute.filterRejected(id: draft.id.uuidString) : AppRoute.editor) {
                         compactRouteButton(draft.status == .rejected ? "검수 결과" : "수정", icon: draft.status == .rejected ? "doc.text" : "slider.horizontal.3")
                     }
                     .simultaneousGesture(TapGesture().onEnded {

@@ -1,4 +1,5 @@
 import DesignSystem
+import AuthenticationServices
 import FirebaseAuth
 import FirebaseCore
 import GoogleSignIn
@@ -15,7 +16,10 @@ struct LoginScreen: View {
     @State private var loadingProvider: LoginProvider? = nil
     @State private var externalURL: ExternalURL?
     @State private var navigateToEmailLogin = false
+    @State private var errorMessage: String?
+    @State private var appleSignInCoordinator = AppleSignInCoordinator()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var sessionStore: SessionStore
 
     /// 인증 성공 콜백. 현재는 호출되지 않으나 향후 `AuthState` 변경 트리거로 연결 예정.
@@ -39,11 +43,10 @@ struct LoginScreen: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Spacer(minLength: 0)
-
                 brandSection
+                    .padding(.top, Sp.xxxxl)
 
-                Spacer(minLength: Sp.xxxl)
+                Spacer(minLength: Sp.xl)
 
                 buttonsSection
                     .padding(.horizontal, Sp.lg)
@@ -58,6 +61,7 @@ struct LoginScreen: View {
             externalURL = ExternalURL(value: url)
             return .handled
         })
+        .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(isPresented: $navigateToEmailLogin) {
             EmailLoginScreen()
         }
@@ -72,8 +76,10 @@ struct LoginScreen: View {
             // 모든 해상도에서 선명. 다크 모드 분기는 별도 자산 없이 라이트 워드마크 그대로 노출
             // (요구되면 후속 변형 자산 추가 가능 — 현재는 라이트 컨텍스트 기준).
             Image("MooditLockupVertical")
+                .renderingMode(colorScheme == .dark ? .template : .original)
                 .resizable()
                 .scaledToFit()
+                .foregroundStyle(colorScheme == .dark ? FMColors.Text.primary : FMColors.Text.primary)
                 .frame(maxWidth: 220, maxHeight: 160)
                 .accessibilityHidden(true)
 
@@ -83,7 +89,6 @@ struct LoginScreen: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 280)
         }
-        .padding(.top, Sp.xxxxl)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("moodit. 모두의 필터, 단 하나의 마켓. 촬영하고, 만들고, 거래하세요.")
     }
@@ -101,6 +106,16 @@ struct LoginScreen: View {
 
             termsText
                 .padding(.top, Sp.xs)
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .fmTypography(.caption)
+                    .foregroundStyle(FMColors.Semantic.error)
+                    .padding(Sp.sm)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(FMColors.Semantic.errorBg, in: RoundedRectangle(cornerRadius: R.sm))
+                    .accessibilityIdentifier("auth.error.banner")
+            }
         }
     }
 
@@ -113,7 +128,7 @@ struct LoginScreen: View {
                     ProgressView()
                         .progressViewStyle(.circular)
                         .scaleEffect(0.85)
-                        .tint(.white)
+                        .tint(appleForegroundColor)
                 } else {
                     Image(systemName: "applelogo")
                         .font(.system(size: 18, weight: .medium))
@@ -123,12 +138,12 @@ struct LoginScreen: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
             }
-            .foregroundStyle(colorScheme == .dark ? FMColors.Text.primary : .white)
+            .foregroundStyle(appleForegroundColor)
             .frame(maxWidth: .infinity)
             .frame(height: 50)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(colorScheme == .dark ? .white : .black)
+                    .fill(appleBackgroundColor)
             )
         }
         .disabled(loadingProvider != nil)
@@ -232,7 +247,13 @@ struct LoginScreen: View {
 
     private var guestLink: some View {
         Button {
-            onContinueAsGuest?()
+            FMHaptic.light.play()
+            sessionStore.enterGuestMode()
+            if let onContinueAsGuest {
+                onContinueAsGuest()
+            } else {
+                dismiss()
+            }
         } label: {
             Text("로그인 없이 둘러보기 →")
                 .fmTypography(.callout)
@@ -304,6 +325,14 @@ struct LoginScreen: View {
         case google
     }
 
+    private var appleBackgroundColor: Color {
+        colorScheme == .dark ? .white : .black
+    }
+
+    private var appleForegroundColor: Color {
+        colorScheme == .dark ? .black : .white
+    }
+
     @MainActor
     private func triggerLogin(_ provider: LoginProvider) {
         guard loadingProvider == nil else { return }
@@ -311,19 +340,36 @@ struct LoginScreen: View {
 
         switch provider {
         case .apple:
-            // Apple Sign-In은 별도 SDK 흐름이 차후 추가 — 현재는 시뮬레이션.
-            simulateAuth(provider: provider)
+            performAppleSignIn()
         case .google:
             performGoogleSignIn()
         }
     }
 
-    /// Loading 상태만 잠시 표시한 뒤 onAuthenticated 호출 — Apple Sign-In 미연결 시 폴백.
     @MainActor
-    private func simulateAuth(provider: LoginProvider) {
+    private func performAppleSignIn() {
+        guard FirebaseApp.app() != nil else {
+            failAuthentication(message: "인증 서비스가 설정되지 않았어요. 잠시 후 다시 시도해주세요.")
+            return
+        }
+        guard let window = keyWindow() else {
+            failAuthentication(message: "Apple 인증 화면을 열 수 없어요. 잠시 후 다시 시도해주세요.")
+            return
+        }
+
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 1_200_000_000)
-            completeAuthentication()
+            do {
+                try await appleSignInCoordinator.signIn(presentationAnchor: window)
+                completeAuthentication()
+            } catch {
+                loadingProvider = nil
+                guard !isAppleCancellation(error) else { return }
+                errorMessage = "Apple 인증을 완료하지 못했어요. 잠시 후 다시 시도해주세요."
+                FMHaptic.error.play()
+                #if DEBUG
+                print("[Login] Apple sign-in failed: \(error.localizedDescription)")
+                #endif
+            }
         }
     }
 
@@ -339,11 +385,7 @@ struct LoginScreen: View {
             return
         }
         guard FirebaseApp.app() != nil else {
-            // Firebase 미설정 — GoogleService-Info.plist 누락. 시뮬레이션으로 폴백.
-            #if DEBUG
-            print("[Login] Firebase not configured; falling back to simulated auth.")
-            #endif
-            simulateAuth(provider: .google)
+            failAuthentication(message: "인증 서비스가 설정되지 않았어요. 잠시 후 다시 시도해주세요.")
             return
         }
 
@@ -365,6 +407,8 @@ struct LoginScreen: View {
                 completeAuthentication()
             } catch {
                 loadingProvider = nil
+                errorMessage = "Google 인증을 완료하지 못했어요. 잠시 후 다시 시도해주세요."
+                FMHaptic.error.play()
                 #if DEBUG
                 print("[Login] Google sign-in failed: \(error.localizedDescription)")
                 #endif
@@ -374,23 +418,43 @@ struct LoginScreen: View {
 
     @MainActor
     private func completeAuthentication() {
-        if Auth.auth().currentUser == nil {
-            sessionStore.setLocalAuthenticationFallback(true)
+        guard Auth.auth().currentUser != nil else {
+            failAuthentication(message: "인증을 완료하지 못했어요. 잠시 후 다시 시도해주세요.")
+            return
         }
         loadingProvider = nil
+        errorMessage = nil
         FMHaptic.success.play()
         onAuthenticated?()
     }
 
+    @MainActor
+    private func failAuthentication(message: String) {
+        loadingProvider = nil
+        errorMessage = message
+        FMHaptic.error.play()
+    }
+
     /// 현재 키 윈도우의 root view controller — `GIDSignIn`은 presenting controller가 필요.
     private func topViewController() -> UIViewController? {
-        guard
-            let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-            let root = scene.keyWindow?.rootViewController ?? scene.windows.first?.rootViewController
-        else { return nil }
+        guard let root = keyWindow()?.rootViewController else { return nil }
         var top = root
         while let presented = top.presentedViewController { top = presented }
         return top
+    }
+
+    private func keyWindow() -> UIWindow? {
+        guard
+            let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+            let window = scene.keyWindow ?? scene.windows.first(where: \.isKeyWindow) ?? scene.windows.first
+        else { return nil }
+        return window
+    }
+
+    private func isAppleCancellation(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        return nsError.domain == ASAuthorizationError.errorDomain
+            && nsError.code == ASAuthorizationError.canceled.rawValue
     }
 }
 

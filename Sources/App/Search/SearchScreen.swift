@@ -7,13 +7,13 @@ import SwiftUI
 // MARK: - SearchPhase
 
 enum SearchPhase: Hashable {
-    case browsing       // 빈 query — 추천/최근/인기
+    case browsing       // 빈 query — 발견 피드/추천/최근/인기
     case typing         // 입력 중 — 자동완성/실시간 결과
     case results        // submit 후 — 그리드 결과 + 결과 없음 빈 상태
 
     var telemetryName: String {
         switch self {
-        case .browsing: "browsing"
+        case .browsing: "discovering"
         case .typing: "typing"
         case .results: "results"
         }
@@ -27,16 +27,17 @@ struct PopularMaker: Identifiable, Sendable {
     let id: String
     let initials: String
     let handle: String
+    let avatarURL: URL?
     let filterCount: Int
 }
 
 // MARK: - SearchScreen
 
-/// 검색 — 8번 화면.
+/// 발견 — 8번 화면.
 ///
-/// Phase D3 — `mockups/screens/08-search.html` 와 정합.
-/// 헤더 + 입력 + 취소 / browsing(최근/추천/메이커) / typing(필터 + 메이커) / results(그리드 + 빈상태).
+/// 헤더 + 입력 + 취소 / browsing(발견 피드 + 최근/추천/메이커) / typing(필터 + 메이커) / results(그리드 + 빈상태).
 struct SearchScreen: View {
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var sessionStore: SessionStore
@@ -52,18 +53,20 @@ struct SearchScreen: View {
     @FocusState private var isFieldFocused: Bool
 
     private let initialCategory: String?
+    private let showsBackButton: Bool
 
     private let suggestedKeywords = [
         "#골든아워", "#필름룩", "#씨네마틱", "#카페",
         "#포트레이트", "#모노톤", "#비비드", "#무드"
     ]
 
-    init(initialQuery: String? = nil, initialCategory: String? = nil) {
+    init(initialQuery: String? = nil, initialCategory: String? = nil, showsBackButton: Bool = false) {
         let query = initialQuery ?? initialCategory ?? ""
         self._query = State(initialValue: query)
         self._debouncedQuery = State(initialValue: query)
         self._phase = State(initialValue: query.isEmpty ? .browsing : .results)
         self.initialCategory = initialCategory
+        self.showsBackButton = showsBackButton
     }
 
     var body: some View {
@@ -90,14 +93,13 @@ struct SearchScreen: View {
         }
         .background(FMColors.Background.bg0)
         .toolbar(.hidden, for: .navigationBar)
+        .simultaneousGesture(edgeSwipeDismissGesture)
         .onAppear {
             loadRecentSearches()
             refreshPopularMakers(from: filterLibraryStore.filters)
         }
         .task {
-            // 첫 진입 시 자연스러운 focus.
-            try? await Task.sleep(nanoseconds: 200_000_000)
-            isFieldFocused = true
+            await filterLibraryStore.load()
         }
         .onReceive(filterLibraryStore.$filters) { filters in
             refreshPopularMakers(from: filters)
@@ -117,9 +119,24 @@ struct SearchScreen: View {
 
     private var searchTopBar: some View {
         HStack(spacing: Sp.xs) {
+            if showsBackButton {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(FMColors.Text.primary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("뒤로")
+                .accessibilityIdentifier("search.back")
+            }
+
             FMTextField.search(
                 text: $query,
-                placeholder: "검색"
+                placeholder: "필터, 메이커, 분위기 검색"
             )
             .focused($isFieldFocused)
             .onSubmit {
@@ -179,12 +196,133 @@ struct SearchScreen: View {
 
     private var browsingContent: some View {
         VStack(alignment: .leading, spacing: 0) {
+            discoverHeroSection
+            sectionDivider
+            discoverRailSection
+            sectionDivider
             recentSection
             sectionDivider
             keywordsSection
             sectionDivider
             popularMakersSection
         }
+    }
+
+    private var discoverHeroSection: some View {
+        VStack(alignment: .leading, spacing: Sp.md) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("발견")
+                    .fmTypography(.titleLarge)
+                    .fontWeight(.bold)
+                    .foregroundStyle(FMColors.Text.primary)
+                Text("지금 많이 저장되는 필터와 새 메이커를 둘러보세요.")
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Text.secondary)
+            }
+
+            if let filter = discoverHeroFilter {
+                NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                    ZStack(alignment: .bottomLeading) {
+                        discoverCover(filter)
+                        LinearGradient(
+                            colors: [.clear, Color.black.opacity(0.82)],
+                            startPoint: .center,
+                            endPoint: .bottom
+                        )
+                        VStack(alignment: .leading, spacing: Sp.xs) {
+                            Label("추천", systemImage: "sparkles")
+                                .fmTypography(.caption)
+                                .fontWeight(.bold)
+                                .foregroundStyle(FMColors.Accent.primary)
+                                .padding(.horizontal, Sp.xs)
+                                .padding(.vertical, 4)
+                                .background(Color.white.opacity(0.92), in: Capsule())
+
+                            Text(filter.title)
+                                .fmTypography(.title)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.white)
+                                .lineLimit(2)
+
+                            Text("@\(filter.author.displayName) · \(filter.category.displayTitle) · ↓ \(discoverCount(filter).fmCompactCount())")
+                                .fmTypography(.subhead)
+                                .foregroundStyle(.white.opacity(0.78))
+                                .lineLimit(1)
+                        }
+                        .padding(Sp.md)
+                    }
+                    .aspectRatio(16.0 / 10.0, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: R.lg))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("discover.hero")
+            } else {
+                VStack(alignment: .leading, spacing: Sp.xs) {
+                    Text("아직 추천할 필터가 없어요.")
+                        .fmTypography(.headline)
+                        .foregroundStyle(FMColors.Text.primary)
+                    Text("마켓 데이터를 불러오면 발견 피드가 채워집니다.")
+                        .fmTypography(.subhead)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                }
+                .padding(Sp.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.lg))
+                .accessibilityIdentifier("discover.empty")
+            }
+        }
+        .padding(.horizontal, Sp.md)
+        .padding(.top, Sp.md)
+        .padding(.bottom, Sp.lg)
+        .accessibilityIdentifier("discover.feed")
+    }
+
+    private var discoverRailSection: some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            HStack {
+                Text("많이 받는 필터")
+                    .fmTypography(.headline)
+                    .foregroundStyle(FMColors.Text.primary)
+                Spacer()
+                NavigationLink(value: AppRoute.forYou) {
+                    Text("For You")
+                        .fmTypography(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Accent.primary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if discoverRailFilters.isEmpty {
+                Text("추천 후보를 불러오는 중입니다.")
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Text.tertiary)
+                    .padding(.vertical, Sp.xs)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: Sp.sm) {
+                        ForEach(Array(discoverRailFilters.enumerated()), id: \.element.id) { index, filter in
+                            NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                                FMFilterTile(data: filter.toTileData())
+                                    .frame(width: 148)
+                            }
+                            .buttonStyle(.plain)
+                            .simultaneousGesture(TapGesture().onEnded {
+                                Telemetry.trackFunnelStep("search_discovery", step: "filter_opened", screen: .search, parameters: [
+                                    "source": "discover_rail",
+                                    "position": index
+                                ])
+                            })
+                            .accessibilityIdentifier("discover.rail.tile.\(index)")
+                        }
+                    }
+                    .padding(.bottom, Sp.xs)
+                }
+            }
+        }
+        .padding(.horizontal, Sp.md)
+        .padding(.vertical, Sp.md)
     }
 
     private var recentSection: some View {
@@ -350,7 +488,7 @@ struct SearchScreen: View {
     private func makerCell(_ maker: PopularMaker) -> some View {
         NavigationLink(value: AppRoute.otherProfile(uid: maker.id)) {
             VStack(spacing: Sp.xs) {
-                FMAvatar(initials: maker.initials, size: .lg)
+                FMAvatar(url: maker.avatarURL, size: .lg, fallback: maker.initials)
                     .overlay {
                         Circle()
                             .strokeBorder(FMColors.Accent.soft, lineWidth: 2)
@@ -463,7 +601,7 @@ struct SearchScreen: View {
     private func makerRow(_ maker: PopularMaker) -> some View {
         NavigationLink(value: AppRoute.otherProfile(uid: maker.id)) {
             HStack(spacing: Sp.sm) {
-                FMAvatar(initials: maker.initials, size: .sm)
+                FMAvatar(url: maker.avatarURL, size: .sm, fallback: maker.initials)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(maker.handle)
                         .fmTypography(.body)
@@ -487,6 +625,22 @@ struct SearchScreen: View {
                 "source": "typing"
             ])
         })
+    }
+
+    @ViewBuilder
+    private func discoverCover(_ filter: Filter) -> some View {
+        FMRemoteImage(
+            url: filter.coverURL,
+            cornerRadius: R.lg,
+            placeholder: {
+                GeometryReader { proxy in
+                    FMSkeleton.rect(height: proxy.size.height, cornerRadius: R.lg)
+                }
+            },
+            failure: {
+                FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filter.title, category: filter.category.rawValue))
+            }
+        )
     }
 
     // MARK: - Results
@@ -575,8 +729,31 @@ struct SearchScreen: View {
         return cachedPopularMakers.filter { $0.handle.lowercased().contains(lower) }
     }
 
+    private var discoverRankedFilters: [Filter] {
+        let source = filterLibraryStore.trendingFilters.isEmpty ? filterLibraryStore.filters : filterLibraryStore.trendingFilters
+        return source
+            .filter { $0.status == .approved }
+            .sorted { lhs, rhs in
+                let lhsScore = discoverCount(lhs) + Int((lhs.ratingAvg ?? 0) * 100)
+                let rhsScore = discoverCount(rhs) + Int((rhs.ratingAvg ?? 0) * 100)
+                return lhsScore == rhsScore ? lhs.title < rhs.title : lhsScore > rhsScore
+            }
+    }
+
+    private var discoverHeroFilter: Filter? {
+        discoverRankedFilters.first
+    }
+
+    private var discoverRailFilters: [Filter] {
+        Array(discoverRankedFilters.dropFirst().prefix(8))
+    }
+
     private var activeSearchQuery: String {
         phase == .typing ? debouncedQuery : query
+    }
+
+    private func discoverCount(_ filter: Filter) -> Int {
+        filter.downloadCount > 0 ? filter.downloadCount : filter.useCount
     }
 
     private static func computePopularMakers(from filters: [Filter]) -> [PopularMaker] {
@@ -601,6 +778,7 @@ struct SearchScreen: View {
                 id: uid,
                 initials: initials.isEmpty ? "M" : initials,
                 handle: handleSource.hasPrefix("@") ? handleSource : "@\(handleSource)",
+                avatarURL: author.avatarURL,
                 filterCount: filters.count
             )
         }
@@ -691,6 +869,19 @@ struct SearchScreen: View {
 
     private func refreshPopularMakers(from filters: [Filter]) {
         cachedPopularMakers = Self.computePopularMakers(from: filters)
+    }
+
+    private var edgeSwipeDismissGesture: some Gesture {
+        DragGesture(minimumDistance: 30, coordinateSpace: .global)
+            .onEnded { value in
+                guard showsBackButton,
+                      value.startLocation.x < 24,
+                      value.translation.width > 80,
+                      abs(value.translation.height) < 80 else {
+                    return
+                }
+                dismiss()
+            }
     }
 
     private func loadRecentSearches() {

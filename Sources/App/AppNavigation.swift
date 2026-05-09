@@ -98,6 +98,7 @@ extension AppRoute {
              .filterDetail,
              .otherProfile,
              .otherProfileHandle,
+             .settings,
              .reviews,
              .universalLinkLanding:
             return false
@@ -193,7 +194,7 @@ extension View {
                     EmailLoginScreen()
 
                 case .search(let initialQuery, let category):
-                    SearchScreen(initialQuery: initialQuery, initialCategory: category)
+                    SearchScreen(initialQuery: initialQuery, initialCategory: category, showsBackButton: true)
 
                 case .filterDetail(let id):
                     if UUID(uuidString: id) != nil {
@@ -418,7 +419,7 @@ extension AppRoute {
         switch self {
         case .login: "로그인"
         case .emailLogin: "이메일로 로그인"
-        case .search: "검색"
+        case .search: "발견"
         case .filterDetail: "필터 상세"
         case .filterDownload: "다운로드"
         case .filterAfterDownload: "다운로드 완료"

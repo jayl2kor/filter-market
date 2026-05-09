@@ -25,6 +25,7 @@ private enum SessionProfileAvatarUploadError: LocalizedError {
 @MainActor
 final class SessionStore: ObservableObject {
     @Published private(set) var isAuthenticated = false
+    @Published private(set) var isGuestMode = false
     @Published private(set) var hasLoadedProfile = false
     @Published var editableProfile = EditableProfile.empty
     @Published var lastProfileSavedAt: Date?
@@ -69,6 +70,7 @@ final class SessionStore: ObservableObject {
         guard !isUITesting else {
             hasLoadedProfile = true
             isAuthenticated = Self.uiTestingAuthenticationFlag()
+            isGuestMode = !isAuthenticated
             return
         }
         #endif
@@ -81,18 +83,36 @@ final class SessionStore: ObservableObject {
         authStateHandle = Auth.auth().addStateDidChangeListener { _, user in
             Task { @MainActor in
                 self.isAuthenticated = (user != nil)
+                if user != nil {
+                    self.isGuestMode = false
+                }
                 onAuthChanged(user)
             }
         }
     }
 
     func setLocalAuthenticationFallback(_ authenticated: Bool) {
+        #if DEBUG
+        guard isUITesting || !authenticated else {
+            assertionFailure("Local authenticated fallback is only allowed in UI tests.")
+            return
+        }
+        #else
+        guard !authenticated else { return }
+        #endif
         isAuthenticated = authenticated
+        isGuestMode = false
         if !authenticated {
             currentUserID = nil
             hasLoadedProfile = false
             resetUserScopedState()
         }
+    }
+
+    func enterGuestMode() {
+        isGuestMode = true
+        isAuthenticated = false
+        hasLoadedProfile = true
     }
 
     func attach(uid: String?) {
@@ -178,6 +198,10 @@ final class SessionStore: ObservableObject {
         saveProfileTask?.cancel()
         saveProfileTask = nil
         saveProfileGeneration += 1
+    }
+
+    func clearLastSubmitError() {
+        lastSubmitErrorMessage = nil
     }
 
     func setNotificationPreference<Value: Equatable>(
