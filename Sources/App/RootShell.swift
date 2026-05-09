@@ -64,9 +64,12 @@ struct RootShell: View {
             // UI test launch arg: `-deepLink <url>` simulates the URL arriving
             // through `.onOpenURL` so PhaseAE2ETests can exercise the deep-link
             // path without Springboard/Safari indirection.
-            if let url = uiTestingDeepLinkURL(),
-               let route = UniversalLinkParser.route(for: url) {
-                handleIncomingDeepLink(route)
+            if let url = uiTestingDeepLinkURL() {
+                if let route = UniversalLinkParser.route(for: url) {
+                    handleIncomingDeepLink(route)
+                } else {
+                    handleFailedDeepLink(url, reason: "ui_test_parse_failed")
+                }
             }
             #endif
         }
@@ -84,6 +87,8 @@ struct RootShell: View {
         .onOpenURL { url in
             if let route = UniversalLinkParser.route(for: url) {
                 handleIncomingDeepLink(route)
+            } else {
+                handleFailedDeepLink(url, reason: "parse_failed")
             }
         }
         .sheet(isPresented: $showHandleOnboarding, onDismiss: markHandleOnboardingDismissed) {
@@ -176,6 +181,16 @@ struct RootShell: View {
             return
         }
         store.pendingDeepLinkRoute = route
+    }
+
+    private func handleFailedDeepLink(_ url: URL, reason: String) {
+        Telemetry.log(.deepLinkFailed, parameters: [
+            "reason": reason,
+            "scheme": url.scheme ?? "",
+            "host": url.host ?? "",
+            "path": url.path
+        ])
+        handleIncomingDeepLink(.universalLinkLanding)
     }
 
     private func flushDeferredDeepLinkIfReady() {

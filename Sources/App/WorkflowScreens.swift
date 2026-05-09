@@ -1536,6 +1536,7 @@ private extension UIImage {
 }
 
 struct UniversalLinkLandingScreen: View {
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: MooditStore
 
     var body: some View {
@@ -1543,46 +1544,40 @@ struct UniversalLinkLandingScreen: View {
             VStack(alignment: .leading, spacing: Sp.lg) {
                 workflowHeader(
                     title: "공유 링크",
-                    subtitle: "공유받은 필터를 확인하고 바로 다운로드하거나 상세로 이동합니다.",
-                    symbol: "link"
+                    subtitle: "링크를 열 수 없을 때 다음 이동 경로를 안내합니다.",
+                    symbol: "link.badge.plus"
                 )
 
                 FMCard {
-                    VStack(alignment: .leading, spacing: Sp.md) {
-                        landingThumbnail
-                        VStack(alignment: .leading, spacing: Sp.xs) {
-                            Text(landingFilterTitle)
-                                .fmTypography(.titleLarge)
+                    VStack(alignment: .center, spacing: Sp.md) {
+                        FMEmptyStateIllustration(.search, size: 96)
+                            .frame(width: 96, height: 96)
+
+                        VStack(spacing: Sp.xs) {
+                            Text("이 링크는 더 이상 사용할 수 없어요")
+                                .fmTypography(.headline)
                                 .foregroundStyle(FMColors.Text.primary)
-                            HStack(spacing: Sp.xs) {
-                                FMAvatar(initials: landingFilterInitials, size: .xs)
-                                Text(landingFilterAuthor)
-                                    .fmTypography(.subhead)
-                                    .foregroundStyle(FMColors.Text.secondary)
-                                Text("무료 필터")
-                                    .fmTypography(.caption)
-                                    .foregroundStyle(FMColors.Accent.primary)
-                                    .padding(.horizontal, Sp.xs)
-                                    .padding(.vertical, 4)
-                                    .background(FMColors.Accent.bg, in: Capsule())
-                            }
-                            Text("공유받은 필터 정보를 확인하고 앱에서 이어서 사용할 수 있습니다.")
+                                .multilineTextAlignment(.center)
+                            Text("잘못된 주소이거나 만료된 초대, 삭제된 필터 링크일 수 있어요. 마켓에서 필터를 다시 찾아보세요.")
                                 .fmTypography(.body)
                                 .foregroundStyle(FMColors.Text.secondary)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
+                    .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("app.deeplink.fallback")
                 }
 
-                NavigationLink(value: AppRoute.filterDownload(id: landingFilterID)) {
-                    routeButton("다운로드 + 카메라 열기", icon: "arrow.down.circle")
+                FMButton("마켓으로 이동", icon: "storefront", variant: .primary, size: .lg) {
+                    dismiss()
                 }
-                .buttonStyle(.plain)
                 .accessibilityIdentifier("app.deeplink.confirm")
 
-                NavigationLink(value: AppRoute.filterDetail(id: landingFilterID)) {
+                NavigationLink(value: AppRoute.search()) {
                     HStack(spacing: Sp.xs) {
-                        Image(systemName: "doc.text.magnifyingglass")
-                        Text("상세 페이지 보기")
+                        Image(systemName: "magnifyingglass")
+                        Text("검색으로 찾기")
                             .fmTypography(.headline)
                         Spacer()
                         Image(systemName: "chevron.right")
@@ -1606,57 +1601,6 @@ struct UniversalLinkLandingScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle("공유 링크")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await store.load()
-        }
-    }
-
-    @ViewBuilder
-    private var landingThumbnail: some View {
-        if let filter = landingFilter {
-            FilterThumbnail(filter: filter)
-                .frame(height: 180)
-        } else {
-            RoundedRectangle(cornerRadius: R.md)
-                .fill(FMColors.Background.bg2)
-                .frame(height: 180)
-                .overlay {
-                    Image(systemName: "camera.filters")
-                        .font(.system(size: 34, weight: .semibold))
-                        .foregroundStyle(FMColors.Text.tertiary)
-                }
-        }
-    }
-
-    private var landingFilter: Filter? {
-        store.filters.first
-    }
-
-    private var landingFilterID: String {
-        landingFilter?.id.uuidString ?? ""
-    }
-
-    private var landingFilterTitle: String {
-        landingFilter?.title ?? "공유된 필터"
-    }
-
-    private var landingFilterAuthor: String {
-        guard let author = landingFilter?.author.displayName, !author.isEmpty else {
-            return "@maker"
-        }
-        return author.hasPrefix("@") ? author : "@\(author)"
-    }
-
-    private var landingFilterInitials: String {
-        let source = landingFilter?.author.displayName ?? "M"
-        let initials = source
-            .split(separator: " ")
-            .prefix(2)
-            .compactMap { $0.first }
-            .map(String.init)
-            .joined()
-            .uppercased()
-        return initials.isEmpty ? "M" : initials
     }
 }
 

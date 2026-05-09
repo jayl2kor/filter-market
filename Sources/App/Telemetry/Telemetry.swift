@@ -28,6 +28,7 @@ enum Telemetry {
         case deepLinkReceived  = "deep_link_received"
         case deepLinkDeferred  = "deep_link_deferred"
         case deepLinkFlushed   = "deep_link_flushed"
+        case deepLinkFailed    = "deep_link_failed"
         case filterApplied     = "filter_applied"
         case filterShared      = "filter_shared"
         case filterSaved       = "filter_saved"

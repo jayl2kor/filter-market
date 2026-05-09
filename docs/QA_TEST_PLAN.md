@@ -685,8 +685,9 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
    - `https://moodit.app/f/Sunset%201973` → FilterDetail (Universal Link)
 2. 앱 진입 → `MooditStore.pendingDeepLinkRoute` 설정 → RootShell이 sheet로 destination 표시
 - **PASS 기준**: 위 6개 URL 모두 적절한 화면으로 라우팅 (시트로). 시트 닫으면 원래 탭으로 돌아옴.
-- **알 수 없는 URL** (`moodit://unknown`, `https://example.com/...`) → 시트 안 열림 (no-op).
+- **알 수 없는 URL / 만료 링크 / 삭제된 필터 fallback** (`moodit://unknown`, `https://example.com/...`) → `UniversalLinkLandingScreen` fallback 시트 표시: "이 링크는 더 이상 사용할 수 없어요" + `app.deeplink.confirm` 마켓 이동 + `app.deeplink.detail` 검색 이동.
 - **Deferred**: `hasOnboarded == false` 상태에서 링크를 열면 onboarding 완료 후 1회만 표시. 인증 필요 route는 로그인 완료 후 표시.
+- **Telemetry**: parse 실패는 `deep_link_failed` 이벤트에 reason/scheme/host/path를 기록.
 
 ### 14.7 Push 알림 deep-link 라우팅
 1. Firebase Console에서 다음 페이로드의 푸시 전송:
