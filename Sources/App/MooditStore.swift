@@ -1233,6 +1233,11 @@ final class MooditStore: ObservableObject {
         upsertMakerFilter(editorDraft)
     }
 
+    func saveCurrentUploadDraftIfNeeded() {
+        guard editorDraft.hasUserContent, editorDraft.status != .pending else { return }
+        saveEditorDraft()
+    }
+
     func addUploadCover() {
         editorDraft.coverCount = min(6, editorDraft.coverCount + 1)
         editorDraft.updatedAt = Date()

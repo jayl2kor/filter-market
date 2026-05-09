@@ -2571,6 +2571,9 @@ struct UploadCoverScreen: View {
                 NavigationLink(value: AppRoute.uploadTags) {
                     routeButton("다음", icon: "arrow.right")
                 }
+                .simultaneousGesture(TapGesture().onEnded {
+                    store.saveCurrentUploadDraftIfNeeded()
+                })
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("upload.next")
             }
@@ -2601,6 +2604,9 @@ struct UploadCoverScreen: View {
         }
         .onChange(of: selectedSignatureItem) { _, item in
             Task { await loadSignatureSample(from: item) }
+        }
+        .onDisappear {
+            store.saveCurrentUploadDraftIfNeeded()
         }
     }
 
@@ -2775,7 +2781,9 @@ struct UploadCoverScreen: View {
 
 struct UploadTagsCategoryScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @Environment(\.dismiss) private var dismiss
     @State private var pendingTag = ""
+    @State private var showCancelAlert = false
 
     var body: some View {
         ScrollView {
@@ -2787,6 +2795,9 @@ struct UploadTagsCategoryScreen: View {
                 NavigationLink(value: AppRoute.uploadSubmit) {
                     routeButton("다음", icon: "arrow.right")
                 }
+                .simultaneousGesture(TapGesture().onEnded {
+                    store.saveCurrentUploadDraftIfNeeded()
+                })
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("upload.next")
             }
@@ -2796,6 +2807,28 @@ struct UploadTagsCategoryScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle("태그와 카테고리")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("취소") { showCancelAlert = true }
+                    .accessibilityIdentifier("upload.cancel")
+            }
+        }
+        .alert("업로드를 취소할까요?", isPresented: $showCancelAlert) {
+            Button("초안 저장하고 나가기") {
+                store.saveCurrentUploadDraftIfNeeded()
+                dismiss()
+            }
+            Button("초안 버리고 나가기", role: .destructive) {
+                store.resetEditorDraft()
+                dismiss()
+            }
+            Button("계속 작성", role: .cancel) {}
+        } message: {
+            Text("작성한 내용을 임시저장하면 다음에 이어 쓸 수 있어요.")
+        }
+        .onDisappear {
+            store.saveCurrentUploadDraftIfNeeded()
+        }
     }
 
     private var tagSection: some View {
@@ -2869,6 +2902,8 @@ struct UploadTagsCategoryScreen: View {
 
 struct UploadTOSSubmitScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var showCancelAlert = false
 
     var body: some View {
         ScrollView {
@@ -2897,6 +2932,28 @@ struct UploadTOSSubmitScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle("약관 및 제출")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("취소") { showCancelAlert = true }
+                    .accessibilityIdentifier("upload.cancel")
+            }
+        }
+        .alert("업로드를 취소할까요?", isPresented: $showCancelAlert) {
+            Button("초안 저장하고 나가기") {
+                store.saveCurrentUploadDraftIfNeeded()
+                dismiss()
+            }
+            Button("초안 버리고 나가기", role: .destructive) {
+                store.resetEditorDraft()
+                dismiss()
+            }
+            Button("계속 작성", role: .cancel) {}
+        } message: {
+            Text("작성한 내용을 임시저장하면 다음에 이어 쓸 수 있어요.")
+        }
+        .onDisappear {
+            store.saveCurrentUploadDraftIfNeeded()
+        }
     }
 
     private var summaryCard: some View {

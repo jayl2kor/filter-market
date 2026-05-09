@@ -364,16 +364,19 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 10.3.4 | uploadCover | `upload.signature.photo.pick` | PhotosPicker 표시, 사용자 사진을 normalize 후 시그니처 샘플 슬롯에 반영 |  |
 | 10.3.5 | uploadCover | `upload.signature.sample.<kind>` | portrait/landscape/indoor/lifestyle 임시 샘플 중 하나를 시그니처 샘플 슬롯으로 선택 |  |
 | 10.3.6 | uploadCover | `upload.signature.clear` | 직접 사진/시스템 샘플 선택 초기화 |  |
-| 10.3.7 | uploadCover | `upload.next` | → uploadTags |  |
+| 10.3.7 | uploadCover | `upload.next` | 현재 upload draft 저장 후 → uploadTags |  |
 | 10.3.7b | uploadCover | `upload.cancel` | alert: 초안 저장하고 나가기=draft save+dismiss, 초안 버리고 나가기=reset+dismiss, 계속 작성=stay |  |
 | 10.3.8 | uploadTags | `upload.tag.add` | 태그 추가 시트 |  |
 | 10.3.9 | uploadTags | `upload.cat.tap` | 카테고리 picker |  |
-| 10.3.10 | uploadTags | `upload.next` | → uploadSubmit |  |
+| 10.3.10 | uploadTags | `upload.next` | 현재 upload draft 저장 후 → uploadSubmit |  |
+| 10.3.10b | uploadTags | `upload.cancel` | alert: 초안 저장하고 나가기=draft save+dismiss, 초안 버리고 나가기=reset+dismiss, 계속 작성=stay |  |
 | 10.3.11 | uploadSubmit | `upload.tos.toggle` | TOS 토글 |  |
 | 10.3.12 | uploadSubmit | `upload.submit` | TOS off일 때 disabled, on이면 → uploadPending |  |
+| 10.3.12b | uploadSubmit | `upload.cancel` | alert: 초안 저장하고 나가기=draft save+dismiss, 초안 버리고 나가기=reset+dismiss, 계속 작성=stay |  |
 | 10.3.13 | uploadPending | `upload.pending.view_filter` | → AppRoute.myFilters |  |
 | 10.3.14 | uploadPending | `upload.pending.dismiss` | dismiss |  |
-| 10.3.15 | (전체) | Cloud Function `uploadInit` (Firestore draft 생성 + R2 presigned PUT URL 발급, `signatureSampleURL` 필드 보존) → 클라이언트 PUT (FilterPackageUploader) → `uploadFinalize` (R2 HEAD로 size/sha256 검증, status → `pending_review_pre`). UI ↔ Function 호출과 실제 시그니처 이미지 R2 업로드는 별도 이슈로 추적. |  |
+| 10.3.15 | (전체) | 단계 이동/화면 이탈 시 pending 제출 전 draft는 uid별 UserDefaults + `/users/{uid}/editorDrafts/current` autosave 경로와 makerDrafts 저장 경로로 보존 |  |
+| 10.3.16 | (전체) | Cloud Function `uploadInit` (Firestore draft 생성 + R2 presigned PUT URL 발급, `signatureSampleURL` 필드 보존) → 클라이언트 PUT (FilterPackageUploader) → `uploadFinalize` (R2 HEAD로 size/sha256 검증, status → `pending_review_pre`). UI ↔ Function 호출과 실제 시그니처 이미지 R2 업로드는 별도 이슈로 추적. |  |
 
 ### 10.4 RemixFlow / MakerDashboard / ReportForm
 
