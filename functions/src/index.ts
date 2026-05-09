@@ -16,6 +16,8 @@ export {
   uploadInit,
   uploadFinalize,
   reviewImageUploadInit,
+  sampleImageUploadInit,
+  addUserSample,
   submitReview,
   submitForReview,
   recordUse,

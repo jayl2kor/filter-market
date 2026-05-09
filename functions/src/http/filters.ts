@@ -261,6 +261,19 @@ const submitReviewSchema = z.object({
   photoObjectKey: z.string().min(1).max(512).optional(),
 });
 
+const sampleImageUploadInitSchema = z.object({
+  filterId: z.string().min(1).max(128),
+  contentType: z.enum(["image/jpeg", "image/png"]),
+  imageBytes: z.number().int().min(1).max(4_000_000),
+});
+
+const addUserSampleSchema = z.object({
+  filterId: z.string().min(1).max(128),
+  objectKey: z.string().min(1).max(512),
+  publicURL: z.string().url(),
+  categoryHint: z.string().trim().min(1).max(40).optional(),
+});
+
 export interface ReviewImageUploadInitDeps {
   firestore?: Firestore;
   publicBaseURL?: string;
@@ -443,6 +456,157 @@ export const submitReview = onCall(
   async (req: CallableRequest) => {
     const uid = requireAuth(req);
     return applySubmitReview(uid, req.data);
+  },
+);
+
+export interface SampleImageUploadInitResult {
+  filterId: string;
+  objectKey: string;
+  uploadUrl: string;
+  uploadHeaders: Record<string, string>;
+  publicURL: string;
+  expiresAt: number;
+}
+
+export interface SampleImageUploadInitDeps {
+  firestore?: Firestore;
+  publicBaseURL?: string;
+  now?: () => number;
+  uuid?: () => string;
+  presignPutURL?: (
+    key: string,
+    options: { expiresSeconds?: number; contentType?: string },
+  ) => Promise<{ url: string; headers?: Record<string, string>; expiresAt: number }>;
+}
+
+export async function applySampleImageUploadInit(
+  uid: string,
+  rawData: unknown,
+  deps: SampleImageUploadInitDeps = {},
+): Promise<SampleImageUploadInitResult> {
+  const parsed = sampleImageUploadInitSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId, contentType } = parsed.data;
+  const db = deps.firestore ?? getFirestore();
+  const filterSnap = await db.collection("filters").doc(filterId).get();
+  if (!filterSnap.exists) {
+    throw new HttpsError("not-found", `filter ${filterId} not found`);
+  }
+  const filterData = filterSnap.data() ?? {};
+  if (filterData.status !== "approved") {
+    throw new HttpsError("failed-precondition", "filter_not_available");
+  }
+  if (!(await hasReviewEntitlement(db, uid, filterId))) {
+    throw new HttpsError("failed-precondition", "download_required");
+  }
+
+  const publicBaseURL = deps.publicBaseURL ?? process.env.R2_PUBLIC_BASE_URL;
+  if (!publicBaseURL) {
+    throw new HttpsError("internal", "R2_PUBLIC_BASE_URL is not configured");
+  }
+  const extension = contentType === "image/png" ? "png" : "jpg";
+  const now = deps.now ?? Date.now;
+  const uuid = deps.uuid ?? randomUUID;
+  const objectKey = `samples/${filterId}/${uid}/${now()}-${uuid()}.${extension}`;
+  const signer = deps.presignPutURL ?? (async (key, options) => {
+    const cfg = loadR2Config();
+    const presigned = await presignPut(cfg, key, {
+      expiresSeconds: options.expiresSeconds,
+      contentType: options.contentType,
+    });
+    return { url: presigned.url, headers: presigned.headers, expiresAt: presigned.expiresAt };
+  });
+  const presigned = await signer(objectKey, { expiresSeconds: 600, contentType });
+
+  return {
+    filterId,
+    objectKey,
+    uploadUrl: presigned.url,
+    uploadHeaders: presigned.headers ?? {},
+    publicURL: publicR2URL(publicBaseURL, objectKey),
+    expiresAt: presigned.expiresAt,
+  };
+}
+
+export interface AddUserSampleResult {
+  ok: true;
+  filterId: string;
+  sampleId: string;
+  coverURL: string;
+}
+
+export interface AddUserSampleDeps {
+  firestore?: Firestore;
+  publicBaseURL?: string;
+  uuid?: () => string;
+}
+
+export async function applyAddUserSample(
+  uid: string,
+  rawData: unknown,
+  deps: AddUserSampleDeps = {},
+): Promise<AddUserSampleResult> {
+  const parsed = addUserSampleSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId, objectKey, publicURL, categoryHint } = parsed.data;
+  const db = deps.firestore ?? getFirestore();
+  const filterSnap = await db.collection("filters").doc(filterId).get();
+  if (!filterSnap.exists) {
+    throw new HttpsError("not-found", `filter ${filterId} not found`);
+  }
+  const filterData = filterSnap.data() ?? {};
+  if (filterData.status !== "approved") {
+    throw new HttpsError("failed-precondition", "filter_not_available");
+  }
+  if (!(await hasReviewEntitlement(db, uid, filterId))) {
+    throw new HttpsError("failed-precondition", "download_required");
+  }
+  const expectedPrefix = `samples/${filterId}/${uid}/`;
+  if (!objectKey.startsWith(expectedPrefix)) {
+    throw new HttpsError("permission-denied", "sample_object_owner_mismatch");
+  }
+  const publicBaseURL = deps.publicBaseURL ?? process.env.R2_PUBLIC_BASE_URL;
+  if (!publicBaseURL) {
+    throw new HttpsError("internal", "R2_PUBLIC_BASE_URL is not configured");
+  }
+  const expectedURL = publicR2URL(publicBaseURL, objectKey);
+  if (publicURL !== expectedURL) {
+    throw new HttpsError("permission-denied", "sample_url_mismatch");
+  }
+
+  const sampleId = (deps.uuid ?? randomUUID)();
+  await db.collection("filters").doc(filterId).collection("samples").doc(sampleId).set({
+    id: sampleId,
+    kind: "user",
+    authorUid: uid,
+    categoryHint: categoryHint ?? "user",
+    coverURL: publicURL,
+    thumbnailURL: publicURL,
+    objectKey,
+    featured: false,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
+  return { ok: true, filterId, sampleId, coverURL: publicURL };
+}
+
+export const sampleImageUploadInit = onCall(
+  { region, cors: true, secrets: r2PublicSecrets, enforceAppCheck: true },
+  async (req: CallableRequest) => {
+    const uid = requireAuth(req);
+    return applySampleImageUploadInit(uid, req.data);
+  },
+);
+
+export const addUserSample = onCall(
+  { region, cors: true, secrets: [R2_PUBLIC_BASE_URL], enforceAppCheck: true },
+  async (req: CallableRequest) => {
+    const uid = requireAuth(req);
+    return applyAddUserSample(uid, req.data);
   },
 );
 

@@ -234,6 +234,10 @@ match /filters/{filterId}/samples/{sampleId} {
 }
 ```
 
+프로덕션 작성 경로는 `sampleImageUploadInit` → R2 PUT → `addUserSample` callable이다. callable은 승인된 필터와
+다운로드/Pro entitlement를 확인하고, `samples/{filterId}/{uid}/...` 경로의 본인 object key만 샘플 메타로 등록한다.
+앱은 이 사용자 샘플과 내부 임시 샘플 이미지를 함께 표시하는 하이브리드 모델을 사용한다.
+
 ### 3.3 `users/{uid}/favorites/{filterId}` — 즐겨찾기
 
 ```javascript

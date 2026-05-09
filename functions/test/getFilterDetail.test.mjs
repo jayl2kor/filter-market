@@ -5,7 +5,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { applyGetFilterDetail, applyReviewImageUploadInit, applySubmitReview } from "../lib/http/filters.js";
+import {
+  applyAddUserSample,
+  applyGetFilterDetail,
+  applyReviewImageUploadInit,
+  applySampleImageUploadInit,
+  applySubmitReview,
+} from "../lib/http/filters.js";
 
 function makeFakeFirestore(initialDocs = {}) {
   const data = new Map(Object.entries(initialDocs));
@@ -414,6 +420,108 @@ describe("applySubmitReview", () => {
         { firestore },
       ),
       (err) => err && err.code === "failed-precondition" && /maker_cannot_review/.test(err.message),
+    );
+  });
+});
+
+describe("sample upload callables", () => {
+  it("returns a presigned R2 upload and public URL for user samples", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/abc-123": {
+        status: "approved",
+        authorUid: "maker-1",
+      },
+      "users/u-sample/savedFilters/abc-123": {
+        filterId: "abc-123",
+      },
+    });
+    let signedKey = null;
+
+    const result = await applySampleImageUploadInit(
+      "u-sample",
+      { filterId: "abc-123", contentType: "image/png", imageBytes: 2048 },
+      {
+        firestore,
+        publicBaseURL: "https://cdn.moodit.test/media",
+        now: () => 222,
+        uuid: () => "sample-image",
+        presignPutURL: async (key, options) => {
+          signedKey = key;
+          assert.equal(options.contentType, "image/png");
+          return {
+            url: `https://r2.test/upload?key=${encodeURIComponent(key)}`,
+            headers: { "Content-Type": "image/png" },
+            expiresAt: 123,
+          };
+        },
+      },
+    );
+
+    assert.equal(signedKey, "samples/abc-123/u-sample/222-sample-image.png");
+    assert.equal(result.objectKey, "samples/abc-123/u-sample/222-sample-image.png");
+    assert.equal(result.publicURL, "https://cdn.moodit.test/media/samples/abc-123/u-sample/222-sample-image.png");
+  });
+
+  it("registers a user sample only for the signed object owner", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/abc-123": {
+        status: "approved",
+        authorUid: "maker-1",
+      },
+      "users/u-sample/savedFilters/abc-123": {
+        filterId: "abc-123",
+      },
+    });
+
+    const result = await applyAddUserSample(
+      "u-sample",
+      {
+        filterId: "abc-123",
+        objectKey: "samples/abc-123/u-sample/222-sample-image.png",
+        publicURL: "https://cdn.moodit.test/media/samples/abc-123/u-sample/222-sample-image.png",
+        categoryHint: "portrait",
+      },
+      {
+        firestore,
+        publicBaseURL: "https://cdn.moodit.test/media",
+        uuid: () => "sample-doc",
+      },
+    );
+
+    assert.equal(result.sampleId, "sample-doc");
+    const saved = firestore._data.get("filters/abc-123/samples/sample-doc");
+    assert.equal(saved.kind, "user");
+    assert.equal(saved.authorUid, "u-sample");
+    assert.equal(saved.categoryHint, "portrait");
+    assert.equal(saved.coverURL, "https://cdn.moodit.test/media/samples/abc-123/u-sample/222-sample-image.png");
+    assert.equal(saved.thumbnailURL, saved.coverURL);
+  });
+
+  it("rejects registering another user's sample object", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/abc-123": {
+        status: "approved",
+      },
+      "users/u-sample/savedFilters/abc-123": {
+        filterId: "abc-123",
+      },
+    });
+
+    await assert.rejects(
+      () => applyAddUserSample(
+        "u-sample",
+        {
+          filterId: "abc-123",
+          objectKey: "samples/abc-123/u-other/222-sample-image.png",
+          publicURL: "https://cdn.moodit.test/media/samples/abc-123/u-other/222-sample-image.png",
+        },
+        {
+          firestore,
+          publicBaseURL: "https://cdn.moodit.test/media",
+          uuid: () => "sample-doc",
+        },
+      ),
+      (err) => err && err.code === "permission-denied" && /owner_mismatch/.test(err.message),
     );
   });
 });
