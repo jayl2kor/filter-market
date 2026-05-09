@@ -761,6 +761,8 @@ struct ReviewComposeScreen: View {
                     ))
                     .font(.system(size: 17))
                     .foregroundStyle(FMColors.Text.primary)
+                    .textInputAutocapitalization(.sentences)
+                    .submitLabel(.return)
                     .scrollContentBackground(.hidden)
                     .frame(minHeight: 180)
                     .overlay(alignment: .topLeading) {
@@ -1153,6 +1155,8 @@ struct RatingFormScreen: View {
             ZStack(alignment: .topLeading) {
                 TextEditor(text: limitedReviewBody)
                     .font(.body)
+                    .textInputAutocapitalization(.sentences)
+                    .submitLabel(.return)
                     .scrollContentBackground(.hidden)
                     .frame(minHeight: 88)
                     .padding(Sp.xs)
@@ -1354,6 +1358,8 @@ private struct FollowListScreen: View {
                 .foregroundStyle(FMColors.Text.tertiary)
             TextField(mode == .followers ? "팔로워 검색" : "팔로잉 검색", text: $query)
                 .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
                 .accessibilityIdentifier(mode == .followers ? "social.followers.search" : "social.following.search")
         }
         .padding(.horizontal, Sp.sm)

@@ -1197,7 +1197,11 @@ struct AccountDeletionScreen: View {
                     nil,
                     text: $confirmation,
                     placeholder: expectedHandle,
-                    error: confirmation.isEmpty || isConfirmationValid ? nil : "핸들이 일치하지 않습니다."
+                    error: confirmation.isEmpty || isConfirmationValid ? nil : "핸들이 일치하지 않습니다.",
+                    textContentType: .nickname,
+                    keyboardType: .asciiCapable,
+                    autocapitalization: .never,
+                    submitLabel: .done
                 )
                 .accessibilityIdentifier("auth.delete.confirm.input")
             }
@@ -1393,7 +1397,14 @@ struct EditProfileScreen: View {
 
     private var formFields: some View {
         VStack(alignment: .leading, spacing: Sp.md) {
-            FMTextField("이름", text: $draft.displayName, placeholder: "표시 이름")
+            FMTextField(
+                "이름",
+                text: $draft.displayName,
+                placeholder: "표시 이름",
+                textContentType: .name,
+                autocapitalization: .words,
+                submitLabel: .next
+            )
                 .accessibilityIdentifier("profile.edit.name")
             VStack(alignment: .leading, spacing: Sp.xxs) {
                 Text("유저네임")
@@ -1412,8 +1423,11 @@ struct EditProfileScreen: View {
                             }
                         )
                     )
+                    .textContentType(.nickname)
+                    .keyboardType(.asciiCapable)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .submitLabel(.done)
                     .font(Font.fmBody)
                     .foregroundStyle(FMColors.Text.primary)
                     .padding(.horizontal, Sp.sm)
@@ -1439,9 +1453,15 @@ struct EditProfileScreen: View {
                     .fmTypography(.caption)
                     .foregroundStyle(handleStatus.tint)
             }
-            FMTextField("소개", text: $draft.bio, placeholder: "나를 소개해 주세요.", style: .multiline(minHeight: 96))
+            FMTextField(
+                "소개",
+                text: $draft.bio,
+                placeholder: "나를 소개해 주세요.",
+                style: .multiline(minHeight: 96),
+                submitLabel: .return
+            )
                 .accessibilityIdentifier("profile.edit.bio")
-            FMTextField("링크", text: $draft.website, placeholder: "https://", keyboardType: .URL)
+            FMTextField.url("링크", text: $draft.website, placeholder: "https://")
                 .accessibilityIdentifier("profile.edit.website")
         }
     }
@@ -2464,13 +2484,20 @@ struct EditorDraftSaveScreen: View {
 
     private var draftForm: some View {
         VStack(spacing: Sp.md) {
-            FMTextField("필터 이름", text: $store.editorDraft.name, placeholder: "Amber Cafe")
+            FMTextField(
+                "필터 이름",
+                text: $store.editorDraft.name,
+                placeholder: "Amber Cafe",
+                autocapitalization: .words,
+                submitLabel: .next
+            )
                 .accessibilityIdentifier("editor.draft.name")
             FMTextField(
                 "설명",
                 text: $store.editorDraft.summary,
                 placeholder: "분위기와 추천 사용처",
-                style: .multiline(minHeight: 112)
+                style: .multiline(minHeight: 112),
+                submitLabel: .return
             )
             .accessibilityIdentifier("editor.draft.description")
         }
@@ -2798,6 +2825,8 @@ struct UploadTagsCategoryScreen: View {
                     HStack {
                         TextField("태그 입력", text: $pendingTag)
                             .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .submitLabel(.next)
                         Button("추가") {
                             store.addUploadTag(pendingTag)
                             pendingTag = ""
@@ -2832,7 +2861,8 @@ struct UploadTagsCategoryScreen: View {
             "설명",
             text: $store.editorDraft.summary,
             placeholder: "이 필터의 분위기와 추천 사용처",
-            style: .multiline(minHeight: 112)
+            style: .multiline(minHeight: 112),
+            submitLabel: .return
         )
     }
 }
@@ -3503,6 +3533,8 @@ struct ReportFormScreen: View {
             }
             Section(header: Text("상세 설명 (선택)")) {
                 TextEditor(text: $detail).frame(minHeight: 100)
+                    .textInputAutocapitalization(.sentences)
+                    .submitLabel(.return)
                     .accessibilityIdentifier("report.detail")
             }
             if let statusMessage {
@@ -3719,6 +3751,8 @@ struct ModerationDetailScreen: View {
             }
             Section(header: Text("거부 사유")) {
                 TextEditor(text: $rejectReason).frame(minHeight: 80)
+                    .textInputAutocapitalization(.sentences)
+                    .submitLabel(.return)
                     .accessibilityIdentifier("modDetail.reason")
                 Button {
                     Task { await reject() }
@@ -5499,13 +5533,19 @@ struct RefundRequestScreen: View {
                     .accessibilityIdentifier("refund.orderId")
                 } else {
                     TextField("orders/abc-123 형식", text: $orderId)
-                        .autocapitalization(.none)
+                        .textContentType(.URL)
+                        .keyboardType(.asciiCapable)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.next)
                         .accessibilityIdentifier("refund.orderId")
                 }
             }
             Section(header: Text("환불 사유"), footer: reasonFooter) {
                 TextEditor(text: reasonBinding)
                     .frame(minHeight: 120)
+                    .textInputAutocapitalization(.sentences)
+                    .submitLabel(.return)
                     .accessibilityIdentifier("refund.reason")
             }
             if let statusMessage {

@@ -288,7 +288,9 @@ struct FavoritesCollectionScreen: View {
             FMTextField(
                 "이름",
                 text: $newName,
-                placeholder: "예: 가을 분위기"
+                placeholder: "예: 가을 분위기",
+                autocapitalization: .words,
+                submitLabel: .done
             )
 
             Toggle(isOn: $newIsPrivate) {

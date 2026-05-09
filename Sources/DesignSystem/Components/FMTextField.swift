@@ -23,6 +23,8 @@ public struct FMTextField: View {
     private let style: Style
     private let textContentType: UITextContentType?
     private let keyboardType: UIKeyboardType
+    private let autocapitalization: TextInputAutocapitalization?
+    private let submitLabel: SubmitLabel
 
     @FocusState private var isFocused: Bool
     @State private var isPasswordVisible = false
@@ -35,7 +37,9 @@ public struct FMTextField: View {
         error: String? = nil,
         style: Style = .plain,
         textContentType: UITextContentType? = nil,
-        keyboardType: UIKeyboardType = .default
+        keyboardType: UIKeyboardType = .default,
+        autocapitalization: TextInputAutocapitalization? = nil,
+        submitLabel: SubmitLabel = .done
     ) {
         self.label = label
         self.placeholder = placeholder
@@ -45,6 +49,8 @@ public struct FMTextField: View {
         self.style = style
         self.textContentType = textContentType
         self.keyboardType = keyboardType
+        self.autocapitalization = autocapitalization
+        self.submitLabel = submitLabel
     }
 
     // MARK: - Convenience
@@ -61,7 +67,9 @@ public struct FMTextField: View {
             placeholder: placeholder,
             error: error,
             style: .password,
-            textContentType: .password
+            textContentType: .password,
+            autocapitalization: .never,
+            submitLabel: .go
         )
     }
 
@@ -72,7 +80,43 @@ public struct FMTextField: View {
         FMTextField(
             text: text,
             placeholder: placeholder,
-            style: .search
+            style: .search,
+            autocapitalization: .sentences,
+            submitLabel: .search
+        )
+    }
+
+    public static func handle(
+        _ label: String? = "유저네임",
+        text: Binding<String>,
+        placeholder: String = "your.username",
+        error: String? = nil
+    ) -> FMTextField {
+        FMTextField(
+            label,
+            text: text,
+            placeholder: placeholder,
+            error: error,
+            textContentType: .nickname,
+            keyboardType: .asciiCapable,
+            autocapitalization: .never,
+            submitLabel: .done
+        )
+    }
+
+    public static func url(
+        _ label: String? = "링크",
+        text: Binding<String>,
+        placeholder: String = "https://"
+    ) -> FMTextField {
+        FMTextField(
+            label,
+            text: text,
+            placeholder: placeholder,
+            textContentType: .URL,
+            keyboardType: .URL,
+            autocapitalization: .never,
+            submitLabel: .done
         )
     }
 
@@ -156,7 +200,8 @@ public struct FMTextField: View {
             .keyboardType(keyboardType)
             .focused($isFocused)
             .autocorrectionDisabled()
-            .textInputAutocapitalization(textContentType == .emailAddress ? .never : .sentences)
+            .textInputAutocapitalization(autocapitalization ?? defaultAutocapitalization)
+            .submitLabel(submitLabel)
 
             if case .password = style {
                 Button {
@@ -195,6 +240,22 @@ public struct FMTextField: View {
             return height
         }
         return 44
+    }
+
+    private var defaultAutocapitalization: TextInputAutocapitalization {
+        switch textContentType {
+        case .emailAddress, .username, .password, .newPassword, .nickname, .URL:
+            return .never
+        default:
+            switch style {
+            case .search, .multiline:
+                return .sentences
+            case .password:
+                return .never
+            case .plain:
+                return .sentences
+            }
+        }
     }
 }
 

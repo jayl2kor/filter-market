@@ -896,7 +896,8 @@ struct ScreenWorkflowScaffold: View {
                 FMTextField(
                     "입력값",
                     text: $textValue,
-                    placeholder: "유저네임, 태그, 금액, 사유 등"
+                    placeholder: "유저네임, 태그, 금액, 사유 등",
+                    submitLabel: .done
                 )
             }
         }

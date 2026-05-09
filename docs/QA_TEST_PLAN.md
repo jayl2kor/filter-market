@@ -100,6 +100,19 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 
 ---
 
+## 3.9 Form Input Hints
+
+| # | Element | Expected action | PASS/FAIL |
+|---|---------|-----------------|-----------|
+| 3.9.1 | `FMTextField.search` | Return key is Search, sentence capitalization preserved |  |
+| 3.9.2 | profile edit handle | nickname content type, ASCII keyboard, no autocapitalization, Done return key |  |
+| 3.9.3 | profile edit website | URL content type and URL keyboard with no autocapitalization |  |
+| 3.9.4 | upload tag input | no autocapitalization/autocorrection, Next return key |  |
+| 3.9.5 | review/report/refund text editors | sentence capitalization and Return behavior remain available for multiline input |  |
+| 3.9.6 | refund order id | ASCII keyboard, no autocapitalization/autocorrection, Next return key |  |
+
+---
+
 ## 4. Marketplace (루트 탭)
 
 **도달 경로**: 로그인 후 탭바 1번째
