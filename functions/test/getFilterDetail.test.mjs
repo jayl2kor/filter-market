@@ -8,6 +8,8 @@ import assert from "node:assert/strict";
 import {
   applyAddUserSample,
   applyGetFilterDetail,
+  applyListReviews,
+  applyListSamples,
   applyReviewImageUploadInit,
   applySampleImageUploadInit,
   applySubmitReview,
@@ -522,6 +524,132 @@ describe("sample upload callables", () => {
         },
       ),
       (err) => err && err.code === "permission-denied" && /owner_mismatch/.test(err.message),
+    );
+  });
+});
+
+describe("listReviews and listSamples", () => {
+  it("returns active reviews in helpful order with a cursor", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/abc-123": {
+        status: "approved",
+      },
+      "filters/abc-123/reviews/older": {
+        authorUid: "u-older",
+        authorDisplayName: "Older",
+        stars: 4,
+        body: "Older review",
+        helpfulCount: 1,
+        status: "active",
+        createdAt: { toMillis: () => 100 },
+      },
+      "filters/abc-123/reviews/helpful": {
+        authorUid: "u-helpful",
+        authorDisplayName: "Helpful",
+        stars: 5,
+        body: "Helpful review",
+        helpfulCount: 9,
+        status: "active",
+        createdAt: { toMillis: () => 50 },
+      },
+      "filters/abc-123/reviews/hidden": {
+        authorUid: "u-hidden",
+        authorDisplayName: "Hidden",
+        stars: 1,
+        body: "Hidden review",
+        helpfulCount: 100,
+        status: "hidden",
+        createdAt: { toMillis: () => 300 },
+      },
+      "filters/abc-123/reviews/newer": {
+        authorUid: "u-newer",
+        authorDisplayName: "Newer",
+        stars: 5,
+        body: "Newer review",
+        helpfulCount: 1,
+        status: "published",
+        createdAt: { toMillis: () => 200 },
+      },
+    });
+
+    const firstPage = await applyListReviews(
+      { filterId: "abc-123", limit: 2 },
+      { firestore },
+    );
+
+    assert.deepEqual(firstPage.reviews.map((review) => review.id), ["helpful", "newer"]);
+    assert.equal(firstPage.reviews[0].authorDisplayName, "Helpful");
+    assert.ok(firstPage.nextCursor);
+
+    const secondPage = await applyListReviews(
+      { filterId: "abc-123", limit: 2, cursor: firstPage.nextCursor },
+      { firestore },
+    );
+
+    assert.deepEqual(secondPage.reviews.map((review) => review.id), ["older"]);
+    assert.equal(secondPage.nextCursor, null);
+  });
+
+  it("returns featured samples first and filters hidden samples", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/abc-123": {
+        status: "approved",
+      },
+      "filters/abc-123/samples/user-old": {
+        kind: "user",
+        categoryHint: "portrait",
+        coverURL: "https://cdn.test/old.jpg",
+        thumbnailURL: "https://cdn.test/old-thumb.jpg",
+        featured: false,
+        createdAt: { toMillis: () => 100 },
+      },
+      "filters/abc-123/samples/featured": {
+        kind: "signature",
+        categoryHint: "landscape",
+        coverURL: "https://cdn.test/featured.jpg",
+        thumbnailURL: "https://cdn.test/featured-thumb.jpg",
+        featured: true,
+        createdAt: { toMillis: () => 50 },
+      },
+      "filters/abc-123/samples/user-new": {
+        kind: "user",
+        categoryHint: "food",
+        coverURL: "https://cdn.test/new.jpg",
+        thumbnailURL: "https://cdn.test/new-thumb.jpg",
+        featured: false,
+        createdAt: { toMillis: () => 200 },
+      },
+      "filters/abc-123/samples/hidden": {
+        kind: "user",
+        status: "hidden",
+        coverURL: "https://cdn.test/hidden.jpg",
+      },
+    });
+
+    const result = await applyListSamples(
+      { filterId: "abc-123", limit: 10 },
+      { firestore },
+    );
+
+    assert.deepEqual(result.samples.map((sample) => sample.id), ["featured", "user-new", "user-old"]);
+    assert.equal(result.samples[0].coverURL, "https://cdn.test/featured.jpg");
+    assert.equal(result.nextCursor, null);
+  });
+
+  it("rejects unavailable filters for paginated reads", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/pending": {
+        status: "pending_review",
+      },
+    });
+
+    await assert.rejects(
+      () => applyListReviews({ filterId: "pending" }, { firestore }),
+      (err) => err && err.code === "not-found",
+    );
+    await assert.rejects(
+      () => applyListSamples({ filterId: "missing" }, { firestore }),
+      (err) => err && err.code === "not-found",
     );
   });
 });

@@ -685,6 +685,18 @@ const getFilterDetailSchema = z.object({
   filterId: z.string().min(1).max(128),
 });
 
+const listReviewsSchema = z.object({
+  filterId: z.string().min(1).max(128),
+  limit: z.number().int().min(1).max(20).default(20),
+  cursor: z.string().min(1).max(512).optional(),
+});
+
+const listSamplesSchema = z.object({
+  filterId: z.string().min(1).max(128),
+  limit: z.number().int().min(1).max(24).default(12),
+  cursor: z.string().min(1).max(512).optional(),
+});
+
 export interface GetFilterDetailDeps {
   firestore?: Firestore;
   presignGetURL?: (objectKey: string) => Promise<{ url: string; expiresAt: number }>;
@@ -733,6 +745,85 @@ export interface FilterDetailResponse {
   userHasLiked: boolean;
   signedDownloadURL: string;
   expiresAt: number;
+}
+
+export interface ListReviewsDeps {
+  firestore?: Firestore;
+}
+
+export interface ListReviewsResult {
+  filterId: string;
+  reviews: FilterDetailResponse["reviews"];
+  nextCursor: string | null;
+}
+
+export interface ListSamplesDeps {
+  firestore?: Firestore;
+}
+
+export interface ListSamplesResult {
+  filterId: string;
+  samples: FilterDetailResponse["samples"];
+  nextCursor: string | null;
+}
+
+interface PageCursor {
+  id: string;
+  createdAt: number | null;
+}
+
+function encodePageCursor(cursor: PageCursor): string {
+  return Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url");
+}
+
+function decodePageCursor(rawCursor?: string): PageCursor | null {
+  if (!rawCursor) return null;
+  try {
+    const decoded = JSON.parse(Buffer.from(rawCursor, "base64url").toString("utf8")) as Partial<PageCursor>;
+    if (typeof decoded.id !== "string" || decoded.id.length === 0) return null;
+    return {
+      id: decoded.id,
+      createdAt: typeof decoded.createdAt === "number" ? decoded.createdAt : null,
+    };
+  } catch {
+    throw new HttpsError("invalid-argument", "invalid cursor");
+  }
+}
+
+async function requireApprovedFilter(db: Firestore, filterId: string) {
+  const snap = await db.collection("filters").doc(filterId).get();
+  if (!snap.exists || snap.data()?.status !== "approved") {
+    throw new HttpsError("not-found", `filter ${filterId} is not available`);
+  }
+  return snap;
+}
+
+function compareCreatedAtDesc(
+  lhs: { id: string; createdAt: number | null },
+  rhs: { id: string; createdAt: number | null },
+): number {
+  const lhsCreatedAt = lhs.createdAt ?? 0;
+  const rhsCreatedAt = rhs.createdAt ?? 0;
+  if (lhsCreatedAt !== rhsCreatedAt) {
+    return rhsCreatedAt - lhsCreatedAt;
+  }
+  return rhs.id.localeCompare(lhs.id);
+}
+
+function pageStartIndex<T extends { id: string }>(items: T[], cursor: PageCursor | null): number {
+  if (!cursor) return 0;
+  const index = items.findIndex((item) => item.id === cursor.id);
+  return index >= 0 ? index + 1 : 0;
+}
+
+function nextPageCursor<T extends { id: string; createdAt: number | null }>(
+  items: T[],
+  startIndex: number,
+  limit: number,
+): string | null {
+  if (startIndex + limit >= items.length) return null;
+  const last = items[startIndex + limit - 1];
+  return encodePageCursor({ id: last.id, createdAt: last.createdAt });
 }
 
 /**
@@ -874,6 +965,102 @@ export const getFilterDetail = onCall(
     const uid = requireAuth(req);
     return applyGetFilterDetail(req.data, { uid });
   },
+);
+
+export async function applyListReviews(
+  rawData: unknown,
+  deps: ListReviewsDeps = {},
+): Promise<ListReviewsResult> {
+  const parsed = listReviewsSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId, limit, cursor: rawCursor } = parsed.data;
+  const cursor = decodePageCursor(rawCursor);
+  const db = deps.firestore ?? getFirestore();
+  const filterSnap = await requireApprovedFilter(db, filterId);
+  const reviewsSnap = await filterSnap.ref.collection("reviews").get();
+  const reviews = reviewsSnap.docs
+    .map((review) => {
+      const r = review.data();
+      return {
+        id: review.id,
+        authorUid: (r.authorUid as string | undefined) ?? review.id,
+        authorDisplayName: (r.authorDisplayName as string | undefined)
+          ?? (r.authorHandle as string | undefined)
+          ?? "사용자",
+        stars: (r.stars as number | undefined) ?? 0,
+        body: (r.body as string | undefined) ?? "",
+        photoUrl: (r.photoUrl as string | null) ?? null,
+        isVerifiedDownload: (r.isVerifiedDownload as boolean | undefined) ?? false,
+        helpfulCount: (r.helpfulCount as number | undefined) ?? 0,
+        createdAt: readMillis(r.createdAt),
+        status: (r.status as string | undefined) ?? "active",
+      };
+    })
+    .filter((review) => review.status === "active" || review.status === "published")
+    .sort((lhs, rhs) => {
+      const helpfulDelta = rhs.helpfulCount - lhs.helpfulCount;
+      return helpfulDelta !== 0 ? helpfulDelta : compareCreatedAtDesc(lhs, rhs);
+    });
+  const startIndex = pageStartIndex(reviews, cursor);
+  const page = reviews.slice(startIndex, startIndex + limit);
+  return {
+    filterId,
+    reviews: page.map(({ status: _status, ...review }) => review),
+    nextCursor: nextPageCursor(reviews, startIndex, limit),
+  };
+}
+
+export const listReviews = onCall(
+  { region, cors: true, enforceAppCheck: true },
+  async (req: CallableRequest) => applyListReviews(req.data),
+);
+
+export async function applyListSamples(
+  rawData: unknown,
+  deps: ListSamplesDeps = {},
+): Promise<ListSamplesResult> {
+  const parsed = listSamplesSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId, limit, cursor: rawCursor } = parsed.data;
+  const cursor = decodePageCursor(rawCursor);
+  const db = deps.firestore ?? getFirestore();
+  const filterSnap = await requireApprovedFilter(db, filterId);
+  const samplesSnap = await filterSnap.ref.collection("samples").get();
+  const samples = samplesSnap.docs
+    .map((sample) => {
+      const s = sample.data();
+      return {
+        id: sample.id,
+        kind: (s.kind as string | undefined) ?? "user",
+        categoryHint: (s.categoryHint as string | null) ?? null,
+        coverURL: (s.coverURL as string | null) ?? null,
+        thumbnailURL: (s.thumbnailURL as string | null) ?? null,
+        featured: (s.featured as boolean | undefined) ?? false,
+        status: (s.status as string | undefined) ?? "active",
+        createdAt: readMillis(s.createdAt),
+      };
+    })
+    .filter((sample) => sample.status !== "hidden" && sample.status !== "removed")
+    .sort((lhs, rhs) => {
+      if (lhs.featured !== rhs.featured) return lhs.featured ? -1 : 1;
+      return compareCreatedAtDesc(lhs, rhs);
+    });
+  const startIndex = pageStartIndex(samples, cursor);
+  const page = samples.slice(startIndex, startIndex + limit);
+  return {
+    filterId,
+    samples: page.map(({ featured: _featured, status: _status, createdAt: _createdAt, ...sample }) => sample),
+    nextCursor: nextPageCursor(samples, startIndex, limit),
+  };
+}
+
+export const listSamples = onCall(
+  { region, cors: true, enforceAppCheck: true },
+  async (req: CallableRequest) => applyListSamples(req.data),
 );
 
 /** POST /filters/{id}/report — see API_SPEC.md §5.6. */

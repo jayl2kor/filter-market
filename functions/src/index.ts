@@ -19,6 +19,8 @@ export {
   sampleImageUploadInit,
   addUserSample,
   submitReview,
+  listReviews,
+  listSamples,
   submitForReview,
   recordUse,
   getFilterDetail,
