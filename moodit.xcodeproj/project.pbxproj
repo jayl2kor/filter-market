@@ -88,6 +88,7 @@
 		603FF87702185084D10DB5C2 /* Camera.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91122D81CC0FF8B65CB86CEE /* Camera.framework */; };
 		61096D07BBBCF40D97FB3957 /* LocationPermissionPriming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47F408C11779EF99CD0382C1 /* LocationPermissionPriming.swift */; };
 		61C3D5863B2C7FBD7864114E /* WalletLedgerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEF0993B471E2C072DA614E2 /* WalletLedgerTests.swift */; };
+		B1800403B1800403B1800403 /* WalletStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1800402B1800402B1800402 /* WalletStoreTests.swift */; };
 		B1800001B1800001B1800001 /* MooditStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1800000B1800000B1800000 /* MooditStoreTests.swift */; };
 		B1840101B1840101B1840101 /* ProfileSelfStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1840100B1840100B1840100 /* ProfileSelfStoreTests.swift */; };
 		6654346FC8885AB8B279512D /* ShaderSources.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED24BFBFA05A541DAA68D381 /* ShaderSources.swift */; };
@@ -160,6 +161,7 @@
 		A9F41BA1D432E6DD7FF3FA0F /* FilterRejectedScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1317C00885A8FE9F30FFAC6 /* FilterRejectedScreen.swift */; };
 		ABAAFA308BDF229D59E00A2F /* PhotosPermissionPriming.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA80AEE3D4DD5B9103378940 /* PhotosPermissionPriming.swift */; };
 		ABAF746CA4063BD52ED5C991 /* WalletLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 758C969F788B056A2624B315 /* WalletLedger.swift */; };
+		B1800401B1800401B1800401 /* WalletStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1800400B1800400B1800400 /* WalletStore.swift */; };
 		B1780401B1780401B1780401 /* WalletWorkflowScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1780400B1780400B1780400 /* WalletWorkflowScreens.swift */; };
 		ABCC5902D81179EB7B018B09 /* seoul-night.png in Resources */ = {isa = PBXBuildFile; fileRef = 5D87FD05B6A4C0641B8D4EB3 /* seoul-night.png */; };
 		ACFD5FFBFCEDB4E03D732F5E /* MetalPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 212A616007826DB1E7DE92A4 /* MetalPreviewView.swift */; };
@@ -508,6 +510,7 @@
 		7451ED88D468B0CF06626C43 /* PhotoPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPicker.swift; sourceTree = "<group>"; };
 		74763E4F13262E0A26681049 /* NotificationsPermissionDenied.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsPermissionDenied.swift; sourceTree = "<group>"; };
 		758C969F788B056A2624B315 /* WalletLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletLedger.swift; sourceTree = "<group>"; };
+		B1800400B1800400B1800400 /* WalletStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletStore.swift; sourceTree = "<group>"; };
 		B1780400B1780400B1780400 /* WalletWorkflowScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletWorkflowScreens.swift; sourceTree = "<group>"; };
 		75C628A9FFFF44E72B594135 /* FilterTileMapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterTileMapping.swift; sourceTree = "<group>"; };
 		763DA429056589220CA7912F /* RenderFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderFilter.swift; sourceTree = "<group>"; };
@@ -550,6 +553,7 @@
 		B1780100B1780100B1780100 /* CameraWorkflowScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraWorkflowScreens.swift; sourceTree = "<group>"; };
 		B1800000B1800000B1800000 /* MooditStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditStoreTests.swift; sourceTree = "<group>"; };
 		B1800302B1800302B1800302 /* FilterLibraryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterLibraryStoreTests.swift; sourceTree = "<group>"; };
+		B1800402B1800402B1800402 /* WalletStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletStoreTests.swift; sourceTree = "<group>"; };
 		B1840100B1840100B1840100 /* ProfileSelfStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelfStoreTests.swift; sourceTree = "<group>"; };
 		B1800200B1800200B1800200 /* MooditStoreModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditStoreModels.swift; sourceTree = "<group>"; };
 		AE15FDD0D63491F42DC3EB6B /* CapturePreviewScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePreviewScreen.swift; sourceTree = "<group>"; };
@@ -816,6 +820,7 @@
 			isa = PBXGroup;
 			children = (
 				758C969F788B056A2624B315 /* WalletLedger.swift */,
+				B1800400B1800400B1800400 /* WalletStore.swift */,
 				B1780400B1780400B1780400 /* WalletWorkflowScreens.swift */,
 			);
 			path = Wallet;
@@ -949,6 +954,7 @@
 				A1620000A1620000A1620000 /* TelemetryTests.swift */,
 				E3297A0A1E3883E05162166A /* UniversalLinkParserTests.swift */,
 				CEF0993B471E2C072DA614E2 /* WalletLedgerTests.swift */,
+				B1800402B1800402B1800402 /* WalletStoreTests.swift */,
 				B1800000B1800000B1800000 /* MooditStoreTests.swift */,
 				B1840100B1840100B1840100 /* ProfileSelfStoreTests.swift */,
 			);
@@ -1804,6 +1810,7 @@
 				B1780603B1780603B1780603 /* UniversalLinkLandingScreen.swift in Sources */,
 				82FAE0D69D2C7240027DD8B5 /* UniversalLinkParser.swift in Sources */,
 				ABAF746CA4063BD52ED5C991 /* WalletLedger.swift in Sources */,
+				B1800401B1800401B1800401 /* WalletStore.swift in Sources */,
 				B1780401B1780401B1780401 /* WalletWorkflowScreens.swift in Sources */,
 				A1841003A1841003A1841003 /* WorkflowFormatters.swift in Sources */,
 				A1841001A1841001A1841001 /* WorkflowHelpers.swift in Sources */,
@@ -1876,6 +1883,7 @@
 				A1620001A1620001A1620001 /* TelemetryTests.swift in Sources */,
 				66A4B1B3373517F5D1EB4E4E /* UniversalLinkParserTests.swift in Sources */,
 				61C3D5863B2C7FBD7864114E /* WalletLedgerTests.swift in Sources */,
+				B1800403B1800403B1800403 /* WalletStoreTests.swift in Sources */,
 				B1800001B1800001B1800001 /* MooditStoreTests.swift in Sources */,
 				B1840101B1840101B1840101 /* ProfileSelfStoreTests.swift in Sources */,
 			);

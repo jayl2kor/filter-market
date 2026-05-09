@@ -31,6 +31,7 @@ private enum ProfileAvatarUploadError: LocalizedError {
 @MainActor
 final class MooditStore: ObservableObject {
     let filterLibraryStore: FilterLibraryStore
+    let walletStore: WalletStore
     var filters: [Filter] { filterLibraryStore.filters }
     var downloadedFilterIDs: Set<Filter.ID> { filterLibraryStore.downloadedFilterIDs }
     var favoriteFilterIDs: Set<Filter.ID> { filterLibraryStore.favoriteFilterIDs }
@@ -84,13 +85,11 @@ final class MooditStore: ObservableObject {
     var newFiltersList: [Filter] { filterLibraryStore.newFiltersList }
     /// 코인 잔액 — Firestore /users/{uid}/wallet/balance.value 미러.
     /// `subscribeToWallet()` 호출 시 실시간 갱신.
-    @Published private(set) var coinBalance: Int = 0
+    var coinBalance: Int { walletStore.coinBalance }
     @Published private(set) var isAuthenticated: Bool = false
     /// Pro 멤버십 활성화 여부 — /users/{uid}/proStatus.active 미러.
-    @Published private(set) var isProActive: Bool = false
+    var isProActive: Bool { walletStore.isProActive }
 
-    private var walletListener: ListenerRegistration?
-    private var proStatusListener: ListenerRegistration?
     private var userDocListener: ListenerRegistration?
     private var notificationPrefsListener: ListenerRegistration?
     private var savedFiltersListener: ListenerRegistration?
@@ -99,7 +98,6 @@ final class MooditStore: ObservableObject {
     private var makerDraftsListener: ListenerRegistration?
     private var editorDraftListener: ListenerRegistration?
     private var authStateHandle: AuthStateDidChangeListenerHandle?
-    private var optimisticCoinReconcileTask: Task<Void, Never>?
     private var notificationPreferencesSaveTask: Task<Void, Never>?
     private var editorDraftSaveTask: Task<Void, Never>?
     private var saveProfileTask: Task<Void, Never>?
@@ -115,11 +113,17 @@ final class MooditStore: ObservableObject {
     @Published var pendingDeepLinkRoute: AppRoute?
 
     private var filterLibraryCancellable: AnyCancellable?
+    private var walletCancellable: AnyCancellable?
 
     init(repository: any FilterRepository = BundleSeedFilterRepository()) {
         let filterLibraryStore = FilterLibraryStore(repository: repository)
+        let walletStore = WalletStore()
         self.filterLibraryStore = filterLibraryStore
+        self.walletStore = walletStore
         filterLibraryCancellable = filterLibraryStore.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        walletCancellable = walletStore.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
         #if DEBUG
@@ -223,8 +227,6 @@ final class MooditStore: ObservableObject {
 
     private func attachWalletListeners(uid: String?) {
         persistEditorDraftLocallyForCurrentUser()
-        walletListener?.remove()
-        proStatusListener?.remove()
         userDocListener?.remove()
         notificationPrefsListener?.remove()
         savedFiltersListener?.remove()
@@ -234,8 +236,6 @@ final class MooditStore: ObservableObject {
         editorDraftListener?.remove()
         notificationPreferencesSaveTask?.cancel()
         editorDraftSaveTask?.cancel()
-        walletListener = nil
-        proStatusListener = nil
         userDocListener = nil
         notificationPrefsListener = nil
         savedFiltersListener = nil
@@ -243,11 +243,10 @@ final class MooditStore: ObservableObject {
         exportRequestsListener = nil
         makerDraftsListener = nil
         editorDraftListener = nil
-        optimisticCoinReconcileTask?.cancel()
-        optimisticCoinReconcileTask = nil
         notificationPreferencesSaveTask = nil
         editorDraftSaveTask = nil
         currentUserID = uid
+        walletStore.attach(uid: uid)
 
         guard let uid else {
             // 로그아웃 / 미로그인 — 본인 스코프 모든 상태 즉시 정리.
@@ -273,26 +272,6 @@ final class MooditStore: ObservableObject {
                 avatarURL: editableProfile.avatarURL
             )
         }
-        walletListener = db.collection("users").document(uid)
-            .collection("wallet").document("balance")
-            .addSnapshotListener { [weak self] snapshot, _ in
-                guard let self else { return }
-                Task { @MainActor in
-                    let value = (snapshot?.data()?["value"] as? Int) ?? 0
-                    self.optimisticCoinReconcileTask?.cancel()
-                    self.optimisticCoinReconcileTask = nil
-                    self.coinBalance = value
-                }
-            }
-        proStatusListener = db.collection("users").document(uid)
-            .collection("proStatus").document("status")
-            .addSnapshotListener { [weak self] snapshot, _ in
-                guard let self else { return }
-                Task { @MainActor in
-                    let active = (snapshot?.data()?["active"] as? Bool) ?? false
-                    self.isProActive = active
-                }
-            }
         userDocListener = db.collection("users").document(uid)
             .addSnapshotListener { [weak self] snapshot, _ in
                 guard let self else { return }
@@ -488,11 +467,14 @@ final class MooditStore: ObservableObject {
 
     /// Pro 구독 구매 직후 낙관적 활성화 (#27). Firestore listener가 도착하면 정정.
     func markProActiveOptimistically() {
-        isProActive = true
+        walletStore.markProActiveOptimistically()
     }
 
     /// 결제 실패 시 마지막 에러 메시지 (#41). PaymentFailedScreen이 표시 후 reset.
-    @Published var lastPaymentErrorMessage: String?
+    var lastPaymentErrorMessage: String? {
+        get { walletStore.lastPaymentErrorMessage }
+        set { walletStore.lastPaymentErrorMessage = newValue }
+    }
     /// (#47) /users/{uid} 첫 listener snapshot이 도착했는지 — RootShell의 핸들 검사 등에서 사용.
     /// listener attach 시 false → 첫 snapshot 도착 시 true. 비로그인 시 false.
     @Published private(set) var hasLoadedProfile: Bool = false
@@ -566,18 +548,11 @@ final class MooditStore: ObservableObject {
     /// 양수: 적립 (IAP 구매), 음수: 차감 (필터 구매). server-side는 별도 callable이 처리.
     /// Firestore listener는 server 값으로 덮어쓰기 (비-가산)이라 중복 카운트 없음.
     func creditCoinsOptimistically(_ amount: Int) {
-        coinBalance = max(0, coinBalance + amount)
-        optimisticCoinReconcileTask?.cancel()
-        optimisticCoinReconcileTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 10_000_000_000)
-            await self?.forceReloadWalletBalance()
-        }
+        walletStore.creditCoinsOptimistically(amount)
     }
 
     func reconcileCoinBalance(_ balance: Int) {
-        optimisticCoinReconcileTask?.cancel()
-        optimisticCoinReconcileTask = nil
-        coinBalance = max(0, balance)
+        walletStore.reconcileCoinBalance(balance)
     }
 
     private func persistSavedFilterAsync(filterId: Filter.ID, save: Bool) async throws {
@@ -646,33 +621,10 @@ final class MooditStore: ObservableObject {
         }
     }
 
-    private func forceReloadWalletBalance() async {
-        #if DEBUG
-        guard !isUITesting else { return }
-        #endif
-        guard let uid = Self.currentFirebaseUID else { return }
-        do {
-            let snapshot = try await Firestore.firestore()
-                .collection("users").document(uid)
-                .collection("wallet").document("balance")
-                .getDocument()
-            let value = (snapshot.data()?["value"] as? Int) ?? 0
-            await MainActor.run {
-                self.coinBalance = value
-                self.optimisticCoinReconcileTask = nil
-            }
-        } catch {
-            await MainActor.run {
-                self.lastPaymentErrorMessage = "잔액 동기화 실패: \(error.localizedDescription)"
-            }
-        }
-    }
-
     /// 로그아웃 / 사용자 전환 시 본인 스코프 데이터 일괄 초기화 (#17).
     /// `Auth.signOut()` 호출 직후 또는 attachWalletListeners(uid: nil)에서 사용.
     func resetUserScopedState() {
-        coinBalance = 0
-        isProActive = false
+        walletStore.reset()
         editableProfile = .empty
         lastProfileSavedAt = nil
         accountDeletionRequestedAt = nil
