@@ -156,6 +156,7 @@ struct CameraScreen: View {
             CapturePreviewHost(result: result) {
                 captureResult = nil
             }
+            .interactiveDismissDisabled(true)
         }
         .fullScreenCover(isPresented: $isPhotoImportPresented) {
             NavigationStack {
@@ -170,6 +171,7 @@ struct CameraScreen: View {
                         }
                     }
             }
+            .interactiveDismissDisabled(true)
         }
         .fmAlert(
             "촬영 실패",

@@ -422,7 +422,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 10.2.3 | `editor.draft` | → AppRoute.editorDraft |  |
 | 10.2.4 | `editor.next` | 다음 단계 (→uploadCover) |  |
 | 10.2.5 | `editor.preview` | 현재 draft category/LUT/parameter를 적용한 reference preview 표시. 렌더 실패 시 원본/gradient fallback |  |
-| 10.2.5a | `editor.cancel` | confirmation dialog: 임시 저장=draft save+dismiss, 버리기=reset+dismiss(destructive), 계속 작성=stay. 메시지는 임시 저장/버리기 결과를 명확히 설명 |  |
+| 10.2.5a | `editor.cancel` | top-leading close. confirmation dialog: 임시 저장=draft save+dismiss, 버리기=reset+dismiss(destructive), 계속 작성=stay. Swipe dismiss disabled. 메시지는 임시 저장/버리기 결과를 명확히 설명 |  |
 | 10.2.6 | `editor.reference.photo.pick` | PhotosPicker 표시, 사용자 선택 이미지를 1280px 장변 JPEG로 normalize 후 preview source로 사용 |  |
 | 10.2.7 | `editor.reference.photo.clear` | 사용자 reference photo 제거, 시스템 sample source로 복귀 |  |
 | 10.2.8 | `editor.reference.sample.<kind>` | portrait/landscape/indoor/lifestyle 임시 샘플 중 하나 선택, 사용자 photo가 있으면 clear 후 선택 적용 |  |
@@ -445,14 +445,14 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 10.3.5 | uploadCover | `upload.signature.sample.<kind>` | portrait/landscape/indoor/lifestyle 임시 샘플 중 하나를 시그니처 샘플 슬롯으로 선택 |  |
 | 10.3.6 | uploadCover | `upload.signature.clear` | 직접 사진/시스템 샘플 선택 초기화 |  |
 | 10.3.7 | uploadCover | `upload.next` | 현재 upload draft 저장 후 → uploadTags |  |
-| 10.3.7b | uploadCover | `upload.cancel` | alert: 초안 저장하고 나가기=draft save+dismiss, 초안 버리고 나가기=reset+dismiss, 계속 작성=stay |  |
+| 10.3.7b | uploadCover | `upload.cancel` | top-leading close. confirmation dialog: 초안 저장하고 나가기=draft save+dismiss, 초안 버리고 나가기=reset+dismiss, 계속 작성=stay. Swipe dismiss disabled |  |
 | 10.3.8 | uploadTags | `upload.tag.add` | 태그 추가 시트 |  |
 | 10.3.9 | uploadTags | `upload.cat.tap` | 카테고리 picker |  |
 | 10.3.10 | uploadTags | `upload.next` | 현재 upload draft 저장 후 → uploadSubmit |  |
-| 10.3.10b | uploadTags | `upload.cancel` | alert: 초안 저장하고 나가기=draft save+dismiss, 초안 버리고 나가기=reset+dismiss, 계속 작성=stay |  |
+| 10.3.10b | uploadTags | `upload.cancel` | top-leading close. confirmation dialog: 초안 저장하고 나가기=draft save+dismiss, 초안 버리고 나가기=reset+dismiss, 계속 작성=stay. Swipe dismiss disabled |  |
 | 10.3.11 | uploadSubmit | `upload.tos.toggle` | TOS 토글 |  |
 | 10.3.12 | uploadSubmit | `upload.submit` | TOS off일 때 disabled, on이면 → uploadPending |  |
-| 10.3.12b | uploadSubmit | `upload.cancel` | alert: 초안 저장하고 나가기=draft save+dismiss, 초안 버리고 나가기=reset+dismiss, 계속 작성=stay |  |
+| 10.3.12b | uploadSubmit | `upload.cancel` | top-leading close. confirmation dialog: 초안 저장하고 나가기=draft save+dismiss, 초안 버리고 나가기=reset+dismiss, 계속 작성=stay. Swipe dismiss disabled |  |
 | 10.3.13 | uploadPending | step indicator | 4/4 검수 단계 표시, VoiceOver가 "업로드 4단계 중 4단계, 검수"로 읽음 |  |
 | 10.3.14 | uploadPending | `upload.pending.view_filter` | → AppRoute.myFilters |  |
 | 10.3.15 | uploadPending | `upload.pending.dismiss` | dismiss |  |
@@ -499,6 +499,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 11.2.2 | `profile.edit.handle` / `profile.edit.handle.status` | 입력 400ms 후 `/handles/{username}` 중복 검사. idle/checking/available/unavailable/invalid/failed 상태 메시지와 아이콘/스피너 표시, VoiceOver announcement 발생 |  |
 | 11.2.3 | `profile.edit.handle.check` | 현재 입력값을 즉시 재검사. 검사 중에는 disabled |  |
 | 11.2.4 | `profile.edit.save` | displayName + 유효한 사용 가능 유저네임일 때만 enabled. 중복/형식 오류/검사 중이면 저장 차단, 저장 시 `setHandle` callable이 최종 권위 검사 |  |
+| 11.2.5 | top-leading close | 변경사항이 없으면 dismiss, 변경사항이 있으면 swipe dismiss disabled + discard/continue confirmation dialog |  |
 
 ### 11.3 AccountDeletionScreen — `.accountDeletion`
 

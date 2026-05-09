@@ -33,6 +33,16 @@ moodit 에서 사용하는 4종 모달 패턴:
 
 **모달이 필요 없는 경우**: 간단한 상태 변경(토글, 즐겨찾기)은 인라인 처리. 정보만 보여준다면 새 화면 push 를 고려.
 
+## Dismiss 정책
+
+| Surface | API | Swipe dismiss | Unsaved confirm | Close placement |
+|---|---|---|---|---|
+| Camera live / capture preview / photo import | `.fullScreenCover` | Disabled | No | Top-leading `닫기` / explicit preview actions |
+| Editor and upload workflow | Navigation or sheet-hosted editor views | Disabled | Yes, 3-way save/discard/continue confirmation dialog | Top-leading close |
+| Edit profile | Navigation or onboarding sheet | Disabled only while changed | Yes, discard/continue confirmation dialog | Top-leading close |
+| Share sheet / Safari / PhotoPicker | System sheet | System default | System default | System default |
+| Deep-link and read-only destination sheets | `.sheet` | Enabled | No | Route-owned |
+
 ---
 
 ## M-01. Bottom Sheet

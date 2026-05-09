@@ -379,6 +379,7 @@ struct FilterAfterDownloadScreen: View {
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraScreen(isPresentedAsCover: true)
                 .environmentObject(store)
+                .interactiveDismissDisabled(true)
         }
         .fmDestructiveAlert(
             "필터를 제거할까요?",
@@ -1104,6 +1105,7 @@ struct BuiltinFilterLibraryScreen: View {
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraScreen(isPresentedAsCover: true)
                 .environmentObject(store)
+                .interactiveDismissDisabled(true)
         }
     }
 
@@ -1328,6 +1330,7 @@ struct EditProfileScreen: View {
     @State private var handleCheckTask: Task<Void, Never>?
     @State private var lastCheckedHandle = ""
     @State private var isAvatarPickerPresented = false
+    @State private var showDiscardChangesDialog = false
 
     private enum HandleStatus: Equatable {
         case idle
@@ -1375,6 +1378,10 @@ struct EditProfileScreen: View {
             && handleStatus == .available
     }
 
+    private var hasUnsavedChanges: Bool {
+        draft != store.editableProfile
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Sp.lg) {
@@ -1391,7 +1398,12 @@ struct EditProfileScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("취소") { dismiss() }
+                Button {
+                    closeEditor()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .accessibilityLabel("닫기")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("저장") { save() }
@@ -1408,11 +1420,32 @@ struct EditProfileScreen: View {
         .onDisappear {
             handleCheckTask?.cancel()
         }
+        .interactiveDismissDisabled(hasUnsavedChanges)
+        .confirmationDialog(
+            "변경사항을 버릴까요?",
+            isPresented: $showDiscardChangesDialog,
+            titleVisibility: .visible
+        ) {
+            Button("버리고 닫기", role: .destructive) {
+                dismiss()
+            }
+            Button("계속 편집", role: .cancel) {}
+        } message: {
+            Text("저장하지 않은 프로필 변경사항이 사라집니다.")
+        }
         .sheet(isPresented: $isAvatarPickerPresented) {
             PhotoPicker { image in
                 draft.avatarImageData = image.normalizedJPEGData(maxDimension: 512)
                 draft.avatarURL = nil
             }
+        }
+    }
+
+    private func closeEditor() {
+        if hasUnsavedChanges {
+            showDiscardChangesDialog = true
+        } else {
+            dismiss()
         }
     }
 
@@ -2127,10 +2160,16 @@ struct FilterEditorScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle("필터 에디터")
         .navigationBarTitleDisplayMode(.inline)
+        .interactiveDismissDisabled(true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("취소") { showCancelAlert = true }
-                    .accessibilityIdentifier("editor.cancel")
+                Button {
+                    showCancelAlert = true
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .accessibilityLabel("닫기")
+                .accessibilityIdentifier("editor.cancel")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink(value: AppRoute.editorDraft) {
@@ -2747,13 +2786,19 @@ struct UploadCoverScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle("커버 업로드")
         .navigationBarTitleDisplayMode(.inline)
+        .interactiveDismissDisabled(true)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("취소") { showCancelAlert = true }
-                    .accessibilityIdentifier("upload.cancel")
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showCancelAlert = true
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .accessibilityLabel("닫기")
+                .accessibilityIdentifier("upload.cancel")
             }
         }
-        .alert("업로드를 취소할까요?", isPresented: $showCancelAlert) {
+        .confirmationDialog("업로드를 취소할까요?", isPresented: $showCancelAlert, titleVisibility: .visible) {
             Button("초안 저장하고 나가기") {
                 store.saveEditorDraft()
                 dismiss()
@@ -2971,13 +3016,19 @@ struct UploadTagsCategoryScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle("태그와 카테고리")
         .navigationBarTitleDisplayMode(.inline)
+        .interactiveDismissDisabled(true)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("취소") { showCancelAlert = true }
-                    .accessibilityIdentifier("upload.cancel")
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showCancelAlert = true
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .accessibilityLabel("닫기")
+                .accessibilityIdentifier("upload.cancel")
             }
         }
-        .alert("업로드를 취소할까요?", isPresented: $showCancelAlert) {
+        .confirmationDialog("업로드를 취소할까요?", isPresented: $showCancelAlert, titleVisibility: .visible) {
             Button("초안 저장하고 나가기") {
                 store.saveCurrentUploadDraftIfNeeded()
                 dismiss()
@@ -3096,13 +3147,19 @@ struct UploadTOSSubmitScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle("약관 및 제출")
         .navigationBarTitleDisplayMode(.inline)
+        .interactiveDismissDisabled(true)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("취소") { showCancelAlert = true }
-                    .accessibilityIdentifier("upload.cancel")
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showCancelAlert = true
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .accessibilityLabel("닫기")
+                .accessibilityIdentifier("upload.cancel")
             }
         }
-        .alert("업로드를 취소할까요?", isPresented: $showCancelAlert) {
+        .confirmationDialog("업로드를 취소할까요?", isPresented: $showCancelAlert, titleVisibility: .visible) {
             Button("초안 저장하고 나가기") {
                 store.saveCurrentUploadDraftIfNeeded()
                 dismiss()

@@ -80,6 +80,7 @@ struct RootShell: View {
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraScreen(isPresentedAsCover: true)
                 .environmentObject(store)
+                .interactiveDismissDisabled(true)
         }
         .sheet(item: $store.pendingDeepLinkRoute) { route in
             NavigationStack {
@@ -100,7 +101,6 @@ struct RootShell: View {
                 EditProfileScreen()
             }
             .environmentObject(store)
-            .interactiveDismissDisabled(false) // 사용자가 나중에 설정할 수 있도록 dismiss 허용 (#32 tradeoff)
         }
         .onReceive(store.$editableProfile) { profile in
             // (#32) 핸들 미설정 + 인증 + listener 첫 도착 후에만 sheet trigger.
