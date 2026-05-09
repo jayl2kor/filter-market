@@ -51,6 +51,34 @@ public enum FMTab: Hashable, CaseIterable, Sendable {
     }
 }
 
+// MARK: - FMTabBadge
+
+public enum FMTabBadge: Sendable {
+    case dot(label: String)
+    case number(Int, label: String)
+
+    var accessibilityText: String {
+        switch self {
+        case .dot(let label):
+            return label
+        case .number(let count, let label):
+            return "\(label) \(count)건"
+        }
+    }
+
+    var displayText: String? {
+        switch self {
+        case .dot:
+            return nil
+        case .number(let count, _):
+            if count <= 0 { return nil }
+            if count <= 9 { return "\(count)" }
+            if count < 100 { return "9+" }
+            return "99+"
+        }
+    }
+}
+
 // MARK: - FMTabBar
 
 /// 5탭 + 중앙 셔터 탭바.
@@ -61,10 +89,16 @@ public struct FMTabBar: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @Binding private var selection: FMTab
+    private let badges: [FMTab: FMTabBadge]
     private let onShutter: () -> Void
 
-    public init(selection: Binding<FMTab>, onShutter: @escaping () -> Void) {
+    public init(
+        selection: Binding<FMTab>,
+        badges: [FMTab: FMTabBadge] = [:],
+        onShutter: @escaping () -> Void
+    ) {
         self._selection = selection
+        self.badges = badges
         self.onShutter = onShutter
     }
 
@@ -94,13 +128,23 @@ public struct FMTabBar: View {
     @ViewBuilder
     private func tabButton(_ tab: FMTab) -> some View {
         let isActive = selection == tab
+        let badge = badges[tab]
         Button {
             selection = tab
         } label: {
             VStack(spacing: 4) {
-                Image(systemName: isActive ? tab.systemImageFilled : tab.systemImage)
-                    .font(.system(size: 22, weight: isActive ? .semibold : .regular))
-                    .frame(width: 24, height: 24)
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: isActive ? tab.systemImageFilled : tab.systemImage)
+                        .font(.system(size: 22, weight: isActive ? .semibold : .regular))
+                        .frame(width: 24, height: 24)
+
+                    if let badge {
+                        tabBadge(badge)
+                            .offset(x: 12, y: -8)
+                    }
+                }
+                .frame(width: 32, height: 24)
+
                 if !usesIconOnlyLayout {
                     Text(tab.label)
                         .font(.caption2.weight(isActive ? .semibold : .medium))
@@ -113,9 +157,43 @@ public struct FMTabBar: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(tab.accessibilityLabel)
+        .accessibilityLabel(accessibilityLabel(for: tab, badge: badge))
         .accessibilityIdentifier("tab.\(tab.identifier)")
         .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
+    }
+
+    @ViewBuilder
+    private func tabBadge(_ badge: FMTabBadge) -> some View {
+        if let text = badge.displayText {
+            Text(text)
+                .font(.system(size: 10, weight: .bold))
+                .monospacedDigit()
+                .foregroundStyle(FMColors.Text.inverse)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .padding(.horizontal, 4)
+                .frame(minWidth: 17, minHeight: 17)
+                .background(FMColors.Semantic.error, in: Capsule())
+                .overlay {
+                    Capsule()
+                        .strokeBorder(FMColors.Background.bg2, lineWidth: 1.5)
+                }
+                .accessibilityHidden(true)
+        } else {
+            Circle()
+                .fill(FMColors.Semantic.error)
+                .frame(width: 9, height: 9)
+                .overlay {
+                    Circle()
+                        .strokeBorder(FMColors.Background.bg2, lineWidth: 1.5)
+                }
+                .accessibilityHidden(true)
+        }
+    }
+
+    private func accessibilityLabel(for tab: FMTab, badge: FMTabBadge?) -> String {
+        guard let badge else { return tab.accessibilityLabel }
+        return "\(tab.accessibilityLabel), \(badge.accessibilityText)"
     }
 
     private var shutterButton: some View {
@@ -192,7 +270,13 @@ private struct FMTabBarPreview: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(FMColors.Background.bg1)
 
-            FMTabBar(selection: $selection) {
+            FMTabBar(
+                selection: $selection,
+                badges: [
+                    .saved: .dot(label: "새 다운로드 있음"),
+                    .profile: .number(12, label: "미확인 알림")
+                ]
+            ) {
                 shutterCount += 1
             }
         }

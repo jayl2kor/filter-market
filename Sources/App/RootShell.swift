@@ -1,5 +1,7 @@
 import DesignSystem
 import FirebaseAuth
+import FirebaseCore
+import FirebaseFirestore
 import SwiftUI
 
 /// 5탭 + 중앙 셔터 셸.
@@ -16,6 +18,9 @@ struct RootShell: View {
     @State private var isCameraPresented = false
     @State private var showHandleOnboarding = false
     @State private var deferredDeepLinkRoute: AppRoute?
+    @State private var notificationBadgeListener: ListenerRegistration?
+    @State private var unreadNotificationCount = 0
+    @State private var didPrimeNotificationBadge = false
     /// 신규 사용자 첫 로그인 후 listener가 도착할 시간을 약간 둔 뒤 핸들 검사.
     /// (#32) 너무 일찍 검사하면 .empty 초기값을 보고 잘못 trigger.
     @State private var didCheckHandle = false
@@ -36,6 +41,7 @@ struct RootShell: View {
                         selectedTab = newValue
                     }
                 ),
+                badges: tabBadges,
                 onShutter: {
                     FMHaptic.medium.play()
                     isCameraPresented = true
@@ -48,6 +54,7 @@ struct RootShell: View {
         .task {
             await store.load()
             store.subscribeToWallet()
+            syncNotificationBadgeListener()
             PushRegistration.shared.deepLinkHandler = { route in
                 Task { @MainActor in
                     handleIncomingDeepLink(route)
@@ -97,9 +104,11 @@ struct RootShell: View {
         }
         .onChange(of: store.isAuthenticated) { _, authenticated in
             if authenticated {
+                syncNotificationBadgeListener()
                 syncHandleOnboarding(profile: store.editableProfile)
                 flushDeferredDeepLinkIfReady()
             } else {
+                detachNotificationBadgeListener()
                 resetHandleOnboardingGate()
             }
         }
@@ -111,9 +120,13 @@ struct RootShell: View {
             Telemetry.log(.appResumed)
             Task {
                 await store.refreshOnForeground()
+                syncNotificationBadgeListener()
                 syncHandleOnboarding(profile: store.editableProfile)
                 flushDeferredDeepLinkIfReady()
             }
+        }
+        .onDisappear {
+            detachNotificationBadgeListener()
         }
     }
 
@@ -139,6 +152,16 @@ struct RootShell: View {
 
     private var handleOnboardingUID: String {
         Auth.auth().currentUser?.uid ?? "__authenticated__"
+    }
+
+    private var tabBadges: [FMTab: FMTabBadge] {
+        var result: [FMTab: FMTabBadge] = [:]
+        if unreadNotificationCount > 0 {
+            result[.profile] = .number(unreadNotificationCount, label: "미확인 알림")
+        } else if store.uploadStep == .pending {
+            result[.profile] = .dot(label: "업로드 검수 대기")
+        }
+        return result
     }
 
     private func handleIncomingDeepLink(_ route: AppRoute) {
@@ -203,6 +226,44 @@ struct RootShell: View {
         showHandleOnboarding = false
         didCheckHandle = false
         checkedHandleOnboardingUID = nil
+    }
+
+    private func syncNotificationBadgeListener() {
+        guard store.isAuthenticated,
+              FirebaseApp.app() != nil,
+              let uid = Auth.auth().currentUser?.uid else {
+            detachNotificationBadgeListener()
+            return
+        }
+
+        notificationBadgeListener?.remove()
+        notificationBadgeListener = Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("notifications")
+            .order(by: "createdAt", descending: true)
+            .limit(to: 100)
+            .addSnapshotListener { snapshot, _ in
+                let count = snapshot?.documents.filter { doc in
+                    let data = doc.data()
+                    return data["readAt"] == nil || data["readAt"] is NSNull
+                }.count ?? 0
+
+                Task { @MainActor in
+                    let previous = unreadNotificationCount
+                    unreadNotificationCount = count
+                    if didPrimeNotificationBadge, previous == 0, count > 0 {
+                        FMHaptic.light.play()
+                    }
+                    didPrimeNotificationBadge = true
+                }
+            }
+    }
+
+    private func detachNotificationBadgeListener() {
+        notificationBadgeListener?.remove()
+        notificationBadgeListener = nil
+        unreadNotificationCount = 0
+        didPrimeNotificationBadge = false
     }
 
     #if DEBUG

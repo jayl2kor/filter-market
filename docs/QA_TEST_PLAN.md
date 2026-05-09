@@ -89,6 +89,17 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 
 ---
 
+## 3.8 Root Tab Bar
+
+| # | Element | Expected action | PASS/FAIL |
+|---|---------|-----------------|-----------|
+| 3.8.1 | 프로필 탭 badge | 최근 알림 100건 중 `readAt`이 없는 항목 수를 숫자 badge로 표시. 1~9는 숫자, 10~99는 `9+`, 100 이상은 `99+` |  |
+| 3.8.2 | 프로필 탭 badge VoiceOver | "프로필 탭, 미확인 알림 N건"으로 읽힘 |  |
+| 3.8.3 | 업로드 검수 대기 dot | unread 알림이 없고 `uploadStep == .pending`이면 프로필 탭에 dot badge 표시 |  |
+| 3.8.4 | badge layout | badge는 icon overlay로 표시되어 탭 라벨/아이콘 위치가 밀리지 않음 |  |
+
+---
+
 ## 4. Marketplace (루트 탭)
 
 **도달 경로**: 로그인 후 탭바 1번째
