@@ -29,6 +29,7 @@
 | FilterLibraryStore extraction | 필터 로딩/선택/다운로드/즐겨찾기/라우트 lookup 상태 전이를 `Sources/App/Marketplace/FilterLibraryStore.swift`로 분리하고 `MooditStore`는 기존 화면 API를 유지하는 facade로 연결 | Partial |
 | Marketplace/Search/Saved domain-store injection | Marketplace/Search 화면의 필터 목록/로딩/검색 상태 읽기를 `FilterLibraryStore`로 이동하고, Marketplace 잔액 읽기는 `WalletStore`, Search 인증 변화 감지는 `SessionStore`로 이동. Saved는 삭제 persistence facade만 `MooditStore` 유지 | Done |
 | Favorites collection domain-store injection | FavoritesCollectionScreen의 즐겨찾기 count/tile 상태 읽기를 `FilterLibraryStore`로 이동하고, UniversalLinkLandingScreen의 미사용 `MooditStore` 주입 제거 | Done |
+| Filter detail loader domain-store injection | FilterDetailLoaderScreen의 로컬 UUID fast-path 필터 조회를 `MooditStore` facade 대신 `FilterLibraryStore`로 이동 | Done |
 | WalletStore extraction | 코인 잔액/Pro 상태 listener, 낙관적 코인 조정, 결제 오류 메시지를 `Sources/App/Wallet/WalletStore.swift`로 분리하고 `MooditStore`는 기존 지갑 API를 facade로 유지 | Partial |
 | Wallet screen domain-store injection | `RootShell`/UI-test host가 4개 도메인 store를 직접 주입하고 Wallet/Pro/Topup/PaymentFailed 화면의 잔액/Pro/결제 오류 상태 읽기를 `WalletStore`로 이동 | Done |
 | EditorDraftStore extraction | 에디터 참조 이미지, 초안, LUT, 업로드 단계, 메이커 필터 상태 전이를 `Sources/App/Maker/EditorDraftStore.swift`로 분리하고 `MooditStore`는 초안 persistence/Firestore facade를 유지 | Partial |
@@ -105,6 +106,7 @@
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after moving LoginScreen authentication fallback to `SessionStore` (#180) |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/SessionStoreTests -only-testing:AppUITests/P0CoreActionTests/testLoginContract` | PASS, 2 Swift Testing session tests + 1 login UI contract test (#180) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` + `xcodebuild ... -only-testing:AppUITests/ActionSurfaceSmokeTests/testRouteFavoritesCollection` | PASS after moving FavoritesCollectionScreen favorite-count reads to `FilterLibraryStore` (#180) |
+| 2026-05-09 | `xcodebuild -quiet ... build` + `xcodebuild -quiet ... -only-testing:AppUITests/ActionSurfaceSmokeTests/testRouteFilterDetail` | PASS after moving FilterDetailLoaderScreen local lookup to `FilterLibraryStore` (#180) |
 | 2026-05-09 | `npm --prefix functions run build` + `node --test functions/test/getFilterDetail.test.mjs` | PASS, 14 tests after adding `submitReview` download/entitlement/Pro verification (#64) |
 | 2026-05-09 | `npm --prefix functions run test:rules` | PASS, 25 Firestore rules tests after enforcing review create download entitlement and maker self-review denial (#64) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after routing ReviewCompose submission through the `submitReview` callable (#64) |

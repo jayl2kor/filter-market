@@ -11,7 +11,7 @@ import SwiftUI
 struct FilterDetailLoaderScreen: View {
     let filterId: String
 
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @State private var phase: Phase = .loading
 
     var body: some View {
@@ -39,11 +39,11 @@ struct FilterDetailLoaderScreen: View {
         }
     }
 
-    /// 동기적으로 store.filters에서 매칭되는 필터를 즉시 반환. 번들 시드/이미 로드된 데이터 진입 시
+    /// 동기적으로 filterLibraryStore.filters에서 매칭되는 필터를 즉시 반환. 번들 시드/이미 로드된 데이터 진입 시
     /// .loading 단계에서도 ProgressView 깜빡임 없이 즉시 렌더링하기 위한 fast-path.
     private var synchronousLocalFilter: Models.Filter? {
         guard let uuid = UUID(uuidString: filterId) else { return nil }
-        return store.filters.first(where: { $0.id == uuid })
+        return filterLibraryStore.filters.first(where: { $0.id == uuid })
     }
 
     // MARK: - State machine
@@ -58,10 +58,10 @@ struct FilterDetailLoaderScreen: View {
 
     private func load() async {
         phase = .loading
-        // Local fast-path: 번들/인메모리 store.filters 에 있는 필터면 즉시 표시한 뒤,
+        // Local fast-path: 번들/인메모리 filterLibraryStore.filters 에 있는 필터면 즉시 표시한 뒤,
         // production에서는 getFilterDetail 응답으로 샘플/리뷰/카운터를 갱신한다.
         if let uuid = UUID(uuidString: filterId),
-           let local = store.filters.first(where: { $0.id == uuid }) {
+           let local = filterLibraryStore.filters.first(where: { $0.id == uuid }) {
             phase = .localFilter(local)
             #if DEBUG
             if isUITesting {
