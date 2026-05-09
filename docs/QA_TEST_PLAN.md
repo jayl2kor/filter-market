@@ -465,14 +465,17 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | # | Element | Expected | PASS/FAIL |
 |---|---|---|---|
 | 11.1.1 | (게스트) 로그인 CTA | navigateToLogin = true |  |
-| 11.1.2 | (own) 톱니바퀴 (toolbar) | → AppRoute.settings |  |
+| 11.1.2 | (own) 톱니바퀴 (toolbar, `profile.settings`) | → AppRoute.settings |  |
 | 11.1.3 | 필터 카운트 stat | 비인터랙티브 |  |
 | 11.1.4 | 팔로워 stat | → AppRoute.followers(uid:) |  |
 | 11.1.5 | 팔로잉 stat | → AppRoute.following(uid:) |  |
 | 11.1.6 | 세그먼트 picker (내 필터/저장됨/촬영함) | 그리드 변경 |  |
 | 11.1.7 | 그리드 타일 | 내 필터/저장됨은 filter UUID로 → AppRoute.filterDetail, 촬영함은 → AppRoute.captureDetail |  |
-| 11.1.8 | (other) 팔로우 버튼 | toggle |  |
-| 11.1.9 | (other) 차단 버튼 | confirmation → block |  |
+| 11.1.8 | (own) CTA stack | `profile.edit.open` + `profile.share`가 타인 프로필 CTA와 같은 위치에 표시됨. 헤더 VoiceOver는 "내 프로필"로 시작 |  |
+| 11.1.9 | (other) CTA stack | `profile.follow.toggle` + `profile.share`가 본인 프로필 CTA와 같은 위치에 표시됨. 헤더 VoiceOver는 "메이커 프로필"로 시작 |  |
+| 11.1.9a | (other) `profile.follow.toggle` | Firebase `follows/{actorUid}_{targetUid}` edge를 생성/삭제하고 팔로우/팔로잉 상태가 즉시 반영됨. UI test/guest fallback은 로컬 토글 |  |
+| 11.1.9b | (other) `profile.other.menu` | 공유, 신고(`AppRoute.reportForm(.user)`), 차단 destructive confirmation 제공 |  |
+| 11.1.9c | (other) 차단 | confirmation → Firebase `blocks/{actorUid}_{targetUid}` edge 저장. 실패 시 alert |  |
 | 11.1.10 | `profile.tile.myFilters.*` | title 문자열이 아니라 `filter.id.uuidString`으로 상세 진입 |  |
 | 11.1.11 | `profile.tile.captures.*` | capture document ID를 filterDetail로 보내지 않고 capture detail 화면 표시 |  |
 | 11.1.12 | (other) 없는 uid / fetch 실패 | 없는 uid는 not-found 안내, 네트워크 실패는 retry CTA 표시. placeholder `...`가 영구 노출되지 않음 |  |

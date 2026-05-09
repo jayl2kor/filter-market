@@ -46,6 +46,11 @@ struct ProfileScreen: View {
     @State private var isRefreshing = false
     @State private var isOtherProfileNotFound = false
     @State private var otherProfileLoadError: String?
+    @State private var isFollowingOtherProfile = false
+    @State private var isUpdatingFollow = false
+    @State private var otherFollowListener: ListenerRegistration?
+    @State private var showBlockConfirmation = false
+    @State private var profileActionMessage: String?
 
     init(user: ProfileUser? = nil, ownsNavigationStack: Bool = true) {
         self.injectedUser = user
@@ -65,9 +70,9 @@ struct ProfileScreen: View {
         if otherUid != nil, let other = fetchedOtherUser { return other }
         if otherUid == nil, let mine = profileStore.currentUserProfile { return mine }
         // 로드 전 placeholder.
-            return ProfileUser(
-                displayName: otherUid != nil ? "..." : "사용자",
-                handle: otherUid.map { "@" + String($0.prefix(8)) } ?? "@user",
+        return ProfileUser(
+            displayName: otherUid != nil ? "..." : "사용자",
+            handle: otherUid.map { "@" + String($0.prefix(8)) } ?? "@user",
             bio: "",
             avatarInitials: "··",
             avatarURL: nil,
@@ -300,6 +305,7 @@ struct ProfileScreen: View {
                 profileStore.start()
             } else {
                 await loadOtherProfile()
+                attachOtherFollowState()
             }
             // hasAppeared 즉시 true — 데이터 listener가 도착하면 자동 갱신. (#18 hardcoded 250ms sleep 제거)
             hasAppeared = true
@@ -308,15 +314,41 @@ struct ProfileScreen: View {
             if otherUid == nil {
                 profileStore.stop()
             }
+            detachOtherFollowState()
         }
         .sheet(item: $shareSheetPayload) { payload in
             ShareSheet(activityItems: payload.items)
+        }
+        .confirmationDialog(
+            "이 사용자를 차단할까요?",
+            isPresented: $showBlockConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("차단", role: .destructive) {
+                Task { await blockOtherProfile() }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("차단하면 이 사용자의 리뷰와 활동이 숨겨집니다.")
+        }
+        .alert("프로필 작업", isPresented: Binding(
+            get: { profileActionMessage != nil },
+            set: { if !$0 { profileActionMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(profileActionMessage ?? "")
         }
     }
 
     private func profileShareURL() -> URL {
         let handle = user.handle.replacingOccurrences(of: "@", with: "")
         return URL(string: "https://moodit.app/u/\(handle)") ?? URL(string: "https://moodit.app")!
+    }
+
+    private func shareProfile() {
+        FMHaptic.light.play()
+        shareSheetPayload = SharePayload(items: [profileShareURL()])
     }
 
     private var shouldShowOtherProfileError: Bool {
@@ -375,6 +407,13 @@ struct ProfileScreen: View {
                 .padding(.top, Sp.xxs)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(profileAccessibilityLabel)
+    }
+
+    private var profileAccessibilityLabel: String {
+        let prefix = user.isOwnProfile ? "내 프로필" : "메이커 프로필"
+        return "\(prefix), \(user.displayName), \(user.handle)"
     }
 
     // MARK: - Stats
@@ -491,14 +530,21 @@ struct ProfileScreen: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("profile.edit.open")
             } else {
-                FMButton("팔로우", variant: .primary, size: .md) {
-                    FMHaptic.light.play()
+                FMButton(
+                    isFollowingOtherProfile ? "팔로잉" : "팔로우",
+                    icon: isFollowingOtherProfile ? "checkmark" : "person.badge.plus",
+                    variant: isFollowingOtherProfile ? .secondary : .primary,
+                    size: .md,
+                    isLoading: isUpdatingFollow
+                ) {
+                    Task { await toggleOtherFollow() }
                 }
+                .accessibilityIdentifier("profile.follow.toggle")
+                .accessibilityValue(isFollowingOtherProfile ? "팔로잉" : "팔로우하지 않음")
             }
 
             Button {
-                FMHaptic.light.play()
-                shareSheetPayload = SharePayload(items: [profileShareURL()])
+                shareProfile()
             } label: {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 16, weight: .semibold))
@@ -511,6 +557,7 @@ struct ProfileScreen: View {
                     }
             }
             .accessibilityLabel("프로필 공유")
+            .accessibilityIdentifier("profile.share")
         }
     }
 
@@ -656,14 +703,135 @@ struct ProfileScreen: View {
     // MARK: - Toolbar
 
     private var settingsButton: some View {
-        NavigationLink(value: AppRoute.settings) {
-            Image(systemName: "gearshape")
-                .font(.system(size: IconSize.lg - 4, weight: .regular))
-                .foregroundStyle(FMColors.Text.primary)
-                .frame(width: 36, height: 36)
+        Group {
+            if user.isOwnProfile {
+                NavigationLink(value: AppRoute.settings) {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: IconSize.lg - 4, weight: .regular))
+                        .foregroundStyle(FMColors.Text.primary)
+                        .frame(width: 36, height: 36)
+                }
+                .accessibilityLabel("설정 열기")
+                .accessibilityIdentifier("profile.settings")
+            } else {
+                Menu {
+                    Button {
+                        shareProfile()
+                    } label: {
+                        Label("공유", systemImage: "square.and.arrow.up")
+                    }
+
+                    NavigationLink(value: AppRoute.reportForm(target: .user(uid: reportTargetUserID))) {
+                        Label("신고", systemImage: "flag")
+                    }
+
+                    Button(role: .destructive) {
+                        showBlockConfirmation = true
+                    } label: {
+                        Label("차단", systemImage: "hand.raised")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: IconSize.lg - 4, weight: .semibold))
+                        .foregroundStyle(FMColors.Text.primary)
+                        .frame(width: 36, height: 36)
+                }
+                .accessibilityLabel("프로필 더보기")
+                .accessibilityIdentifier("profile.other.menu")
+            }
         }
-        .accessibilityLabel("설정 열기")
-        .accessibilityIdentifier("profile.settings")
+    }
+
+    private var reportTargetUserID: String {
+        otherUid ?? user.handle.replacingOccurrences(of: "@", with: "")
+    }
+
+    private func attachOtherFollowState() {
+        detachOtherFollowState()
+        guard let targetUid = otherUid,
+              !isUITesting,
+              FirebaseApp.app() != nil,
+              let actorUid = Auth.auth().currentUser?.uid,
+              actorUid != targetUid else { return }
+
+        otherFollowListener = Firestore.firestore()
+            .collection("follows").document("\(actorUid)_\(targetUid)")
+            .addSnapshotListener { snapshot, _ in
+                let exists = snapshot?.exists == true
+                Task { @MainActor in
+                    isFollowingOtherProfile = exists
+                }
+            }
+    }
+
+    private func detachOtherFollowState() {
+        otherFollowListener?.remove()
+        otherFollowListener = nil
+    }
+
+    @MainActor
+    private func toggleOtherFollow() async {
+        guard !isUpdatingFollow else { return }
+        guard let targetUid = otherUid,
+              !isUITesting,
+              FirebaseApp.app() != nil,
+              let actorUid = Auth.auth().currentUser?.uid,
+              actorUid != targetUid else {
+            isFollowingOtherProfile.toggle()
+            FMHaptic.selection.play()
+            return
+        }
+
+        isUpdatingFollow = true
+        let previous = isFollowingOtherProfile
+        isFollowingOtherProfile.toggle()
+        FMHaptic.selection.play()
+        defer { isUpdatingFollow = false }
+
+        let edgeRef = Firestore.firestore()
+            .collection("follows").document("\(actorUid)_\(targetUid)")
+        do {
+            if isFollowingOtherProfile {
+                try await edgeRef.setData([
+                    "actorUid": actorUid,
+                    "targetUid": targetUid,
+                    "createdAt": FieldValue.serverTimestamp()
+                ], merge: true)
+            } else {
+                try await edgeRef.delete()
+            }
+        } catch {
+            isFollowingOtherProfile = previous
+            profileActionMessage = "팔로우 상태를 변경하지 못했어요."
+        }
+    }
+
+    @MainActor
+    private func blockOtherProfile() async {
+        let targetUid = reportTargetUserID
+        guard !targetUid.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard !isUITesting,
+              FirebaseApp.app() != nil,
+              let actorUid = Auth.auth().currentUser?.uid,
+              actorUid != targetUid else {
+            profileActionMessage = "\(user.handle) 사용자를 차단했어요."
+            return
+        }
+
+        do {
+            try await Firestore.firestore()
+                .collection("blocks").document("\(actorUid)_\(targetUid)")
+                .setData([
+                    "actorUid": actorUid,
+                    "targetUid": targetUid,
+                    "targetHandle": user.handle,
+                    "targetDisplayName": user.displayName,
+                    "createdAt": FieldValue.serverTimestamp()
+                ], merge: true)
+            profileActionMessage = "\(user.handle) 사용자를 차단했어요."
+        } catch {
+            profileActionMessage = "차단하지 못했어요."
+        }
     }
 
     // MARK: - Helpers
