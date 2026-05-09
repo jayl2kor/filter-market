@@ -43,7 +43,7 @@ struct OnboardingScreen: View {
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .animation(.fmEaseOut, value: currentPage)
+                .animation(reduceMotion ? .fmFast : .fmEaseOut, value: currentPage)
 
                 pageIndicator
                     .padding(.bottom, Sp.lg)
@@ -88,21 +88,28 @@ struct OnboardingScreen: View {
             }
         }
         .frame(height: 32)
-        .animation(.fmFast, value: isLastPage)
+        .animation(reduceMotion ? .linear(duration: 0.12) : .fmFast, value: isLastPage)
     }
 
     private var pageIndicator: some View {
-        HStack(spacing: 6) {
-            ForEach(pages.indices, id: \.self) { index in
-                Capsule()
-                    .fill(
-                        index == currentPage
-                            ? FMColors.Accent.primary
-                            : FMColors.Border.default
-                    )
-                    .frame(width: index == currentPage ? 20 : 6, height: 6)
-                    .animation(.fmEaseOut, value: currentPage)
+        VStack(spacing: Sp.xs) {
+            HStack(spacing: 6) {
+                ForEach(pages.indices, id: \.self) { index in
+                    Capsule()
+                        .fill(
+                            index == currentPage
+                                ? FMColors.Accent.primary
+                                : FMColors.Border.default
+                        )
+                        .frame(width: index == currentPage ? 20 : 6, height: 6)
+                        .animation(reduceMotion ? .linear(duration: 0.12) : .fmEaseOut, value: currentPage)
+                }
             }
+
+            Text("\(currentPage + 1) / \(pages.count)")
+                .fmTypography(.caption)
+                .foregroundStyle(FMColors.Text.secondary)
+                .monospacedDigit()
         }
         .accessibilityElement()
         .accessibilityLabel("페이지 \(currentPage + 1) / \(pages.count)")
@@ -112,11 +119,12 @@ struct OnboardingScreen: View {
         FMButton(
             isLastPage ? "시작하기" : "다음",
             icon: isLastPage ? "sparkles" : "arrow.right",
-            variant: .primary,
+            variant: isLastPage ? .primary : .secondary,
             size: .lg
         ) {
             advance()
         }
+        .accessibilityHint(isLastPage ? "온보딩을 완료합니다" : "다음 온보딩 페이지로 이동합니다")
     }
 
     // MARK: - Background

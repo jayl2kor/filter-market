@@ -64,11 +64,12 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | # | 위치 | Element | Expected action | PASS/FAIL |
 |---|------|---------|-----------------|-----------|
 | 2.1 | 1~3페이지 | "건너뛰기" (우상단) | onComplete 콜백 → 로그인 화면 |  |
-| 2.2 | 1~3페이지 | "다음" (FMButton primary) | TabView selection +1, 애니메이션 |  |
+| 2.2 | 1~3페이지 | "다음" (FMButton secondary) | TabView selection +1, 애니메이션 |  |
 | 2.3 | 4페이지 | "시작하기" (FMButton primary) | onComplete 콜백 → 로그인 화면 |  |
 | 2.4 | 모든 페이지 | 좌우 스와이프 | 페이지 전환 |  |
-| 2.5 | 모든 페이지 | 페이지 인디케이터 dots | 비인터랙티브, 현재 페이지 강조 |  |
+| 2.5 | 모든 페이지 | 페이지 인디케이터 dots + `n / 4` 카운트 | 비인터랙티브, 현재 페이지 강조, VoiceOver가 현재/전체 페이지를 읽음 |  |
 | 2.6 | (앱 재실행) | 온보딩 종료 후 재실행 | 온보딩 안 뜸 (직접 root 진입) |  |
+| 2.7 | Reduce Motion ON | "다음", 좌우 스와이프 | spring 대신 짧은 fade/linear 전환으로 동작 |  |
 
 ---
 
