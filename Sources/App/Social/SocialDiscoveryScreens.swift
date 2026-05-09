@@ -1285,6 +1285,7 @@ private struct FollowListScreen: View {
     @State private var titleHandle: String = ""
     @State private var followerCount: Int = 0
     @State private var followingCount: Int = 0
+    @State private var isRefreshing = false
     @State private var listListener: ListenerRegistration?
     @State private var profileListener: ListenerRegistration?
 
@@ -1386,6 +1387,9 @@ private struct FollowListScreen: View {
             }
             .padding(.horizontal, Sp.md)
             .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+        .refreshable {
+            await refreshFollowList()
         }
     }
 
@@ -1525,6 +1529,39 @@ private struct FollowListScreen: View {
             }
         }
         return result.sorted { $0.handle < $1.handle }
+    }
+
+    @MainActor
+    private func refreshFollowList() async {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+
+        guard !isUITesting else {
+            users = mode == .followers ? SocialUser.followers : SocialUser.following
+            followerCount = SocialUser.followers.count
+            followingCount = SocialUser.following.count
+            return
+        }
+
+        let db = Firestore.firestore()
+        do {
+            let profile = try await db.collection("users").document(normalizedUserID).getDocument()
+            let data = profile.data() ?? [:]
+            let handle = (data["handle"] as? String) ?? ""
+            titleHandle = handle.isEmpty ? "@\(normalizedUserID.prefix(8))" : (handle.hasPrefix("@") ? handle : "@\(handle)")
+            followerCount = (data["followerCount"] as? Int) ?? followerCount
+            followingCount = (data["followingCount"] as? Int) ?? followingCount
+
+            let field = mode == .followers ? "targetUid" : "actorUid"
+            let snapshot = try await db.collection("follows")
+                .whereField(field, isEqualTo: normalizedUserID)
+                .limit(to: 100)
+                .getDocuments()
+            users = await loadUsers(for: snapshot.documents)
+        } catch {
+            // Realtime listeners remain attached, so preserve the last visible state on manual refresh failure.
+        }
     }
 
     @MainActor
