@@ -49,6 +49,7 @@ struct EmailLoginScreen: View {
     @State private var errorMessage: String?
     @State private var showPasswordReset: Bool = false
     @State private var resetEmailSent: Bool = false
+    @State private var isPasswordVisible: Bool = false
 
     private var isFormValid: Bool {
         guard !email.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
@@ -123,23 +124,59 @@ struct EmailLoginScreen: View {
             Text("비밀번호")
                 .fmTypography(.caption)
                 .foregroundStyle(FMColors.Text.secondary)
-            SecureField(mode == .signUp ? "새 비밀번호" : "비밀번호", text: $password)
-                .textContentType(mode == .signUp ? .newPassword : .password)
-                .padding(Sp.sm)
-                .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
-                .overlay {
-                    RoundedRectangle(cornerRadius: R.md)
-                        .strokeBorder(FMColors.Border.default, lineWidth: 1)
+            HStack(spacing: Sp.xs) {
+                Group {
+                    if isPasswordVisible {
+                        TextField(mode == .signUp ? "새 비밀번호" : "비밀번호", text: $password)
+                    } else {
+                        SecureField(mode == .signUp ? "새 비밀번호" : "비밀번호", text: $password)
+                    }
                 }
+                .textContentType(mode == .signUp ? .newPassword : .password)
+                .submitLabel(mode == .signIn ? .go : .done)
                 .accessibilityIdentifier("auth.password.input")
+
+                Button {
+                    isPasswordVisible.toggle()
+                    FMHaptic.light.play()
+                } label: {
+                    Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(FMColors.Text.secondary)
+                        .frame(width: 36, height: 36)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("auth.password.visibility")
+                .accessibilityLabel(isPasswordVisible ? "비밀번호 숨기기" : "비밀번호 보기")
+            }
+            .padding(.leading, Sp.sm)
+            .padding(.trailing, Sp.xs)
+            .padding(.vertical, Sp.xs)
+            .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+            .overlay {
+                RoundedRectangle(cornerRadius: R.md)
+                    .strokeBorder(FMColors.Border.default, lineWidth: 1)
+            }
         }
     }
 
     private var passwordHint: some View {
-        Text("8자 이상, 소문자 + 숫자 + 특수문자 포함")
-            .fmTypography(.caption)
-            .foregroundStyle(FMColors.Text.tertiary)
-            .accessibilityIdentifier("auth.password.hint")
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            HStack(spacing: Sp.xs) {
+                ForEach(0..<3, id: \.self) { index in
+                    Capsule()
+                        .fill(index < passwordStrength.level ? passwordStrength.color : FMColors.Border.subtle)
+                        .frame(height: 4)
+                }
+            }
+
+            Text("강도: \(passwordStrength.title) · 8자 이상, 소문자 + 숫자 + 특수문자 포함")
+                .fmTypography(.caption)
+                .foregroundStyle(FMColors.Text.tertiary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("auth.password.hint")
+        .accessibilityLabel("비밀번호 강도 \(passwordStrength.title). 8자 이상, 소문자, 숫자, 특수문자를 포함해야 합니다.")
     }
 
     private var ctaButton: some View {
@@ -296,5 +333,39 @@ struct EmailLoginScreen: View {
             options: .regularExpression
         ) != nil
         return lower && digit && special
+    }
+
+    private var passwordStrength: PasswordStrength {
+        PasswordStrength(password)
+    }
+
+    private struct PasswordStrength {
+        let level: Int
+        let title: String
+        let color: Color
+
+        init(_ password: String) {
+            let lower = password.range(of: "[a-z]", options: .regularExpression) != nil
+            let upper = password.range(of: "[A-Z]", options: .regularExpression) != nil
+            let digit = password.range(of: "[0-9]", options: .regularExpression) != nil
+            let special = password.range(of: "[^A-Za-z0-9]", options: .regularExpression) != nil
+            let length = password.count >= 8
+            let score = [lower, upper, digit, special, length].filter { $0 }.count
+
+            switch score {
+            case 0...2:
+                level = password.isEmpty ? 0 : 1
+                title = password.isEmpty ? "입력 전" : "약함"
+                color = FMColors.Semantic.error
+            case 3...4:
+                level = 2
+                title = "보통"
+                color = FMColors.Accent.primary
+            default:
+                level = 3
+                title = "강함"
+                color = FMColors.Semantic.success
+            }
+        }
     }
 }
