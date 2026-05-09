@@ -255,6 +255,8 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 7.20 | 카메라 권한 미요청 (notDetermined) | `CameraPermissionPriming` 표시: "카메라 사용 안내" + "허용" CTA |  |
 | 7.21 | rapid filter switching | 필터를 1초 내 10회 이상 빠르게 전환해도 마지막 선택 필터가 라이브 프리뷰에 적용되고 프레임 단위 stuck/rollback 없음 |  |
 | 7.22 | preview memory plateau | Instruments Allocations/Metal System Trace 기준 5분 카메라 프리뷰 후 `CVMetalTextureCache`/texture 객체가 지속 누적되지 않음. background 진입 시 renderer stop/flush 후 foreground 복귀 정상 |  |
+| 7.23 | Dynamic Type xLarge | 카메라 overlay 텍스트(AUTO, 비율, 타이머, 플래시, 현재 필터, 강도, 필터명, 줌, 타이머 카운트다운)가 스케일되고 주요 컨트롤이 겹치지 않음 |  |
+| 7.24 | Dynamic Type accessibility size | CameraScreen은 xLarge 상한으로 overlay 레이아웃을 보호하고, VoiceOver label은 기존과 동일하게 유지 |  |
 
 ### 7.x CameraAspectPickerScreen — `AppRoute.cameraAspect`
 | # | ID | Expected | PASS/FAIL |

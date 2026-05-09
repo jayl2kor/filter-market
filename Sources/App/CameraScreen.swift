@@ -105,6 +105,7 @@ struct CameraScreen: View {
             }
         }
         .background(Color.black)
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
         .preferredColorScheme(.dark)
         .task {
             controller.apply(filter: store.selectedFilter)
@@ -264,7 +265,7 @@ struct CameraScreen: View {
             Image(systemName: "sun.max.fill")
                 .font(.system(size: 10, weight: .semibold))
             Text("AUTO")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.cameraOverlayCaption)
                 .tracking(0.4)
         }
         .foregroundStyle(FMColors.Text.inverse)
@@ -290,7 +291,7 @@ struct CameraScreen: View {
             }
         } label: {
             Text(store.cameraAspectRatio.label)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.cameraOverlayCaption)
                 .tracking(0.3)
                 .foregroundStyle(FMColors.Text.inverse)
                 .frame(minWidth: 44, minHeight: 44)
@@ -325,7 +326,7 @@ struct CameraScreen: View {
                 Image(systemName: "timer")
                     .font(.system(size: 13, weight: .semibold))
                 Text(store.cameraTimerOption.label)
-                    .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                    .font(.cameraOverlayCaptionMonospaced)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
@@ -383,7 +384,7 @@ struct CameraScreen: View {
                 Image(systemName: store.cameraFlashMode.systemImage)
                     .font(.system(size: 14, weight: .semibold))
                 Text(store.cameraFlashMode.label)
-                    .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                    .font(.cameraOverlayCaptionMonospaced)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
@@ -499,7 +500,7 @@ struct CameraScreen: View {
                     .font(.system(size: 9, weight: .bold))
             }
             Text(label)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.cameraOverlayCaption)
                 .lineLimit(1)
             if !leading {
                 Image(systemName: "chevron.right")
@@ -672,7 +673,7 @@ struct CameraScreen: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(FMColors.Accent.primary)
                 Text(filter.title)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.cameraOverlayTitle)
                     .foregroundStyle(FMColors.Text.inverse)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
@@ -681,7 +682,7 @@ struct CameraScreen: View {
                 Spacer(minLength: Sp.xs)
 
                 Text("적용 중")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.cameraOverlayCaption)
                     .foregroundStyle(FMColors.Accent.primary)
             }
             .padding(.horizontal, Sp.sm)
@@ -700,7 +701,7 @@ struct CameraScreen: View {
     private var intensitySlider: some View {
         HStack(spacing: Sp.sm) {
             Label("강도", systemImage: "slider.horizontal.3")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.cameraOverlayCaption)
                 .foregroundStyle(FMColors.Text.inverse.opacity(0.92))
                 .labelStyle(.iconOnly)
                 .frame(width: 32, alignment: .leading)
@@ -715,7 +716,7 @@ struct CameraScreen: View {
             )
 
             Text("\(Int((controller.intensity * 100).rounded()))%")
-                .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                .font(.cameraOverlayCaptionMonospaced)
                 .foregroundStyle(FMColors.Accent.primary)
                 .frame(width: 38, alignment: .trailing)
         }
@@ -778,7 +779,7 @@ struct CameraScreen: View {
                     )
 
                 Text(filter.title)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.cameraOverlayCaption)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .foregroundStyle(
@@ -867,7 +868,7 @@ struct CameraScreen: View {
                     store.cameraZoomPreset = preset
                 } label: {
                     Text(zoomLabel(for: preset))
-                        .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                        .font(.cameraOverlayCaptionMonospaced)
                         .foregroundStyle(store.cameraZoomPreset == preset ? .black : FMColors.Text.inverse)
                         .frame(width: 36, height: 32)
                         .background(
@@ -905,7 +906,7 @@ struct CameraScreen: View {
                 .ignoresSafeArea()
             VStack(spacing: Sp.lg) {
                 Text("\(value)")
-                    .font(.system(size: 96, weight: .bold, design: .rounded).monospacedDigit())
+                    .font(.cameraCountdown)
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
 
@@ -1075,7 +1076,7 @@ private struct CaptureSaveBanner: View {
             Image(systemName: state.iconName)
                 .font(.system(size: 14, weight: .semibold))
             Text(state.message)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.cameraOverlayLabel)
                 .lineLimit(1)
         }
         .foregroundStyle(state.tint)
@@ -1089,6 +1090,14 @@ private struct CaptureSaveBanner: View {
         .colorScheme(.dark)
         .accessibilityLabel(state.message)
     }
+}
+
+private extension Font {
+    static let cameraOverlayCaption = Font.caption2.weight(.semibold)
+    static let cameraOverlayCaptionMonospaced = Font.caption2.weight(.semibold).monospacedDigit()
+    static let cameraOverlayLabel = Font.footnote.weight(.semibold)
+    static let cameraOverlayTitle = Font.subheadline.weight(.bold)
+    static let cameraCountdown = Font.system(.largeTitle, design: .rounded).weight(.bold).monospacedDigit()
 }
 
 // MARK: - CameraCaptureResult / Focus model
