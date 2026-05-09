@@ -108,6 +108,7 @@
 		75A416B3410AC840412C0A6F /* MooditStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309D364AADCB11180774B6FA /* MooditStore.swift */; };
 		B1800201B1800201B1800201 /* MooditStoreModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1800200B1800200B1800200 /* MooditStoreModels.swift */; };
 		75F33C73DA3BC861435F6AC7 /* FMFilterTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE714DB5A01C5928F5C1BFE /* FMFilterTile.swift */; };
+		B1780301B1780301B1780301 /* ModerationWorkflowScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1780300B1780300B1780300 /* ModerationWorkflowScreens.swift */; };
 		7B97A97197A97197A9710097 /* FMRemoteImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B97A97097A97097A9700097 /* FMRemoteImage.swift */; };
 		779C514D860B6D87A3C81EDF /* ProfileScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E614651E5A9700CB58E8A1E /* ProfileScreen.swift */; };
 		79245DCD08E34AB83325F9F3 /* BasicYUVShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = BDF21144BA3731FF0820005E /* BasicYUVShaders.metal */; };
@@ -563,6 +564,7 @@
 		C7F21BC4368BB1664EF3E66C /* Review.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Review.swift; sourceTree = "<group>"; };
 		C912278BBD0D3FA2CC0AB6F4 /* MarketplaceMockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketplaceMockData.swift; sourceTree = "<group>"; };
 		B1780200B1780200B1780200 /* MarketplaceWorkflowScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketplaceWorkflowScreens.swift; sourceTree = "<group>"; };
+		B1780300B1780300B1780300 /* ModerationWorkflowScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModerationWorkflowScreens.swift; sourceTree = "<group>"; };
 		C999E9C145CB6ED65709111A /* NotificationsInboxScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsInboxScreen.swift; sourceTree = "<group>"; };
 		C9CEF36087F1761C89452CF4 /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
 		C9FFDB0F9F4D725AC87EEA94 /* ProfileMockData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileMockData.swift; sourceTree = "<group>"; };
@@ -1095,6 +1097,7 @@
 			isa = PBXGroup;
 			children = (
 				B1317C00885A8FE9F30FFAC6 /* FilterRejectedScreen.swift */,
+				B1780300B1780300B1780300 /* ModerationWorkflowScreens.swift */,
 			);
 			path = Moderation;
 			sourceTree = "<group>";
@@ -1750,6 +1753,7 @@
 				B80F787C93D3C014C92565C2 /* MooditApp.swift in Sources */,
 				75A416B3410AC840412C0A6F /* MooditStore.swift in Sources */,
 				B1800201B1800201B1800201 /* MooditStoreModels.swift in Sources */,
+				B1780301B1780301B1780301 /* ModerationWorkflowScreens.swift in Sources */,
 				E9D22557765D14D78A6539F7 /* NotificationsInboxScreen.swift in Sources */,
 				43BA995454F15C2354801DB6 /* NotificationsInboxStore.swift in Sources */,
 				A85BBAAB57804A22E4B51461 /* NotificationsPermissionDenied.swift in Sources */,
