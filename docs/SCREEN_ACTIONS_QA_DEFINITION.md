@@ -93,7 +93,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | `camera.aspect` | `AppRoute.cameraAspect` | `CameraAspectPickerScreen` | Implemented | `cam.aspect.set.1_1`, `cam.aspect.set.4_5`, `cam.aspect.set.4_3`, `cam.aspect.set.16_9` |
 | `camera.timer` | `AppRoute.cameraTimer` | `CameraTimerCountdownScreen` | Implemented | `cam.timer.set.off`, `cam.timer.set.3`, `cam.timer.set.10`, `cam.timer.cancel` |
 | `photo.import` | `AppRoute.photoImport` | `PhotoImportScreen` | Implemented, NeedsOSQA | `photo.import.cell.tap`, `photo.import.limited.manage`, `photo.import.next` |
-| `photo.edit` | `AppRoute.photoEdit` | `PhotoEditScreen` | Partial | `photo.edit.filter.tap`, `photo.edit.filter.*`, `photo.edit.intensity`, `photo.edit.done`, `photo.edit.save_share` |
+| `photo.edit` | `AppRoute.photoEdit` | `PhotoEditScreen` | Implemented, NeedsOSQA | `photo.edit.undo`, `photo.edit.redo`, `photo.edit.reset`, `photo.edit.compare.hold`, `photo.edit.filter.tap`, `photo.edit.filter.*`, `photo.edit.intensity`, `photo.edit.done`, `photo.edit.save_share` |
 
 ### 4.5 Maker / Editor / Upload
 

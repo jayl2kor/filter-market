@@ -396,6 +396,11 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 8.3.1 | "photo.edit.filter.tap" | 필터 변경 picker |  |
 | 8.3.2 | "photo.edit.intensity" | 0~100% 슬라이더 |  |
 | 8.3.3 | "photo.edit.save_share" | 저장/공유 시트 |  |
+| 8.3.4 | "photo.edit.undo" | 최근 필터/강도 변경을 한 단계 되돌리고 redo stack 활성화 |  |
+| 8.3.5 | "photo.edit.redo" | 되돌린 변경을 다시 적용하고 preview 재렌더 |  |
+| 8.3.6 | "photo.edit.reset" | confirmDialog 표시 후 초기 필터/강도로 복귀, 취소 시 유지 |  |
+| 8.3.7 | "photo.edit.compare.hold" | preview를 누르고 있는 동안 원본 표시, release 시 필터 적용 미리보기 복귀 |  |
+| 8.3.8 | PhotoEdit accessibility actions | VoiceOver custom action으로 되돌리기/다시 실행/초기화 가능, preview hint가 원본 비교 동작 설명 |  |
 
 ---
 

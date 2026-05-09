@@ -492,6 +492,10 @@ extension AppRoute {
 
         case .photoEdit:
             [
+                .init("photo.edit.undo", "되돌리기", systemImage: "arrow.uturn.backward"),
+                .init("photo.edit.redo", "다시 실행", systemImage: "arrow.uturn.forward"),
+                .init("photo.edit.reset", "초기화", systemImage: "arrow.counterclockwise"),
+                .init("photo.edit.compare.hold", "원본 보기", systemImage: "rectangle.lefthalf.filled"),
                 .init("photo.edit.filter.tap", "필터 변경", systemImage: "camera.filters"),
                 .init("photo.edit.intensity", "강도 조정", systemImage: "slider.horizontal.3"),
                 .init("photo.edit.save_share", "저장 / 공유", systemImage: "square.and.arrow.up")

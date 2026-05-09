@@ -955,12 +955,18 @@ private extension UIViewController {
 
 struct PhotoEditScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var intensity: Double = 0.65
     @State private var selectedFilterID: Filter.ID?
     @State private var renderedImage: UIImage?
     @State private var isRendering = false
     @State private var showShareSheet = false
     @State private var saveMessage: String?
+    @State private var undoStack: [PhotoEditState] = []
+    @State private var redoStack: [PhotoEditState] = []
+    @State private var initialEditState: PhotoEditState?
+    @State private var showResetConfirmation = false
+    @State private var isShowingOriginal = false
 
     private let renderer = PhotoFilterRenderer(lutResourceBundle: MarketplaceResources.bundle)
     private let saver: any PhotoLibrarySaving = PhotoLibrarySaver.live()
@@ -999,22 +1005,73 @@ struct PhotoEditScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle("사진 편집")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarLeading) {
+                Button {
+                    undoEdit()
+                } label: {
+                    Label("되돌리기", systemImage: "arrow.uturn.backward")
+                        .labelStyle(.iconOnly)
+                }
+                .disabled(undoStack.isEmpty)
+                .accessibilityIdentifier("photo.edit.undo")
+
+                Button {
+                    redoEdit()
+                } label: {
+                    Label("다시 실행", systemImage: "arrow.uturn.forward")
+                        .labelStyle(.iconOnly)
+                }
+                .disabled(redoStack.isEmpty)
+                .accessibilityIdentifier("photo.edit.redo")
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("초기화", role: .destructive) {
+                    showResetConfirmation = true
+                }
+                .disabled(!hasUnsavedEdits)
+                .accessibilityIdentifier("photo.edit.reset")
+            }
+        }
         .task {
             await store.load()
-            selectedFilterID = store.selectedFilter?.id
+            selectedFilterID = store.selectedFilter?.id ?? store.filters.first?.id
+            initialEditState = currentEditState
             await render()
         }
         .onChange(of: selectedFilterID) { _, _ in Task { await render() } }
         .onChange(of: intensity) { _, _ in Task { await render() } }
+        .confirmationDialog(
+            "편집을 초기화할까요?",
+            isPresented: $showResetConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("초기화", role: .destructive) {
+                resetEdits()
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("필터와 강도 변경 사항을 처음 상태로 되돌립니다.")
+        }
         .fmShareSheet(isPresented: $showShareSheet, items: shareItems)
+        .accessibilityAction(named: "되돌리기") { undoEdit() }
+        .accessibilityAction(named: "다시 실행") { redoEdit() }
+        .accessibilityAction(named: "초기화") { showResetConfirmation = true }
     }
 
     private var preview: some View {
-        ZStack {
-            if let renderedImage {
+        ZStack(alignment: .topLeading) {
+            if isShowingOriginal, let image = UIImage(data: sourcePhotoData()) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .transition(.opacity)
+            } else if let renderedImage {
                 Image(uiImage: renderedImage)
                     .resizable()
                     .scaledToFill()
+                    .transition(.opacity)
             } else if let image = UIImage(data: sourcePhotoData()) {
                 Image(uiImage: image)
                     .resizable()
@@ -1034,6 +1091,17 @@ struct PhotoEditScreen: View {
                     .padding(Sp.md)
                     .background(.regularMaterial, in: Capsule())
             }
+
+            if isShowingOriginal {
+                Text("원본")
+                    .fmTypography(.caption)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, Sp.sm)
+                    .padding(.vertical, 6)
+                    .background(Color.black.opacity(0.62), in: Capsule())
+                    .padding(Sp.sm)
+                    .transition(.opacity)
+            }
         }
         .frame(maxWidth: .infinity)
         .frame(height: 420)
@@ -1042,6 +1110,21 @@ struct PhotoEditScreen: View {
             RoundedRectangle(cornerRadius: R.lg)
                 .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
         }
+        .contentShape(RoundedRectangle(cornerRadius: R.lg))
+        .onLongPressGesture(
+            minimumDuration: 0.01,
+            perform: {},
+            onPressingChanged: { isPressing in
+                guard isShowingOriginal != isPressing else { return }
+                FMHaptic.light.play()
+                withAnimation(reduceMotion ? nil : .fmFast) {
+                    isShowingOriginal = isPressing
+                }
+            }
+        )
+        .accessibilityIdentifier("photo.edit.compare.hold")
+        .accessibilityLabel(isShowingOriginal ? "원본 사진" : "필터 적용 미리보기")
+        .accessibilityHint("누르고 있는 동안 원본 사진을 봅니다")
     }
 
     private var filterStrip: some View {
@@ -1051,7 +1134,9 @@ struct PhotoEditScreen: View {
                     let isSelected = selectedFilter?.id == filter.id
                     Button {
                         FMHaptic.selection.play()
-                        selectedFilterID = filter.id
+                        applyUserEdit {
+                            selectedFilterID = filter.id
+                        }
                     } label: {
                         VStack(spacing: 6) {
                             FilterThumbnail(filter: filter)
@@ -1088,7 +1173,16 @@ struct PhotoEditScreen: View {
                         .foregroundStyle(FMColors.Accent.primary)
                         .monospacedDigit()
                 }
-                FMSlider(value: $intensity)
+                FMSlider(
+                    value: Binding(
+                        get: { intensity },
+                        set: { newValue in
+                            applyUserEdit {
+                                intensity = newValue
+                            }
+                        }
+                    )
+                )
                     .accessibilityIdentifier("photo.edit.intensity")
             }
         }
@@ -1111,6 +1205,63 @@ struct PhotoEditScreen: View {
     private var shareItems: [Any] {
         if let renderedImage { return [renderedImage] }
         return [sourcePhotoData()]
+    }
+
+    private var currentEditState: PhotoEditState {
+        PhotoEditState(
+            filterID: selectedFilterID ?? store.selectedFilter?.id ?? store.filters.first?.id,
+            intensity: intensity
+        )
+    }
+
+    private var hasUnsavedEdits: Bool {
+        guard let initialEditState else { return false }
+        return currentEditState.normalized != initialEditState.normalized
+    }
+
+    private func applyUserEdit(_ update: () -> Void) {
+        let before = currentEditState.normalized
+        update()
+        let after = currentEditState.normalized
+        guard before != after else { return }
+        undoStack.append(before)
+        redoStack.removeAll()
+        saveMessage = nil
+    }
+
+    private func undoEdit() {
+        guard let previous = undoStack.popLast() else { return }
+        redoStack.append(currentEditState.normalized)
+        applyEditState(previous)
+        FMHaptic.selection.play()
+    }
+
+    private func redoEdit() {
+        guard let next = redoStack.popLast() else { return }
+        undoStack.append(currentEditState.normalized)
+        applyEditState(next)
+        FMHaptic.selection.play()
+    }
+
+    private func resetEdits() {
+        let target = initialEditState?.normalized ?? PhotoEditState(
+            filterID: store.selectedFilter?.id ?? store.filters.first?.id,
+            intensity: 0.65
+        ).normalized
+        let before = currentEditState.normalized
+        guard before != target else { return }
+        undoStack.append(before)
+        redoStack.removeAll()
+        applyEditState(target)
+        saveMessage = nil
+        FMHaptic.warning.play()
+    }
+
+    private func applyEditState(_ state: PhotoEditState) {
+        withAnimation(reduceMotion ? nil : .fmFast) {
+            selectedFilterID = state.filterID
+            intensity = state.intensity
+        }
     }
 
     @MainActor
@@ -1162,6 +1313,18 @@ struct PhotoEditScreen: View {
 
     private func sourcePhotoData() -> Data {
         store.importedPhotoData ?? PlaceholderPhoto.makeJPEGData()
+    }
+}
+
+private struct PhotoEditState: Equatable {
+    var filterID: Filter.ID?
+    var intensity: Double
+
+    var normalized: PhotoEditState {
+        PhotoEditState(
+            filterID: filterID,
+            intensity: (intensity * 100).rounded() / 100
+        )
     }
 }
 
