@@ -227,6 +227,7 @@ private struct UITestLaunchHost: View {
             content
                 .appRouteDestinations()
         }
+        .environment(\.dynamicTypeSize, launchDynamicTypeSize)
         .environmentObject(store)
         .task {
             await store.load()
@@ -386,6 +387,28 @@ private struct UITestLaunchHost: View {
     private func openAppSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
+    }
+
+    private var launchDynamicTypeSize: DynamicTypeSize {
+        guard let rawValue = launchArgumentValue("-ui-dynamic-type") else { return .large }
+        switch rawValue {
+        case "xLarge": return .xLarge
+        case "xxLarge": return .xxLarge
+        case "xxxLarge": return .xxxLarge
+        case "accessibility1": return .accessibility1
+        case "accessibility2": return .accessibility2
+        case "accessibility3": return .accessibility3
+        case "accessibility4": return .accessibility4
+        case "accessibility5": return .accessibility5
+        default: return .large
+        }
+    }
+
+    private func launchArgumentValue(_ flag: String) -> String? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: flag),
+              arguments.indices.contains(index + 1) else { return nil }
+        return arguments[index + 1]
     }
 }
 #endif

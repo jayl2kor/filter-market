@@ -1,5 +1,6 @@
 import DesignSystem
 import FirebaseAuth
+import FirebaseCore
 import Models
 import SwiftUI
 
@@ -640,6 +641,9 @@ struct SearchScreen: View {
     }
 
     private static func recentSearchesKey() -> String {
+        guard !isUITesting, FirebaseApp.app() != nil else {
+            return "search.recent.guest"
+        }
         if let uid = Auth.auth().currentUser?.uid, !uid.isEmpty {
             return "search.recent.\(uid)"
         }

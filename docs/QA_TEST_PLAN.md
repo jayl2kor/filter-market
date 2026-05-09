@@ -111,6 +111,22 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 3.9.5 | review/report/refund text editors | sentence capitalization and Return behavior remain available for multiline input |  |
 | 3.9.6 | refund order id | ASCII keyboard, no autocapitalization/autocorrection, Next return key |  |
 
+## 3.10 Dynamic Type Regression
+
+**자동 검증**: `AppUITests/DynamicTypeRegressionTests`는 `-ui-dynamic-type accessibility5`로 UI-test host를 실행해 핵심 화면의 주요 라벨/CTA가 존재하고 현재 viewport에 들어오는지 확인한다.
+
+| # | Route | Coverage | PASS/FAIL |
+|---|-------|----------|-----------|
+| 3.10.1 | `search` | "추천 키워드", "인기 메이커" 텍스트 노출 |  |
+| 3.10.2 | `filterDetail` | `filter.detail.download` CTA 노출 |  |
+| 3.10.3 | `profile` | `profile.settings`, `profile.edit.open` 액션 노출 |  |
+| 3.10.4 | `settings` | `settings.nav.프로필 편집`, `settings.nav.알림 설정` 행 노출 |  |
+| 3.10.5 | `wallet` | `wallet.balance`, `wallet.action.코인 충전` 노출 |  |
+| 3.10.6 | `notifications` | `notif.cat.all`, `notif.settings` 노출 |  |
+| 3.10.7 | `uploadCover` | `upload.cover.add`, `upload.next` 노출 |  |
+| 3.10.8 | `camera` | `camera.shutter`, `camera.openLibrary` 노출 |  |
+| 3.10.9 | UI-test Firebase 비활성화 | Search 최근 검색 키와 Profile follow list ID 계산이 `Auth.auth()` 크래시 없이 guest/local fallback을 사용 |  |
+
 ---
 
 ## 4. Marketplace (루트 탭)

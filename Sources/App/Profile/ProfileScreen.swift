@@ -1,5 +1,6 @@
 import DesignSystem
 import FirebaseAuth
+import FirebaseCore
 import FirebaseFirestore
 import Models
 import SwiftUI
@@ -395,6 +396,9 @@ struct ProfileScreen: View {
 
     private var followListUserID: String {
         if let otherUid { return otherUid }
+        guard !isUITesting, FirebaseApp.app() != nil else {
+            return user.handle.replacingOccurrences(of: "@", with: "")
+        }
         if let uid = Auth.auth().currentUser?.uid { return uid }
         return user.handle.replacingOccurrences(of: "@", with: "")
     }
