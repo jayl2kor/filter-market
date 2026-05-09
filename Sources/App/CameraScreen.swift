@@ -658,7 +658,6 @@ struct CameraScreen: View {
             currentFilterLabel
             intensitySlider
             filterCarousel
-            zoomPresetRow
             shutterBar
         }
         .padding(.top, Sp.md)
@@ -668,35 +667,22 @@ struct CameraScreen: View {
     @ViewBuilder
     private var currentFilterLabel: some View {
         if let filter = store.selectedFilter {
-            VStack(spacing: 2) {
-                HStack(spacing: 6) {
-                    Image(systemName: "camera.filters")
-                        .font(.system(size: 10, weight: .semibold))
-                    Text("FILTER")
-                        .font(.system(size: 11, weight: .semibold).monospacedDigit())
-                        .tracking(0.4)
-                }
-                .foregroundStyle(FMColors.Accent.primary)
-                .padding(.horizontal, Sp.sm)
-                .padding(.vertical, 4)
-                .background(FMColors.Accent.primary.opacity(0.16), in: Capsule())
-                .overlay {
-                    Capsule()
-                        .strokeBorder(FMColors.Accent.primary.opacity(0.6), lineWidth: 1)
-                }
-
+            HStack(spacing: Sp.xs) {
+                Image(systemName: "camera.filters")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(FMColors.Accent.primary)
                 Text(filter.title)
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(FMColors.Text.inverse)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                     .shadow(color: .black.opacity(0.65), radius: 2, y: 1)
 
-                Text("@\(filter.author.displayName)")
-                    .font(.system(size: 11, weight: .medium))
-                    .tracking(0.3)
-                    .foregroundStyle(FMColors.Text.inverse.opacity(0.62))
-                    .lineLimit(1)
-                    .shadow(color: .black.opacity(0.65), radius: 2, y: 1)
+                Spacer(minLength: Sp.xs)
+
+                Text("적용 중")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(FMColors.Accent.primary)
             }
             .padding(.horizontal, Sp.sm)
             .padding(.vertical, Sp.xs)
@@ -866,41 +852,24 @@ struct CameraScreen: View {
             .accessibilityLabel(countdownTask == nil ? "촬영" : "타이머 취소")
             .accessibilityHint(countdownTask == nil ? "" : "카운트다운을 취소합니다")
 
-            // 우하: 전후면 전환 (보조 진입점 — top bar 와 중복하나 모킹과 일치).
-            Button {
-                FMHaptic.light.play()
-                Task { await controller.switchCamera() }
-            } label: {
-                Image(systemName: "arrow.triangle.2.circlepath.camera")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(FMColors.Text.inverse)
-                    .frame(width: 44, height: 44)
-                    .background(.ultraThinMaterial.opacity(0.7), in: Circle())
-                    .overlay {
-                        Circle()
-                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
-                    }
-                    .colorScheme(.dark)
-            }
+            compactZoomControls
             .frame(maxWidth: .infinity, alignment: .trailing)
-            .disabled(controller.isSwitchingCamera || controller.isCapturing)
-            .accessibilityHidden(true) // top-bar 의 flip 과 중복이므로 VoiceOver 에서 숨김.
         }
         .padding(.horizontal, Sp.xl)
         .padding(.top, Sp.xs)
     }
 
-    private var zoomPresetRow: some View {
-        HStack(spacing: Sp.xs) {
+    private var compactZoomControls: some View {
+        HStack(spacing: 3) {
             ForEach([0.5, 1.0, 3.0], id: \.self) { preset in
                 Button {
                     FMHaptic.selection.play()
                     store.cameraZoomPreset = preset
                 } label: {
-                    Text(preset == 1.0 ? "1x" : String(format: "%.1fx", preset))
+                    Text(zoomLabel(for: preset))
                         .font(.system(size: 12, weight: .semibold).monospacedDigit())
                         .foregroundStyle(store.cameraZoomPreset == preset ? .black : FMColors.Text.inverse)
-                        .frame(width: 48, height: 32)
+                        .frame(width: 36, height: 32)
                         .background(
                             store.cameraZoomPreset == preset
                                 ? FMColors.Accent.primary
@@ -922,7 +891,12 @@ struct CameraScreen: View {
                 .accessibilityIdentifier("camera.zoom.\(preset)")
             }
         }
-        .padding(.horizontal, Sp.md)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("줌 배율")
+    }
+
+    private func zoomLabel(for preset: Double) -> String {
+        preset == 1.0 ? "1x" : String(format: "%.1fx", preset)
     }
 
     private func countdownOverlay(value: Int) -> some View {
