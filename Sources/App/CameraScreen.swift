@@ -31,6 +31,11 @@ struct CameraScreen: View {
     @State private var countdownValue: Int?
     @State private var countdownTask: Task<Void, Never>?
     @State private var filterSwipeOffset: CGFloat = 0
+    @State private var shutterPressState: CameraShutterPressState = .idle
+    @State private var burstCaptureTask: Task<Void, Never>?
+    @State private var isBurstCaptureActive = false
+    @State private var burstCaptureCount = 0
+    @State private var didTriggerShutterLongPress = false
     /// 셔터 → `controller.capture` 가 nil 을 반환했을 때의 사용자용 에러 메시지.
     /// `.fmAlert` 의 `isPresented` 와 binding 되며, 닫힐 때 nil 로 리셋된다.
     @State private var captureError: String?
@@ -142,14 +147,17 @@ struct CameraScreen: View {
                     }
                 }
             case .background, .inactive:
+                cancelBurstCapture()
                 cancelCountdown()
                 controller.stop()
             @unknown default:
+                cancelBurstCapture()
                 cancelCountdown()
                 controller.stop()
             }
         }
         .onDisappear {
+            cancelBurstCapture()
             cancelCountdown()
             controller.stop()
         }
@@ -901,44 +909,142 @@ struct CameraScreen: View {
             .accessibilityLabel(recentPhotoThumbnailLoader.accessibilityLabel)
             .accessibilityHint("사진 라이브러리에서 가져오기 화면을 엽니다")
 
-            // 셔터.
-            Button {
-                FMHaptic.medium.play()
-                if countdownTask != nil {
-                    cancelCountdown()
-                } else {
-                    countdownTask = Task { await captureWithOptionalTimer() }
-                }
-            } label: {
-                ZStack {
-                    Circle()
-                        .stroke(countdownTask == nil ? Color.white : FMColors.Accent.primary, lineWidth: 3)
-                        .frame(width: 76, height: 76)
-
-                    Circle()
-                        .fill(countdownTask == nil ? FMColors.Accent.primary : Color.black.opacity(0.72))
-                        .frame(width: 64, height: 64)
-
-                    if controller.isCapturing {
-                        ProgressView()
-                            .tint(.black)
-                    } else if countdownTask != nil {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(FMColors.Accent.primary)
-                    }
-                }
-            }
-            .disabled(controller.isCapturing)
+            shutterButton
             .accessibilityIdentifier("camera.shutter")
-            .accessibilityLabel(countdownTask == nil ? "촬영" : "타이머 취소")
-            .accessibilityHint(countdownTask == nil ? "" : "카운트다운을 취소합니다")
 
             compactZoomControls
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, Sp.xl)
         .padding(.top, Sp.xs)
+    }
+
+    private var shutterButton: some View {
+        Button {
+            handleShutterTap()
+        } label: {
+            ZStack {
+                let state = shutterVisualState
+
+                Circle()
+                    .stroke(state.strokeColor, lineWidth: state.strokeWidth)
+                    .frame(width: 76, height: 76)
+
+                Circle()
+                    .fill(state.fillColor)
+                    .frame(width: state.innerSize, height: state.innerSize)
+                    .overlay {
+                        Circle()
+                            .strokeBorder(state.innerBorderColor, lineWidth: state.innerBorderWidth)
+                    }
+
+                if state.showsProgress {
+                    ProgressView()
+                        .tint(state.progressTint)
+                } else if countdownTask != nil {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(FMColors.Accent.primary)
+                } else if isBurstCaptureActive {
+                    VStack(spacing: 1) {
+                        Text("연사")
+                            .font(.cameraOverlayCaption)
+                        Text("\(max(burstCaptureCount, 1))/3")
+                            .font(.cameraOverlayCaptionMonospaced)
+                    }
+                    .foregroundStyle(.white)
+                }
+            }
+            .scaleEffect(shutterVisualState.scale)
+            .animation(reduceMotion ? nil : .fmFast, value: shutterVisualState)
+            .animation(reduceMotion ? nil : .fmFast, value: burstCaptureCount)
+        }
+        .buttonStyle(.plain)
+        .disabled(isShutterControlDisabled)
+        .contentShape(Circle())
+        .onLongPressGesture(
+            minimumDuration: 0.45,
+            maximumDistance: 24,
+            perform: handleShutterLongPress,
+            onPressingChanged: { isPressing in
+                guard canStartBurstCapture else { return }
+                withAnimation(reduceMotion ? nil : .fmFast) {
+                    shutterPressState = isPressing ? .pressing : .idle
+                }
+            }
+        )
+        .accessibilityLabel(shutterAccessibilityLabel)
+        .accessibilityValue(shutterAccessibilityValue)
+        .accessibilityHint(shutterAccessibilityHint)
+        .accessibilityAction(named: "연속 촬영") {
+            handleShutterLongPress()
+        }
+    }
+
+    private var isShutterControlDisabled: Bool {
+        guard countdownTask == nil else { return false }
+        return controller.isCapturing
+            || isBurstCaptureActive
+            || store.selectedFilter == nil
+            || scenePhase != .active
+    }
+
+    private var canStartBurstCapture: Bool {
+        countdownTask == nil
+            && !controller.isCapturing
+            && !isBurstCaptureActive
+            && store.selectedFilter != nil
+            && scenePhase == .active
+    }
+
+    private var shutterVisualState: CameraShutterVisualState {
+        if isBurstCaptureActive {
+            return .burst
+        }
+        if countdownTask != nil {
+            return .countdown
+        }
+        if controller.isCapturing {
+            return .processing
+        }
+        if store.selectedFilter == nil || scenePhase != .active {
+            return .disabled
+        }
+        if shutterPressState == .pressing {
+            return .pressed
+        }
+        return .ready
+    }
+
+    private var shutterAccessibilityLabel: String {
+        if countdownTask != nil {
+            return "타이머 취소"
+        }
+        return "사진 촬영"
+    }
+
+    private var shutterAccessibilityValue: String {
+        switch shutterVisualState {
+        case .ready:
+            return "준비됨"
+        case .pressed:
+            return "길게 누르는 중"
+        case .countdown:
+            return "카운트다운 중"
+        case .processing:
+            return "처리 중"
+        case .burst:
+            return "연속 촬영 중 \(max(burstCaptureCount, 1))장"
+        case .disabled:
+            return "비활성"
+        }
+    }
+
+    private var shutterAccessibilityHint: String {
+        if countdownTask != nil {
+            return "카운트다운을 취소합니다"
+        }
+        return "한 번 누르면 한 장, 길게 누르면 3장 연속 촬영합니다"
     }
 
     @ViewBuilder
@@ -1023,6 +1129,30 @@ struct CameraScreen: View {
         preset == 1.0 ? "1x" : String(format: "%.1fx", preset)
     }
 
+    @MainActor
+    private func handleShutterTap() {
+        if didTriggerShutterLongPress {
+            didTriggerShutterLongPress = false
+            return
+        }
+
+        FMHaptic.medium.play()
+        if countdownTask != nil {
+            cancelCountdown()
+        } else {
+            countdownTask = Task { await captureWithOptionalTimer() }
+        }
+    }
+
+    @MainActor
+    private func handleShutterLongPress() {
+        guard canStartBurstCapture else { return }
+        didTriggerShutterLongPress = true
+        shutterPressState = .idle
+        FMHaptic.heavy.play()
+        burstCaptureTask = Task { await captureBurstSequence() }
+    }
+
     private func countdownOverlay(value: Int) -> some View {
         ZStack {
             Color.black.opacity(0.28)
@@ -1067,7 +1197,7 @@ struct CameraScreen: View {
             countdownValue = nil
             countdownTask = nil
         }
-        guard !controller.isCapturing, scenePhase == .active else { return }
+        guard !controller.isCapturing, !isBurstCaptureActive, scenePhase == .active else { return }
         let seconds = store.cameraTimerOption.rawValue
         if seconds > 0 {
             for value in stride(from: seconds, through: 1, by: -1) {
@@ -1096,10 +1226,179 @@ struct CameraScreen: View {
     }
 
     @MainActor
+    private func captureBurstSequence() async {
+        guard canStartBurstCapture else { return }
+
+        isBurstCaptureActive = true
+        burstCaptureCount = 0
+        defer {
+            isBurstCaptureActive = false
+            burstCaptureCount = 0
+            burstCaptureTask = nil
+            didTriggerShutterLongPress = false
+            shutterPressState = .idle
+        }
+
+        var lastResult: CameraCaptureResult?
+        for index in 1...3 {
+            guard !Task.isCancelled, scenePhase == .active else { return }
+            burstCaptureCount = index
+            if let result = await controller.capture(filter: store.selectedFilter) {
+                lastResult = result
+                FMHaptic.selection.play()
+            } else {
+                break
+            }
+
+            if index < 3 {
+                do {
+                    try await Task.sleep(for: .milliseconds(140))
+                } catch {
+                    return
+                }
+            }
+        }
+
+        if let lastResult {
+            FMHaptic.heavy.play()
+            captureResult = lastResult
+        } else {
+            FMHaptic.error.play()
+            captureError = controller.statusMessage.isEmpty
+                ? "연속 촬영에 실패했어요"
+                : controller.statusMessage
+        }
+    }
+
+    @MainActor
     private func cancelCountdown() {
         countdownTask?.cancel()
         countdownTask = nil
         countdownValue = nil
+    }
+
+    @MainActor
+    private func cancelBurstCapture() {
+        burstCaptureTask?.cancel()
+        burstCaptureTask = nil
+        isBurstCaptureActive = false
+        burstCaptureCount = 0
+        didTriggerShutterLongPress = false
+        shutterPressState = .idle
+    }
+}
+
+// MARK: - Shutter state
+
+private enum CameraShutterPressState {
+    case idle
+    case pressing
+}
+
+private enum CameraShutterVisualState: Equatable {
+    case ready
+    case pressed
+    case countdown
+    case processing
+    case burst
+    case disabled
+
+    var strokeColor: Color {
+        switch self {
+        case .ready:
+            return .white
+        case .pressed:
+            return FMColors.Accent.primary
+        case .countdown:
+            return FMColors.Accent.primary
+        case .processing:
+            return FMColors.Accent.primary.opacity(0.75)
+        case .burst:
+            return FMColors.Semantic.error
+        case .disabled:
+            return Color.white.opacity(0.28)
+        }
+    }
+
+    var strokeWidth: CGFloat {
+        switch self {
+        case .pressed, .burst:
+            return 4
+        default:
+            return 3
+        }
+    }
+
+    var fillColor: Color {
+        switch self {
+        case .ready:
+            return FMColors.Accent.primary
+        case .pressed:
+            return FMColors.Accent.primary.opacity(0.86)
+        case .countdown:
+            return Color.black.opacity(0.72)
+        case .processing:
+            return FMColors.Accent.primary.opacity(0.34)
+        case .burst:
+            return FMColors.Semantic.error.opacity(0.86)
+        case .disabled:
+            return Color.white.opacity(0.16)
+        }
+    }
+
+    var innerBorderColor: Color {
+        switch self {
+        case .disabled:
+            return Color.white.opacity(0.14)
+        case .burst:
+            return Color.white.opacity(0.55)
+        default:
+            return Color.clear
+        }
+    }
+
+    var innerBorderWidth: CGFloat {
+        switch self {
+        case .disabled, .burst:
+            return 1
+        default:
+            return 0
+        }
+    }
+
+    var innerSize: CGFloat {
+        switch self {
+        case .pressed:
+            return 60
+        case .processing:
+            return 58
+        default:
+            return 64
+        }
+    }
+
+    var scale: CGFloat {
+        switch self {
+        case .pressed:
+            return 0.94
+        case .burst:
+            return 0.97
+        default:
+            return 1
+        }
+    }
+
+    var showsProgress: Bool {
+        self == .processing
+    }
+
+    var progressTint: Color {
+        switch self {
+        case .processing:
+            return .black
+        default:
+            return FMColors.Accent.primary
+        }
     }
 }
 

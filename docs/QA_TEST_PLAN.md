@@ -310,7 +310,10 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 7.9a | 갤러리 썸네일 권한 허용 | PhotoKit 최신 이미지 1장이 44pt 둥근 사각형에 aspectFill로 표시되고 VoiceOver가 "갤러리 열기, 최근 사진 <날짜>"를 읽음 |  |
 | 7.9b | 갤러리 썸네일 권한 거부/사진 없음 | 기존 `photo.on.rectangle` placeholder fallback 유지, 탭 시 PhotoImportScreen 진입 동작 유지 |  |
 | 7.9c | 앱 foreground 복귀 | 사진 권한/라이브러리 변경 후 `.active`에서 최신 썸네일 재조회 |  |
-| 7.10 | 셔터 (`camera.shutter`) | timer 적용 → 캡처 → CapturePreviewScreen |  |
+| 7.10 | 셔터 (`camera.shutter`) tap | timer 적용 → 캡처 → CapturePreviewScreen, 준비/처리/비활성 상태가 stroke/fill/progress로 구분 |  |
+| 7.10a | 셔터 long-press (`camera.shutter`) | 0.45초 이상 누르면 3장 연속 촬영, heavy/selection haptic, 마지막 캡처가 CapturePreviewScreen으로 전달 |  |
+| 7.10b | 셔터 VoiceOver | accessibilityLabel "사진 촬영", value가 준비됨/처리 중/연속 촬영 중/비활성 상태를 읽고 hint가 tap/long-press 동작을 설명 |  |
+| 7.10c | 셔터 Reduce Motion | press scale/progress 상태 전환이 장시간 모션 없이 즉시 또는 짧게 반영 |  |
 | 7.11 | 줌 0.5x (`camera.zoom.0.5`) | zoom preset 변경 |  |
 | 7.12 | 줌 1x (`camera.zoom.1`) | zoom preset 변경 |  |
 | 7.13 | 줌 3x (`camera.zoom.3`) | zoom preset 변경 |  |
