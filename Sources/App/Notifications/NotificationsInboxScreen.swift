@@ -36,7 +36,16 @@ struct NotificationsInboxScreen: View {
         .navigationTitle("알림")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    Task { await markAllRead() }
+                } label: {
+                    Image(systemName: "checkmark.circle")
+                }
+                .disabled(!hasUnreadItems)
+                .accessibilityLabel("모두 읽음으로 표시")
+                .accessibilityIdentifier("notif.markAllRead")
+
                 NavigationLink(value: AppRoute.notificationSettings) {
                     Image(systemName: "gearshape")
                 }
@@ -161,6 +170,10 @@ struct NotificationsInboxScreen: View {
         }
     }
 
+    private var hasUnreadItems: Bool {
+        items.contains { $0.isUnread }
+    }
+
     private var emptyState: some View {
         VStack(spacing: Sp.sm) {
             Image(systemName: "bell.slash")
@@ -187,18 +200,28 @@ struct NotificationsInboxScreen: View {
             markRead(item)
         } label: {
             HStack(alignment: .top, spacing: Sp.sm) {
+                Rectangle()
+                    .fill(item.isUnread ? FMColors.Accent.primary : Color.clear)
+                    .frame(width: 4)
+                    .padding(.vertical, 2)
+
                 avatar(item)
                     .frame(width: 40, height: 40)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    item.attributedText
-                        .fmTypography(.subhead)
-                        .foregroundStyle(FMColors.Text.primary)
-                        .lineLimit(3)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(item.relativeTime(now: now))
-                        .fmTypography(.caption)
-                        .foregroundStyle(FMColors.Text.tertiary)
+                    HStack(alignment: .firstTextBaseline, spacing: Sp.xs) {
+                        item.attributedText
+                            .fmTypography(.subhead)
+                            .foregroundStyle(FMColors.Text.primary)
+                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(item.relativeTime(now: now))
+                            .fmTypography(.caption)
+                            .foregroundStyle(item.isUnread ? FMColors.Accent.primary : FMColors.Text.tertiary)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -328,6 +351,15 @@ struct NotificationsInboxScreen: View {
                     }
                 }
             }
+        }
+    }
+
+    private func markAllRead() async {
+        do {
+            try await store.markAllRead()
+            FMHaptic.success.play()
+        } catch {
+            actionErrorMessage = error.localizedDescription
         }
     }
 

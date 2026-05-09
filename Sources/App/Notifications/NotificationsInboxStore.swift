@@ -211,10 +211,56 @@ final class NotificationsInboxStore: ObservableObject {
         }
     }
 
+    func markAllRead() async throws {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let unreadIds = items.compactMap { item in
+            item.isUnread ? item.firestoreDocId : nil
+        }
+        guard !unreadIds.isEmpty else { return }
+
+        setAllNotificationsRead()
+        do {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                let batch = Firestore.firestore().batch()
+                let collection = Firestore.firestore()
+                    .collection("users").document(uid)
+                    .collection("notifications")
+                unreadIds.forEach { id in
+                    batch.setData(["readAt": FieldValue.serverTimestamp()], forDocument: collection.document(id), merge: true)
+                }
+                batch.commit { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+        } catch {
+            unreadIds.forEach { setNotification($0, isUnread: true) }
+            throw error
+        }
+    }
+
     private func setNotification(_ notificationId: String, isUnread: Bool) {
         func update(_ list: inout [NotificationItem]) {
             guard let index = list.firstIndex(where: { $0.firestoreDocId == notificationId }) else { return }
             list[index].isUnread = isUnread
+        }
+        update(&liveItems)
+        update(&pagedItems)
+        update(&items)
+        updateAppBadge()
+    }
+
+    private func setAllNotificationsRead() {
+        func update(_ list: inout [NotificationItem]) {
+            for index in list.indices {
+                list[index].isUnread = false
+            }
         }
         update(&liveItems)
         update(&pagedItems)
