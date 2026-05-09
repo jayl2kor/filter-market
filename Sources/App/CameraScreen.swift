@@ -5,6 +5,7 @@ import FirebaseFirestore
 import FilterEngine
 import Marketplace
 import Models
+import Photos
 import SwiftUI
 import UIKit
 
@@ -22,6 +23,7 @@ struct CameraScreen: View {
     @EnvironmentObject private var store: MooditStore
     @StateObject private var controller = CameraPreviewController()
     @StateObject private var permissionCoordinator = PermissionCoordinator()
+    @StateObject private var recentPhotoThumbnailLoader = RecentPhotoThumbnailLoader()
     @State private var captureResult: CameraCaptureResult?
     @State private var focusIndicator: CameraFocusIndicator?
     @State private var cameraPermissionState: PermissionCoordinator.Status = .notDetermined
@@ -66,11 +68,15 @@ struct CameraScreen: View {
         }
         .task {
             cameraPermissionState = isUITesting ? .authorized : permissionCoordinator.currentStatus(.camera)
+            if !isUITesting {
+                recentPhotoThumbnailLoader.refreshIfAuthorized()
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             // 사용자가 백그라운드 → 설정 → 권한 변경 → 복귀 시 상태를 새로고침.
             if !isUITesting && newPhase == .active {
                 cameraPermissionState = permissionCoordinator.currentStatus(.camera)
+                recentPhotoThumbnailLoader.refreshIfAuthorized()
             }
         }
     }
@@ -801,27 +807,16 @@ struct CameraScreen: View {
 
     private var shutterBar: some View {
         HStack(spacing: 0) {
-            // 좌하: 갤러리 썸네일 placeholder.
             Button {
                 FMHaptic.light.play()
-                isPhotoImportPresented = true
+                openPhotoLibrary()
             } label: {
-                RoundedRectangle(cornerRadius: R.md)
-                    .fill(FMColors.Background.bg2.opacity(0.7))
-                    .frame(width: 44, height: 44)
-                    .overlay {
-                        Image(systemName: "photo.on.rectangle")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(FMColors.Text.inverse.opacity(0.85))
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: R.md)
-                            .strokeBorder(Color.white.opacity(0.65), lineWidth: 1.5)
-                    }
+                libraryThumbnail
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityIdentifier("camera.openLibrary")
-            .accessibilityLabel("갤러리 열기")
+            .accessibilityLabel(recentPhotoThumbnailLoader.accessibilityLabel)
+            .accessibilityHint("사진 라이브러리에서 가져오기 화면을 엽니다")
 
             // 셔터.
             Button {
@@ -861,6 +856,48 @@ struct CameraScreen: View {
         }
         .padding(.horizontal, Sp.xl)
         .padding(.top, Sp.xs)
+    }
+
+    @ViewBuilder
+    private var libraryThumbnail: some View {
+        ZStack {
+            if let image = recentPhotoThumbnailLoader.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                FMColors.Background.bg2.opacity(0.7)
+                Image(systemName: "photo.on.rectangle")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(FMColors.Text.inverse.opacity(0.85))
+            }
+        }
+        .frame(width: 44, height: 44)
+        .clipShape(RoundedRectangle(cornerRadius: R.md))
+        .overlay {
+            RoundedRectangle(cornerRadius: R.md)
+                .strokeBorder(Color.white.opacity(0.65), lineWidth: 1.5)
+        }
+    }
+
+    private func openPhotoLibrary() {
+        guard !isUITesting else {
+            isPhotoImportPresented = true
+            return
+        }
+
+        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        guard status == .notDetermined else {
+            isPhotoImportPresented = true
+            return
+        }
+
+        PHPhotoLibrary.requestAuthorization(for: .readWrite) { _ in
+            Task { @MainActor in
+                recentPhotoThumbnailLoader.refreshIfAuthorized()
+                isPhotoImportPresented = true
+            }
+        }
     }
 
     private var compactZoomControls: some View {
@@ -980,6 +1017,70 @@ struct CameraScreen: View {
         countdownTask?.cancel()
         countdownTask = nil
         countdownValue = nil
+    }
+}
+
+// MARK: - Recent photo thumbnail
+
+@MainActor
+private final class RecentPhotoThumbnailLoader: ObservableObject {
+    @Published private(set) var image: UIImage?
+    @Published private(set) var creationDate: Date?
+
+    private let imageManager = PHCachingImageManager()
+    private var currentRequestID: PHImageRequestID?
+
+    var accessibilityLabel: String {
+        guard let creationDate else {
+            return "갤러리 열기"
+        }
+        let date = DateFormatter.localizedString(from: creationDate, dateStyle: .medium, timeStyle: .short)
+        return "갤러리 열기, 최근 사진 \(date)"
+    }
+
+    func refreshIfAuthorized() {
+        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        guard status == .authorized || status == .limited else {
+            image = nil
+            creationDate = nil
+            return
+        }
+        loadMostRecentImage()
+    }
+
+    private func loadMostRecentImage() {
+        if let currentRequestID {
+            imageManager.cancelImageRequest(currentRequestID)
+        }
+
+        let options = PHFetchOptions()
+        options.fetchLimit = 1
+        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+
+        guard let asset = PHAsset.fetchAssets(with: .image, options: options).firstObject else {
+            image = nil
+            creationDate = nil
+            return
+        }
+
+        let imageOptions = PHImageRequestOptions()
+        imageOptions.deliveryMode = .opportunistic
+        imageOptions.resizeMode = .fast
+        imageOptions.isNetworkAccessAllowed = false
+
+        currentRequestID = imageManager.requestImage(
+            for: asset,
+            targetSize: CGSize(width: 176, height: 176),
+            contentMode: .aspectFill,
+            options: imageOptions
+        ) { [weak self] image, info in
+            guard (info?[PHImageCancelledKey] as? Bool) != true else { return }
+            Task { @MainActor in
+                guard let self else { return }
+                self.image = image
+                self.creationDate = image == nil ? nil : asset.creationDate
+            }
+        }
     }
 }
 
