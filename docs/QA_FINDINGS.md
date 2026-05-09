@@ -77,6 +77,7 @@
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after camera top chrome, timer state, AUTO label, and swipe hint placement polish (#72/#73/#76/#84/#91) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after camera timer 5s option and explicit countdown cancel controls (#151) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after removing duplicate bottom flip and compressing camera bottom stack (#100/#103) |
+| 2026-05-09 | `xcodebuild ... -only-testing:AppUITests/PhaseAE2ETests/testCameraHudAndPhotoImportEntry test` | PASS after compact zoom controls; `camera.zoom.0.5`, `camera.zoom.3.0`, and `camera.openLibrary` selectors still work |
 
 ## Remaining Manual QA Gates
 
