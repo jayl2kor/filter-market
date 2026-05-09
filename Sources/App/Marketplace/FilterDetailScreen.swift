@@ -323,14 +323,14 @@ struct FilterDetailScreen: View {
 
     private var statsRow: some View {
         HStack(alignment: .top, spacing: Sp.lg) {
-            stat(value: formattedCount(mock.downloadCount), label: "다운로드", isPrimary: true)
+            stat(value: mock.downloadCount.fmCompactCount(), label: "다운로드", isPrimary: true)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text("★")
                     .foregroundStyle(FMColors.Accent.primary)
-                stat(value: String(format: "%.1f", mock.rating), label: "\(mock.reviewCount) 리뷰")
+                stat(value: String(format: "%.1f", mock.rating), label: "\(mock.reviewCount.fmDecimal()) 리뷰")
                     .padding(.leading, 2)
             }
-            stat(value: formattedCount(mock.likeCount), label: "좋아요")
+            stat(value: mock.likeCount.fmCompactCount(), label: "좋아요")
             Spacer(minLength: 0)
         }
         .padding(.vertical, Sp.md)
@@ -351,7 +351,7 @@ struct FilterDetailScreen: View {
             Text(value)
                 .fmTypography(isPrimary ? .titleLarge : .title)
                 .foregroundStyle(isPrimary ? FMColors.Accent.primary : FMColors.Text.primary)
-                .monospacedDigit()
+                .fmCounter()
             Text(label.uppercased())
                 .font(.system(size: 10, weight: .medium))
                 .tracking(0.4)
@@ -574,7 +574,7 @@ struct FilterDetailScreen: View {
                 VStack(spacing: 2) {
                     Image(systemName: isLiked ? "heart.fill" : "heart")
                         .font(.system(size: 17, weight: .semibold))
-                    Text(formattedCount(likeDisplayCount))
+                    Text(likeDisplayCount.fmCompactCount())
                         .font(.system(size: 10, weight: .semibold).monospacedDigit())
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
@@ -732,14 +732,6 @@ struct FilterDetailScreen: View {
         case .completed:
             // 카메라로 이동 — 후속 Phase 에서 라우팅.
             dismiss()
-        }
-    }
-
-    private func formattedCount(_ count: Int) -> String {
-        switch count {
-        case ..<1_000: "\(count)"
-        case 1_000..<10_000: String(format: "%.1fK", Double(count) / 1_000)
-        default: "\(count / 1_000)K"
         }
     }
 

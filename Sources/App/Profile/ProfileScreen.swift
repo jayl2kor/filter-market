@@ -396,10 +396,10 @@ struct ProfileScreen: View {
     @ViewBuilder
     private func statContent(value: Int, label: String) -> some View {
         VStack(spacing: 2) {
-            Text(formattedCount(value))
+            Text(value.fmCompactCount())
                 .fmTypography(.title)
                 .foregroundStyle(FMColors.Text.primary)
-                .monospacedDigit()
+                .fmCounter()
             Text(label)
                 .fmTypography(.caption)
                 .foregroundStyle(FMColors.Text.secondary)
@@ -410,10 +410,10 @@ struct ProfileScreen: View {
     private func statItem(value: Int, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 2) {
-                Text(formattedCount(value))
+                Text(value.fmCompactCount())
                     .fmTypography(.title)
                     .foregroundStyle(FMColors.Text.primary)
-                    .monospacedDigit()
+                    .fmCounter()
                 Text(label.uppercased())
                     .fmTypography(.caption)
                     .fontWeight(.medium)
@@ -567,11 +567,11 @@ struct ProfileScreen: View {
                     .foregroundStyle(FMColors.Text.inverse)
                     .lineLimit(1)
                 if item.downloadCount > 0 {
-                    Text(formattedCount(item.downloadCount))
+                    Text(item.downloadCount.fmCompactCount())
                         .fmTypography(.caption)
                         .fontWeight(.medium)
                         .foregroundStyle(FMColors.Text.inverse.opacity(0.78))
-                        .monospacedDigit()
+                        .fmCounter()
                 }
             }
             .padding(.horizontal, Sp.xs)
@@ -683,14 +683,6 @@ struct ProfileScreen: View {
             return filter.title
         }
         return "저장된 필터"
-    }
-
-    private func formattedCount(_ count: Int) -> String {
-        switch count {
-        case ..<1_000: "\(count)"
-        case 1_000..<10_000: String(format: "%.1fK", Double(count) / 1_000)
-        default: "\(count / 1_000)K"
-        }
     }
 
     private func shortcutIdentifier(for route: AppRoute) -> String {

@@ -166,21 +166,13 @@ public struct FMFilterTile: View {
                 Image(systemName: "arrow.down.circle")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.white.opacity(0.78))
-                Text(formattedCount(data.downloadCount))
+                Text(data.downloadCount.fmCompactCount())
                     .fmTypography(.caption)
                     .foregroundStyle(.white.opacity(0.78))
-                    .monospacedDigit()
+                    .fmCounter()
             }
         }
         .padding(Sp.sm)
-    }
-
-    private func formattedCount(_ count: Int) -> String {
-        switch count {
-        case ..<1_000: "\(count)"
-        case 1_000..<10_000: String(format: "%.1fK", Double(count) / 1_000)
-        default: "\(count / 1_000)K"
-        }
     }
 }
 

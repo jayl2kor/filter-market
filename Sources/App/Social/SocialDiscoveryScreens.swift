@@ -2548,14 +2548,7 @@ private enum FollowRelationship: Hashable {
 }
 
 private func formattedDownloadCount(_ count: Int) -> String {
-    switch count {
-    case ..<1_000:
-        return "\(count)"
-    case 1_000..<10_000:
-        return String(format: "%.1fK", Double(count) / 1_000.0)
-    default:
-        return "\(count / 1_000)K"
-    }
+    count.fmCompactCount()
 }
 
 private struct ForYouMaker: Identifiable {

@@ -126,6 +126,7 @@
 		9E4321FB8333C902B57E641F /* FMStateViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54FF1EF5F211CEFF7C33C325 /* FMStateViews.swift */; };
 		9E741D7E42757E5EC2821E84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A5351CED6F1DF3CD977446C4 /* Assets.xcassets */; };
 		9F86C29BA2A7D32C3C4EB4D9 /* FirestoreFilterRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D6F0C2A387F95021D67B35 /* FirestoreFilterRepository.swift */; };
+		A0E6E49719D0A6D7A9C38C55 /* NumberFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E6E49619D0A6D7A9C38C55 /* NumberFormatting.swift */; };
 		A12055B87246709AC7474F31 /* Fmpkg.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17C1878DBAA4BB102E0AA50 /* Fmpkg.swift */; };
 		A1CD84CC2E138343F8939C23 /* PermissionScaffold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09CE5E216D06FBC248800288 /* PermissionScaffold.swift */; };
 		A1F1281F920B3D8A1F39DC04 /* Models.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 17B1469C92033DB00AD14607 /* Models.framework */; };
@@ -507,6 +508,7 @@
 		9A2A40516DFAF15C3FA02ABE /* FilterPackage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterPackage.swift; sourceTree = "<group>"; };
 		9C9D1842B9C35E234AF87C08 /* BundleSeedFilterRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleSeedFilterRepository.swift; sourceTree = "<group>"; };
 		9C9D6DF89A0C4B47F8D6E3DA /* FMToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMToggle.swift; sourceTree = "<group>"; };
+		A0E6E49619D0A6D7A9C38C55 /* NumberFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumberFormatting.swift; sourceTree = "<group>"; };
 		A17C1878DBAA4BB102E0AA50 /* Fmpkg.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fmpkg.swift; sourceTree = "<group>"; };
 		A5351CED6F1DF3CD977446C4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A72D687DA7742CD852AD1CCB /* FmpkgTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FmpkgTests.swift; sourceTree = "<group>"; };
@@ -1108,6 +1110,7 @@
 				B42C16A81608E7BEF05EBD6A /* Colors.swift */,
 				1550BD6AB2042D987AD08B34 /* Iconography.swift */,
 				CB6D9F616164FEE0F2EE122C /* Motion.swift */,
+				A0E6E49619D0A6D7A9C38C55 /* NumberFormatting.swift */,
 				570D327A92B40713FAFE85FC /* Radius.swift */,
 				16B91AF1E51A3C1C8C4AA180 /* Spacing.swift */,
 				6C83793111D18A70FE42E29E /* State.swift */,
@@ -1760,6 +1763,7 @@
 				881246C66569BE6F76602067 /* HapticEngine.swift in Sources */,
 				E8BFE84D11FAE481A059286C /* Iconography.swift in Sources */,
 				CDEEDD266FF8B06A64980582 /* Motion.swift in Sources */,
+				A0E6E49719D0A6D7A9C38C55 /* NumberFormatting.swift in Sources */,
 				CFA2539D68B2EA422AFF203B /* Radius.swift in Sources */,
 				95492EEEFCD60CA2E64666A5 /* ReduceMotion.swift in Sources */,
 				B36790AE144F28051E6EA6D7 /* Spacing.swift in Sources */,
