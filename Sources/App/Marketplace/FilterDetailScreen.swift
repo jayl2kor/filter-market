@@ -16,6 +16,8 @@ import UIKit
 /// 비포/애프터 슬라이더 + 메이커 정보 + 통계 + 설명/태그 + 샘플 갤러리 + 댓글 + 하단 CTA.
 struct FilterDetailScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var sessionStore: SessionStore
     @Environment(\.dismiss) private var dismiss
 
     private let filter: Filter?
@@ -155,7 +157,7 @@ struct FilterDetailScreen: View {
         if let onRefresh {
             await onRefresh()
         } else {
-            await store.load(force: true)
+            await filterLibraryStore.load(force: true)
         }
     }
 
@@ -543,7 +545,7 @@ struct FilterDetailScreen: View {
             return sampleUploadFilterID != nil
         }
         #endif
-        return store.isAuthenticated && sampleUploadFilterID != nil
+        return sessionStore.isAuthenticated && sampleUploadFilterID != nil
     }
 
     private var sampleCount: Int {
@@ -839,7 +841,7 @@ struct FilterDetailScreen: View {
 
     private var isLiked: Bool {
         if let filter {
-            return store.isFavorite(filter)
+            return filterLibraryStore.isFavorite(filter)
         }
         return didLikeMockFilter
     }
@@ -901,7 +903,7 @@ struct FilterDetailScreen: View {
             FMHaptic.warning.play()
             return
         }
-        guard let uid = Auth.auth().currentUser?.uid, store.isAuthenticated else {
+        guard let uid = Auth.auth().currentUser?.uid, sessionStore.isAuthenticated else {
             sampleUploadErrorMessage = "로그인이 필요합니다."
             FMHaptic.warning.play()
             return
@@ -1677,13 +1679,17 @@ private struct TagPressStyle: ButtonStyle {
 // MARK: - Preview
 
 #Preview("FilterDetailScreen — Free") {
+    let store = MooditStore()
     NavigationStack {
         FilterDetailScreen(mock: FilterDetailMock.preview)
-            .environmentObject(MooditStore())
+            .environmentObject(store)
+            .environmentObject(store.filterLibraryStore)
+            .environmentObject(store.sessionStore)
     }
 }
 
 #Preview("FilterDetailScreen — Paid") {
+    let store = MooditStore()
     NavigationStack {
         FilterDetailScreen(mock: {
             var m = FilterDetailMock.preview
@@ -1708,14 +1714,19 @@ private struct TagPressStyle: ButtonStyle {
             )
             return m
         }())
-        .environmentObject(MooditStore())
+        .environmentObject(store)
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.sessionStore)
     }
 }
 
 #Preview("FilterDetailScreen — Dark") {
+    let store = MooditStore()
     NavigationStack {
         FilterDetailScreen(mock: FilterDetailMock.preview)
-            .environmentObject(MooditStore())
+            .environmentObject(store)
+            .environmentObject(store.filterLibraryStore)
+            .environmentObject(store.sessionStore)
     }
     .preferredColorScheme(.dark)
 }
