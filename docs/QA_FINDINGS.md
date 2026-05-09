@@ -81,6 +81,7 @@
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after EmailLogin password visibility toggle and strength meter (#177) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after FilterDownload success/failure toast feedback (#171) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after HelpCenter FAQ search/category filtering (#159) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after Saved search/sort/category/edit bulk-delete controls (#170) |
 
 ## Remaining Manual QA Gates
 
@@ -158,6 +159,7 @@
 | Email login form | EmailLogin now supports password visibility toggle with `auth.password.visibility`, keeps password/new-password content types for Autofill, and shows a three-step signup strength meter plus Korean strength copy. Existing password reset flow remains available through `auth.passwordReset.send`. | Manual QA should verify Password Manager suggestions still appear for both visible and secure password modes, and that reset email failure/success states remain clear. |
 | Filter download feedback | FilterDownloadProgressScreen already had determinate progress, completed next action, cancel/back, and retry. It now also shows queued success/error toasts for completed, already-downloaded, and failed download paths. | Firebase/R2 QA should verify toast timing with real signed package downloads and network failure retries. |
 | Help center discovery | HelpCenter now includes `help.search`, category chips under `help.category.*`, filtered FAQ results, an empty search state, and keeps existing FAQ accordion/contact/refund/policy routes. | Manual QA should verify Korean query matching, category reset behavior, and mail/Safari/refund routing on device. |
+| Saved filters management | SavedScreen now has `saved.search`, `saved.sort`, `saved.category.*`, edit mode, selected-state overlays, `saved.delete.selected`, and a per-tile context menu download removal action while preserving `saved.tile.<uuid>` routing. | Firebase QA should verify savedFilters listener reconciliation after bulk removal and second-device sync. Grid tiles do not use row-style swipe actions, so context menu is the per-item removal path. |
 | Wallet security rules | Wallet, ledger, entitlements, Pro status, and refund request subcollections are owner-read/server-write only. | Emulator rules tests pass; production Firebase rules deploy remains a release gate. |
 | Pro subscription verifier | Pro receipts are now idempotent, owner-scoped, and expired/revoked JWS metadata maps to inactive Pro state. | StoreKit sandbox renewal/cancel manual QA remains required. |
 | Notifications inbox | Notification rows now compute relative time/buckets from `createdAt`, expose literal Korean labels instead of unresolved keys, support older-page loading, and surface markRead/follow errors. | Firebase QA should seed 100+ notifications and verify load-more, badge count, read state, and follow edge writes. |
