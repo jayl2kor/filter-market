@@ -41,7 +41,7 @@
 | `07c-filter-after-download.html` | `FilterAfterDownloadScreen` | `Bespoke` | favorite persistence, collection picker |
 | `13-camera-aspect-picker.html` | `CameraAspectPickerScreen` | `Bespoke` | `MooditStore.cameraAspectRatio` persistence |
 | `15-camera-timer-countdown.html` | `CameraTimerCountdownScreen` | `Bespoke` | countdown cancel UX refinement |
-| `16-photo-import.html` | `PhotoImportScreen` | `Bespoke` | Photos permission limited-library branch |
+| `16-photo-import.html` | `PhotoImportScreen` | `Bespoke` | OS PhotosPicker selection QA |
 | `17-photo-edit.html` | `PhotoEditScreen` | `Bespoke` | compare slider, edit history, larger image QA |
 | `19-builtin-filter-library.html` | `BuiltinFilterLibraryScreen` | `Bespoke` | filter package/detail API 연결 |
 | `permissions/*` | `Sources/App/Permissions/*` | `Bespoke` | 실제 권한 resolver 와 모든 진입점 연결 |
@@ -58,7 +58,7 @@
 | `13-camera-aspect-picker.html` | `AppRoute.cameraAspect` → `CameraAspectPickerScreen` | `Bespoke` | 비율 선택 UI와 `CameraScreen` active guide 동기화 완료. persistence 남음 |
 | `14-camera-zoom-grid-flash.html` | `CameraScreen` HUD | `Bespoke` | Timer/Grid/Flash/Aspect/Zoom HUD 상태 연결 완료. 실제 device zoom/flash control 남음 |
 | `15-camera-timer-countdown.html` | `AppRoute.cameraTimer` → `CameraTimerCountdownScreen` | `Bespoke` | OFF/3s/10s 선택과 capture countdown overlay 완료. cancel refinement 남음 |
-| `16-photo-import.html` | `AppRoute.photoImport` → `PhotoImportScreen` | `Bespoke` | `PhotosPicker` 선택, preview, edit route 연결 완료. permission branch 남음 |
+| `16-photo-import.html` | `AppRoute.photoImport` → `PhotoImportScreen` | `Bespoke` | `PhotosPicker` 단일 선택, preview, edit route, limited-library 안내/관리 진입 완료. OS picker QA 남음 |
 | `17-photo-edit.html` | `AppRoute.photoEdit` → `PhotoEditScreen` | `Bespoke` | `PhotoFilterRenderer` 기반 필터/강도/저장/공유 완료. compare slider 남음 |
 | `19-builtin-filter-library.html` | `AppRoute.builtinFilters` → `BuiltinFilterLibraryScreen` | `Bespoke` | 번들 필터 목록, 선택, 카메라 적용 흐름 완료. API/detail 연결 남음 |
 | `07b-filter-download.html` | `AppRoute.filterDownload` → `FilterDownloadProgressScreen` | `Bespoke` | `MooditStore.download(_:)` 연동 완료. 실제 package/API progress 연결 남음 |

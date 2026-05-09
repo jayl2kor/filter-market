@@ -7,6 +7,7 @@ import FirebaseFirestore
 import FirebaseFunctions
 import Marketplace
 import Models
+import Photos
 import PhotosUI
 import StoreKit
 import SwiftUI
@@ -722,9 +723,12 @@ struct CameraTimerCountdownScreen: View {
 
 struct PhotoImportScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
     @State private var loadError: String?
+    @State private var photoLibraryStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+    @State private var visibleImageCount: Int?
 
     var body: some View {
         let hasSelectedImage = selectedImage != nil
@@ -736,6 +740,8 @@ struct PhotoImportScreen: View {
                     subtitle: "앨범에서 사진을 선택해 moodit 필터를 적용합니다.",
                     symbol: "photo.on.rectangle"
                 )
+
+                photoLibraryAccessNotice
 
                 selectedPreview
 
@@ -751,6 +757,8 @@ struct PhotoImportScreen: View {
                     .background(FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
                 }
                 .accessibilityIdentifier("photo.import.cell.tap")
+                .accessibilityLabel(hasSelectedImage ? "다른 사진 선택" : "사진 선택")
+                .accessibilityHint("한 번에 한 장만 선택합니다.")
 
                 if hasSelectedImage {
                     NavigationLink(value: AppRoute.photoEdit) {
@@ -775,6 +783,69 @@ struct PhotoImportScreen: View {
         .onChange(of: selectedItem) { _, newItem in
             Task { await loadPhoto(from: newItem) }
         }
+        .onAppear(perform: refreshPhotoLibraryState)
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            refreshPhotoLibraryState()
+        }
+    }
+
+    @ViewBuilder
+    private var photoLibraryAccessNotice: some View {
+        if photoLibraryStatus == .limited {
+            FMCard {
+                VStack(alignment: .leading, spacing: Sp.sm) {
+                    HStack(spacing: Sp.sm) {
+                        Image(systemName: "person.crop.rectangle.stack")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(FMColors.Accent.primary)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: Sp.xxs) {
+                            Text("선택한 사진만 보여요")
+                                .fmTypography(.headline)
+                                .foregroundStyle(FMColors.Text.primary)
+                            Text(limitedLibraryMessage)
+                                .fmTypography(.subhead)
+                                .foregroundStyle(FMColors.Text.secondary)
+                        }
+                    }
+
+                    Button {
+                        presentLimitedLibraryPicker()
+                    } label: {
+                        Label("사진 더 선택", systemImage: "plus")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                    .accessibilityIdentifier("photo.import.limited.manage")
+                    .accessibilityHint("iOS 사진 선택 관리 화면을 엽니다.")
+                }
+            }
+        } else if photoLibraryStatus == .authorized, visibleImageCount == 0 {
+            FMCard {
+                VStack(alignment: .leading, spacing: Sp.sm) {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(FMColors.Text.tertiary)
+                        .accessibilityHidden(true)
+                    Text("가져올 수 있는 사진이 없어요")
+                        .fmTypography(.headline)
+                        .foregroundStyle(FMColors.Text.primary)
+                    Text("사진 앱에 이미지를 추가한 뒤 다시 시도하거나 카메라로 새 사진을 촬영해 주세요.")
+                        .fmTypography(.subhead)
+                        .foregroundStyle(FMColors.Text.secondary)
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    private var limitedLibraryMessage: String {
+        if let visibleImageCount {
+            return "현재 moodit에서 볼 수 있는 사진은 \(visibleImageCount)장입니다. 더 추가하려면 사진 더 선택을 눌러 주세요."
+        }
+        return "더 추가하려면 사진 더 선택을 눌러 주세요."
     }
 
     @ViewBuilder
@@ -790,6 +861,8 @@ struct PhotoImportScreen: View {
                     RoundedRectangle(cornerRadius: R.lg)
                         .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
                 }
+                .accessibilityLabel("선택한 가져오기 사진 미리보기")
+                .accessibilityHint("필터 적용 버튼으로 후보정 화면으로 이동할 수 있습니다.")
         } else {
             FMCard {
                 VStack(alignment: .leading, spacing: Sp.sm) {
@@ -804,7 +877,27 @@ struct PhotoImportScreen: View {
                         .foregroundStyle(FMColors.Text.secondary)
                 }
             }
+            .accessibilityElement(children: .combine)
         }
+    }
+
+    private func refreshPhotoLibraryState() {
+        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        photoLibraryStatus = status
+
+        guard status == .authorized || status == .limited else {
+            visibleImageCount = nil
+            return
+        }
+
+        let options = PHFetchOptions()
+        options.includeHiddenAssets = false
+        visibleImageCount = PHAsset.fetchAssets(with: .image, options: options).count
+    }
+
+    private func presentLimitedLibraryPicker() {
+        guard let viewController = UIApplication.shared.fmActiveTopViewController() else { return }
+        PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: viewController)
     }
 
     @MainActor
@@ -824,6 +917,39 @@ struct PhotoImportScreen: View {
             loadError = "사진을 불러오지 못했어요."
             FMHaptic.error.play()
         }
+    }
+}
+
+private extension UIApplication {
+    func fmActiveTopViewController() -> UIViewController? {
+        let rootViewController = connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }?
+            .windows
+            .first { $0.isKeyWindow }?
+            .rootViewController
+
+        return rootViewController?.fmTopPresentedViewController()
+    }
+}
+
+private extension UIViewController {
+    func fmTopPresentedViewController() -> UIViewController {
+        if let navigationController = self as? UINavigationController,
+           let visibleViewController = navigationController.visibleViewController {
+            return visibleViewController.fmTopPresentedViewController()
+        }
+
+        if let tabBarController = self as? UITabBarController,
+           let selectedViewController = tabBarController.selectedViewController {
+            return selectedViewController.fmTopPresentedViewController()
+        }
+
+        if let presentedViewController {
+            return presentedViewController.fmTopPresentedViewController()
+        }
+
+        return self
     }
 }
 

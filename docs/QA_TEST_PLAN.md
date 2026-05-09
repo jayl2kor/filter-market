@@ -375,8 +375,12 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 
 | # | Element (ID) | Expected | PASS/FAIL |
 |---|---|---|---|
-| 8.2.1 | "photo.import.cell.tap" | 사진 선택 |  |
-| 8.2.2 | "photo.import.next" | → AppRoute.photoEdit |  |
+| 8.2.1 | "photo.import.cell.tap" | PhotosPicker opens with single-image selection policy; button announces "사진 선택" / "다른 사진 선택" and "한 번에 한 장만 선택합니다" hint |  |
+| 8.2.2 | selected preview | selected image renders in the preview area and VoiceOver announces "선택한 가져오기 사진 미리보기" |  |
+| 8.2.3 | "photo.import.next" | → AppRoute.photoEdit after a valid image selection |  |
+| 8.2.4 | limited Photos access | "선택한 사진만 보여요" notice appears with visible selected-image count when iOS Photos permission is Limited |  |
+| 8.2.5 | "photo.import.limited.manage" | opens iOS limited-library management picker so the user can add more allowed photos |  |
+| 8.2.6 | empty visible library | when authorized/limited visible image count is 0, show the empty fallback without blocking PhotosPicker |  |
 
 ### 8.3 PhotoEditScreen — `AppRoute.photoEdit`
 
