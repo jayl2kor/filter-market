@@ -1377,13 +1377,14 @@ struct UploadPendingReviewScreen: View {
 
 struct MyFiltersScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @State private var selectedDraft: MakerFilterDraft?
     @State private var showTakedownAlert = false
 
     private var visibleFilters: [MakerFilterDraft] {
-        store.selectedMakerStatus == .all
-            ? store.makerFilters
-            : store.makerFilters.filter { $0.status == store.selectedMakerStatus }
+        editorDraftStore.selectedMakerStatus == .all
+            ? editorDraftStore.makerFilters
+            : editorDraftStore.makerFilters.filter { $0.status == editorDraftStore.selectedMakerStatus }
     }
 
     var body: some View {
@@ -1406,7 +1407,7 @@ struct MyFiltersScreen: View {
                     .shadow(color: .black.opacity(0.18), radius: 14, x: 0, y: 6)
             }
             .simultaneousGesture(TapGesture().onEnded {
-                store.resetEditorDraft()
+                editorDraftStore.resetEditorDraft()
             })
             .accessibilityIdentifier("myfilters.fab.create")
             .padding(.trailing, Sp.lg)
@@ -1442,8 +1443,8 @@ struct MyFiltersScreen: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Sp.xs) {
                 ForEach(MakerFilterStatus.allCases) { status in
-                    FMChip("\(status.title) \(count(for: status))", isSelected: store.selectedMakerStatus == status, size: .sm) {
-                        store.selectedMakerStatus = status
+                    FMChip("\(status.title) \(count(for: status))", isSelected: editorDraftStore.selectedMakerStatus == status, size: .sm) {
+                        editorDraftStore.selectedMakerStatus = status
                     }
                     .accessibilityIdentifier("myfilters.status.filter.\(status.rawValue)")
                 }
@@ -1484,7 +1485,7 @@ struct MyFiltersScreen: View {
                         compactRouteButton(draft.status == .rejected ? "검수 결과" : "수정", icon: draft.status == .rejected ? "doc.text" : "slider.horizontal.3")
                     }
                     .simultaneousGesture(TapGesture().onEnded {
-                        store.startEditing(draft)
+                        editorDraftStore.startEditing(draft)
                     })
                     .buttonStyle(.plain)
                     .accessibilityIdentifier(draft.status == .rejected ? "mod.rejected.review" : "myfilters.row.edit")
@@ -1513,12 +1514,13 @@ struct MyFiltersScreen: View {
     }
 
     private func count(for status: MakerFilterStatus) -> Int {
-        status == .all ? store.makerFilters.count : store.makerFilters.filter { $0.status == status }.count
+        status == .all ? editorDraftStore.makerFilters.count : editorDraftStore.makerFilters.filter { $0.status == status }.count
     }
 }
 
 struct RemixFlowScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var editorDraftStore: EditorDraftStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @Environment(\.dismiss) private var dismiss
 
     /// Parent filter — read from the store's currently selected filter so the
@@ -1526,7 +1528,7 @@ struct RemixFlowScreen: View {
     /// to the first downloaded filter if nothing is selected (rare in practice
     /// since the entry point is FilterDetail's "리믹스" action).
     private var parent: Filter? {
-        store.selectedFilter ?? store.libraryFilters.first ?? store.filters.first
+        filterLibraryStore.selectedFilter ?? filterLibraryStore.libraryFilters.first ?? filterLibraryStore.filters.first
     }
 
     private var parentName: String {
@@ -1608,13 +1610,15 @@ struct RemixFlowScreen: View {
     /// starting point. Parameter values stay at neutral so the user shapes
     /// their own variation.
     private func seedRemixDraft() {
-        store.resetEditorDraft()
-        store.editorDraft.name = "\(parentName) Remix"
         var seedTags: [String] = ["remix"]
         if let parent {
             seedTags.append(parent.category.rawValue.lowercased())
         }
-        store.editorDraft.tags = seedTags
+        editorDraftStore.resetEditorDraft()
+        editorDraftStore.updateEditorDraft { draft in
+            draft.name = "\(parentName) Remix"
+            draft.tags = seedTags
+        }
         FMHaptic.light.play()
     }
 }
