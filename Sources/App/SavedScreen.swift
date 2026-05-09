@@ -12,6 +12,7 @@ import SwiftUI
 struct SavedScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @State private var hasAppeared = false
     @State private var query = ""
     @State private var sort: SavedSort = .recent
@@ -37,9 +38,9 @@ struct SavedScreen: View {
     }
 
     private var visibleFilters: [Filter] {
-        let indexed = Dictionary(uniqueKeysWithValues: store.libraryFilters.enumerated().map { ($0.element.id, $0.offset) })
+        let indexed = Dictionary(uniqueKeysWithValues: filterLibraryStore.libraryFilters.enumerated().map { ($0.element.id, $0.offset) })
         let lowerQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        var filters = store.libraryFilters.filter { filter in
+        var filters = filterLibraryStore.libraryFilters.filter { filter in
             let matchesQuery = lowerQuery.isEmpty
                 || filter.title.lowercased().contains(lowerQuery)
                 || filter.author.displayName.lowercased().contains(lowerQuery)
@@ -79,7 +80,7 @@ struct SavedScreen: View {
         Group {
             if isLoading {
                 skeletonGrid
-            } else if store.libraryFilters.isEmpty {
+            } else if filterLibraryStore.libraryFilters.isEmpty {
                 emptyDownloadsScroll
             } else {
                 ScrollView {
@@ -118,7 +119,7 @@ struct SavedScreen: View {
                     }
                     FMHaptic.selection.play()
                 }
-                .disabled(store.libraryFilters.isEmpty)
+                .disabled(filterLibraryStore.libraryFilters.isEmpty)
                 .accessibilityIdentifier("saved.edit")
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -291,7 +292,7 @@ struct SavedScreen: View {
     }
 
     private func deleteSelectedFilters() {
-        let targets = store.libraryFilters.filter { selectedFilterIDs.contains($0.id) }
+        let targets = filterLibraryStore.libraryFilters.filter { selectedFilterIDs.contains($0.id) }
         targets.forEach { store.removeDownload($0) }
         selectedFilterIDs.removeAll()
         isEditing = false
@@ -302,7 +303,7 @@ struct SavedScreen: View {
         guard !isRefreshing else { return }
         isRefreshing = true
         defer { isRefreshing = false }
-        await store.load(force: true)
+        await filterLibraryStore.load(force: true)
     }
 
     private var skeletonGrid: some View {
@@ -384,12 +385,16 @@ private enum SavedCategory: String, CaseIterable, Identifiable {
 }
 
 #Preview("SavedScreen — Light") {
+    let store = MooditStore()
     SavedScreen()
-        .environmentObject(MooditStore())
+        .environmentObject(store)
+        .environmentObject(store.filterLibraryStore)
 }
 
 #Preview("SavedScreen — Dark") {
+    let store = MooditStore()
     SavedScreen()
-        .environmentObject(MooditStore())
+        .environmentObject(store)
+        .environmentObject(store.filterLibraryStore)
         .preferredColorScheme(.dark)
 }

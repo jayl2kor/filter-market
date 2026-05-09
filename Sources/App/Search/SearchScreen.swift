@@ -38,7 +38,8 @@ struct PopularMaker: Identifiable, Sendable {
 /// 헤더 + 입력 + 취소 / browsing(최근/추천/메이커) / typing(필터 + 메이커) / results(그리드 + 빈상태).
 struct SearchScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var sessionStore: SessionStore
     @State private var query: String = ""
     @State private var debouncedQuery: String = ""
     @State private var isSearchDebouncing = false
@@ -91,20 +92,20 @@ struct SearchScreen: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             loadRecentSearches()
-            refreshPopularMakers(from: store.filters)
+            refreshPopularMakers(from: filterLibraryStore.filters)
         }
         .task {
             // 첫 진입 시 자연스러운 focus.
             try? await Task.sleep(nanoseconds: 200_000_000)
             isFieldFocused = true
         }
-        .onReceive(store.filterLibraryStore.$filters) { filters in
+        .onReceive(filterLibraryStore.$filters) { filters in
             refreshPopularMakers(from: filters)
         }
         .onChange(of: query) { _, newValue in
             scheduleDebouncedSearch(for: newValue)
         }
-        .onChange(of: store.isAuthenticated) { _, _ in
+        .onChange(of: sessionStore.isAuthenticated) { _, _ in
             loadRecentSearches()
         }
         .onDisappear {
@@ -556,9 +557,9 @@ struct SearchScreen: View {
         let normalized = normalizedSearchToken(searchQuery)
         // 컬렉션 분기는 카테고리 필터로만 — 결과 비어있으면 FMEmptyState(.noSearchResults).
         if let initialCategory, initialCategory == "컬렉션" {
-            return store.newFiltersList
+            return filterLibraryStore.newFiltersList
         }
-        return store.filters.filter { f in
+        return filterLibraryStore.filters.filter { f in
             guard f.status == .approved else { return false }
             return f.title.lowercased().contains(normalized)
                 || f.author.displayName.lowercased().contains(normalized)
@@ -663,7 +664,7 @@ struct SearchScreen: View {
         Telemetry.trackPullToRefresh(.search, parameters: [
             "query_length": query.count
         ])
-        await store.load(force: true)
+        await filterLibraryStore.load(force: true)
         debouncedQuery = query
     }
 
@@ -774,18 +775,24 @@ private struct FlowLayout: Layout {
 // MARK: - Preview
 
 #Preview("SearchScreen — Browsing") {
+    let store = MooditStore()
     SearchScreen()
-        .environmentObject(MooditStore())
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.sessionStore)
 }
 
 #Preview("SearchScreen — Dark") {
+    let store = MooditStore()
     SearchScreen()
-        .environmentObject(MooditStore())
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.sessionStore)
         .preferredColorScheme(.dark)
 }
 
 #Preview("SearchScreen — XXXLarge") {
+    let store = MooditStore()
     SearchScreen()
-        .environmentObject(MooditStore())
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.sessionStore)
         .dynamicTypeSize(.xxxLarge)
 }

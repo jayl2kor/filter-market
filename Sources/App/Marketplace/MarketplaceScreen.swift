@@ -11,7 +11,8 @@ import SwiftUI
 /// 검색 헤더 + 인사 + 트렌딩 캐러셀 + 카테고리 칩 + 신규 그리드 + 큐레이션.
 struct MarketplaceScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var walletStore: WalletStore
 
     @State private var selectedCategory: String = "전체"
     @State private var hasAppeared = false
@@ -23,9 +24,9 @@ struct MarketplaceScreen: View {
         self.ownsNavigationStack = ownsNavigationStack
     }
 
-    /// store.load() 가 끝났을 때 false 가 된다. 로딩 시는 skeleton.
+    /// filterLibraryStore.load() 가 끝났을 때 false 가 된다. 로딩 시는 skeleton.
     private var isLoading: Bool {
-        !hasAppeared || (store.isLoading && store.filters.isEmpty)
+        !hasAppeared || (filterLibraryStore.isLoading && filterLibraryStore.filters.isEmpty)
     }
 
     var body: some View {
@@ -40,7 +41,7 @@ struct MarketplaceScreen: View {
             }
         }
         .task {
-            // 첫 진입 시 hasAppeared를 즉시 true — store.isLoading + 데이터 도착 여부로
+            // 첫 진입 시 hasAppeared를 즉시 true — 로딩 상태 + 데이터 도착 여부로
             // skeleton/empty/content를 분기. (#18 hardcoded 350ms sleep 제거)
             hasAppeared = true
         }
@@ -54,7 +55,7 @@ struct MarketplaceScreen: View {
                 greeting
                     .padding(.horizontal, Sp.md)
 
-                if let error = store.loadError, store.filters.isEmpty {
+                if let error = filterLibraryStore.loadError, filterLibraryStore.filters.isEmpty {
                     errorState(error)
                 } else if isLoading {
                     loadingState
@@ -66,7 +67,7 @@ struct MarketplaceScreen: View {
         }
         .refreshable {
             Telemetry.trackPullToRefresh(.marketplaceHome)
-            await store.load(force: true)
+            await filterLibraryStore.load(force: true)
         }
         .background(FMColors.Background.bg0)
         .toolbar(.hidden, for: .navigationBar)
@@ -105,7 +106,7 @@ struct MarketplaceScreen: View {
                     Image(systemName: "circle.hexagongrid.fill")
                         .font(.system(size: IconSize.sm, weight: .semibold))
                         .foregroundStyle(FMColors.Accent.primary)
-                    Text(store.coinBalance.formatted())
+                    Text(walletStore.coinBalance.formatted())
                         .fmTypography(.subhead)
                         .fontWeight(.semibold)
                         .foregroundStyle(FMColors.Text.primary)
@@ -124,7 +125,7 @@ struct MarketplaceScreen: View {
                 Telemetry.trackAction("wallet_opened", screen: .marketplaceHome, parameters: ["source": "header"])
             })
             .accessibilityIdentifier("market.header.coinBalance")
-            .accessibilityLabel("코인 잔액 \(store.coinBalance)개, 지갑 열기")
+            .accessibilityLabel("코인 잔액 \(walletStore.coinBalance)개, 지갑 열기")
 
             NavigationLink(value: AppRoute.notifications) {
                 Image(systemName: "bell")
@@ -172,7 +173,7 @@ struct MarketplaceScreen: View {
             collectionsSection
         }
         .onAppear {
-            prefetchCovers(in: Array(store.trendingFilters.prefix(8)) + Array(filteredNewFilters.prefix(8)))
+            prefetchCovers(in: Array(filterLibraryStore.trendingFilters.prefix(8)) + Array(filteredNewFilters.prefix(8)))
         }
     }
 
@@ -182,10 +183,10 @@ struct MarketplaceScreen: View {
             sectionHeader(title: "트렌딩", more: "더보기 →")
                 .padding(.horizontal, Sp.md)
 
-            if store.trendingFilters.isEmpty {
+            if filterLibraryStore.trendingFilters.isEmpty {
                 FMEmptyState(.emptyMarket, ctaTitle: "새로고침") {
                     Telemetry.trackAction("empty_state_cta_tapped", screen: .marketplaceHome, parameters: ["section": "trending"])
-                    Task { await store.load(force: true) }
+                    Task { await filterLibraryStore.load(force: true) }
                 }
                     .padding(.horizontal, Sp.md)
                     .onAppear {
@@ -195,7 +196,7 @@ struct MarketplaceScreen: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: Sp.sm) {
-                        ForEach(Array(store.trendingFilters.enumerated()), id: \.element.id) { index, filter in
+                        ForEach(Array(filterLibraryStore.trendingFilters.enumerated()), id: \.element.id) { index, filter in
                             NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
                                 FeaturedCard(data: filter.toTileData(), isHighlighted: index == 0)
                                     .frame(width: 268)
@@ -208,7 +209,7 @@ struct MarketplaceScreen: View {
                                 ])
                             })
                             .onAppear {
-                                prefetchCovers(in: Array(store.trendingFilters.dropFirst(index + 1).prefix(8)))
+                                prefetchCovers(in: Array(filterLibraryStore.trendingFilters.dropFirst(index + 1).prefix(8)))
                             }
                             .accessibilityIdentifier("market.trending.\(index)")
                         }
@@ -270,7 +271,7 @@ struct MarketplaceScreen: View {
                         "section": "new_filters",
                         "category": selectedCategory
                     ])
-                    Task { await store.load(force: true) }
+                    Task { await filterLibraryStore.load(force: true) }
                 }
                     .padding(.horizontal, Sp.md)
                     .onAppear {
@@ -371,7 +372,7 @@ struct MarketplaceScreen: View {
 
             FMButton("다시 시도", variant: .primary, size: .md) {
                 Telemetry.trackAction("load_retry_tapped", screen: .marketplaceHome)
-                Task { await store.retry() }
+                Task { await filterLibraryStore.retry() }
             }
             .accessibilityIdentifier("market.loadError.retry")
         }
@@ -428,12 +429,12 @@ struct MarketplaceScreen: View {
 
     private var filteredNewFilters: [Filter] {
         guard selectedCategory != "전체" else {
-            return store.newFiltersList
+            return filterLibraryStore.newFiltersList
         }
         guard let category = filterCategory(for: selectedCategory) else {
-            return store.newFiltersList
+            return filterLibraryStore.newFiltersList
         }
-        return store.newFiltersList.filter { $0.category == category }
+        return filterLibraryStore.newFiltersList.filter { $0.category == category }
     }
 
     /// 카테고리 칩 라벨 (예: "Cinematic", "B&W") → `FilterCategory` enum.
@@ -666,16 +667,16 @@ private struct CollectionCard: View {
 // MARK: - Preview
 
 #Preview("MarketplaceScreen — Loaded") {
+    let store = MooditStore()
     MarketplaceScreen()
-        .environmentObject({
-            let store = MooditStore()
-            // Preview 에서는 즉시 mock 채우기 위해 selectedFilterID 만 설정.
-            return store
-        }())
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.walletStore)
 }
 
 #Preview("MarketplaceScreen — Dark") {
+    let store = MooditStore()
     MarketplaceScreen()
-        .environmentObject(MooditStore())
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.walletStore)
         .preferredColorScheme(.dark)
 }
