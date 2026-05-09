@@ -8,7 +8,7 @@ import SwiftUI
 import UIKit
 
 private struct EditorReferencePreview: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @State private var renderedImage: UIImage?
     @State private var sourceImage: UIImage?
     @State private var isRendering = false
@@ -24,7 +24,7 @@ private struct EditorReferencePreview: View {
                     .scaledToFill()
             } else {
                 LinearGradient(
-                    colors: store.editorDraft.category.swatch,
+                    colors: editorDraftStore.editorDraft.category.swatch,
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -42,7 +42,7 @@ private struct EditorReferencePreview: View {
                     .background(.black.opacity(0.28), in: Capsule())
                     .accessibilityIdentifier("editor.compare.hold")
 
-                Text(store.editorDraft.name.isEmpty ? "Untitled Filter" : store.editorDraft.name)
+                Text(editorDraftStore.editorDraft.name.isEmpty ? "Untitled Filter" : editorDraftStore.editorDraft.name)
                     .fmTypography(.titleLarge)
                     .fontWeight(.bold)
                     .foregroundStyle(.white)
@@ -84,10 +84,10 @@ private struct EditorReferencePreview: View {
 
     private var renderKey: EditorPreviewRenderKey {
         EditorPreviewRenderKey(
-            category: store.editorDraft.category,
-            sampleKind: store.editorReferenceSampleKind,
-            referenceRevision: store.editorReferencePhotoRevision,
-            lutRevision: store.editorImportedLUTRevision,
+            category: editorDraftStore.editorDraft.category,
+            sampleKind: editorDraftStore.editorReferenceSampleKind,
+            referenceRevision: editorDraftStore.editorReferencePhotoRevision,
+            lutRevision: editorDraftStore.editorImportedLUTRevision,
             exposure: quantized("exposure"),
             contrast: quantized("contrast"),
             saturation: quantized("saturation"),
@@ -97,7 +97,7 @@ private struct EditorReferencePreview: View {
     }
 
     private func quantized(_ key: String) -> Int {
-        Int(((store.editorDraft.parameterValues[key] ?? 0) * 1_000).rounded())
+        Int(((editorDraftStore.editorDraft.parameterValues[key] ?? 0) * 1_000).rounded())
     }
 
     @MainActor
@@ -112,11 +112,11 @@ private struct EditorReferencePreview: View {
         let referenceData = previewReferenceData()
         sourceImage = UIImage(data: referenceData)
 
-        let sourceLUT = store.editorImportedLUT
-            ?? LUT3D.preset(LUTPreset.preset(for: store.editorDraft.category), size: 33)
-        let parameters = store.editorPreviewParameters
-        let grain = store.editorPreviewGrain
-        let vignette = store.editorPreviewVignette
+        let sourceLUT = editorDraftStore.editorImportedLUT
+            ?? LUT3D.preset(LUTPreset.preset(for: editorDraftStore.editorDraft.category), size: 33)
+        let parameters = editorDraftStore.editorPreviewParameters
+        let grain = editorDraftStore.editorPreviewGrain
+        let vignette = editorDraftStore.editorPreviewVignette
 
         isRendering = true
         defer { isRendering = false }
@@ -141,12 +141,12 @@ private struct EditorReferencePreview: View {
     }
 
     private func previewReferenceData() -> Data {
-        if let data = store.editorReferencePhotoData,
+        if let data = editorDraftStore.editorReferencePhotoData,
            let image = UIImage(data: data),
            let resized = EditorReferenceSampleImage.normalizedJPEGData(from: image, maxLongEdge: 800) {
             return resized
         }
-        return EditorReferenceSampleImage.makeJPEGData(kind: store.editorReferenceSampleKind)
+        return EditorReferenceSampleImage.makeJPEGData(kind: editorDraftStore.editorReferenceSampleKind)
     }
 }
 
@@ -165,6 +165,7 @@ private struct EditorPreviewRenderKey: Hashable {
 struct FilterEditorScreen: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @State private var showCancelAlert = false
     @State private var selectedReferenceItem: PhotosPickerItem?
     @State private var referenceLoadError: String?
@@ -215,7 +216,7 @@ struct FilterEditorScreen: View {
                 dismiss()
             }
             Button("버리기", role: .destructive) {
-                store.resetEditorDraft()
+                editorDraftStore.resetEditorDraft()
                 dismiss()
             }
             Button("계속 작성", role: .cancel) {}
@@ -233,7 +234,7 @@ struct FilterEditorScreen: View {
 
     @ViewBuilder
     private var referenceSourceControls: some View {
-        let hasReferencePhoto = store.editorReferencePhotoData != nil
+        let hasReferencePhoto = editorDraftStore.editorReferencePhotoData != nil
         VStack(alignment: .leading, spacing: Sp.sm) {
             HStack(spacing: Sp.sm) {
                 sectionLabel("참조 사진")
@@ -247,7 +248,7 @@ struct FilterEditorScreen: View {
 
                 if hasReferencePhoto {
                     Button {
-                        store.setEditorReferencePhotoData(nil)
+                        editorDraftStore.setEditorReferencePhotoData(nil)
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(FMColors.Text.tertiary)
@@ -261,10 +262,10 @@ struct FilterEditorScreen: View {
                     ForEach(EditorReferenceSampleKind.allCases) { kind in
                         FMChip(
                             kind.title,
-                            isSelected: !hasReferencePhoto && store.editorReferenceSampleKind == kind,
+                            isSelected: !hasReferencePhoto && editorDraftStore.editorReferenceSampleKind == kind,
                             size: .sm
                         ) {
-                            store.setEditorReferenceSampleKind(kind)
+                            editorDraftStore.setEditorReferenceSampleKind(kind)
                             FMHaptic.selection.play()
                         }
                         .accessibilityIdentifier("editor.reference.sample.\(kind.rawValue)")
@@ -292,7 +293,7 @@ struct FilterEditorScreen: View {
                 referenceLoadError = "사진 데이터를 읽지 못했어요."
                 return
             }
-            store.setEditorReferencePhotoData(normalized)
+            editorDraftStore.setEditorReferencePhotoData(normalized)
             referenceLoadError = nil
             FMHaptic.success.play()
         } catch {
@@ -303,9 +304,9 @@ struct FilterEditorScreen: View {
 
     private var quickStats: some View {
         HStack(spacing: Sp.sm) {
-            editorMetric("LUT", value: store.editorDraft.lutFileName ?? "기본")
-            editorMetric("커버", value: "\(store.editorDraft.coverCount)장")
-            editorMetric("태그", value: "\(store.editorDraft.tags.count)개")
+            editorMetric("LUT", value: editorDraftStore.editorDraft.lutFileName ?? "기본")
+            editorMetric("커버", value: "\(editorDraftStore.editorDraft.coverCount)장")
+            editorMetric("태그", value: "\(editorDraftStore.editorDraft.tags.count)개")
         }
     }
 
@@ -352,7 +353,7 @@ struct FilterEditorScreen: View {
                             .fmTypography(.body)
                             .foregroundStyle(FMColors.Text.primary)
                         Spacer()
-                        Text("\(Int((store.editorDraft.parameterValues[key] ?? 0) * 100))")
+                        Text("\(Int((editorDraftStore.editorDraft.parameterValues[key] ?? 0) * 100))")
                             .fmTypography(.headline)
                             .foregroundStyle(FMColors.Accent.primary)
                     }
@@ -382,7 +383,7 @@ struct FilterEditorScreen: View {
 }
 
 struct EditorParametersScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @State private var selectedSection: EditorParameterSection = .lighting
 
     private let parameters = ["exposure", "contrast", "saturation", "grain", "vignette"]
@@ -432,8 +433,8 @@ struct EditorParametersScreen: View {
                 ForEach(parameters, id: \.self) { key in
                     FMSlider(
                         value: Binding(
-                            get: { store.editorDraft.parameterValues[key] ?? 0 },
-                            set: { store.updateEditorParameter(key, value: $0) }
+                            get: { editorDraftStore.editorDraft.parameterValues[key] ?? 0 },
+                            set: { editorDraftStore.updateEditorParameter(key, value: $0) }
                         ),
                         range: -1...1,
                         label: parameterTitle(key),
@@ -468,7 +469,7 @@ struct EditorParametersScreen: View {
 }
 
 struct EditorLUTImportScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @State private var importCount = 0
     @State private var showingImporter = false
     @State private var importError: ImportErrorMessage?
@@ -528,7 +529,7 @@ struct EditorLUTImportScreen: View {
             let text = try String(contentsOf: url, encoding: .utf8)
             let parsed = try CubeLUTParser.parse(text)
             importCount += 1
-            store.setEditorLUT(url.lastPathComponent, lut: previewLUT(from: parsed))
+            editorDraftStore.setEditorLUT(url.lastPathComponent, lut: previewLUT(from: parsed))
             FMHaptic.success.play()
         } catch {
             importError = ImportErrorMessage(message: friendlyMessage(for: error))
@@ -602,7 +603,7 @@ struct EditorLUTImportScreen: View {
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundStyle(FMColors.Accent.primary)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(store.editorDraft.lutFileName ?? "LUT 파일 없음")
+                        Text(editorDraftStore.editorDraft.lutFileName ?? "LUT 파일 없음")
                             .fmTypography(.headline)
                             .foregroundStyle(FMColors.Text.primary)
                         Text("33x33 Cube · sRGB · 1.2MB")
@@ -647,11 +648,11 @@ struct EditorLUTImportScreen: View {
         FMCard {
             VStack(alignment: .leading, spacing: Sp.sm) {
                 sectionLabel("검증")
-                validationRow("파일 형식", value: store.editorDraft.lutFileName == nil ? "검증 전" : "Cube LUT", isPassed: store.editorDraft.lutFileName != nil)
+                validationRow("파일 형식", value: editorDraftStore.editorDraft.lutFileName == nil ? "검증 전" : "Cube LUT", isPassed: editorDraftStore.editorDraft.lutFileName != nil)
                 workflowDivider()
-                validationRow("권장 크기", value: "33x33x33", isPassed: store.editorDraft.lutFileName != nil)
+                validationRow("권장 크기", value: "33x33x33", isPassed: editorDraftStore.editorDraft.lutFileName != nil)
                 workflowDivider()
-                validationRow("색공간", value: store.editorDraft.lutFileName == nil ? "검증 전" : "sRGB", isPassed: store.editorDraft.lutFileName != nil)
+                validationRow("색공간", value: editorDraftStore.editorDraft.lutFileName == nil ? "검증 전" : "sRGB", isPassed: editorDraftStore.editorDraft.lutFileName != nil)
                 workflowDivider()
                 validationRow("앱 호환성", value: "iOS 17+", isPassed: true)
             }
