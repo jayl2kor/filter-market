@@ -156,9 +156,7 @@ public final class StoreKitManager: ObservableObject {
     /// finish StoreKit transactions on false so StoreKit can retry later.
     @discardableResult
     private func creditBackend(transaction: StoreKit.Transaction, productId: String, jws: String) async -> Bool {
-        let callableName = IAPProductIDs.isProSubscription(productId)
-            ? "proSubscriptionUpdate"
-            : "creditCoinsFromIAP"
+        let callableName = Self.backendCallableName(for: productId)
         let isProSubscription = IAPProductIDs.isProSubscription(productId)
         let callable = Functions.functions(region: region).httpsCallable(callableName)
         do {
@@ -170,7 +168,7 @@ public final class StoreKitManager: ObservableObject {
             guard !isProSubscription else {
                 return true
             }
-            guard let coinResult = parseCoinCreditResult(result.data) else {
+            guard let coinResult = Self.parseCoinCreditResult(result.data) else {
                 lastError = "서버 응답을 해석하지 못했어요."
                 return false
             }
@@ -182,7 +180,13 @@ public final class StoreKitManager: ObservableObject {
         }
     }
 
-    private func parseCoinCreditResult(_ data: Any) -> CoinCreditResult? {
+    nonisolated static func backendCallableName(for productId: String) -> String {
+        IAPProductIDs.isProSubscription(productId)
+            ? "proSubscriptionUpdate"
+            : "creditCoinsFromIAP"
+    }
+
+    nonisolated static func parseCoinCreditResult(_ data: Any) -> CoinCreditResult? {
         guard let dict = data as? [String: Any] else { return nil }
         let creditedAmount = dict["creditedAmount"] as? Int ?? (dict["creditedAmount"] as? NSNumber)?.intValue
         let balance = dict["balance"] as? Int ?? (dict["balance"] as? NSNumber)?.intValue

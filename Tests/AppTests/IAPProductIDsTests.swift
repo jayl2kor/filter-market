@@ -68,4 +68,56 @@ final class IAPProductIDsTests: XCTestCase {
         }
         XCTAssertEqual(Set(IAPProductIDs.allIDs).count, IAPProductIDs.allIDs.count)
     }
+
+    func testStoreKitBackendCallableNameRoutesCoinsAndProSubscriptions() {
+        XCTAssertEqual(
+            StoreKitManager.backendCallableName(for: IAPProductIDs.coins100),
+            "creditCoinsFromIAP"
+        )
+        XCTAssertEqual(
+            StoreKitManager.backendCallableName(for: IAPProductIDs.proMonthly),
+            "proSubscriptionUpdate"
+        )
+    }
+
+    func testStoreKitCoinCreditResultParsesSwiftAndNSNumberValues() {
+        XCTAssertEqual(
+            StoreKitManager.parseCoinCreditResult([
+                "creditedAmount": 550,
+                "balance": 1_200,
+                "duplicate": false,
+            ]),
+            StoreKitManager.CoinCreditResult(
+                creditedAmount: 550,
+                balance: 1_200,
+                duplicate: false
+            )
+        )
+
+        XCTAssertEqual(
+            StoreKitManager.parseCoinCreditResult([
+                "creditedAmount": NSNumber(value: 100),
+                "balance": NSNumber(value: -20),
+                "duplicate": NSNumber(value: true),
+            ]),
+            StoreKitManager.CoinCreditResult(
+                creditedAmount: 100,
+                balance: 0,
+                duplicate: true
+            )
+        )
+    }
+
+    func testStoreKitCoinCreditResultRejectsMalformedResponses() {
+        XCTAssertNil(StoreKitManager.parseCoinCreditResult("not a dictionary"))
+        XCTAssertNil(StoreKitManager.parseCoinCreditResult([
+            "creditedAmount": 100,
+            "balance": 100,
+        ]))
+        XCTAssertNil(StoreKitManager.parseCoinCreditResult([
+            "creditedAmount": "100",
+            "balance": 100,
+            "duplicate": false,
+        ]))
+    }
 }

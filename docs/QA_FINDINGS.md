@@ -20,6 +20,7 @@
 | Workflow helper extraction | `WorkflowScreens.swift`의 공용 workflow UI/formatter/editor asset helper를 `WorkflowHelpers.swift`, `WorkflowFormatters.swift`, `EditorAssets.swift`로 분리하고 UI-test 전용 분기를 `#if DEBUG`로 제한 | Done |
 | MooditStore unit baseline | Firebase가 설정된 test host에서도 순수 상태 테스트가 외부 Firestore/Auth에 닿지 않도록 unit-test guard를 추가하고 load/download/favorite/editor draft/submit/reset 상태 전이를 `MooditStoreTests`로 고정 | Partial |
 | ProfileSelfStore unit baseline | Firebase가 설정되지 않은 단위 테스트에서 Auth/Firestore 접근을 우회하고 profile baseline/handle normalization/start-refresh local reset을 `ProfileSelfStoreTests`로 고정 | Done |
+| StoreKit backend bridge unit baseline | StoreKit sandbox 없이 검증 가능한 product id mapping, backend callable routing, coin credit response parsing을 `IAPProductIDsTests`로 고정 | Done |
 | 실기기/외부 서비스 QA | Apple/Google Sign-In, StoreKit sandbox, 실제 카메라 촬영/저장/공유, APNs/FCM push, App Settings deep link | Blocked |
 
 ## Automated Verification
@@ -76,6 +77,7 @@
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/UniversalLinkParserTests` | PASS, 21 tests after percent-encoded route slug coverage (#184) |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/MooditStoreTests` | PASS, 5 tests covering load, download/favorite/remove, editor draft mutations, submit pending, and user-scope reset (#180/#184) |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/ProfileSelfStoreTests` | PASS, 4 tests covering handle normalization, profile baseline mapping, Auth fallback, and unit-test local start/refresh guard (#184) |
+| 2026-05-09 | `xcodebuild ... -only-testing:AppTests/IAPProductIDsTests` | PASS, 12 tests covering SKU mappings plus StoreKit backend callable routing and coin credit response parsing (#184) |
 | 2026-05-09 | `npm --prefix functions test` | PASS, 93 tests after idempotency cache implementation, Apple cert timeout coverage, and paid filter entitlement/Pro gating in `getFilterDetail` (#182) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after #162 screen/action telemetry wiring |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/TelemetryTests test` | PASS, 3 tests after #162 telemetry parameter sanitizer coverage |
