@@ -3,6 +3,7 @@ import FirebaseAuth
 import FirebaseCore
 import FirebaseFirestore
 import SwiftUI
+import UIKit
 
 /// 5탭 + 중앙 셔터 셸.
 ///
@@ -12,6 +13,7 @@ import SwiftUI
 struct RootShell: View {
     @StateObject private var store = MooditStore()
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("hasOnboarded") private var hasOnboarded: Bool = false
 
     @State private var selectedTab: FMTab = .market
@@ -25,6 +27,8 @@ struct RootShell: View {
     @State private var notificationBadgeListener: ListenerRegistration?
     @State private var unreadNotificationCount = 0
     @State private var didPrimeNotificationBadge = false
+    @State private var foregroundPushBanner: ForegroundPushBannerPayload?
+    @State private var foregroundPushDismissTask: Task<Void, Never>?
     /// 신규 사용자 첫 로그인 후 listener가 도착할 시간을 약간 둔 뒤 핸들 검사.
     /// (#32) 너무 일찍 검사하면 .empty 초기값을 보고 잘못 trigger.
     @State private var didCheckHandle = false
@@ -52,6 +56,9 @@ struct RootShell: View {
                 }
             )
         }
+        .overlay(alignment: .top) {
+            foregroundPushBannerView
+        }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .background(FMColors.Background.bg1)
         .environmentObject(store)
@@ -63,6 +70,9 @@ struct RootShell: View {
                 Task { @MainActor in
                     handleIncomingDeepLink(route)
                 }
+            }
+            PushRegistration.shared.foregroundBannerHandler = { payload in
+                showForegroundPushBanner(payload)
             }
             #if DEBUG
             // UI test launch arg: `-deepLink <url>` simulates the URL arriving
@@ -135,7 +145,38 @@ struct RootShell: View {
             }
         }
         .onDisappear {
+            foregroundPushDismissTask?.cancel()
+            foregroundPushDismissTask = nil
             detachNotificationBadgeListener()
+        }
+    }
+
+    @ViewBuilder
+    private var foregroundPushBannerView: some View {
+        if let foregroundPushBanner {
+            FMBanner(
+                .info,
+                title: foregroundPushBanner.title,
+                detail: foregroundPushBanner.body,
+                onDismiss: dismissForegroundPushBanner
+            )
+            .contentShape(Rectangle())
+            .onTapGesture {
+                activateForegroundPushBanner(foregroundPushBanner)
+            }
+            .accessibilityIdentifier("notif.foreground.banner")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint("열어서 관련 화면으로 이동합니다")
+            .accessibilityAction {
+                activateForegroundPushBanner(foregroundPushBanner)
+            }
+            .transition(
+                .fmReducible(
+                    .move(edge: .top).combined(with: .opacity),
+                    reduceMotion: reduceMotion
+                )
+            )
+            .zIndex(Z.toast)
         }
     }
 
@@ -206,6 +247,36 @@ struct RootShell: View {
             return
         }
         store.pendingDeepLinkRoute = route
+    }
+
+    private func showForegroundPushBanner(_ payload: ForegroundPushBannerPayload) {
+        foregroundPushDismissTask?.cancel()
+        withAnimation(.fmSpringSheet.reducedIfNeeded(reduceMotion)) {
+            foregroundPushBanner = payload
+        }
+        FMHaptic.light.play()
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: payload.body.map { "\(payload.title). \($0)" } ?? payload.title
+        )
+        foregroundPushDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard !Task.isCancelled else { return }
+            dismissForegroundPushBanner()
+        }
+    }
+
+    private func dismissForegroundPushBanner() {
+        foregroundPushDismissTask?.cancel()
+        foregroundPushDismissTask = nil
+        withAnimation(.fmSpringSheet.reducedIfNeeded(reduceMotion)) {
+            foregroundPushBanner = nil
+        }
+    }
+
+    private func activateForegroundPushBanner(_ payload: ForegroundPushBannerPayload) {
+        dismissForegroundPushBanner()
+        handleIncomingDeepLink(payload.route ?? .notifications)
     }
 
     private func handleFailedDeepLink(_ url: URL, reason: String) {

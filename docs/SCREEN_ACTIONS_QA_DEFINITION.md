@@ -226,7 +226,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 | StoreKit/Google/Apple sign-in은 sandbox/실기기 의존 | 시뮬레이터만으로 검증 불가 | 실기기 QA checklist 별도 표시 |
 | 저장/즐겨찾기/컬렉션 사용자 상태 | `/users/{uid}/savedFilters`, `/users/{uid}/favorites`, `/users/{uid}/collections` snapshot listener가 단일 출처 | 동일 uid 재실행/다른 디바이스 동기화와 실패 rollback 확인 |
 | 알림 설정 동기화 | 사용자 입력만 debounced Firestore write를 예약하고 remote snapshot은 재저장하지 않음 | 빠른 토글 6개 변경 후 최종 상태 1회성 반영, listener write loop 없음 |
-| Foreground push 표시 | `PushRegistration` foreground delegate가 notificationPreferences와 quiet hours를 적용 | 카테고리 OFF/quiet hours 중에는 banner/sound 없이 badge만 허용 |
+| Foreground push 표시 | `PushRegistration` foreground delegate가 notificationPreferences와 quiet hours를 적용하고 `RootShell`이 `notif.foreground.banner` in-app banner를 표시 | 카테고리 OFF/quiet hours 중에는 banner/sound 없이 badge만 허용. 허용 push는 banner 탭 시 payload deep-link 또는 알림함으로 이동 |
 | Push device 등록 | 로그인 전 수신한 FCM token은 캐시하고 로그인 후 재저장 또는 token fetch 재시도 | 신규 사용자 첫 로그인 후 `/users/{uid}/devices/{deviceId}` 생성 확인 |
 | Pro 유료 필터 접근 | `isProActive && priceCoins > 0`이면 코인 구매 callable 없이 saved filter 동기화 | PaywallSingle에서 Pro 포함 라벨, 차감 없는 after-download 이동 확인 |
 | 업로드 취소 | `upload.cancel`은 저장 후 나가기/버리고 나가기/계속 작성의 3-way dialog | 저장/버리기 선택 시 화면 dismiss, 계속 작성은 stay |

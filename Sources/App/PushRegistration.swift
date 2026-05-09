@@ -6,6 +6,13 @@ import Foundation
 import UIKit
 import UserNotifications
 
+struct ForegroundPushBannerPayload: Identifiable, Equatable {
+    let id = UUID()
+    let title: String
+    let body: String?
+    let route: AppRoute?
+}
+
 final class ForegroundNotificationPolicy: @unchecked Sendable {
     static let shared = ForegroundNotificationPolicy()
 
@@ -156,6 +163,7 @@ final class PushRegistration: NSObject {
     /// deep-link payload. Wired by the app shell so it can route into a
     /// `MooditStore.pendingDeepLinkRoute`.
     var deepLinkHandler: ((AppRoute) -> Void)?
+    var foregroundBannerHandler: ((ForegroundPushBannerPayload) -> Void)?
     private var lastKnownFCMToken: String?
 
     private var firestore: Firestore? {
@@ -317,11 +325,25 @@ extension PushRegistration: UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler(
-            ForegroundNotificationPolicy.shared.presentationOptions(
-                for: notification.request.content.userInfo
-            )
+        let userInfo = notification.request.content.userInfo
+        let options = ForegroundNotificationPolicy.shared.presentationOptions(
+            for: userInfo
         )
+        if options.contains(.banner) {
+            let content = notification.request.content
+            let title = content.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            let body = content.body.trimmingCharacters(in: .whitespacesAndNewlines)
+            let route = UniversalLinkParser.route(forPushUserInfo: userInfo)
+            let payload = ForegroundPushBannerPayload(
+                title: title.isEmpty ? "새 알림" : title,
+                body: body.isEmpty ? nil : body,
+                route: route
+            )
+            Task { @MainActor [payload] in
+                self.foregroundBannerHandler?(payload)
+            }
+        }
+        completionHandler(options)
     }
 
     /// Tap handling — parses the FCM payload via UniversalLinkParser and
