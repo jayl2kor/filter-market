@@ -15,7 +15,6 @@ import UIKit
 /// Phase D3 — `mockups/screens/07-filter-detail.html` 와 정합.
 /// 비포/애프터 슬라이더 + 메이커 정보 + 통계 + 설명/태그 + 샘플 갤러리 + 댓글 + 하단 CTA.
 struct FilterDetailScreen: View {
-    @EnvironmentObject private var store: MooditStore
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var sessionStore: SessionStore
     @Environment(\.dismiss) private var dismiss
@@ -860,7 +859,7 @@ struct FilterDetailScreen: View {
     private func toggleLike() async {
         let targetState = !isLiked
         if let filter {
-            store.toggleFavorite(filter)
+            filterLibraryStore.toggleFavoriteAndPersist(filter)
             FMHaptic.light.play()
             Telemetry.trackAction(targetState ? "filter_liked" : "filter_unliked", screen: .filterDetail)
             return
@@ -1035,7 +1034,7 @@ struct FilterDetailScreen: View {
             downloadTask = Task { @MainActor in
                 do {
                     if let filter {
-                        try await store.download(filter)
+                        try await filterLibraryStore.download(filter)
                     } else {
                         try await Task.sleep(nanoseconds: 300_000_000)
                     }

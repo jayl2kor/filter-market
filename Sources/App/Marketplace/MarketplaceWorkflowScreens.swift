@@ -78,7 +78,6 @@ private enum SignedFilterPackageDownloader {
 struct FilterDownloadProgressScreen: View {
     let filterID: String
 
-    @EnvironmentObject private var store: MooditStore
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @State private var phase: DownloadPhase = .preparing
     @State private var progress: Double = 0
@@ -332,9 +331,9 @@ struct FilterDownloadProgressScreen: View {
 
     private func markDownloadedAfterPackageFetch() async throws {
         if let filter {
-            try await store.download(filter)
+            try await filterLibraryStore.download(filter)
         } else {
-            try await store.download(filterID: filterID)
+            try await filterLibraryStore.download(filterID: filterID)
         }
     }
 }
@@ -342,7 +341,6 @@ struct FilterDownloadProgressScreen: View {
 struct FilterAfterDownloadScreen: View {
     let filterID: String
 
-    @EnvironmentObject private var store: MooditStore
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @State private var isCameraPresented = false
     @State private var showRemoveAlert = false
@@ -369,7 +367,6 @@ struct FilterAfterDownloadScreen: View {
         }
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraScreen(isPresentedAsCover: true)
-                .environmentObject(store)
                 .interactiveDismissDisabled(true)
         }
         .fmDestructiveAlert(
@@ -379,7 +376,7 @@ struct FilterAfterDownloadScreen: View {
             isPresented: $showRemoveAlert
         ) {
             if let filter {
-                store.removeDownload(filter)
+                filterLibraryStore.removeDownloadAndPersist(filter)
             }
         }
     }
@@ -437,7 +434,7 @@ struct FilterAfterDownloadScreen: View {
                 divider
                 actionRow("즐겨찾기", icon: favoriteIcon, identifier: "filter.favorite.toggle") {
                     if let filter {
-                        store.toggleFavorite(filter)
+                        filterLibraryStore.toggleFavoriteAndPersist(filter)
                         FMHaptic.light.play()
                     }
                 }
@@ -549,7 +546,6 @@ private enum DownloadPhase: Equatable {
 }
 
 struct BuiltinFilterLibraryScreen: View {
-    @EnvironmentObject private var store: MooditStore
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var walletStore: WalletStore
     @State private var isCameraPresented = false
@@ -615,7 +611,6 @@ struct BuiltinFilterLibraryScreen: View {
         .sheet(item: $lockedFilter) { filter in
             NavigationStack {
                 BuiltinFilterLockedSheet(filter: filter)
-                    .environmentObject(store)
                     .environmentObject(filterLibraryStore)
                     .environmentObject(walletStore)
                     .appRouteDestinations()
@@ -623,7 +618,6 @@ struct BuiltinFilterLibraryScreen: View {
         }
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraScreen(isPresentedAsCover: true)
-                .environmentObject(store)
                 .interactiveDismissDisabled(true)
         }
     }

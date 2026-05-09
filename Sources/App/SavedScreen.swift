@@ -11,7 +11,6 @@ import SwiftUI
 /// - swipe to delete
 struct SavedScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @EnvironmentObject private var store: MooditStore
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @State private var hasAppeared = false
     @State private var query = ""
@@ -138,7 +137,6 @@ struct SavedScreen: View {
         }
         .navigationDestination(isPresented: $showEmptySearch) {
             SearchScreen()
-                .environmentObject(store)
         }
     }
 
@@ -270,7 +268,7 @@ struct SavedScreen: View {
             .accessibilityIdentifier("saved.tile.\(filter.id.uuidString)")
             .contextMenu {
                 Button(role: .destructive) {
-                    store.removeDownload(filter)
+                    filterLibraryStore.removeDownloadAndPersist(filter)
                 } label: {
                     Label("다운로드 제거", systemImage: "trash")
                 }
@@ -293,7 +291,7 @@ struct SavedScreen: View {
 
     private func deleteSelectedFilters() {
         let targets = filterLibraryStore.libraryFilters.filter { selectedFilterIDs.contains($0.id) }
-        targets.forEach { store.removeDownload($0) }
+        targets.forEach { filterLibraryStore.removeDownloadAndPersist($0) }
         selectedFilterIDs.removeAll()
         isEditing = false
         FMHaptic.success.play()
