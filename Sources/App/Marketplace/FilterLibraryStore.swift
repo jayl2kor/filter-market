@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseFirestore
 import Marketplace
 import Models
 
@@ -15,6 +16,7 @@ final class FilterLibraryStore: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var trendingFilters: [AppFilter] = []
     @Published private(set) var newFiltersList: [AppFilter] = []
+    @Published private(set) var lastSyncErrorMessage: String?
 
     private let repository: any FilterRepository
 
@@ -72,6 +74,7 @@ final class FilterLibraryStore: ObservableObject {
         downloadedFilterIDs = []
         favoriteFilterIDs = []
         selectedFilterID = nil
+        lastSyncErrorMessage = nil
     }
 
     func setDownloadedFilterIDs(_ ids: Set<AppFilter.ID>) {
@@ -91,6 +94,17 @@ final class FilterLibraryStore: ObservableObject {
         downloadedFilterIDs.insert(id)
     }
 
+    func download(_ filter: AppFilter) async throws {
+        try await persistSavedFilter(filterID: filter.id, save: true)
+        markDownloaded(filter.id)
+    }
+
+    func download(filterID: String) async throws {
+        guard let id = UUID(uuidString: filterID) else { return }
+        try await persistSavedFilter(filterID: id, save: true)
+        markDownloaded(id)
+    }
+
     func removeDownload(_ filter: AppFilter) -> FilterLibraryRemovalSnapshot {
         let snapshot = FilterLibraryRemovalSnapshot(
             filterID: filter.id,
@@ -103,6 +117,21 @@ final class FilterLibraryStore: ObservableObject {
             selectedFilterID = libraryFilters.first?.id ?? filters.first?.id
         }
         return snapshot
+    }
+
+    func removeDownloadAndPersist(_ filter: AppFilter) {
+        let snapshot = removeDownload(filter)
+        Task { [weak self] in
+            do {
+                try await self?.persistSavedFilter(filterID: filter.id, save: false)
+                try await self?.persistFavorite(filterID: filter.id, save: false)
+            } catch {
+                await MainActor.run { [weak self] in
+                    self?.restore(snapshot)
+                    self?.lastSyncErrorMessage = "저장 상태 동기화 실패: \(error.localizedDescription)"
+                }
+            }
+        }
     }
 
     func restore(_ snapshot: FilterLibraryRemovalSnapshot) {
@@ -141,6 +170,20 @@ final class FilterLibraryStore: ObservableObject {
         downloadedFilterIDs.contains(filter.id)
     }
 
+    func toggleFavoriteAndPersist(_ filter: AppFilter) {
+        let shouldSave = toggleFavorite(filter)
+        Task { [weak self] in
+            do {
+                try await self?.persistFavorite(filterID: filter.id, save: shouldSave)
+            } catch {
+                await MainActor.run { [weak self] in
+                    self?.rollbackFavorite(filter, shouldSave: shouldSave)
+                    self?.lastSyncErrorMessage = "즐겨찾기 동기화 실패: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
     func filter(matching routeID: String) -> AppFilter? {
         let normalizedRouteID = routeID.normalizedFilterLookupKey
         if let uuid = UUID(uuidString: routeID),
@@ -160,6 +203,72 @@ final class FilterLibraryStore: ObservableObject {
         return filters.first { filter in
             let titleTokens = Set(filter.title.normalizedFilterLookupKey.split(separator: " "))
             return routeTokens.contains { titleTokens.contains($0) }
+        }
+    }
+
+    private func persistSavedFilter(filterID: AppFilter.ID, save: Bool) async throws {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        guard let uid = SessionStore.currentFirebaseUID else { return }
+        let ref = Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("savedFilters").document(filterID.uuidString)
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            if save {
+                ref.setData([
+                    "filterId": filterID.uuidString,
+                    "savedAt": FieldValue.serverTimestamp()
+                ], merge: true) { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            } else {
+                ref.delete { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+    }
+
+    private func persistFavorite(filterID: AppFilter.ID, save: Bool) async throws {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        guard let uid = SessionStore.currentFirebaseUID else { return }
+        let ref = Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("favorites").document(filterID.uuidString)
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            if save {
+                ref.setData([
+                    "filterId": filterID.uuidString,
+                    "favoritedAt": FieldValue.serverTimestamp()
+                ], merge: true) { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            } else {
+                ref.delete { error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
         }
     }
 }

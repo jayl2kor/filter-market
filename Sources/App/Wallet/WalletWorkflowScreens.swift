@@ -7,7 +7,6 @@ import SwiftUI
 struct PaywallSingleScreen: View {
     let filterID: String
 
-    @EnvironmentObject private var store: MooditStore
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var walletStore: WalletStore
     @Environment(\.dismiss) private var dismiss
@@ -42,7 +41,6 @@ struct PaywallSingleScreen: View {
             FilterAfterDownloadScreen(filterID: filterID)
         }
         .task {
-            store.subscribeToWallet()
             await loadFilterDetail()
         }
     }
@@ -167,9 +165,9 @@ struct PaywallSingleScreen: View {
             defer { isProcessing = false }
             do {
                 if let filter = filterLibraryStore.filter(matching: filterID) {
-                    try await store.download(filter)
+                    try await filterLibraryStore.download(filter)
                 } else {
-                    try await store.download(filterID: filterID)
+                    try await filterLibraryStore.download(filterID: filterID)
                 }
                 Telemetry.log(
                     .filterPurchaseSucceeded,
@@ -196,7 +194,7 @@ struct PaywallSingleScreen: View {
             // (#31) 구매 성공 → 자동 다운로드 마크 + 잔액 차감 (낙관적). filterAfterDownload로 이동.
             walletStore.creditCoinsOptimistically(-priceCoins)  // 음수 가산으로 차감
             if let filter = filterLibraryStore.filter(matching: filterID) {
-                try? await store.download(filter)
+                try? await filterLibraryStore.download(filter)
             }
             Telemetry.log(.filterPurchaseSucceeded, parameters: ["filter_id": filterID, "price_coins": priceCoins])
             didPurchase = true
@@ -1290,7 +1288,6 @@ struct WalletTransactionsScreen: View {
 }
 
 struct InsufficientBalanceScreen: View {
-    @EnvironmentObject private var store: MooditStore
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var walletStore: WalletStore
     @Environment(\.dismiss) private var dismiss
@@ -1373,7 +1370,6 @@ struct InsufficientBalanceScreen: View {
             Button("확인", role: .cancel) { purchaseError = nil }
         }, message: { Text(purchaseError ?? "") })
         .task {
-            store.subscribeToWallet()
             await retryIfBalanceIsReady()
         }
         .onChange(of: walletStore.coinBalance) { _, _ in
@@ -1412,9 +1408,9 @@ struct InsufficientBalanceScreen: View {
             _ = try await callable.call(["filterId": filterID])
             walletStore.creditCoinsOptimistically(-requiredCoins)
             if let filter = filterLibraryStore.filter(matching: filterID) {
-                try? await store.download(filter)
+                try? await filterLibraryStore.download(filter)
             } else {
-                try? await store.download(filterID: filterID)
+                try? await filterLibraryStore.download(filterID: filterID)
             }
             Telemetry.log(.filterPurchaseSucceeded, parameters: ["filter_id": filterID, "price_coins": requiredCoins, "source": "insufficient_balance_retry"])
             didCompletePurchase = true

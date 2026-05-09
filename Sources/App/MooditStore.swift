@@ -529,72 +529,6 @@ final class MooditStore: ObservableObject {
         walletStore.reconcileCoinBalance(balance)
     }
 
-    private func persistSavedFilterAsync(filterId: Filter.ID, save: Bool) async throws {
-        #if DEBUG
-        guard !isUITesting else { return }
-        #endif
-        guard let uid = SessionStore.currentFirebaseUID else { return }
-        let ref = Firestore.firestore()
-            .collection("users").document(uid)
-            .collection("savedFilters").document(filterId.uuidString)
-
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            if save {
-                ref.setData([
-                    "filterId": filterId.uuidString,
-                    "savedAt": FieldValue.serverTimestamp()
-                ], merge: true) { error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else {
-                        continuation.resume()
-                    }
-                }
-            } else {
-                ref.delete { error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else {
-                        continuation.resume()
-                    }
-                }
-            }
-        }
-    }
-
-    private func persistFavoriteAsync(filterId: Filter.ID, save: Bool) async throws {
-        #if DEBUG
-        guard !isUITesting else { return }
-        #endif
-        guard let uid = SessionStore.currentFirebaseUID else { return }
-        let ref = Firestore.firestore()
-            .collection("users").document(uid)
-            .collection("favorites").document(filterId.uuidString)
-
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            if save {
-                ref.setData([
-                    "filterId": filterId.uuidString,
-                    "favoritedAt": FieldValue.serverTimestamp()
-                ], merge: true) { error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else {
-                        continuation.resume()
-                    }
-                }
-            } else {
-                ref.delete { error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else {
-                        continuation.resume()
-                    }
-                }
-            }
-        }
-    }
-
     /// 로그아웃 / 사용자 전환 시 본인 스코프 데이터 일괄 초기화 (#17).
     /// `Auth.signOut()` 호출 직후 또는 attachWalletListeners(uid: nil)에서 사용.
     func resetUserScopedState() {
@@ -620,46 +554,19 @@ final class MooditStore: ObservableObject {
     }
 
     func download(_ filter: Filter) async throws {
-        // (#24) /users/{uid}/savedFilters/{filterId} Firestore 동기화 — 앱 재시작/다른 디바이스에서도 유지.
-        try await persistSavedFilterAsync(filterId: filter.id, save: true)
-        filterLibraryStore.markDownloaded(filter.id)
+        try await filterLibraryStore.download(filter)
     }
 
     func download(filterID: String) async throws {
-        guard let id = UUID(uuidString: filterID) else { return }
-        try await persistSavedFilterAsync(filterId: id, save: true)
-        filterLibraryStore.markDownloaded(id)
+        try await filterLibraryStore.download(filterID: filterID)
     }
 
     func removeDownload(_ filter: Filter) {
-        let snapshot = filterLibraryStore.removeDownload(filter)
-        Task { [weak self] in
-            do {
-                try await self?.persistSavedFilterAsync(filterId: filter.id, save: false)
-                try await self?.persistFavoriteAsync(filterId: filter.id, save: false)
-            } catch {
-                await MainActor.run { [weak self] in
-                    guard let self else { return }
-                    self.filterLibraryStore.restore(snapshot)
-                    self.lastSubmitErrorMessage = "저장 상태 동기화 실패: \(error.localizedDescription)"
-                }
-            }
-        }
+        filterLibraryStore.removeDownloadAndPersist(filter)
     }
 
     func toggleFavorite(_ filter: Filter) {
-        let shouldSave = filterLibraryStore.toggleFavorite(filter)
-        Task { [weak self] in
-            do {
-                try await self?.persistFavoriteAsync(filterId: filter.id, save: shouldSave)
-            } catch {
-                await MainActor.run { [weak self] in
-                    guard let self else { return }
-                    self.filterLibraryStore.rollbackFavorite(filter, shouldSave: shouldSave)
-                    self.lastSubmitErrorMessage = "즐겨찾기 동기화 실패: \(error.localizedDescription)"
-                }
-            }
-        }
+        filterLibraryStore.toggleFavoriteAndPersist(filter)
     }
 
     func isFavorite(_ filter: Filter) -> Bool {

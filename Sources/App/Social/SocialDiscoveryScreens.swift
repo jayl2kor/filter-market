@@ -9,7 +9,8 @@ import SwiftUI
 // MARK: - Reviews
 
 struct ReviewsListScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var sessionStore: SessionStore
 
     let filterID: String
     // (#37) 프로덕션은 Firestore /filters/{filterID}/reviews listener (.task에서 attach).
@@ -111,13 +112,13 @@ struct ReviewsListScreen: View {
             NavigationStack {
                 ReviewComposeScreen(filterID: filterID, initialReview: review)
             }
-            .environmentObject(store)
+            .environmentObject(sessionStore)
         }
         .sheet(item: $replyReview) { review in
             NavigationStack {
                 ReviewComposeScreen(filterID: filterID, initialText: "\(review.handle) ")
             }
-            .environmentObject(store)
+            .environmentObject(sessionStore)
         }
         .task {
             // (#37) Firestore listener attach. UI test fallback은 mock 데이터를 그대로 사용.
@@ -225,7 +226,7 @@ struct ReviewsListScreen: View {
 
     private func applyLocalFilterSummary() {
         guard let uuid = UUID(uuidString: filterID),
-              let filter = store.filters.first(where: { $0.id == uuid }) else {
+              let filter = filterLibraryStore.filters.first(where: { $0.id == uuid }) else {
             return
         }
         filterSummary = ReviewFilterSummary(
@@ -403,8 +404,8 @@ struct ReviewsListScreen: View {
         HStack(spacing: Sp.sm) {
             avatar(initials: "HB", colors: [Color(hex: 0xB9D2E8), Color(hex: 0x4A6A90)], size: 32)
 
-            NavigationLink(value: store.isAuthenticated ? AppRoute.reviewCompose(filterId: filterID) : AppRoute.login) {
-                Text(store.isAuthenticated ? "리뷰 추가..." : "로그인하고 리뷰 남기기")
+            NavigationLink(value: sessionStore.isAuthenticated ? AppRoute.reviewCompose(filterId: filterID) : AppRoute.login) {
+                Text(sessionStore.isAuthenticated ? "리뷰 추가..." : "로그인하고 리뷰 남기기")
                     .fmTypography(.subhead)
                     .foregroundStyle(FMColors.Text.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -418,7 +419,7 @@ struct ReviewsListScreen: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("social.reviews.compose")
 
-            NavigationLink(value: store.isAuthenticated ? AppRoute.reviewCompose(filterId: filterID) : AppRoute.login) {
+            NavigationLink(value: sessionStore.isAuthenticated ? AppRoute.reviewCompose(filterId: filterID) : AppRoute.login) {
                 Image(systemName: "paperplane.fill")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(FMColors.Text.inverse)
@@ -708,7 +709,7 @@ struct ReviewsListScreen: View {
     private func isOwnReview(_ review: SocialReview) -> Bool {
         #if DEBUG
         if isUITesting {
-            return store.isAuthenticated && review.authorUid == "minji.lab"
+            return sessionStore.isAuthenticated && review.authorUid == "minji.lab"
         }
         #endif
         return Auth.auth().currentUser?.uid == review.authorUid
@@ -771,7 +772,7 @@ private enum ReviewComposeError: LocalizedError {
 
 struct ReviewComposeScreen: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var sessionStore: SessionStore
 
     let filterID: String
     private let initialReview: SocialReview?
@@ -891,7 +892,7 @@ struct ReviewComposeScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if store.isAuthenticated {
+            if sessionStore.isAuthenticated {
                 editor
                 toolbar
             } else {
@@ -977,8 +978,6 @@ struct ReviewComposeScreen: View {
     }
 
     private func reviewAuthorDisplayName(uid: String) -> String {
-        let profileName = store.editableProfile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !profileName.isEmpty { return profileName }
         #if DEBUG
         if isUITesting {
             return "테스트 사용자"
@@ -990,8 +989,6 @@ struct ReviewComposeScreen: View {
     }
 
     private func reviewAuthorHandle(uid: String) -> String {
-        let handle = store.editableProfile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !handle.isEmpty { return handle.hasPrefix("@") ? handle : "@\(handle)" }
         #if DEBUG
         if isUITesting {
             return "@tester"
@@ -1335,7 +1332,7 @@ struct ReviewComposeScreen: View {
 
 struct RatingFormScreen: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var sessionStore: SessionStore
 
     let filterID: String
     @State private var rating = 0
@@ -1383,7 +1380,7 @@ struct RatingFormScreen: View {
                 .ignoresSafeArea()
             Color.black.opacity(0.34).ignoresSafeArea()
 
-            if store.isAuthenticated {
+            if sessionStore.isAuthenticated {
                 sheet
             } else {
                 loginSheet
@@ -1926,11 +1923,11 @@ private struct FollowListScreen: View {
 // MARK: - Discovery Feeds
 
 struct ForYouFeedScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @State private var followedMakerIDs: Set<String> = []
 
     private var rankedFilters: [Filter] {
-        let source = store.trendingFilters.isEmpty ? store.filters : store.trendingFilters
+        let source = filterLibraryStore.trendingFilters.isEmpty ? filterLibraryStore.filters : filterLibraryStore.trendingFilters
         return source.sorted { lhs, rhs in
             let lhsScore = (lhs.downloadCount > 0 ? lhs.downloadCount : lhs.useCount) + Int((lhs.ratingAvg ?? 0) * 100)
             let rhsScore = (rhs.downloadCount > 0 ? rhs.downloadCount : rhs.useCount) + Int((rhs.ratingAvg ?? 0) * 100)
@@ -1996,7 +1993,7 @@ struct ForYouFeedScreen: View {
             }
         }
         .task {
-            await store.load()
+            await filterLibraryStore.load()
         }
     }
 
@@ -2012,13 +2009,13 @@ struct ForYouFeedScreen: View {
 
     private var recommendationReason: String {
         guard let heroFilter else { return "마켓에서 첫 필터를 둘러보세요" }
-        let favoriteCategories = store.filters
-            .filter { store.favoriteFilterIDs.contains($0.id) }
+        let favoriteCategories = filterLibraryStore.filters
+            .filter { filterLibraryStore.favoriteFilterIDs.contains($0.id) }
             .map(\.category)
         if favoriteCategories.contains(heroFilter.category) {
             return "\(heroFilter.category.displayTitle) 취향과 비슷"
         }
-        if !store.downloadedFilterIDs.isEmpty {
+        if !filterLibraryStore.downloadedFilterIDs.isEmpty {
             return "최근 저장한 필터와 어울림"
         }
         return "지금 인기 있는 필터"
@@ -2052,10 +2049,10 @@ struct ForYouFeedScreen: View {
                     .accessibilityIdentifier("social.foryou.hero.apply")
 
                     Button {
-                        store.toggleFavorite(filter)
+                        filterLibraryStore.toggleFavoriteAndPersist(filter)
                         FMHaptic.selection.play()
                     } label: {
-                        Image(systemName: store.isFavorite(filter) ? "bookmark.fill" : "bookmark")
+                        Image(systemName: filterLibraryStore.isFavorite(filter) ? "bookmark.fill" : "bookmark")
                             .frame(width: 40, height: 40)
                             .background(Color.white.opacity(0.20), in: RoundedRectangle(cornerRadius: R.md))
                     }
@@ -2228,7 +2225,7 @@ struct ForYouFeedScreen: View {
 }
 
 struct FollowingFeedScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @State private var posts: [FollowingFeedPost] = []
     @State private var likedFilterIDs: Set<String> = []
     @State private var hiddenFilterIDs: Set<String> = []
@@ -2291,7 +2288,7 @@ struct FollowingFeedScreen: View {
             Text(post.filter.title)
         }
         .task {
-            await store.load()
+            await filterLibraryStore.load()
             attachFeedListeners()
         }
         .onDisappear {
@@ -2396,9 +2393,9 @@ struct FollowingFeedScreen: View {
 
                 Spacer()
                 Button {
-                    store.toggleFavorite(post.filter)
+                    filterLibraryStore.toggleFavoriteAndPersist(post.filter)
                 } label: {
-                    Image(systemName: store.isFavorite(post.filter) ? "bookmark.fill" : "bookmark")
+                    Image(systemName: filterLibraryStore.isFavorite(post.filter) ? "bookmark.fill" : "bookmark")
                 }
                 .accessibilityIdentifier("social.following.post.save")
             }
@@ -2440,7 +2437,7 @@ struct FollowingFeedScreen: View {
 
     private func attachFeedListeners() {
         guard !isUITesting else {
-            posts = SocialPost.mock.compactMap { $0.toFollowingFeedPost(store: store) }
+            posts = SocialPost.mock.compactMap { $0.toFollowingFeedPost(filterLibraryStore: filterLibraryStore) }
             return
         }
         guard let uid = Auth.auth().currentUser?.uid else {
@@ -3005,8 +3002,8 @@ private struct SocialPost: Identifiable {
 
 private extension SocialPost {
     @MainActor
-    func toFollowingFeedPost(store: MooditStore) -> FollowingFeedPost? {
-        if let existing = store.filters.first(where: { $0.title.socialMockLookupKey == filterName.socialMockLookupKey }) {
+    func toFollowingFeedPost(filterLibraryStore: FilterLibraryStore) -> FollowingFeedPost? {
+        if let existing = filterLibraryStore.filters.first(where: { $0.title.socialMockLookupKey == filterName.socialMockLookupKey }) {
             return FollowingFeedPost(
                 filter: existing,
                 caption: caption,
