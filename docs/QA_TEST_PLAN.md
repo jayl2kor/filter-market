@@ -415,26 +415,28 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 |---|---|---|---|
 | 12.1 | 프로필 카드 | → AppRoute.editProfile |  |
 | 12.2 | 프로필 정보 row | → AppRoute.editProfile |  |
-| 12.3 | 결제 및 구독 row | → AppRoute.wallet |  |
-| 12.4 | 개인정보 및 보안 row | → AppRoute.dataExport |  |
-| 12.5 | 기본 비율 picker | defaultAspectRatio 변경 |  |
-| 12.6 | 그리드 토글 | showGrid 변경 (카메라 다음 진입에서 반영) |  |
-| 12.7 | 셔터음 토글 | shutterSound 변경 |  |
-| 12.8 | 원본 저장 토글 | saveOriginal 변경 |  |
-| 12.9 | 푸시 알림 row | → AppRoute.notificationSettings |  |
-| 12.10 | 다운로드 관리 row | → AppRoute.savedFilters |  |
-| 12.11 | 민감 콘텐츠 picker | sensitiveFilter (off/soft/strong) |  |
-| 12.12 | 차단 사용자 row | → AppRoute.blockList |  |
-| 12.13 | 도움말 row (`settings.nav.도움말`) | → AppRoute.helpCenter |  |
-| 12.14 | 이용약관 row (`settings.row.이용약관`) | SafariView로 https://moodit.app/terms |  |
-| 12.15 | 개인정보처리방침 row (`settings.row.개인정보처리방침`) | SafariView로 https://moodit.app/privacy |  |
-| 12.16 | 버전 row | 비인터랙티브 |  |
-| 12.17 | 모더레이션 큐 (admin/moderator only — `settings.admin.section` 안에 표시) | → AppRoute.modQueue. 일반 유저는 운영 섹션 자체가 안 보임. |  |
-| 12.18 | 공유 링크 테스트 (admin/moderator only) | → AppRoute.universalLinkLanding |  |
-| 12.19 | ⚠️ 로그아웃 | alert 표시, 확인 시 `Auth.auth().signOut()` + `isAuthenticated = false` + dismiss |  |
-| 12.20 | ⚠️ 계정 삭제 | → AppRoute.accountDeletion |  |
-| 12.21 | Settings 푸시 알림 상태 | NotificationSettingsScreen에서 변경한 `store.notificationPreferences.systemEnabled` 값이 Settings row에도 동일하게 표시 |  |
-| 12.22 | 연속 toast | 짧은 시간에 toast 3개 이상 발생 시 마지막 메시지로 덮어쓰지 않고 순차 표시 |  |
+| 12.3 | 개인정보 및 보안 row | → AppRoute.dataExport |  |
+| 12.4 | 기본 비율 picker | defaultAspectRatio 변경 |  |
+| 12.5 | 그리드 토글 | showGrid 변경 (카메라 다음 진입에서 반영) |  |
+| 12.6 | 셔터음 토글 | shutterSound 변경 |  |
+| 12.7 | 원본 저장 토글 | saveOriginal 변경 |  |
+| 12.8 | 푸시 알림 row | → AppRoute.notificationSettings |  |
+| 12.9 | 민감 콘텐츠 picker | sensitiveFilter (off/soft/strong) |  |
+| 12.10 | 시스템 권한 row | iOS 앱 설정으로 이동 |  |
+| 12.11 | 결제 및 구독 row | → AppRoute.wallet |  |
+| 12.12 | 다운로드 관리 row | → AppRoute.savedFilters |  |
+| 12.13 | 차단 사용자 row | → AppRoute.blockList |  |
+| 12.14 | 도움말 row (`settings.nav.도움말`) | → AppRoute.helpCenter |  |
+| 12.15 | 이용약관 row (`settings.row.이용약관`) | SafariView로 https://moodit.app/terms |  |
+| 12.16 | 개인정보처리방침 row (`settings.row.개인정보처리방침`) | SafariView로 https://moodit.app/privacy |  |
+| 12.17 | 버전 row | 비인터랙티브 |  |
+| 12.18 | 모더레이션 큐 (admin/moderator only — `settings.admin.section` 안에 표시) | → AppRoute.modQueue. 일반 유저는 운영 섹션 자체가 안 보임. |  |
+| 12.19 | 공유 링크 테스트 (admin/moderator only) | → AppRoute.universalLinkLanding |  |
+| 12.20 | 위험 영역 헤더 | 로그아웃과 계정 삭제가 일반 섹션과 공간/색상으로 분리됨 |  |
+| 12.21 | 로그아웃 | neutral 위험 row, alert 표시, 확인 시 `Auth.auth().signOut()` + dismiss |  |
+| 12.22 | 계정 삭제 | red tint 위험 row, → AppRoute.accountDeletion, 삭제 화면에서 destructive confirm |  |
+| 12.23 | Settings 푸시 알림 상태 | NotificationSettingsScreen에서 변경한 `store.notificationPreferences.systemEnabled` 값이 Settings row에도 동일하게 표시 |  |
+| 12.24 | 연속 toast | 짧은 시간에 toast 3개 이상 발생 시 마지막 메시지로 덮어쓰지 않고 순차 표시 |  |
 
 ---
 

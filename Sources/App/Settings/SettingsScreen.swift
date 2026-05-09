@@ -2,6 +2,7 @@ import DesignSystem
 import FirebaseAuth
 import FirebaseCore
 import SwiftUI
+import UIKit
 
 // MARK: - Local enums
 
@@ -33,6 +34,7 @@ enum SensitiveFilterLevel: String, CaseIterable, Identifiable, Hashable {
 /// 라이트 그레이 (`bg/1`) 위에 흰 카드 그룹을 겹침.
 struct SettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var store: MooditStore
 
     // 카메라 (#22 — UserDefaults 영속화)
@@ -81,13 +83,6 @@ struct SettingsScreen: View {
                     )
                     divider
                     navigationRow(
-                        icon: "creditcard",
-                        title: "결제 및 구독",
-                        accessory: .badge(text: "PRO", chevron: true),
-                        route: .wallet
-                    )
-                    divider
-                    navigationRow(
                         icon: "lock.shield",
                         title: "개인정보 및 보안",
                         accessory: .chevron,
@@ -95,7 +90,7 @@ struct SettingsScreen: View {
                     )
                 }
 
-                section(title: "카메라") {
+                section(title: "카메라 기본값") {
                     aspectRatioRow
                     divider
                     listRow(
@@ -117,12 +112,33 @@ struct SettingsScreen: View {
                     ) {}
                 }
 
-                section(title: "알림 및 콘텐츠") {
+                section(title: "알림") {
                     navigationRow(
                         icon: "bell",
                         title: "푸시 알림",
                         accessory: .value(text: store.notificationPreferences.systemEnabled ? "켬" : "끔", chevron: true),
                         route: .notificationSettings
+                    )
+                    divider
+                    sensitiveFilterRow
+                }
+
+                section(title: "권한") {
+                    listRow(
+                        icon: "switch.2",
+                        title: "시스템 권한",
+                        accessory: .value(text: "카메라 · 사진 · 알림", chevron: true)
+                    ) {
+                        openSystemSettings()
+                    }
+                }
+
+                section(title: "데이터") {
+                    navigationRow(
+                        icon: "creditcard",
+                        title: "결제 및 구독",
+                        accessory: .badge(text: "PRO", chevron: true),
+                        route: .wallet
                     )
                     divider
                     navigationRow(
@@ -131,8 +147,6 @@ struct SettingsScreen: View {
                         accessory: .value(text: "42 / 200MB", chevron: true),
                         route: .savedFilters
                     )
-                    divider
-                    sensitiveFilterRow
                     divider
                     navigationRow(
                         icon: "person.crop.circle.badge.xmark",
@@ -192,26 +206,25 @@ struct SettingsScreen: View {
                     .accessibilityIdentifier("settings.admin.section")
                 }
 
-                section(title: nil) {
+                section(title: "위험 영역") {
                     listRow(
                         icon: "rectangle.portrait.and.arrow.right",
                         title: "로그아웃",
-                        isDestructive: true,
-                        accessory: .none
+                        tone: .secondaryAction,
+                        accessory: .chevron
                     ) {
                         showLogoutAlert = true
                     }
-                }
-
-                section(title: nil) {
+                    divider
                     navigationRow(
                         icon: "trash",
                         title: "계정 삭제",
-                        isDestructive: true,
+                        tone: .destructiveAction,
                         accessory: .chevron,
                         route: .accountDeletion
                     )
                 }
+                .padding(.top, Sp.md)
 
                 footerNote
             }
@@ -291,6 +304,11 @@ struct SettingsScreen: View {
         }
         store.setLocalAuthenticationFallback(false)
         dismiss()
+    }
+
+    private func openSystemSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        openURL(url)
     }
 
     // MARK: - Header (me) card
@@ -387,11 +405,48 @@ struct SettingsScreen: View {
         case badge(text: String, chevron: Bool)
     }
 
+    private enum RowTone {
+        case normal
+        case secondaryAction
+        case destructiveAction
+
+        var iconColor: Color {
+            switch self {
+            case .normal:
+                FMColors.Text.primary
+            case .secondaryAction:
+                FMColors.Text.secondary
+            case .destructiveAction:
+                FMColors.Semantic.error
+            }
+        }
+
+        var textColor: Color {
+            switch self {
+            case .normal:
+                FMColors.Text.primary
+            case .secondaryAction:
+                FMColors.Text.secondary
+            case .destructiveAction:
+                FMColors.Semantic.error
+            }
+        }
+
+        var backgroundColor: Color {
+            switch self {
+            case .normal, .secondaryAction:
+                Color.clear
+            case .destructiveAction:
+                FMColors.Semantic.errorBg.opacity(0.65)
+            }
+        }
+    }
+
     @ViewBuilder
     private func listRow(
         icon: String,
         title: String,
-        isDestructive: Bool = false,
+        tone: RowTone = .normal,
         accessory: RowAccessory,
         action: @escaping () -> Void = {}
     ) -> some View {
@@ -399,12 +454,12 @@ struct SettingsScreen: View {
             HStack(spacing: Sp.sm) {
                 Image(systemName: icon)
                     .font(.system(size: IconSize.md, weight: .regular))
-                    .foregroundStyle(isDestructive ? FMColors.Semantic.error : FMColors.Text.primary)
+                    .foregroundStyle(tone.iconColor)
                     .frame(width: 28, height: 28)
 
                 Text(title)
                     .fmTypography(.body)
-                    .foregroundStyle(isDestructive ? FMColors.Semantic.error : FMColors.Text.primary)
+                    .foregroundStyle(tone.textColor)
 
                 Spacer(minLength: Sp.xs)
 
@@ -412,6 +467,7 @@ struct SettingsScreen: View {
             }
             .padding(.horizontal, Sp.md)
             .frame(minHeight: 52)
+            .background(tone.backgroundColor)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -423,7 +479,7 @@ struct SettingsScreen: View {
     private func navigationRow(
         icon: String,
         title: String,
-        isDestructive: Bool = false,
+        tone: RowTone = .normal,
         accessory: RowAccessory,
         route: AppRoute
     ) -> some View {
@@ -431,12 +487,12 @@ struct SettingsScreen: View {
             HStack(spacing: Sp.sm) {
                 Image(systemName: icon)
                     .font(.system(size: IconSize.md, weight: .regular))
-                    .foregroundStyle(isDestructive ? FMColors.Semantic.error : FMColors.Text.primary)
+                    .foregroundStyle(tone.iconColor)
                     .frame(width: 28, height: 28)
 
                 Text(title)
                     .fmTypography(.body)
-                    .foregroundStyle(isDestructive ? FMColors.Semantic.error : FMColors.Text.primary)
+                    .foregroundStyle(tone.textColor)
 
                 Spacer(minLength: Sp.xs)
 
@@ -444,6 +500,7 @@ struct SettingsScreen: View {
             }
             .padding(.horizontal, Sp.md)
             .frame(minHeight: 52)
+            .background(tone.backgroundColor)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
