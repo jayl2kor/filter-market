@@ -689,6 +689,7 @@ struct EditorLUTImportScreen: View {
 
 struct EditorDraftSaveScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var editorDraftStore: EditorDraftStore
 
     var body: some View {
         ScrollView {
@@ -715,9 +716,9 @@ struct EditorDraftSaveScreen: View {
             FMTextField(
                 "필터 이름",
                 text: Binding(
-                    get: { store.editorDraft.name },
+                    get: { editorDraftStore.editorDraft.name },
                     set: { value in
-                        store.updateEditorDraft { draft in
+                        editorDraftStore.updateEditorDraft { draft in
                             draft.name = value
                         }
                     }
@@ -730,9 +731,9 @@ struct EditorDraftSaveScreen: View {
             FMTextField(
                 "설명",
                 text: Binding(
-                    get: { store.editorDraft.summary },
+                    get: { editorDraftStore.editorDraft.summary },
                     set: { value in
-                        store.updateEditorDraft { draft in
+                        editorDraftStore.updateEditorDraft { draft in
                             draft.summary = value
                         }
                     }
@@ -750,14 +751,14 @@ struct EditorDraftSaveScreen: View {
             VStack(alignment: .leading, spacing: Sp.sm) {
                 sectionLabel("초안 상태")
                 HStack {
-                    Text(store.editorDraft.category.displayTitle)
+                    Text(editorDraftStore.editorDraft.category.displayTitle)
                     Spacer()
-                    Text(store.editorDraft.lutFileName ?? "기본 LUT")
+                    Text(editorDraftStore.editorDraft.lutFileName ?? "기본 LUT")
                 }
                 .fmTypography(.subhead)
                 .foregroundStyle(FMColors.Text.secondary)
                 workflowDivider()
-                Text(store.editorDraft.tags.map { "#\($0)" }.joined(separator: " "))
+                Text(editorDraftStore.editorDraft.tags.map { "#\($0)" }.joined(separator: " "))
                     .fmTypography(.caption)
                     .foregroundStyle(FMColors.Text.tertiary)
             }
@@ -789,6 +790,7 @@ struct EditorDraftSaveScreen: View {
 
 struct UploadCoverScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @Environment(\.dismiss) private var dismiss
     @State private var showCancelAlert = false
     @State private var selectedSignatureItem: PhotosPickerItem?
@@ -806,9 +808,9 @@ struct UploadCoverScreen: View {
                 coverGrid
                 signatureSampleSection
                 Toggle("자동 비포/애프터 생성", isOn: Binding(
-                    get: { store.editorDraft.beforeAfterEnabled },
+                    get: { editorDraftStore.editorDraft.beforeAfterEnabled },
                     set: { value in
-                        store.updateEditorDraft { draft in
+                        editorDraftStore.updateEditorDraft { draft in
                             draft.beforeAfterEnabled = value
                         }
                     }
@@ -850,7 +852,7 @@ struct UploadCoverScreen: View {
                 dismiss()
             }
             Button("초안 버리고 나가기", role: .destructive) {
-                store.resetEditorDraft()
+                editorDraftStore.resetEditorDraft()
                 dismiss()
             }
             Button("계속 작성", role: .cancel) {}
@@ -867,11 +869,11 @@ struct UploadCoverScreen: View {
 
     private var coverGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Sp.sm) {
-            ForEach(0..<store.editorDraft.coverCount, id: \.self) { index in
+            ForEach(0..<editorDraftStore.editorDraft.coverCount, id: \.self) { index in
                 coverTile(index: index)
             }
             Button {
-                store.addUploadCover()
+                editorDraftStore.addUploadCover()
             } label: {
                 VStack(spacing: Sp.xs) {
                     Image(systemName: "plus")
@@ -896,10 +898,10 @@ struct UploadCoverScreen: View {
     private func coverTile(index: Int) -> some View {
         ZStack(alignment: .topTrailing) {
             RoundedRectangle(cornerRadius: R.md)
-                .fill(LinearGradient(colors: store.editorDraft.category.swatch, startPoint: .topLeading, endPoint: .bottomTrailing))
+                .fill(LinearGradient(colors: editorDraftStore.editorDraft.category.swatch, startPoint: .topLeading, endPoint: .bottomTrailing))
                 .aspectRatio(1, contentMode: .fit)
             Button {
-                store.removeUploadCover()
+                editorDraftStore.removeUploadCover()
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 12, weight: .bold))
@@ -921,7 +923,7 @@ struct UploadCoverScreen: View {
                 Spacer()
                 if hasSample {
                     Button("지우기") {
-                        store.clearUploadSignatureSample()
+                        editorDraftStore.clearUploadSignatureSample()
                     }
                     .fmTypography(.caption)
                     .foregroundStyle(FMColors.Text.tertiary)
@@ -946,11 +948,11 @@ struct UploadCoverScreen: View {
                             ForEach(EditorReferenceSampleKind.allCases) { kind in
                                 FMChip(
                                     kind.title,
-                                    isSelected: store.editorDraft.signatureSampleKind == kind
-                                        && store.editorDraft.signatureSamplePhotoData == nil,
+                                    isSelected: editorDraftStore.editorDraft.signatureSampleKind == kind
+                                        && editorDraftStore.editorDraft.signatureSamplePhotoData == nil,
                                     size: .sm
                                 ) {
-                                    store.setUploadSignatureSampleKind(kind)
+                                    editorDraftStore.setUploadSignatureSampleKind(kind)
                                 }
                                 .accessibilityIdentifier("upload.signature.sample.\(kind.rawValue)")
                             }
@@ -975,7 +977,7 @@ struct UploadCoverScreen: View {
     }
 
     private var hasSignatureSample: Bool {
-        store.editorDraft.signatureSamplePhotoData != nil || store.editorDraft.signatureSampleKind != nil
+        editorDraftStore.editorDraft.signatureSamplePhotoData != nil || editorDraftStore.editorDraft.signatureSampleKind != nil
     }
 
     private var signaturePreview: some View {
@@ -986,7 +988,7 @@ struct UploadCoverScreen: View {
                     .scaledToFill()
             } else {
                 LinearGradient(
-                    colors: store.editorDraft.category.swatch,
+                    colors: editorDraftStore.editorDraft.category.swatch,
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -1005,10 +1007,10 @@ struct UploadCoverScreen: View {
     }
 
     private var signaturePreviewImage: UIImage? {
-        if let data = store.editorDraft.signatureSamplePhotoData {
+        if let data = editorDraftStore.editorDraft.signatureSamplePhotoData {
             return UIImage(data: data)
         }
-        if let kind = store.editorDraft.signatureSampleKind {
+        if let kind = editorDraftStore.editorDraft.signatureSampleKind {
             return UIImage(data: EditorReferenceSampleImage.makeJPEGData(kind: kind))
         }
         return nil
@@ -1026,7 +1028,7 @@ struct UploadCoverScreen: View {
                 signatureLoadError = "사진 데이터를 읽지 못했어요."
                 return
             }
-            store.setUploadSignatureSampleData(normalized)
+            editorDraftStore.setUploadSignatureSampleData(normalized)
             signatureLoadError = nil
         } catch {
             signatureLoadError = "사진을 불러오지 못했어요."
@@ -1036,6 +1038,7 @@ struct UploadCoverScreen: View {
 
 struct UploadTagsCategoryScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @Environment(\.dismiss) private var dismiss
     @State private var pendingTag = ""
     @State private var showCancelAlert = false
@@ -1080,7 +1083,7 @@ struct UploadTagsCategoryScreen: View {
                 dismiss()
             }
             Button("초안 버리고 나가기", role: .destructive) {
-                store.resetEditorDraft()
+                editorDraftStore.resetEditorDraft()
                 dismiss()
             }
             Button("계속 작성", role: .cancel) {}
@@ -1098,9 +1101,9 @@ struct UploadTagsCategoryScreen: View {
             FMCard {
                 VStack(alignment: .leading, spacing: Sp.sm) {
                     WorkflowFlowLayout(spacing: Sp.xs) {
-                        ForEach(store.editorDraft.tags, id: \.self) { tag in
+                        ForEach(editorDraftStore.editorDraft.tags, id: \.self) { tag in
                             Button {
-                                store.removeUploadTag(tag)
+                                editorDraftStore.removeUploadTag(tag)
                             } label: {
                                 HStack(spacing: 4) {
                                     Text("#\(tag)")
@@ -1122,7 +1125,7 @@ struct UploadTagsCategoryScreen: View {
                             .autocorrectionDisabled()
                             .submitLabel(.next)
                         Button("추가") {
-                            store.addUploadTag(pendingTag)
+                            editorDraftStore.addUploadTag(pendingTag)
                             pendingTag = ""
                         }
                         .disabled(pendingTag.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -1140,8 +1143,8 @@ struct UploadTagsCategoryScreen: View {
             sectionLabel("카테고리")
             WorkflowFlowLayout(spacing: Sp.xs) {
                 ForEach(FilterCategory.allCases, id: \.rawValue) { category in
-                    FMChip(category.displayTitle, isSelected: store.editorDraft.category == category, size: .sm) {
-                        store.setUploadCategory(category)
+                    FMChip(category.displayTitle, isSelected: editorDraftStore.editorDraft.category == category, size: .sm) {
+                        editorDraftStore.setUploadCategory(category)
                     }
                     .accessibilityIdentifier("upload.cat.tap.\(category.rawValue)")
                 }
@@ -1154,9 +1157,9 @@ struct UploadTagsCategoryScreen: View {
         FMTextField(
             "설명",
             text: Binding(
-                get: { store.editorDraft.summary },
+                get: { editorDraftStore.editorDraft.summary },
                 set: { value in
-                    store.updateEditorDraft { draft in
+                    editorDraftStore.updateEditorDraft { draft in
                         draft.summary = value
                     }
                 }
@@ -1170,6 +1173,7 @@ struct UploadTagsCategoryScreen: View {
 
 struct UploadTOSSubmitScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @Environment(\.dismiss) private var dismiss
     @State private var showCancelAlert = false
 
@@ -1191,7 +1195,7 @@ struct UploadTOSSubmitScreen: View {
                     store.submitCurrentDraft()
                 })
                 .buttonStyle(.plain)
-                .disabled(!store.editorDraft.isReadyForSubmit)
+                .disabled(!editorDraftStore.editorDraft.isReadyForSubmit)
                 .accessibilityIdentifier("upload.submit")
             }
             .padding(Sp.md)
@@ -1218,7 +1222,7 @@ struct UploadTOSSubmitScreen: View {
                 dismiss()
             }
             Button("초안 버리고 나가기", role: .destructive) {
-                store.resetEditorDraft()
+                editorDraftStore.resetEditorDraft()
                 dismiss()
             }
             Button("계속 작성", role: .cancel) {}
@@ -1234,24 +1238,24 @@ struct UploadTOSSubmitScreen: View {
         FMCard {
             VStack(alignment: .leading, spacing: Sp.sm) {
                 sectionLabel("제출 요약")
-                summaryRow("이름", value: store.editorDraft.name)
+                summaryRow("이름", value: editorDraftStore.editorDraft.name)
                 workflowDivider()
-                summaryRow("카테고리", value: store.editorDraft.category.displayTitle)
+                summaryRow("카테고리", value: editorDraftStore.editorDraft.category.displayTitle)
                 workflowDivider()
-                summaryRow("커버", value: "\(store.editorDraft.coverCount)장")
+                summaryRow("커버", value: "\(editorDraftStore.editorDraft.coverCount)장")
                 workflowDivider()
                 summaryRow("시그니처 샘플", value: signatureSummary)
                 workflowDivider()
-                summaryRow("태그", value: store.editorDraft.tags.map { "#\($0)" }.joined(separator: " "))
+                summaryRow("태그", value: editorDraftStore.editorDraft.tags.map { "#\($0)" }.joined(separator: " "))
             }
         }
     }
 
     private var signatureSummary: String {
-        if store.editorDraft.signatureSamplePhotoData != nil {
+        if editorDraftStore.editorDraft.signatureSamplePhotoData != nil {
             return "직접 선택"
         }
-        if let kind = store.editorDraft.signatureSampleKind {
+        if let kind = editorDraftStore.editorDraft.signatureSampleKind {
             return kind.title
         }
         return "없음"
@@ -1261,9 +1265,9 @@ struct UploadTOSSubmitScreen: View {
         FMCard {
             VStack(spacing: 0) {
                 Toggle("직접 만들었거나 사용 권한이 있습니다", isOn: Binding(
-                    get: { store.editorDraft.tosOriginal },
+                    get: { editorDraftStore.editorDraft.tosOriginal },
                     set: { value in
-                        store.updateEditorDraft { draft in
+                        editorDraftStore.updateEditorDraft { draft in
                             draft.tosOriginal = value
                         }
                     }
@@ -1271,9 +1275,9 @@ struct UploadTOSSubmitScreen: View {
                     .tint(FMColors.Accent.primary)
                 workflowDivider()
                 Toggle("마켓 정책과 심사 기준을 확인했습니다", isOn: Binding(
-                    get: { store.editorDraft.tosPolicy },
+                    get: { editorDraftStore.editorDraft.tosPolicy },
                     set: { value in
-                        store.updateEditorDraft { draft in
+                        editorDraftStore.updateEditorDraft { draft in
                             draft.tosPolicy = value
                         }
                     }
@@ -1281,9 +1285,9 @@ struct UploadTOSSubmitScreen: View {
                     .tint(FMColors.Accent.primary)
                 workflowDivider()
                 Toggle("상업적 배포 권한을 확인했습니다", isOn: Binding(
-                    get: { store.editorDraft.tosCommercial },
+                    get: { editorDraftStore.editorDraft.tosCommercial },
                     set: { value in
-                        store.updateEditorDraft { draft in
+                        editorDraftStore.updateEditorDraft { draft in
                             draft.tosCommercial = value
                         }
                     }
@@ -1309,7 +1313,7 @@ struct UploadTOSSubmitScreen: View {
 }
 
 struct UploadPendingReviewScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -1331,11 +1335,11 @@ struct UploadPendingReviewScreen: View {
             }
             FMCard {
                 VStack(alignment: .leading, spacing: Sp.sm) {
-                    summaryRow("필터", value: store.editorDraft.name)
+                    summaryRow("필터", value: editorDraftStore.editorDraft.name)
                     workflowDivider()
                     summaryRow("상태", value: "검수중")
                     workflowDivider()
-                    summaryRow("제출", value: workflowDateString(store.editorDraft.submittedAt ?? Date()))
+                    summaryRow("제출", value: workflowDateString(editorDraftStore.editorDraft.submittedAt ?? Date()))
                 }
             }
             NavigationLink(value: AppRoute.myFilters) {
