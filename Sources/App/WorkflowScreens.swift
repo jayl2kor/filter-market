@@ -2,6 +2,7 @@ import Camera
 import DesignSystem
 import FilterEngine
 import FirebaseAuth
+import FirebaseCore
 import FirebaseFirestore
 import FirebaseFunctions
 import Marketplace
@@ -1280,24 +1281,32 @@ struct AccountDeletionScreen: View {
 struct EditProfileScreen: View {
     @EnvironmentObject private var store: MooditStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// 빈 상태에서 시작해 .onAppear에서 store.editableProfile (Firebase Auth + Firestore 합성)로 초기화.
     /// (이전: EditableProfile.preview = 강지수 — 사용자 본인 데이터로 자동 채워지도록 수정)
     @State private var draft = EditableProfile.empty
-    @State private var handleStatus: HandleStatus = .available
+    @State private var initialHandle = ""
+    @State private var handleStatus: HandleStatus = .idle
+    @State private var handleCheckTask: Task<Void, Never>?
+    @State private var lastCheckedHandle = ""
     @State private var isAvatarPickerPresented = false
 
-    private enum HandleStatus {
-        case unchecked
+    private enum HandleStatus: Equatable {
+        case idle
         case checking
         case available
         case unavailable
+        case invalid
+        case failed
 
         var message: String {
             switch self {
-            case .unchecked: "유저네임 중복 확인이 필요합니다."
+            case .idle: "유저네임을 입력해 주세요."
             case .checking: "확인 중..."
-            case .available: "사용 가능한 유저네임입니다."
-            case .unavailable: "이미 사용 중인 유저네임입니다."
+            case .available: "이 이름 사용 가능해요."
+            case .unavailable: "이미 사용 중이에요."
+            case .invalid: "3~20자, 영문/숫자/_ 만 사용할 수 있어요."
+            case .failed: "확인하지 못했어요. 다시 시도해 주세요."
             }
         }
 
@@ -1305,7 +1314,19 @@ struct EditProfileScreen: View {
             switch self {
             case .available: FMColors.Accent.primary
             case .unavailable: FMColors.Semantic.error
-            default: FMColors.Text.tertiary
+            case .invalid: FMColors.Semantic.warning
+            case .checking: FMColors.Text.secondary
+            case .idle, .failed: FMColors.Text.tertiary
+            }
+        }
+
+        var iconName: String? {
+            switch self {
+            case .idle: nil
+            case .checking: nil
+            case .available: "checkmark.circle.fill"
+            case .unavailable: "xmark.circle.fill"
+            case .invalid, .failed: "exclamationmark.circle.fill"
             }
         }
     }
@@ -1342,7 +1363,12 @@ struct EditProfileScreen: View {
         }
         .onAppear {
             draft = store.editableProfile
-            handleStatus = .available
+            initialHandle = normalizedHandle(store.editableProfile.handle)
+            handleStatus = initialHandle.isEmpty ? .idle : .available
+            lastCheckedHandle = initialHandle
+        }
+        .onDisappear {
+            handleCheckTask?.cancel()
         }
         .sheet(isPresented: $isAvatarPickerPresented) {
             PhotoPicker { image in
@@ -1420,10 +1446,7 @@ struct EditProfileScreen: View {
                         text: Binding(
                             get: { draft.handle },
                             set: {
-                                draft.handle = $0
-                                    .replacingOccurrences(of: "@", with: "")
-                                    .lowercased()
-                                handleStatus = .unchecked
+                                updateHandleInput($0)
                             }
                         )
                     )
@@ -1442,8 +1465,9 @@ struct EditProfileScreen: View {
                             .strokeBorder(FMColors.Border.default, lineWidth: 1)
                     }
                     .accessibilityIdentifier("profile.edit.handle")
+                    .accessibilityValue(handleStatus.message)
                     Button {
-                        checkHandle()
+                        scheduleHandleCheck(for: draft.handle, delayNanoseconds: 0, force: true)
                     } label: {
                         Image(systemName: "checkmark.seal")
                             .font(.system(size: 18, weight: .semibold))
@@ -1452,10 +1476,17 @@ struct EditProfileScreen: View {
                             .background(FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
                     }
                     .accessibilityIdentifier("profile.edit.handle.check")
+                    .disabled(handleStatus == .checking)
                 }
-                Text(handleStatus.message)
-                    .fmTypography(.caption)
-                    .foregroundStyle(handleStatus.tint)
+                HStack(spacing: Sp.xxs) {
+                    handleStatusIndicator
+                    Text(handleStatus.message)
+                        .fmTypography(.caption)
+                }
+                .foregroundStyle(handleStatus.tint)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("profile.edit.handle.status")
+                .accessibilityValue(handleStatus.message)
             }
             FMTextField(
                 "소개",
@@ -1508,16 +1539,120 @@ struct EditProfileScreen: View {
         )
     }
 
-    private func checkHandle() {
-        handleStatus = .checking
-        let normalized = draft.handle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 350_000_000)
-            handleStatus = ["admin", "moodit", "support"].contains(normalized) ? .unavailable : .available
+    @ViewBuilder
+    private var handleStatusIndicator: some View {
+        if handleStatus == .checking {
+            if reduceMotion {
+                Image(systemName: "clock")
+                    .font(.system(size: 12, weight: .semibold))
+            } else {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(handleStatus.tint)
+            }
+        } else if let iconName = handleStatus.iconName {
+            Image(systemName: iconName)
+                .font(.system(size: 12, weight: .semibold))
         }
     }
 
+    private func updateHandleInput(_ value: String) {
+        let normalized = normalizedHandle(value)
+        guard normalized != draft.handle else { return }
+        draft.handle = normalized
+        scheduleHandleCheck(for: normalized)
+    }
+
+    private func scheduleHandleCheck(
+        for value: String,
+        delayNanoseconds: UInt64 = 400_000_000,
+        force: Bool = false
+    ) {
+        handleCheckTask?.cancel()
+        let normalized = normalizedHandle(value)
+
+        guard !normalized.isEmpty else {
+            setHandleStatus(.idle)
+            return
+        }
+        guard isValidHandle(normalized) else {
+            setHandleStatus(.invalid)
+            return
+        }
+        guard force || normalized != lastCheckedHandle else {
+            setHandleStatus(normalized == initialHandle ? .available : handleStatus)
+            return
+        }
+
+        setHandleStatus(.checking)
+        handleCheckTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: delayNanoseconds)
+                guard !Task.isCancelled else { return }
+                let status = await resolveHandleStatus(for: normalized)
+                guard !Task.isCancelled, draft.handle == normalized else { return }
+                lastCheckedHandle = normalized
+                setHandleStatus(status)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard !Task.isCancelled else { return }
+                setHandleStatus(.failed)
+            }
+        }
+    }
+
+    private func resolveHandleStatus(for handle: String) async -> HandleStatus {
+        if reservedHandles.contains(handle) {
+            return .unavailable
+        }
+        if handle == initialHandle {
+            return .available
+        }
+        guard !isUITesting, FirebaseApp.app() != nil else {
+            return .available
+        }
+
+        do {
+            let snapshot = try await Firestore.firestore()
+                .collection("handles")
+                .document(handle)
+                .getDocument()
+            guard snapshot.exists else { return .available }
+            let ownerUID = snapshot.data()?["uid"] as? String
+            if ownerUID == Auth.auth().currentUser?.uid {
+                return .available
+            }
+            return .unavailable
+        } catch {
+            return .failed
+        }
+    }
+
+    private func setHandleStatus(_ status: HandleStatus) {
+        guard handleStatus != status else { return }
+        handleStatus = status
+        UIAccessibility.post(notification: .announcement, argument: status.message)
+    }
+
+    private var reservedHandles: Set<String> {
+        ["admin", "moodit", "support"]
+    }
+
+    private func normalizedHandle(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "@", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+    }
+
+    private func isValidHandle(_ value: String) -> Bool {
+        guard (3 ... 20).contains(value.count) else { return false }
+        return value.range(of: #"^[a-z0-9_]+$"#, options: .regularExpression) != nil
+    }
+
     private func save() {
+        guard canSave else { return }
         store.saveProfile(draft)
         dismiss()
     }

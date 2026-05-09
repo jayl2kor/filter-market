@@ -148,7 +148,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 |---|---|---|---|---|
 | `profile.self` | root tab `profile` | `ProfileScreen` | Partial | `profile.login`, `profile.settings`, `profile.edit.open`, `profile.shortcut.wallet`, `profile.shortcut.myFilters`, `profile.shortcut.dashboard`, `profile.tile.*` (filter UUID route, capture detail route), followers/following |
 | `profile.other` | `AppRoute.otherProfile(uid:)` | `ProfileScreen(otherUid:)` | Partial | follow toggle, `profile.tile.*`, report/block/share candidates |
-| `profile.edit` | `AppRoute.editProfile` | `EditProfileScreen` | Implemented, NeedsE2E | `profile.edit.avatar.change`, `profile.edit.name`, `profile.edit.handle`, `profile.edit.handle.check`, `profile.edit.bio`, `profile.edit.website`, `profile.edit.save` |
+| `profile.edit` | `AppRoute.editProfile` | `EditProfileScreen` | Implemented, NeedsE2E | `profile.edit.avatar.change`, `profile.edit.name`, `profile.edit.handle`, `profile.edit.handle.status`, `profile.edit.handle.check`, `profile.edit.bio`, `profile.edit.website`, `profile.edit.save` |
 | `settings.home` | `AppRoute.settings` | `SettingsScreen` | Partial | `settings.nav.*`, `settings.row.*`, account, notification, data export, refund/help, admin section |
 | `settings.help` | `AppRoute.helpCenter` | `HelpCenterScreen` | Implemented | `help.faq.*`, `help.email`, `help.refund`, `help.terms`, `help.privacy` |
 | `notifications.inbox` | `AppRoute.notifications` | `NotificationsInboxScreen` | Partial | `notif.settings`, `notif.cat.*`, `notif.tap`, `notif.follow.action.*` |

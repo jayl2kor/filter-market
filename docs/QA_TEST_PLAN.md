@@ -482,8 +482,9 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | # | ID | Expected | PASS/FAIL |
 |---|---|---|---|
 | 11.2.1 | `profile.edit.avatar.change` | PhotosPicker → 선택 이미지를 512px 장변 JPEG로 normalize, avatar preview 갱신. 저장 시 `profileAvatarUploadInit` → R2 presigned PUT → `/users/{uid}` `avatarURL`/`photoURL`/`avatarObjectKey` 저장 |  |
-| 11.2.2 | `profile.edit.handle.check` | 유저네임 중복 확인 (mock). UI 문구는 "핸들"이 아니라 "유저네임" |  |
-| 11.2.3 | `profile.edit.save` | 저장 + dismiss |  |
+| 11.2.2 | `profile.edit.handle` / `profile.edit.handle.status` | 입력 400ms 후 `/handles/{username}` 중복 검사. idle/checking/available/unavailable/invalid/failed 상태 메시지와 아이콘/스피너 표시, VoiceOver announcement 발생 |  |
+| 11.2.3 | `profile.edit.handle.check` | 현재 입력값을 즉시 재검사. 검사 중에는 disabled |  |
+| 11.2.4 | `profile.edit.save` | displayName + 유효한 사용 가능 유저네임일 때만 enabled. 중복/형식 오류/검사 중이면 저장 차단, 저장 시 `setHandle` callable이 최종 권위 검사 |  |
 
 ### 11.3 AccountDeletionScreen — `.accountDeletion`
 
