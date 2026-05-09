@@ -29,6 +29,7 @@ struct FilterDetailScreen: View {
     @State private var didLikeMockFilter = false
     @State private var sharePayload: SharePayload?
     @State private var isDescriptionExpanded = false
+    @State private var selectedSample: FilterDetailSampleItem?
 
     init(filter: Filter, mock: FilterDetailMock? = nil, onRefresh: (() async -> Void)? = nil) {
         self.filter = filter
@@ -67,6 +68,16 @@ struct FilterDetailScreen: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .sheet(item: $sharePayload) { payload in
             ShareSheet(activityItems: payload.items)
+        }
+        .fullScreenCover(item: $selectedSample) { sample in
+            SampleLightboxView(
+                selectedSample: sample,
+                samples: sampleItems,
+                filterTitle: mock.displayTitle,
+                makerHandle: mock.makerHandle,
+                category: mock.filterCategory,
+                categoryHint: mock.categoryHint
+            )
         }
         .onDisappear {
             downloadTask?.cancel()
@@ -454,13 +465,24 @@ struct FilterDetailScreen: View {
             sectionHeader(title: "샘플", more: "\(sampleCount)개 모두 →")
                 .padding(.horizontal, Sp.md)
 
-            SampleGalleryView(mock: mock)
+            SampleGalleryView(samples: sampleItems, mock: mock) { sample in
+                selectedSample = sample
+                FMHaptic.light.play()
+            }
         }
     }
 
     private var sampleCount: Int {
-        let signatureCount = (mock.signatureSampleURL ?? mock.coverURL) == nil ? 0 : 1
-        return signatureCount + EditorReferenceSampleKind.allCases.count
+        sampleItems.count
+    }
+
+    private var sampleItems: [FilterDetailSampleItem] {
+        var items: [FilterDetailSampleItem] = []
+        if let signatureURL = mock.signatureSampleURL ?? mock.coverURL {
+            items.append(.signature(url: signatureURL))
+        }
+        items.append(contentsOf: EditorReferenceSampleKind.allCases.map { .reference($0) })
+        return items
     }
 
     // MARK: - Reviews
@@ -776,32 +798,77 @@ struct FilterDetailScreen: View {
 
 // MARK: - Sample Gallery
 
-private struct SampleGalleryView: View {
-    let mock: FilterDetailMock
-
-    private var signatureURL: URL? {
-        mock.signatureSampleURL ?? mock.coverURL
+private struct FilterDetailSampleItem: Identifiable, Equatable {
+    enum Kind: Equatable {
+        case signature(URL)
+        case reference(EditorReferenceSampleKind)
     }
+
+    let kind: Kind
+
+    var id: String {
+        switch kind {
+        case .signature(let url):
+            "signature-\(url.absoluteString)"
+        case .reference(let sampleKind):
+            "reference-\(sampleKind.rawValue)"
+        }
+    }
+
+    var title: String {
+        switch kind {
+        case .signature:
+            "시그니처"
+        case .reference(let sampleKind):
+            sampleKind.title
+        }
+    }
+
+    static func signature(url: URL) -> FilterDetailSampleItem {
+        FilterDetailSampleItem(kind: .signature(url))
+    }
+
+    static func reference(_ kind: EditorReferenceSampleKind) -> FilterDetailSampleItem {
+        FilterDetailSampleItem(kind: .reference(kind))
+    }
+}
+
+private struct SampleGalleryView: View {
+    let samples: [FilterDetailSampleItem]
+    let mock: FilterDetailMock
+    let onSelect: (FilterDetailSampleItem) -> Void
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Sp.sm) {
-                if let signatureURL {
-                    SignatureSampleTile(url: signatureURL, categoryHint: mock.categoryHint)
-                }
-
-                ForEach(EditorReferenceSampleKind.allCases) { kind in
-                    ReferenceSampleTile(
-                        kind: kind,
-                        category: mock.filterCategory,
-                        filterKey: "\(mock.displayTitle)-\(mock.filterCategory.rawValue)"
-                    )
+                ForEach(samples) { sample in
+                    Button {
+                        onSelect(sample)
+                    } label: {
+                        sampleTile(sample)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("탭 하면 풀화면으로 봅니다")
                 }
             }
             .padding(.horizontal, Sp.md)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("filter.detail.sample.gallery")
+    }
+
+    @ViewBuilder
+    private func sampleTile(_ sample: FilterDetailSampleItem) -> some View {
+        switch sample.kind {
+        case .signature(let url):
+            SignatureSampleTile(url: url, categoryHint: mock.categoryHint)
+        case .reference(let kind):
+            ReferenceSampleTile(
+                kind: kind,
+                category: mock.filterCategory,
+                filterKey: "\(mock.displayTitle)-\(mock.filterCategory.rawValue)"
+            )
+        }
     }
 }
 
@@ -906,6 +973,277 @@ private struct ReferenceSampleTile: View {
             let renderedData = try await Task.detached(priority: .userInitiated) {
                 let sourceLUT = LUT3D.preset(LUTPreset.preset(for: category), size: 33)
                 let renderer = PhotoFilterRenderer(jpegCompressionQuality: 0.86)
+                return try renderer.renderJPEG(
+                    to: sourceData,
+                    sourceLUT: sourceLUT,
+                    intensity: .full,
+                    cropAspectRatio: nil
+                )
+            }.value
+            await SampleReferenceRenderCache.shared.store(renderedData, for: cacheKey)
+            renderedImage = UIImage(data: renderedData)
+        } catch {
+            renderedImage = sourceImage
+        }
+    }
+}
+
+private struct SampleLightboxView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let samples: [FilterDetailSampleItem]
+    let filterTitle: String
+    let makerHandle: String
+    let category: FilterCategory
+    let categoryHint: Color
+
+    @State private var selectedID: String
+
+    init(
+        selectedSample: FilterDetailSampleItem,
+        samples: [FilterDetailSampleItem],
+        filterTitle: String,
+        makerHandle: String,
+        category: FilterCategory,
+        categoryHint: Color
+    ) {
+        self.samples = samples
+        self.filterTitle = filterTitle
+        self.makerHandle = makerHandle
+        self.category = category
+        self.categoryHint = categoryHint
+        self._selectedID = State(initialValue: selectedSample.id)
+    }
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            TabView(selection: $selectedID) {
+                ForEach(samples) { sample in
+                    ZoomableSampleSurface {
+                        sampleContent(sample)
+                    }
+                    .tag(sample.id)
+                    .padding(.horizontal, Sp.md)
+                    .padding(.vertical, 96)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(sample.title) 샘플")
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+
+            VStack(spacing: 0) {
+                topBar
+                Spacer()
+                bottomBar
+            }
+        }
+        .gesture(dismissDragGesture)
+        .accessibilityIdentifier("filter.detail.sample.lightbox")
+    }
+
+    private var topBar: some View {
+        HStack(spacing: Sp.sm) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: IconSize.sm, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(.ultraThinMaterial, in: Circle())
+            }
+            .accessibilityLabel("닫기")
+            .accessibilityIdentifier("filter.detail.sample.lightbox.close")
+
+            Spacer()
+
+            Text(counterText)
+                .font(.system(size: 14, weight: .semibold).monospacedDigit())
+                .foregroundStyle(.white)
+                .padding(.horizontal, Sp.sm)
+                .frame(minHeight: 36)
+                .background(.ultraThinMaterial, in: Capsule())
+                .accessibilityIdentifier("filter.detail.sample.lightbox.counter")
+        }
+        .padding(.horizontal, Sp.md)
+        .padding(.top, Sp.md)
+    }
+
+    private var bottomBar: some View {
+        VStack(alignment: .leading, spacing: Sp.xxs) {
+            Text(currentSample?.title ?? "샘플")
+                .fmTypography(.headline)
+                .foregroundStyle(.white)
+            Text("\(filterTitle) · \(makerHandle)")
+                .fmTypography(.subhead)
+                .foregroundStyle(.white.opacity(0.72))
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Sp.md)
+        .padding(.vertical, Sp.md)
+        .background(
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.72)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .bottom)
+        )
+    }
+
+    @ViewBuilder
+    private func sampleContent(_ sample: FilterDetailSampleItem) -> some View {
+        switch sample.kind {
+        case .signature(let url):
+            FMRemoteImage(
+                url: url,
+                cornerRadius: R.lg,
+                contentMode: .fit,
+                placeholder: {
+                    samplePlaceholder
+                },
+                failure: {
+                    samplePlaceholder
+                }
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .reference(let kind):
+            ReferenceSampleLightboxImage(
+                kind: kind,
+                category: category,
+                filterKey: "\(filterTitle)-\(category.rawValue)"
+            )
+        }
+    }
+
+    private var samplePlaceholder: some View {
+        ZStack {
+            LinearGradient(
+                colors: [categoryHint.opacity(0.65), Color.black.opacity(0.84)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            Image(systemName: "photo")
+                .font(.system(size: 42, weight: .light))
+                .foregroundStyle(.white.opacity(0.85))
+        }
+        .clipShape(RoundedRectangle(cornerRadius: R.lg))
+    }
+
+    private var currentSample: FilterDetailSampleItem? {
+        samples.first(where: { $0.id == selectedID })
+    }
+
+    private var counterText: String {
+        guard let index = samples.firstIndex(where: { $0.id == selectedID }) else {
+            return "1 / \(max(samples.count, 1))"
+        }
+        return "\(index + 1) / \(samples.count)"
+    }
+
+    private var dismissDragGesture: some Gesture {
+        DragGesture(minimumDistance: 24)
+            .onEnded { value in
+                guard value.translation.height > 120,
+                      abs(value.translation.width) < 96 else { return }
+                if reduceMotion {
+                    dismiss()
+                } else {
+                    withAnimation(.fmStandard) {
+                        dismiss()
+                    }
+                }
+            }
+    }
+}
+
+private struct ZoomableSampleSurface<Content: View>: View {
+    @GestureState private var gestureScale: CGFloat = 1
+    @State private var baseScale: CGFloat = 1
+
+    @ViewBuilder let content: () -> Content
+
+    private var scale: CGFloat {
+        min(max(baseScale * gestureScale, 1), 4)
+    }
+
+    var body: some View {
+        content()
+            .scaleEffect(scale)
+            .animation(.fmFast, value: scale)
+            .gesture(
+                MagnifyGesture()
+                    .updating($gestureScale) { value, state, _ in
+                        state = value.magnification
+                    }
+                    .onEnded { value in
+                        baseScale = min(max(baseScale * value.magnification, 1), 4)
+                    }
+            )
+            .onTapGesture(count: 2) {
+                baseScale = baseScale > 1.05 ? 1 : 2
+            }
+            .accessibilityHint("좌우로 넘기거나 두 번 탭해 확대합니다")
+    }
+}
+
+private struct ReferenceSampleLightboxImage: View {
+    let kind: EditorReferenceSampleKind
+    let category: FilterCategory
+    let filterKey: String
+
+    @State private var sourceImage: UIImage?
+    @State private var renderedImage: UIImage?
+    @State private var isRendering = false
+
+    var body: some View {
+        ZStack {
+            if let image = renderedImage ?? sourceImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: R.lg))
+            } else {
+                RoundedRectangle(cornerRadius: R.lg)
+                    .fill(.white.opacity(0.08))
+            }
+
+            if isRendering {
+                ProgressView()
+                    .tint(.white)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .task(id: cacheKey) {
+            await render()
+        }
+    }
+
+    private var cacheKey: String {
+        "detail-reference-\(filterKey)-\(kind.rawValue)"
+    }
+
+    @MainActor
+    private func render() async {
+        let sourceData = EditorReferenceSampleImage.makeJPEGData(kind: kind)
+        sourceImage = UIImage(data: sourceData)
+
+        if let cached = await SampleReferenceRenderCache.shared.data(for: cacheKey) {
+            renderedImage = UIImage(data: cached)
+            return
+        }
+
+        isRendering = true
+        defer { isRendering = false }
+
+        do {
+            let renderedData = try await Task.detached(priority: .userInitiated) {
+                let sourceLUT = LUT3D.preset(LUTPreset.preset(for: category), size: 33)
+                let renderer = PhotoFilterRenderer(jpegCompressionQuality: 0.9)
                 return try renderer.renderJPEG(
                     to: sourceData,
                     sourceLUT: sourceLUT,

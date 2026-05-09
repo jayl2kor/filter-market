@@ -204,9 +204,10 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 5.7 | "팔로우" 버튼 | isFollowing 토글 → "팔로잉"으로 변경 |  |
 | 5.8 | "팔로잉" 버튼 | isFollowing 토글 → "팔로우"로 변경 |  |
 | 5.9 | 태그 칩 (`filter.detail.tag.<tag>`) | → AppRoute.search(initialQuery: "#tag") — 검색에서 title/author/category/tags 기준으로 해당 태그 자동 필터링 |  |
-| 5.10 | 샘플 갤러리 컨테이너 (`filter.detail.sample.gallery`) | 가로 스크롤 갤러리 표시. `signatureSampleURL` 또는 `coverURL`이 있으면 첫 슬롯에 메이커 시그니처/커버 샘플 표시 |  |
-| 5.11 | 메이커 시그니처 샘플 (`filter.detail.sample.signature`) | URL 이미지 로드 성공 시 실제 이미지, 실패/로딩 시 카테고리 placeholder 표시 |  |
-| 5.12 | 시스템 reference 샘플 (`filter.detail.sample.reference.portrait/landscape/indoor/lifestyle`) | 4개 reference가 항상 표시되고, 카테고리 LUT 적용 결과가 progressive render/cache 후 표시. 실패 시 원본 reference fallback |  |
+| 5.10 | 샘플 갤러리 컨테이너 (`filter.detail.sample.gallery`) | 가로 스크롤 갤러리 표시. `signatureSampleURL` 또는 `coverURL`이 있으면 첫 슬롯에 메이커 시그니처/커버 샘플 표시. 각 샘플 탭 시 풀스크린 lightbox 표시 |  |
+| 5.11 | 메이커 시그니처 샘플 (`filter.detail.sample.signature`) | URL 이미지 로드 성공 시 실제 이미지, 실패/로딩 시 카테고리 placeholder 표시. 탭 시 `filter.detail.sample.lightbox`에서 확대 보기 |  |
+| 5.12 | 시스템 reference 샘플 (`filter.detail.sample.reference.portrait/landscape/indoor/lifestyle`) | 4개 reference가 항상 표시되고, 카테고리 LUT 적용 결과가 progressive render/cache 후 표시. 실패 시 원본 reference fallback. 탭 시 lightbox에서 좌우 swipe, pinch zoom, double-tap zoom, swipe-down dismiss 동작 |  |
+| 5.12a | 샘플 lightbox 닫기 (`filter.detail.sample.lightbox.close`) | 풀스크린 샘플 보기 닫힘. `filter.detail.sample.lightbox.counter`는 현재 index / 전체 개수를 표시 |  |
 | 5.13 | 리뷰 섹션 헤더 "리뷰 → \(N개)" | → AppRoute.reviews(filterId:) |  |
 | 5.14 | 리뷰 row (3개 미리보기) | 비인터랙티브 (avatar는 별도 wiring 없음) |  |
 | 5.15 | ★ 평점 등록 (toolbar) | Auth-gated → AppRoute.rating(filterId:) |  |
