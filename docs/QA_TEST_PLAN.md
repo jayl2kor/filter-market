@@ -373,10 +373,11 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 10.3.11 | uploadSubmit | `upload.tos.toggle` | TOS 토글 |  |
 | 10.3.12 | uploadSubmit | `upload.submit` | TOS off일 때 disabled, on이면 → uploadPending |  |
 | 10.3.12b | uploadSubmit | `upload.cancel` | alert: 초안 저장하고 나가기=draft save+dismiss, 초안 버리고 나가기=reset+dismiss, 계속 작성=stay |  |
-| 10.3.13 | uploadPending | `upload.pending.view_filter` | → AppRoute.myFilters |  |
-| 10.3.14 | uploadPending | `upload.pending.dismiss` | dismiss |  |
-| 10.3.15 | (전체) | 단계 이동/화면 이탈 시 pending 제출 전 draft는 uid별 UserDefaults + `/users/{uid}/editorDrafts/current` autosave 경로와 makerDrafts 저장 경로로 보존 |  |
-| 10.3.16 | (전체) | Cloud Function `uploadInit` (Firestore draft 생성 + R2 presigned PUT URL 발급, `signatureSampleURL` 필드 보존) → 클라이언트 PUT (FilterPackageUploader) → `uploadFinalize` (R2 HEAD로 size/sha256 검증, status → `pending_review_pre`). UI ↔ Function 호출과 실제 시그니처 이미지 R2 업로드는 별도 이슈로 추적. |  |
+| 10.3.13 | uploadPending | step indicator | 4/4 검수 단계 표시, VoiceOver가 "업로드 4단계 중 4단계, 검수"로 읽음 |  |
+| 10.3.14 | uploadPending | `upload.pending.view_filter` | → AppRoute.myFilters |  |
+| 10.3.15 | uploadPending | `upload.pending.dismiss` | dismiss |  |
+| 10.3.16 | (전체) | 단계 이동/화면 이탈 시 pending 제출 전 draft는 uid별 UserDefaults + `/users/{uid}/editorDrafts/current` autosave 경로와 makerDrafts 저장 경로로 보존 |  |
+| 10.3.17 | (전체) | Cloud Function `uploadInit` (Firestore draft 생성 + R2 presigned PUT URL 발급, `signatureSampleURL` 필드 보존) → 클라이언트 PUT (FilterPackageUploader) → `uploadFinalize` (R2 HEAD로 size/sha256 검증, status → `pending_review_pre`). UI ↔ Function 호출과 실제 시그니처 이미지 R2 업로드는 별도 이슈로 추적. |  |
 
 ### 10.4 RemixFlow / MakerDashboard / ReportForm
 

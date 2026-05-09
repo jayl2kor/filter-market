@@ -3019,6 +3019,8 @@ struct UploadPendingReviewScreen: View {
 
     var body: some View {
         VStack(spacing: Sp.lg) {
+            uploadProgress(active: .pending)
+
             Spacer()
             Image(systemName: "hourglass.circle.fill")
                 .font(.system(size: 64, weight: .semibold))
@@ -6038,6 +6040,9 @@ private func uploadProgress(active: UploadStep) -> some View {
     }
     .padding(Sp.sm)
     .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("업로드 \(UploadStep.allCases.count)단계 중 \(uploadStepIndex(active) + 1)단계")
+    .accessibilityValue(active.title)
 }
 
 private func uploadStepIndex(_ step: UploadStep) -> Int {
