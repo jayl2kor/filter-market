@@ -3,7 +3,6 @@ import SwiftUI
 
 struct UniversalLinkLandingScreen: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: MooditStore
 
     var body: some View {
         ScrollView {

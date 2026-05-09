@@ -9,7 +9,7 @@ import SwiftUI
 /// 첫 카드는 "전체 즐겨찾기" 자동 컬렉션 (accent.bg 배경).
 struct FavoritesCollectionScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
 
     @State private var collections: [FilterCollection] = isUITesting ? FilterCollection.mock : []
     @State private var collectionsListener: ListenerRegistration?
@@ -99,7 +99,7 @@ struct FavoritesCollectionScreen: View {
         if isUITesting {
             return collections.first { $0.isAutoAll }?.count ?? 0
         }
-        return store.favoriteFilterIDs.count
+        return filterLibraryStore.favoriteFilterIDs.count
     }
 
     private var customCollectionCount: Int {
@@ -324,7 +324,7 @@ struct FavoritesCollectionScreen: View {
         #endif
         collectionsListener?.remove()
         guard let uid = Auth.auth().currentUser?.uid else {
-            collections = [allFavoritesCollection(count: store.favoriteFilterIDs.count)]
+            collections = [allFavoritesCollection(count: filterLibraryStore.favoriteFilterIDs.count)]
             statusMessage = "로그인 후 컬렉션을 동기화할 수 있어요."
             return
         }
@@ -336,11 +336,11 @@ struct FavoritesCollectionScreen: View {
                 Task { @MainActor in
                     if let error {
                         statusMessage = "컬렉션을 불러오지 못했어요: \(error.localizedDescription)"
-                        collections = [allFavoritesCollection(count: store.favoriteFilterIDs.count)]
+                        collections = [allFavoritesCollection(count: filterLibraryStore.favoriteFilterIDs.count)]
                         return
                     }
                     let custom = (snapshot?.documents ?? []).compactMap(FilterCollection.init(document:))
-                    collections = [allFavoritesCollection(count: store.favoriteFilterIDs.count)] + custom
+                    collections = [allFavoritesCollection(count: filterLibraryStore.favoriteFilterIDs.count)] + custom
                 }
             }
     }
@@ -426,7 +426,7 @@ struct FavoritesCollectionScreen: View {
 
     private var favoriteTiles: [CollectionTile] {
         let palette: [CollectionTile] = [.vintage, .cafe, .portrait, .moody, .travel, .nature]
-        let count = max(1, store.favoriteFilterIDs.count)
+        let count = max(1, filterLibraryStore.favoriteFilterIDs.count)
         return Array(palette.prefix(min(4, count)))
     }
 }
@@ -557,14 +557,14 @@ struct CollectionTile: Hashable {
 #Preview("Favorites collection") {
     NavigationStack {
         FavoritesCollectionScreen()
-            .environmentObject(MooditStore())
+            .environmentObject(FilterLibraryStore())
     }
 }
 
 #Preview("Favorites collection — Dark") {
     NavigationStack {
         FavoritesCollectionScreen()
-            .environmentObject(MooditStore())
+            .environmentObject(FilterLibraryStore())
     }
     .preferredColorScheme(.dark)
 }
