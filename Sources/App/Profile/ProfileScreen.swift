@@ -29,7 +29,8 @@ enum ProfileSection: Hashable, CaseIterable {
 /// Phase D3 — `mockups/screens/09-profile.html` 와 정합.
 /// 헤더 + 아바타/닉네임/소개 + 통계 3분할 + 액션 + 세그먼트 + 3열 그리드.
 struct ProfileScreen: View {
-    @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var sessionStore: SessionStore
     @StateObject private var profileStore = ProfileSelfStore()
 
     /// 명시적으로 전달된 사용자 (e.g. `.other`). nil이면 본인 — Auth + Firestore에서 동적 조립.
@@ -64,7 +65,7 @@ struct ProfileScreen: View {
         self.ownsNavigationStack = ownsNavigationStack
     }
 
-    /// 화면에 표시할 사용자 — 우선순위: 외부 주입 > otherUid 로드 결과 > store.currentUserProfile (본인) > placeholder.
+    /// 화면에 표시할 사용자 — 우선순위: 외부 주입 > otherUid 로드 결과 > profileStore.currentUserProfile (본인) > placeholder.
     private var user: ProfileUser {
         if let injectedUser { return injectedUser }
         if otherUid != nil, let other = fetchedOtherUser { return other }
@@ -142,7 +143,7 @@ struct ProfileScreen: View {
         defer { isRefreshing = false }
         if otherUid == nil {
             await profileStore.refresh()
-            await store.load(force: true)
+            await filterLibraryStore.load(force: true)
         } else {
             await loadOtherProfile()
         }
@@ -157,7 +158,7 @@ struct ProfileScreen: View {
     }
 
     var body: some View {
-        if store.isAuthenticated {
+        if sessionStore.isAuthenticated {
             authenticatedBody
         } else {
             guestBody
@@ -885,7 +886,7 @@ struct ProfileScreen: View {
 
     private func savedTitle(for id: String) -> String {
         if let uuid = UUID(uuidString: id),
-           let filter = store.filters.first(where: { $0.id == uuid }) ?? profileStore.myFilters.first(where: { $0.id == uuid }) {
+           let filter = filterLibraryStore.filters.first(where: { $0.id == uuid }) ?? profileStore.myFilters.first(where: { $0.id == uuid }) {
             return filter.title
         }
         return "저장된 필터"
@@ -1035,28 +1036,38 @@ struct ProfileHandleResolverScreen: View {
 // MARK: - Preview
 
 #Preview("ProfileScreen — Light") {
+    let store = MooditStore()
     ProfileScreen()
-        .environmentObject(MooditStore())
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.sessionStore)
 }
 
 #Preview("ProfileScreen — Empty myFilters") {
+    let store = MooditStore()
     ProfileScreen(user: .empty)
-        .environmentObject(MooditStore())
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.sessionStore)
 }
 
 #Preview("ProfileScreen — Other user") {
+    let store = MooditStore()
     ProfileScreen(user: .other)
-        .environmentObject(MooditStore())
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.sessionStore)
 }
 
 #Preview("ProfileScreen — Dark") {
+    let store = MooditStore()
     ProfileScreen()
-        .environmentObject(MooditStore())
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.sessionStore)
         .preferredColorScheme(.dark)
 }
 
 #Preview("ProfileScreen — XXXLarge") {
+    let store = MooditStore()
     ProfileScreen()
-        .environmentObject(MooditStore())
+        .environmentObject(store.filterLibraryStore)
+        .environmentObject(store.sessionStore)
         .dynamicTypeSize(.xxxLarge)
 }

@@ -234,6 +234,7 @@ private struct UITestLaunchHost: View {
         .environmentObject(store.editorDraftStore)
         .environmentObject(store.sessionStore)
         .task {
+            store.subscribeToWallet()
             await store.load()
         }
     }
