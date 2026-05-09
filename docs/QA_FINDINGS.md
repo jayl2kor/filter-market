@@ -68,6 +68,7 @@
 | 2026-05-09 | `npm --prefix functions test` | PASS, 85 tests after profile avatar upload contract was added (#183) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after profile avatar R2 upload and `avatarURL` rendering wiring (#183) |
 | 2026-05-09 | `npm --prefix functions test` | PASS, 93 tests after idempotency cache implementation, Apple cert timeout coverage, and paid filter entitlement/Pro gating in `getFilterDetail` (#182) |
+| 2026-05-09 | `rg "makerFilters\\[[^\\]]+\\]" Sources/App/MooditStore.swift` + `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS, no remaining `makerFilters[index]` mutation/access pattern after immutable map update (#164) |
 | 2026-05-09 | `npm --prefix functions test` | PASS, 75 tests after Firestore rate limit and price tier backend hardening (#174/#172) |
 | 2026-05-09 | `npm --prefix functions test` + `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS, 79 Functions tests and iOS build after IAP duplicate/refund order validation fixes (#169/#168) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after StoreKit finish/restore backend sync fix (#150/#152) |

@@ -1407,15 +1407,17 @@ final class MooditStore: ObservableObject {
     }
 
     func markMakerFilterPrivate(_ draft: MakerFilterDraft) {
-        guard let index = makerFilters.firstIndex(where: { $0.id == draft.id }) else { return }
-        makerFilters[index].status = .draft
-        makerFilters[index].updatedAt = Date()
-        persistMakerDraft(makerFilters[index])
+        guard let existing = makerFilters.first(where: { $0.id == draft.id }) else { return }
+        var updatedDraft = existing
+        updatedDraft.status = .draft
+        updatedDraft.updatedAt = Date()
+        makerFilters = makerFilters.map { $0.id == draft.id ? updatedDraft : $0 }
+        persistMakerDraft(updatedDraft)
     }
 
     private func upsertMakerFilter(_ draft: MakerFilterDraft) {
-        if let index = makerFilters.firstIndex(where: { $0.id == draft.id }) {
-            makerFilters[index] = draft
+        if makerFilters.contains(where: { $0.id == draft.id }) {
+            makerFilters = makerFilters.map { $0.id == draft.id ? draft : $0 }
         } else {
             makerFilters.insert(draft, at: 0)
         }
