@@ -84,6 +84,7 @@
 		603FF87702185084D10DB5C2 /* Camera.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91122D81CC0FF8B65CB86CEE /* Camera.framework */; };
 		61096D07BBBCF40D97FB3957 /* LocationPermissionPriming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47F408C11779EF99CD0382C1 /* LocationPermissionPriming.swift */; };
 		61C3D5863B2C7FBD7864114E /* WalletLedgerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEF0993B471E2C072DA614E2 /* WalletLedgerTests.swift */; };
+		B1800001B1800001B1800001 /* MooditStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1800000B1800000B1800000 /* MooditStoreTests.swift */; };
 		6654346FC8885AB8B279512D /* ShaderSources.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED24BFBFA05A541DAA68D381 /* ShaderSources.swift */; };
 		66A4B1B3373517F5D1EB4E4E /* UniversalLinkParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3297A0A1E3883E05162166A /* UniversalLinkParserTests.swift */; };
 		6839CC2151EBE1198E8657CB /* OnboardingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C206A2EEFDD812773224DCCA /* OnboardingScreen.swift */; };
@@ -532,6 +533,7 @@
 		AA80AEE3D4DD5B9103378940 /* PhotosPermissionPriming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotosPermissionPriming.swift; sourceTree = "<group>"; };
 		AAA2D9C2FC1BAE33650462B8 /* SocialRepositoriesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialRepositoriesTests.swift; sourceTree = "<group>"; };
 		AB94A4B9C756853CECD34ED5 /* ProfileSelfStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSelfStore.swift; sourceTree = "<group>"; };
+		B1800000B1800000B1800000 /* MooditStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditStoreTests.swift; sourceTree = "<group>"; };
 		AE15FDD0D63491F42DC3EB6B /* CapturePreviewScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePreviewScreen.swift; sourceTree = "<group>"; };
 		AF562476D5DB9EC655372E76 /* FilterDetailLoaderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterDetailLoaderScreen.swift; sourceTree = "<group>"; };
 		B11666E56545174DA99CF8B2 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
@@ -915,6 +917,7 @@
 				A1620000A1620000A1620000 /* TelemetryTests.swift */,
 				E3297A0A1E3883E05162166A /* UniversalLinkParserTests.swift */,
 				CEF0993B471E2C072DA614E2 /* WalletLedgerTests.swift */,
+				B1800000B1800000B1800000 /* MooditStoreTests.swift */,
 			);
 			name = AppTests;
 			path = Tests/AppTests;
@@ -1822,6 +1825,7 @@
 				A1620001A1620001A1620001 /* TelemetryTests.swift in Sources */,
 				66A4B1B3373517F5D1EB4E4E /* UniversalLinkParserTests.swift in Sources */,
 				61C3D5863B2C7FBD7864114E /* WalletLedgerTests.swift in Sources */,
+				B1800001B1800001B1800001 /* MooditStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

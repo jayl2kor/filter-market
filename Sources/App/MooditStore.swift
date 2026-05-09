@@ -1,4 +1,5 @@
 import FirebaseAuth
+import FirebaseCore
 import FirebaseFirestore
 import FirebaseFunctions
 import Foundation
@@ -460,6 +461,19 @@ final class MooditStore: ObservableObject {
         return URL(string: string)
     }
 
+    nonisolated private static var currentFirebaseUser: User? {
+        guard !isUnitTesting, FirebaseApp.app() != nil else { return nil }
+        return Auth.auth().currentUser
+    }
+
+    nonisolated private static var currentFirebaseUID: String? {
+        currentFirebaseUser?.uid
+    }
+
+    nonisolated private static var isUnitTesting: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
+
     // MooditStore lives the entire app lifetime so explicit deinit cleanup is
     // not required. Swift 6 strict concurrency disallows touching non-Sendable
     // ListenerRegistration / AuthStateDidChangeListenerHandle from a nonisolated
@@ -477,6 +491,11 @@ final class MooditStore: ObservableObject {
             return
         }
         #endif
+        guard !Self.isUnitTesting, FirebaseApp.app() != nil else {
+            hasLoadedProfile = true
+            isAuthenticated = false
+            return
+        }
         guard authStateHandle == nil else { return } // idempotent
         authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self else { return }
@@ -495,7 +514,7 @@ final class MooditStore: ObservableObject {
         #if DEBUG
         guard !isUITesting else { return }
         #endif
-        guard let user = Auth.auth().currentUser else {
+        guard let user = Self.currentFirebaseUser else {
             isAuthenticated = false
             attachWalletListeners(uid: nil)
             return
@@ -568,7 +587,7 @@ final class MooditStore: ObservableObject {
         restoreEditorDraftFromDisk(uid: uid)
         let db = Firestore.firestore()
         // Auth.currentUser의 displayName/email 즉시 사용해 editableProfile 부분 채움.
-        if let authUser = Auth.auth().currentUser {
+        if let authUser = Self.currentFirebaseUser {
             editableProfile = EditableProfile(
                 displayName: authUser.displayName ?? authUser.email?.split(separator: "@").first.map(String.init) ?? "",
                 handle: authUser.email?.split(separator: "@").first.map(String.init) ?? String(authUser.uid.prefix(8)),
@@ -861,7 +880,7 @@ final class MooditStore: ObservableObject {
         #if DEBUG
         guard !isUITesting else { return }
         #endif
-        guard Auth.auth().currentUser?.uid != nil else { return }
+        guard Self.currentFirebaseUID != nil else { return }
         notificationPreferencesSaveTask?.cancel()
         notificationPreferencesSaveTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 800_000_000)
@@ -871,7 +890,7 @@ final class MooditStore: ObservableObject {
     }
 
     private func persistNotificationPreferences(_ preferences: NotificationPreferences) async {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let uid = Self.currentFirebaseUID else { return }
         let ref = Firestore.firestore()
             .collection("users").document(uid)
             .collection("notificationPreferences").document("main")
@@ -925,7 +944,7 @@ final class MooditStore: ObservableObject {
         #if DEBUG
         guard !isUITesting else { return }
         #endif
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let uid = Self.currentFirebaseUID else { return }
         let ref = Firestore.firestore()
             .collection("users").document(uid)
             .collection("savedFilters").document(filterId.uuidString)
@@ -958,7 +977,7 @@ final class MooditStore: ObservableObject {
         #if DEBUG
         guard !isUITesting else { return }
         #endif
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let uid = Self.currentFirebaseUID else { return }
         let ref = Firestore.firestore()
             .collection("users").document(uid)
             .collection("favorites").document(filterId.uuidString)
@@ -991,7 +1010,7 @@ final class MooditStore: ObservableObject {
         #if DEBUG
         guard !isUITesting else { return }
         #endif
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let uid = Self.currentFirebaseUID else { return }
         do {
             let snapshot = try await Firestore.firestore()
                 .collection("users").document(uid)
@@ -1242,7 +1261,7 @@ final class MooditStore: ObservableObject {
 
     func requestDataExport() {
         guard !selectedExportCategories.isEmpty else { return }
-        let uid = Auth.auth().currentUser?.uid
+        let uid = Self.currentFirebaseUID
         let ref = uid.map {
             Firestore.firestore()
                 .collection("users").document($0)
@@ -1428,7 +1447,7 @@ final class MooditStore: ObservableObject {
         #if DEBUG
         guard !isUITesting else { return }
         #endif
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let uid = Self.currentFirebaseUID else { return }
         var payload: [String: Any] = [
             "name": draft.name,
             "summary": draft.summary,
