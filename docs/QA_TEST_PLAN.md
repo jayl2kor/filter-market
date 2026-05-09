@@ -244,7 +244,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | # | Element (ID) | Expected action | PASS/FAIL |
 |---|---|-----------------|-----------|
 | 6.1.1 | 필터 미니카드 (`social.reviews.filter`) | 로컬 store 또는 `filters/{filterId}`에서 실제 제목/작성자/커버/카운트 표시. 탭 시 → AppRoute.filterDetail |  |
-| 6.1.2 | 리뷰 row (`social.review.row`) | row 자체는 정보 표시 |  |
+| 6.1.2 | 리뷰 row (`social.review.row`) | row 자체는 정보 표시. 본인 리뷰는 "내 리뷰"로 구분되고 VoiceOver label도 "내 리뷰"로 시작 |  |
 | 6.1.3 | 메이커 답글 row (`social.review.makerReply.row`) | 표시 only |  |
 | 6.1.4 | 별점 표시 (`social.review.stars`) | 1~5 별 표시, 채워진 별 = stars |  |
 | 6.1.5 | 다운로드 확인 뱃지 (`social.review.verified`) | isVerifiedDownload=true일 때만 |  |
@@ -253,7 +253,8 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 6.1.8 | "리뷰 추가..." (`social.reviews.compose`) | Auth-gated → AppRoute.reviewCompose |  |
 | 6.1.9 | paper plane 버튼 | 동일 → reviewCompose |  |
 | 6.1.10 | ★ Rating (toolbar) | Auth-gated → AppRoute.rating |  |
-| 6.1.11 | ··· more (`social.review.more`) | ConfirmationDialog: 신고 / 작성자 차단 / 텍스트 복사 / 취소. `social.review.more.block`는 root `blocks/{actorUid}_{targetUid}` write 후 같은 authorUid 리뷰를 숨김 |  |
+| 6.1.11 | ··· more (`social.review.more`) | 본인 리뷰: 수정(`social.review.more.edit`) / 삭제(`social.review.more.delete`) / 복사. 타인 리뷰: 답글(`social.review.more.reply`) / 신고 / 작성자 차단 / 복사. `social.review.more.block`는 root `blocks/{actorUid}_{targetUid}` write 후 같은 authorUid 리뷰를 숨김 |  |
+| 6.1.11a | 리뷰 row swipe action | 본인 리뷰는 수정/삭제, 타인 리뷰는 답글/신고/차단을 노출하고 destructive action은 role/tint/haptic으로 구분 |  |
 | 6.1.12 | (게스트) "로그인하고 리뷰 남기기" empty state | → AppRoute.login |  |
 | 6.1.13 | 화면 이탈 | Firestore reviews listener 정리, 재진입 시 중복 listener 없이 최신 목록 attach |  |
 
@@ -262,7 +263,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | # | Element (ID) | Expected action | PASS/FAIL |
 |---|---|-----------------|-----------|
 | 6.2.1 | "취소" (toolbar leading) | dismiss |  |
-| 6.2.2 | "게시" (toolbar trailing, `social.compose.send`) | body/stars/author metadata를 `/filters/{filterId}/reviews/{uid}`에 저장 후 dismiss + 햅틱 |  |
+| 6.2.2 | "게시" / "저장" (toolbar trailing, `social.compose.send`) | 신규는 body/stars/author metadata를 `/filters/{filterId}/reviews/{uid}`에 저장 후 dismiss. 수정은 본인 review 문서의 body/stars/photoUrl만 update 후 dismiss + 햅틱 |  |
 | 6.2.3 | "게시" 빈 텍스트/5자 미만/별점 미선택 시 | disabled (회색), inline helper 표시 |  |
 | 6.2.4 | 280자 초과 입력 | 입력 단계에서 280자로 clamp, 카운터 warning 색 |  |
 | 6.2.5 | 텍스트 에디터 (`social.compose.input`) | 라벨/placeholder 분리, 텍스트 입력, `social.compose.error` 실패 메시지 노출 |  |

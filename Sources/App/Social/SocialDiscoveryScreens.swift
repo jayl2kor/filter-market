@@ -24,6 +24,9 @@ struct ReviewsListScreen: View {
     @State private var blocksListener: ListenerRegistration?
     @State private var filterSummary = ReviewFilterSummary()
     @State private var blockStatusMessage: String?
+    @State private var editingReview: SocialReview?
+    @State private var replyReview: SocialReview?
+    @State private var deletingReview: SocialReview?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -51,15 +54,32 @@ struct ReviewsListScreen: View {
             titleVisibility: .visible,
             presenting: moreMenuReview
         ) { review in
-            NavigationLink(value: AppRoute.reportForm(target: .review(id: review.id, filterId: filterID, authorUid: review.authorUid))) {
-                Text("이 리뷰 신고")
-            }
-            .accessibilityIdentifier("social.review.more.report")
+            if isOwnReview(review) {
+                Button("리뷰 수정") {
+                    editingReview = review
+                }
+                .accessibilityIdentifier("social.review.more.edit")
 
-            Button("작성자 차단", role: .destructive) {
-                Task { await blockAuthor(review) }
+                Button("리뷰 삭제", role: .destructive) {
+                    deletingReview = review
+                }
+                .accessibilityIdentifier("social.review.more.delete")
+            } else {
+                Button("답글") {
+                    replyReview = review
+                }
+                .accessibilityIdentifier("social.review.more.reply")
+
+                NavigationLink(value: AppRoute.reportForm(target: .review(id: review.id, filterId: filterID, authorUid: review.authorUid))) {
+                    Text("이 리뷰 신고")
+                }
+                .accessibilityIdentifier("social.review.more.report")
+
+                Button("작성자 차단", role: .destructive) {
+                    Task { await blockAuthor(review) }
+                }
+                .accessibilityIdentifier("social.review.more.block")
             }
-            .accessibilityIdentifier("social.review.more.block")
 
             Button("리뷰 텍스트 복사") {
                 UIPasteboard.general.string = review.body
@@ -70,6 +90,34 @@ struct ReviewsListScreen: View {
             Button("취소", role: .cancel) {}
         } message: { review in
             Text("\(review.name) (\(review.handle))")
+        }
+        .confirmationDialog(
+            "리뷰를 삭제할까요?",
+            isPresented: Binding(
+                get: { deletingReview != nil },
+                set: { if !$0 { deletingReview = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: deletingReview
+        ) { review in
+            Button("삭제", role: .destructive) {
+                Task { await deleteReview(review) }
+            }
+            Button("취소", role: .cancel) {}
+        } message: { _ in
+            Text("삭제한 리뷰는 되돌릴 수 없습니다.")
+        }
+        .sheet(item: $editingReview) { review in
+            NavigationStack {
+                ReviewComposeScreen(filterID: filterID, initialReview: review)
+            }
+            .environmentObject(store)
+        }
+        .sheet(item: $replyReview) { review in
+            NavigationStack {
+                ReviewComposeScreen(filterID: filterID, initialText: "\(review.handle) ")
+            }
+            .environmentObject(store)
         }
         .task {
             // (#37) Firestore listener attach. UI test fallback은 mock 데이터를 그대로 사용.
@@ -269,7 +317,7 @@ struct ReviewsListScreen: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(FMColors.Text.primary)
                         .lineLimit(1)
-                    Text(isUITesting ? "@sample.maker · ★ 4.9 · ↓ \(formattedDownloadCount(6_200))" : filterMiniSubtitle)
+                    Text(isUITesting ? "@sample.maker · ★ 4.9 · ↓ 6.2K" : filterMiniSubtitle)
                         .fmTypography(.caption)
                         .foregroundStyle(FMColors.Text.tertiary)
                         .lineLimit(1)
@@ -390,7 +438,8 @@ struct ReviewsListScreen: View {
     }
 
     private func reviewRow(_ review: SocialReview) -> some View {
-        HStack(alignment: .top, spacing: Sp.sm) {
+        let isOwn = isOwnReview(review)
+        return HStack(alignment: .top, spacing: Sp.sm) {
             NavigationLink(value: AppRoute.otherProfile(uid: review.authorUid)) {
                 avatar(initials: review.initials, colors: review.avatarColors, size: 36)
             }
@@ -405,6 +454,14 @@ struct ReviewsListScreen: View {
                     Text(review.handle)
                         .fmTypography(.caption)
                         .foregroundStyle(FMColors.Text.tertiary)
+                    if isOwn {
+                        Text("내 리뷰")
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Accent.primary)
+                            .padding(.horizontal, Sp.xs)
+                            .padding(.vertical, 2)
+                            .background(FMColors.Accent.bg, in: Capsule())
+                    }
                     Spacer()
                     Text(review.time)
                         .fmTypography(.caption)
@@ -450,10 +507,52 @@ struct ReviewsListScreen: View {
             }
         }
         .padding(.vertical, Sp.sm)
+        .padding(.horizontal, isOwn ? Sp.xs : 0)
+        .background(isOwn ? FMColors.Accent.bg.opacity(0.28) : Color.clear, in: RoundedRectangle(cornerRadius: R.md))
         .overlay(alignment: .bottom) {
             Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
         }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if isOwn {
+                Button {
+                    editingReview = review
+                    FMHaptic.selection.play()
+                } label: {
+                    Label("수정", systemImage: "pencil")
+                }
+                .tint(.blue)
+
+                Button(role: .destructive) {
+                    deletingReview = review
+                    FMHaptic.warning.play()
+                } label: {
+                    Label("삭제", systemImage: "trash")
+                }
+            } else {
+                Button {
+                    replyReview = review
+                    FMHaptic.selection.play()
+                } label: {
+                    Label("답글", systemImage: "arrowshape.turn.up.left")
+                }
+                .tint(.blue)
+
+                Button(role: .destructive) {
+                    Task { await blockAuthor(review) }
+                } label: {
+                    Label("차단", systemImage: "person.crop.circle.badge.xmark")
+                }
+
+                Button(role: .destructive) {
+                    moreMenuReview = review
+                } label: {
+                    Label("신고", systemImage: "exclamationmark.bubble")
+                }
+            }
+        }
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(reviewAccessibilityLabel(review))
+        .accessibilityHint(isOwn ? "수정 또는 삭제할 수 있습니다" : "옵션에서 답글, 신고, 차단을 사용할 수 있습니다")
         .accessibilityIdentifier("social.review.row")
     }
 
@@ -523,6 +622,16 @@ struct ReviewsListScreen: View {
 
     private func toggleHelpful(_ review: SocialReview) async {
         FMHaptic.selection.play()
+        #if DEBUG
+        guard !isUITesting else {
+            if helpfulIDs.contains(review.id) {
+                helpfulIDs.remove(review.id)
+            } else {
+                helpfulIDs.insert(review.id)
+            }
+            return
+        }
+        #endif
         guard let uid = Auth.auth().currentUser?.uid else {
             FMHaptic.warning.play()
             return
@@ -592,6 +701,15 @@ struct ReviewsListScreen: View {
     @MainActor
     private func blockAuthor(_ review: SocialReview) async {
         FMHaptic.warning.play()
+        #if DEBUG
+        guard !isUITesting else {
+            rawReviews.removeAll { $0.authorUid == review.authorUid }
+            applyBlockedReviewFilter()
+            blockStatusMessage = "\(review.handle) 작성자를 차단했어요."
+            FMHaptic.success.play()
+            return
+        }
+        #endif
         guard let uid = Auth.auth().currentUser?.uid else {
             blockStatusMessage = "로그인 후 작성자를 차단할 수 있어요."
             return
@@ -622,6 +740,48 @@ struct ReviewsListScreen: View {
             attachReviewsListener()
         }
     }
+
+    private func isOwnReview(_ review: SocialReview) -> Bool {
+        #if DEBUG
+        if isUITesting {
+            return store.isAuthenticated && review.authorUid == "minji.lab"
+        }
+        #endif
+        return Auth.auth().currentUser?.uid == review.authorUid
+    }
+
+    private func reviewAccessibilityLabel(_ review: SocialReview) -> String {
+        let ownership = isOwnReview(review) ? "내 리뷰" : "리뷰"
+        let verified = review.isVerifiedDownload ? ", 다운로드 확인" : ""
+        return "\(ownership), \(review.name), \(review.time), 별점 \(review.stars)점\(verified), \(review.body)"
+    }
+
+    @MainActor
+    private func deleteReview(_ review: SocialReview) async {
+        FMHaptic.warning.play()
+        guard isOwnReview(review) else {
+            blockStatusMessage = "내 리뷰만 삭제할 수 있어요."
+            deletingReview = nil
+            return
+        }
+        let previousRaw = rawReviews
+        rawReviews.removeAll { $0.id == review.id }
+        applyBlockedReviewFilter()
+        deletingReview = nil
+
+        do {
+            try await Firestore.firestore()
+                .collection("filters").document(filterID)
+                .collection("reviews").document(review.id)
+                .delete()
+            FMHaptic.success.play()
+        } catch {
+            rawReviews = previousRaw
+            applyBlockedReviewFilter()
+            blockStatusMessage = "리뷰를 삭제하지 못했어요: \(error.localizedDescription)"
+            FMHaptic.warning.play()
+        }
+    }
 }
 
 private enum ReviewComposeError: LocalizedError {
@@ -649,6 +809,7 @@ struct ReviewComposeScreen: View {
     @EnvironmentObject private var store: MooditStore
 
     let filterID: String
+    private let initialReview: SocialReview?
     @State private var text = ""
     @State private var rating = 0
     @State private var selectedMention: UUID?
@@ -660,6 +821,20 @@ struct ReviewComposeScreen: View {
 
     private let mentions = SocialUser.mentionSuggestions
     private let limit = 280
+
+    init(filterID: String) {
+        self.filterID = filterID
+        self.initialReview = nil
+        _text = State(initialValue: "")
+        _rating = State(initialValue: 0)
+    }
+
+    fileprivate init(filterID: String, initialText: String = "", initialReview: SocialReview? = nil) {
+        self.filterID = filterID
+        self.initialReview = initialReview
+        _text = State(initialValue: initialReview?.body ?? initialText)
+        _rating = State(initialValue: initialReview?.stars ?? 0)
+    }
 
     /// Curated emoji palette for review composition. Tied to the moodit
     /// aesthetic — warmth/light/film vocabulary, not generic chat emojis.
@@ -699,15 +874,10 @@ struct ReviewComposeScreen: View {
         }
     }
 
-    /// Firestore /filters/{filterID}/reviews/{uid}에 리뷰 작성 (#26).
+    /// Firestore /filters/{filterID}/reviews/{uid}에 리뷰 작성/수정 (#26, #175).
     /// 실패 시 화면 유지 + haptic 에러; 성공 시 dismiss.
     private func submitReview() async {
         guard !isSubmitting else { return }
-        guard let uid = Auth.auth().currentUser?.uid else {
-            errorMessage = "로그인이 필요합니다."
-            FMHaptic.warning.play()
-            return
-        }
         let body = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard body.count >= 5 else {
             errorMessage = "리뷰는 5자 이상 입력해주세요."
@@ -719,31 +889,56 @@ struct ReviewComposeScreen: View {
             FMHaptic.warning.play()
             return
         }
+        #if DEBUG
+        guard !isUITesting else {
+            FMHaptic.success.play()
+            dismiss()
+            return
+        }
+        #endif
+        guard let uid = Auth.auth().currentUser?.uid else {
+            errorMessage = "로그인이 필요합니다."
+            FMHaptic.warning.play()
+            return
+        }
         isSubmitting = true
         defer { isSubmitting = false }
         do {
             let upload = try await uploadAttachedImageIfNeeded(uid: uid)
-            var payload: [String: Any] = [
-                "authorUid": uid,
-                "authorHandle": reviewAuthorHandle(uid: uid),
-                "authorDisplayName": reviewAuthorDisplayName(uid: uid),
-                "authorName": reviewAuthorDisplayName(uid: uid),
-                "body": body,
-                "filterId": filterID,
-                "stars": rating,
-                "status": "active",
-                "isVerifiedDownload": false,
-                "helpfulCount": 0,
-                "createdAt": FieldValue.serverTimestamp(),
-            ]
-            if let upload {
-                payload["photoUrl"] = upload.publicURL.absoluteString
-                payload["photoObjectKey"] = upload.objectKey
-            }
-            try await Firestore.firestore()
+            let reviewDocumentID = initialReview?.id ?? uid
+            let reviewRef = Firestore.firestore()
                 .collection("filters").document(filterID)
-                .collection("reviews").document(uid)
-                .setData(payload)
+                .collection("reviews").document(reviewDocumentID)
+            if initialReview != nil {
+                var payload: [String: Any] = [
+                    "body": body,
+                    "stars": rating,
+                    "updatedAt": FieldValue.serverTimestamp(),
+                ]
+                if let upload {
+                    payload["photoUrl"] = upload.publicURL.absoluteString
+                }
+                try await reviewRef.updateData(payload)
+            } else {
+                var payload: [String: Any] = [
+                    "authorUid": uid,
+                    "authorHandle": reviewAuthorHandle(uid: uid),
+                    "authorDisplayName": reviewAuthorDisplayName(uid: uid),
+                    "authorName": reviewAuthorDisplayName(uid: uid),
+                    "body": body,
+                    "filterId": filterID,
+                    "stars": rating,
+                    "status": "active",
+                    "isVerifiedDownload": false,
+                    "helpfulCount": 0,
+                    "createdAt": FieldValue.serverTimestamp(),
+                ]
+                if let upload {
+                    payload["photoUrl"] = upload.publicURL.absoluteString
+                    payload["photoObjectKey"] = upload.objectKey
+                }
+                try await reviewRef.setData(payload)
+            }
             FMHaptic.success.play()
             dismiss()
         } catch {
@@ -762,7 +957,7 @@ struct ReviewComposeScreen: View {
             }
         }
         .background(FMColors.Background.bg1)
-        .navigationTitle("새 리뷰")
+        .navigationTitle(initialReview == nil ? "새 리뷰" : "리뷰 수정")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -770,7 +965,7 @@ struct ReviewComposeScreen: View {
                     .foregroundStyle(FMColors.Text.secondary)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button("게시") {
+                Button(initialReview == nil ? "게시" : "저장") {
                     Task { await submitReview() }
                 }
                 .fontWeight(.bold)
@@ -842,6 +1037,11 @@ struct ReviewComposeScreen: View {
     private func reviewAuthorDisplayName(uid: String) -> String {
         let profileName = store.editableProfile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !profileName.isEmpty { return profileName }
+        #if DEBUG
+        if isUITesting {
+            return "테스트 사용자"
+        }
+        #endif
         return Auth.auth().currentUser?.displayName
             ?? Auth.auth().currentUser?.email?.split(separator: "@").first.map(String.init)
             ?? String(uid.prefix(8))
@@ -850,6 +1050,11 @@ struct ReviewComposeScreen: View {
     private func reviewAuthorHandle(uid: String) -> String {
         let handle = store.editableProfile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
         if !handle.isEmpty { return handle.hasPrefix("@") ? handle : "@\(handle)" }
+        #if DEBUG
+        if isUITesting {
+            return "@tester"
+        }
+        #endif
         return "@\(uid.prefix(8))"
     }
 
@@ -871,7 +1076,7 @@ struct ReviewComposeScreen: View {
             VStack(alignment: .leading, spacing: Sp.md) {
                 HStack(spacing: Sp.xs) {
                     avatar(initials: "HB", colors: [Color(hex: 0xB9D2E8), Color(hex: 0x4A6A90)], size: 32)
-                    Text("한별")
+                    Text(reviewAuthorDisplayName(uid: currentAuthorUID))
                         .fmTypography(.subhead)
                         .fontWeight(.semibold)
                         .foregroundStyle(FMColors.Text.primary)
@@ -935,7 +1140,7 @@ struct ReviewComposeScreen: View {
                     emojiPalette
                 }
 
-                if text.contains("@") {
+                if text.contains("@") || isUITesting {
                     mentionBox
                 }
             }
@@ -1160,6 +1365,15 @@ struct ReviewComposeScreen: View {
         .overlay(alignment: .top) {
             Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
         }
+    }
+
+    private var currentAuthorUID: String {
+        #if DEBUG
+        if isUITesting {
+            return "ui-test-user"
+        }
+        #endif
+        return Auth.auth().currentUser?.uid ?? ""
     }
 
     private var loginGate: some View {

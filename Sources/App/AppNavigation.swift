@@ -570,11 +570,7 @@ extension AppRoute {
             ]
 
         case .reviews(let id):
-            [
-                .init("social.reviews.compose", "리뷰 작성", systemImage: "square.and.pencil", target: .reviewCompose(filterId: id)),
-                .init("social.rating.open", "평점 등록", systemImage: "star", target: .rating(filterId: id)),
-                .init("social.review.author", "작성자 프로필", systemImage: "person", target: .otherProfile(uid: "review-author"))
-            ]
+            Self.reviewsPrimaryActions(filterID: id)
 
         case .reviewCompose:
             [
@@ -813,6 +809,19 @@ extension AppRoute {
         default:
             []
         }
+    }
+
+    private static func reviewsPrimaryActions(filterID id: String) -> [RouteAction] {
+        [
+            RouteAction("social.reviews.compose", "리뷰 작성", systemImage: "square.and.pencil", target: .reviewCompose(filterId: id)),
+            RouteAction("social.rating.open", "평점 등록", systemImage: "star", target: .rating(filterId: id)),
+            RouteAction("social.review.author", "작성자 프로필", systemImage: "person", target: .otherProfile(uid: "review-author")),
+            RouteAction("social.review.more.reply", "답글", systemImage: "arrowshape.turn.up.left"),
+            RouteAction("social.review.more.edit", "내 리뷰 수정", systemImage: "pencil"),
+            RouteAction("social.review.more.delete", "내 리뷰 삭제", systemImage: "trash"),
+            RouteAction("social.review.more.report", "리뷰 신고", systemImage: "exclamationmark.bubble"),
+            RouteAction("social.review.more.block", "작성자 차단", systemImage: "person.crop.circle.badge.xmark")
+        ]
     }
 }
 
