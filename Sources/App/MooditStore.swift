@@ -32,6 +32,7 @@ private enum ProfileAvatarUploadError: LocalizedError {
 final class MooditStore: ObservableObject {
     let filterLibraryStore: FilterLibraryStore
     let walletStore: WalletStore
+    let editorDraftStore: EditorDraftStore
     var filters: [Filter] { filterLibraryStore.filters }
     var downloadedFilterIDs: Set<Filter.ID> { filterLibraryStore.downloadedFilterIDs }
     var favoriteFilterIDs: Set<Filter.ID> { filterLibraryStore.favoriteFilterIDs }
@@ -45,9 +46,9 @@ final class MooditStore: ObservableObject {
     @Published var cameraFlashMode: CameraFlashMode = .off
     @Published var cameraZoomPreset: Double = 1.0
     @Published var importedPhotoData: Data?
-    @Published var editorReferencePhotoData: Data?
-    @Published var editorReferencePhotoRevision = 0
-    @Published var editorReferenceSampleKind: EditorReferenceSampleKind = .portrait
+    var editorReferencePhotoData: Data? { editorDraftStore.editorReferencePhotoData }
+    var editorReferencePhotoRevision: Int { editorDraftStore.editorReferencePhotoRevision }
+    var editorReferenceSampleKind: EditorReferenceSampleKind { editorDraftStore.editorReferenceSampleKind }
     @Published var editableProfile = EditableProfile.empty
     @Published var lastProfileSavedAt: Date?
     @Published var accountDeletionRequestedAt: Date?
@@ -61,20 +62,27 @@ final class MooditStore: ObservableObject {
             ForegroundNotificationPolicy.shared.update(preferences: notificationPreferences)
         }
     }
-    @Published var editorDraft = MakerFilterDraft.empty {
-        didSet {
-            guard !isApplyingRemoteEditorDraft else { return }
-            scheduleEditorDraftPersistence()
-        }
+    var editorDraft: MakerFilterDraft {
+        get { editorDraftStore.editorDraft }
+        set { editorDraftStore.editorDraft = newValue }
     }
-    @Published var editorImportedLUT: LUT3D?
-    @Published var editorImportedLUTRevision = 0
-    @Published var uploadStep: UploadStep = .cover
-    @Published var selectedMakerStatus: MakerFilterStatus = .all
+    var editorImportedLUT: LUT3D? { editorDraftStore.editorImportedLUT }
+    var editorImportedLUTRevision: Int { editorDraftStore.editorImportedLUTRevision }
+    var uploadStep: UploadStep {
+        get { editorDraftStore.uploadStep }
+        set { editorDraftStore.uploadStep = newValue }
+    }
+    var selectedMakerStatus: MakerFilterStatus {
+        get { editorDraftStore.selectedMakerStatus }
+        set { editorDraftStore.selectedMakerStatus = newValue }
+    }
     /// 메이커 본인의 드래프트/검수/공개 필터 — 진짜 데이터는 Firestore /filters where authorUid==uid에서 들어옴.
     /// 사용자가 처음 진입하면 빈 배열 → FMEmptyState 노출. 이후 createDraft / submitDraft 흐름으로 채워짐.
     /// (이전: 4개 하드코딩 mock 잔재 — 사용자 본인이 만들지 않은 필터가 노출되는 문제 해결)
-    @Published var makerFilters: [MakerFilterDraft] = []
+    var makerFilters: [MakerFilterDraft] {
+        get { editorDraftStore.makerFilters }
+        set { editorDraftStore.makerFilters = newValue }
+    }
     /// manifest 로드 실패 시 마지막 에러. UI 는 이 값을 보고 ErrorBanner / FMEmptyState 를 노출.
     var loadError: Error? { filterLibraryStore.loadError }
     /// 로드 진행 상태. skeleton vs 에러 vs 빈 상태 분기에 사용.
@@ -114,17 +122,27 @@ final class MooditStore: ObservableObject {
 
     private var filterLibraryCancellable: AnyCancellable?
     private var walletCancellable: AnyCancellable?
+    private var editorDraftCancellable: AnyCancellable?
 
     init(repository: any FilterRepository = BundleSeedFilterRepository()) {
         let filterLibraryStore = FilterLibraryStore(repository: repository)
         let walletStore = WalletStore()
+        let editorDraftStore = EditorDraftStore()
         self.filterLibraryStore = filterLibraryStore
         self.walletStore = walletStore
+        self.editorDraftStore = editorDraftStore
         filterLibraryCancellable = filterLibraryStore.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
         walletCancellable = walletStore.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
+        }
+        editorDraftCancellable = editorDraftStore.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        editorDraftStore.onEditorDraftChanged = { [weak self] _ in
+            guard let self, !self.isApplyingRemoteEditorDraft else { return }
+            self.scheduleEditorDraftPersistence()
         }
         #if DEBUG
         if isUITesting {
@@ -359,7 +377,7 @@ final class MooditStore: ObservableObject {
             .addSnapshotListener { [weak self] snapshot, _ in
                 guard let self else { return }
                 Task { @MainActor in
-                    self.makerFilters = snapshot?.documents.compactMap(Self.decodeMakerDraft) ?? []
+                    self.editorDraftStore.setMakerFilters(snapshot?.documents.compactMap(Self.decodeMakerDraft) ?? [])
                 }
             }
 
@@ -631,15 +649,7 @@ final class MooditStore: ObservableObject {
         filterLibraryStore.resetUserScopedState()
         notificationPreferences = NotificationPreferences()
         importedPhotoData = nil
-        editorReferencePhotoData = nil
-        editorReferencePhotoRevision = 0
-        editorReferenceSampleKind = .portrait
-        editorImportedLUT = nil
-        editorImportedLUTRevision = 0
-        editorDraft = MakerFilterDraft.empty
-        uploadStep = .cover
-        selectedMakerStatus = .all
-        makerFilters = []
+        editorDraftStore.resetUserScopedState()
         exportRequests = []
         hasLoadedProfile = false
         lastPaymentErrorMessage = nil
@@ -709,16 +719,11 @@ final class MooditStore: ObservableObject {
     }
 
     func setEditorReferencePhotoData(_ data: Data?) {
-        editorReferencePhotoData = data
-        editorReferencePhotoRevision += 1
+        editorDraftStore.setEditorReferencePhotoData(data)
     }
 
     func setEditorReferenceSampleKind(_ kind: EditorReferenceSampleKind) {
-        editorReferenceSampleKind = kind
-        if editorReferencePhotoData != nil {
-            editorReferencePhotoData = nil
-            editorReferencePhotoRevision += 1
-        }
+        editorDraftStore.setEditorReferenceSampleKind(kind)
     }
 
     private func uploadProfileAvatarImageData(_ data: Data?) async throws -> ProfileAvatarUpload? {
@@ -864,118 +869,88 @@ final class MooditStore: ObservableObject {
     }
 
     func resetEditorDraft() {
-        editorDraft = MakerFilterDraft.empty
-        editorReferencePhotoData = nil
-        editorReferencePhotoRevision = 0
-        editorReferenceSampleKind = .portrait
-        editorImportedLUT = nil
-        editorImportedLUTRevision = 0
-        uploadStep = .cover
+        editorDraftStore.resetEditorDraft()
+    }
+
+    func updateEditorDraft(
+        _ mutate: (inout MakerFilterDraft) -> Void,
+        touchUpdatedAt: Bool = true
+    ) {
+        editorDraftStore.updateEditorDraft(mutate, touchUpdatedAt: touchUpdatedAt)
     }
 
     func updateEditorParameter(_ key: String, value: Double) {
-        editorDraft.parameterValues[key] = value
-        editorDraft.updatedAt = Date()
+        editorDraftStore.updateEditorParameter(key, value: value)
     }
 
     func setEditorLUT(_ fileName: String, lut: LUT3D? = nil) {
-        editorDraft.lutFileName = fileName
-        editorImportedLUT = lut
-        editorImportedLUTRevision += 1
-        editorDraft.updatedAt = Date()
+        editorDraftStore.setEditorLUT(fileName, lut: lut)
     }
 
     var editorPreviewParameters: EditorParameters {
-        EditorParameters(
-            exposure: Float(editorDraft.parameterValues["exposure"] ?? 0) * 2,
-            contrast: Float(editorDraft.parameterValues["contrast"] ?? 0),
-            saturation: Float(editorDraft.parameterValues["saturation"] ?? 0),
-            tint: 0
-        )
+        editorDraftStore.editorPreviewParameters
     }
 
     var editorPreviewGrain: Float {
-        max(0, Float(editorDraft.parameterValues["grain"] ?? 0))
+        editorDraftStore.editorPreviewGrain
     }
 
     var editorPreviewVignette: Float {
-        Float(editorDraft.parameterValues["vignette"] ?? 0)
+        editorDraftStore.editorPreviewVignette
     }
 
     func saveEditorDraft() {
-        editorDraft.status = .draft
-        editorDraft.updatedAt = Date()
-        upsertMakerFilter(editorDraft)
+        persistMakerDraft(editorDraftStore.saveEditorDraft())
     }
 
     func saveCurrentUploadDraftIfNeeded() {
-        guard editorDraft.hasUserContent, editorDraft.status != .pending else { return }
-        saveEditorDraft()
+        guard let draft = editorDraftStore.saveCurrentUploadDraftIfNeeded() else { return }
+        persistMakerDraft(draft)
     }
 
     func addUploadCover() {
-        editorDraft.coverCount = min(6, editorDraft.coverCount + 1)
-        editorDraft.updatedAt = Date()
+        editorDraftStore.addUploadCover()
     }
 
     func removeUploadCover() {
-        editorDraft.coverCount = max(0, editorDraft.coverCount - 1)
-        editorDraft.updatedAt = Date()
+        editorDraftStore.removeUploadCover()
     }
 
     func setUploadSignatureSampleKind(_ kind: EditorReferenceSampleKind) {
-        editorDraft.signatureSampleKind = kind
-        editorDraft.signatureSamplePhotoData = nil
-        editorDraft.updatedAt = Date()
+        editorDraftStore.setUploadSignatureSampleKind(kind)
     }
 
     func setUploadSignatureSampleData(_ data: Data?) {
-        editorDraft.signatureSamplePhotoData = data
-        if data != nil {
-            editorDraft.signatureSampleKind = nil
-        }
-        editorDraft.updatedAt = Date()
+        editorDraftStore.setUploadSignatureSampleData(data)
     }
 
     func clearUploadSignatureSample() {
-        editorDraft.signatureSampleKind = nil
-        editorDraft.signatureSamplePhotoData = nil
-        editorDraft.updatedAt = Date()
+        editorDraftStore.clearUploadSignatureSample()
     }
 
     func addUploadTag(_ tag: String) {
-        let normalized = tag
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "#", with: "")
-        guard !normalized.isEmpty, !editorDraft.tags.contains(normalized) else { return }
-        editorDraft.tags.append(normalized)
-        editorDraft.updatedAt = Date()
+        editorDraftStore.addUploadTag(tag)
     }
 
     func removeUploadTag(_ tag: String) {
-        editorDraft.tags.removeAll { $0 == tag }
-        editorDraft.updatedAt = Date()
+        editorDraftStore.removeUploadTag(tag)
     }
 
     func setUploadCategory(_ category: FilterCategory) {
-        editorDraft.category = category
-        editorDraft.updatedAt = Date()
+        editorDraftStore.setUploadCategory(category)
     }
 
     func submitCurrentDraft() {
-        editorDraft.status = .pending
-        editorDraft.submittedAt = Date()
-        editorDraft.updatedAt = Date()
-        uploadStep = .pending
-        upsertMakerFilter(editorDraft)
+        let draft = editorDraftStore.submitCurrentDraft()
+        persistMakerDraft(draft)
         // (#44) firestoreFilterId가 있으면 submitForReview callable 호출.
         // uploadInit/uploadFinalize 흐름이 아직 client에서 호출되지 않으면 nil — silent skip.
-        guard let fsId = editorDraft.firestoreFilterId else { return }
+        guard let fsId = draft.firestoreFilterId else { return }
         let payload: [String: Any] = [
             "filterId": fsId,
-            "tosOriginal": editorDraft.tosOriginal,
-            "tosPolicy": editorDraft.tosPolicy,
-            "tosCommercial": editorDraft.tosCommercial,
+            "tosOriginal": draft.tosOriginal,
+            "tosPolicy": draft.tosPolicy,
+            "tosCommercial": draft.tosCommercial,
         ]
         Task { [weak self] in
             do {
@@ -992,26 +967,12 @@ final class MooditStore: ObservableObject {
     }
 
     func startEditing(_ draft: MakerFilterDraft) {
-        editorDraft = draft
-        uploadStep = .cover
+        editorDraftStore.startEditing(draft)
     }
 
     func markMakerFilterPrivate(_ draft: MakerFilterDraft) {
-        guard let existing = makerFilters.first(where: { $0.id == draft.id }) else { return }
-        var updatedDraft = existing
-        updatedDraft.status = .draft
-        updatedDraft.updatedAt = Date()
-        makerFilters = makerFilters.map { $0.id == draft.id ? updatedDraft : $0 }
+        guard let updatedDraft = editorDraftStore.markMakerFilterPrivate(draft) else { return }
         persistMakerDraft(updatedDraft)
-    }
-
-    private func upsertMakerFilter(_ draft: MakerFilterDraft) {
-        if makerFilters.contains(where: { $0.id == draft.id }) {
-            makerFilters = makerFilters.map { $0.id == draft.id ? draft : $0 }
-        } else {
-            makerFilters.insert(draft, at: 0)
-        }
-        persistMakerDraft(draft)
     }
 
     private func persistMakerDraft(_ draft: MakerFilterDraft) {

@@ -713,7 +713,14 @@ struct EditorDraftSaveScreen: View {
         VStack(spacing: Sp.md) {
             FMTextField(
                 "필터 이름",
-                text: $store.editorDraft.name,
+                text: Binding(
+                    get: { store.editorDraft.name },
+                    set: { value in
+                        store.updateEditorDraft { draft in
+                            draft.name = value
+                        }
+                    }
+                ),
                 placeholder: "Amber Cafe",
                 autocapitalization: .words,
                 submitLabel: .next
@@ -721,7 +728,14 @@ struct EditorDraftSaveScreen: View {
                 .accessibilityIdentifier("editor.draft.name")
             FMTextField(
                 "설명",
-                text: $store.editorDraft.summary,
+                text: Binding(
+                    get: { store.editorDraft.summary },
+                    set: { value in
+                        store.updateEditorDraft { draft in
+                            draft.summary = value
+                        }
+                    }
+                ),
                 placeholder: "분위기와 추천 사용처",
                 style: .multiline(minHeight: 112),
                 submitLabel: .return
@@ -790,7 +804,14 @@ struct UploadCoverScreen: View {
                 )
                 coverGrid
                 signatureSampleSection
-                Toggle("자동 비포/애프터 생성", isOn: $store.editorDraft.beforeAfterEnabled)
+                Toggle("자동 비포/애프터 생성", isOn: Binding(
+                    get: { store.editorDraft.beforeAfterEnabled },
+                    set: { value in
+                        store.updateEditorDraft { draft in
+                            draft.beforeAfterEnabled = value
+                        }
+                    }
+                ))
                     .tint(FMColors.Accent.primary)
                     .padding(Sp.md)
                     .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
@@ -1131,7 +1152,14 @@ struct UploadTagsCategoryScreen: View {
     private var descriptionSection: some View {
         FMTextField(
             "설명",
-            text: $store.editorDraft.summary,
+            text: Binding(
+                get: { store.editorDraft.summary },
+                set: { value in
+                    store.updateEditorDraft { draft in
+                        draft.summary = value
+                    }
+                }
+            ),
             placeholder: "이 필터의 분위기와 추천 사용처",
             style: .multiline(minHeight: 112),
             submitLabel: .return
@@ -1231,13 +1259,34 @@ struct UploadTOSSubmitScreen: View {
     private var tosCard: some View {
         FMCard {
             VStack(spacing: 0) {
-                Toggle("직접 만들었거나 사용 권한이 있습니다", isOn: $store.editorDraft.tosOriginal)
+                Toggle("직접 만들었거나 사용 권한이 있습니다", isOn: Binding(
+                    get: { store.editorDraft.tosOriginal },
+                    set: { value in
+                        store.updateEditorDraft { draft in
+                            draft.tosOriginal = value
+                        }
+                    }
+                ))
                     .tint(FMColors.Accent.primary)
                 workflowDivider()
-                Toggle("마켓 정책과 심사 기준을 확인했습니다", isOn: $store.editorDraft.tosPolicy)
+                Toggle("마켓 정책과 심사 기준을 확인했습니다", isOn: Binding(
+                    get: { store.editorDraft.tosPolicy },
+                    set: { value in
+                        store.updateEditorDraft { draft in
+                            draft.tosPolicy = value
+                        }
+                    }
+                ))
                     .tint(FMColors.Accent.primary)
                 workflowDivider()
-                Toggle("상업적 배포 권한을 확인했습니다", isOn: $store.editorDraft.tosCommercial)
+                Toggle("상업적 배포 권한을 확인했습니다", isOn: Binding(
+                    get: { store.editorDraft.tosCommercial },
+                    set: { value in
+                        store.updateEditorDraft { draft in
+                            draft.tosCommercial = value
+                        }
+                    }
+                ))
                     .tint(FMColors.Accent.primary)
             }
             .accessibilityIdentifier("upload.tos.toggle")
