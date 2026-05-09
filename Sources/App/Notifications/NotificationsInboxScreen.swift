@@ -12,6 +12,7 @@ struct NotificationsInboxScreen: View {
     @StateObject private var store = NotificationsInboxStore()
     @State private var followErrorMessage: String?
     @State private var actionErrorMessage: String?
+    @State private var isRefreshing = false
     @State private var now = Date()
     // 프로덕션: store.items (Firestore listener) 사용.
     // UI 테스트 (-ui-testing 런치 인자): 기존 mock 데이터로 fallback해 시드 가능 상태 유지. (#30)
@@ -109,7 +110,13 @@ struct NotificationsInboxScreen: View {
         let groups = NotificationItem.group(items: filteredItems, now: now)
 
         if groups.isEmpty {
-            emptyState
+            ScrollView {
+                emptyState
+                    .frame(minHeight: 420)
+            }
+            .refreshable {
+                await refreshNotifications()
+            }
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
@@ -140,6 +147,9 @@ struct NotificationsInboxScreen: View {
                     }
                 }
                 .padding(.bottom, Sp.xxxl)
+            }
+            .refreshable {
+                await refreshNotifications()
             }
         }
     }
@@ -340,6 +350,17 @@ struct NotificationsInboxScreen: View {
     private func loadMoreNotifications() async {
         do {
             try await store.loadMore()
+        } catch {
+            actionErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func refreshNotifications() async {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+        do {
+            try await store.refresh()
         } catch {
             actionErrorMessage = error.localizedDescription
         }

@@ -98,6 +98,28 @@ final class NotificationsInboxStore: ObservableObject {
         publish(live: liveItems, paged: pagedItems)
     }
 
+    func refresh() async throws {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        guard let uid = currentUid else { return }
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        let snapshot = try await Firestore.firestore()
+            .collection("users").document(uid)
+            .collection("notifications")
+            .order(by: "createdAt", descending: true)
+            .limit(to: pageSize)
+            .getDocuments()
+        let docs = snapshot.documents
+        lastLiveDocument = docs.last
+        canLoadMore = docs.count == pageSize
+        publish(live: docs.compactMap { Self.decode($0) }, paged: [])
+        loadError = nil
+    }
+
     /// Firestore notification doc → NotificationItem.
     /// Schema:
     ///   kind: "like" | "review" | "download" | "followRequest" | "system"
