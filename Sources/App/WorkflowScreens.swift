@@ -1985,6 +1985,7 @@ private struct EditorPreviewRenderKey: Hashable {
 }
 
 struct FilterEditorScreen: View {
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: MooditStore
     @State private var showCancelAlert = false
     @State private var selectedReferenceItem: PhotosPickerItem?
@@ -2021,12 +2022,21 @@ struct FilterEditorScreen: View {
                 .accessibilityIdentifier("editor.next")
             }
         }
-        .alert("편집을 취소할까요?", isPresented: $showCancelAlert) {
-            Button("초안 저장") { store.saveEditorDraft() }
-            Button("버리기", role: .destructive) { store.resetEditorDraft() }
-            Button("계속 편집", role: .cancel) {}
+        .fmConfirmationDialog(
+            "작성 중인 내용",
+            isPresented: $showCancelAlert
+        ) {
+            Button("임시 저장") {
+                store.saveEditorDraft()
+                dismiss()
+            }
+            Button("버리기", role: .destructive) {
+                store.resetEditorDraft()
+                dismiss()
+            }
+            Button("계속 작성", role: .cancel) {}
         } message: {
-            Text("현재 파라미터와 LUT 선택을 초안으로 남길 수 있습니다.")
+            Text("임시저장하면 다음에 이어 쓸 수 있어요. 버리면 변경 사항이 모두 사라져요.")
         }
         .onChange(of: selectedReferenceItem) { _, newItem in
             Task { await loadReferencePhoto(from: newItem) }

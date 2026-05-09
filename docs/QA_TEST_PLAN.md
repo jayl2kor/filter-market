@@ -397,6 +397,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 10.2.3 | `editor.draft` | → AppRoute.editorDraft |  |
 | 10.2.4 | `editor.next` | 다음 단계 (→uploadCover) |  |
 | 10.2.5 | `editor.preview` | 현재 draft category/LUT/parameter를 적용한 reference preview 표시. 렌더 실패 시 원본/gradient fallback |  |
+| 10.2.5a | `editor.cancel` | confirmation dialog: 임시 저장=draft save+dismiss, 버리기=reset+dismiss(destructive), 계속 작성=stay. 메시지는 임시 저장/버리기 결과를 명확히 설명 |  |
 | 10.2.6 | `editor.reference.photo.pick` | PhotosPicker 표시, 사용자 선택 이미지를 1280px 장변 JPEG로 normalize 후 preview source로 사용 |  |
 | 10.2.7 | `editor.reference.photo.clear` | 사용자 reference photo 제거, 시스템 sample source로 복귀 |  |
 | 10.2.8 | `editor.reference.sample.<kind>` | portrait/landscape/indoor/lifestyle 임시 샘플 중 하나 선택, 사용자 photo가 있으면 clear 후 선택 적용 |  |
