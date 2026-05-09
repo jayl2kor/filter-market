@@ -17,7 +17,7 @@ Every `Image(systemName:)` must fall into one of these categories:
 
 ## Current Audit
 
-- Current count: 182 `Image(systemName:)` calls.
+- Current count: 183 `Image(systemName:)` calls.
 - Current coverage model: all calls are classified by owner context rather than every icon carrying its own label.
 - Guardrail: `AppTests/SystemImageAccessibilityAuditTests` fails if the count changes without updating this audit, forcing new icons to be reviewed.
 
@@ -30,9 +30,9 @@ Every `Image(systemName:)` must fall into one of these categories:
 | Icon + visible text controls | 46 | wallet rows, editor/upload actions, settings rows | Visible text is the accessible label |
 | Standalone toolbar/icon buttons | 24 | share, notification, settings, support, camera controls | Parent control carries explicit label or stable action ID; manual VoiceOver pass required |
 | Status/metadata icons | 39 | rating stars, verified badges, wallet ledger icons, rejection policy icons | Parent row/card text owns state, or row is combined |
-| Decorative/illustrative icons | 25 | placeholders, empty states, preview ornaments | Decorative; hidden or contained by parent surface |
+| Decorative/illustrative icons | 26 | placeholders, empty states, preview ornaments | Decorative; hidden or contained by parent surface |
 
-Total: 182
+Total: 183
 
 ## Manual QA Gate
 

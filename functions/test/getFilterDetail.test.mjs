@@ -5,7 +5,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { applyGetFilterDetail } from "../lib/http/filters.js";
+import { applyGetFilterDetail, applyReviewImageUploadInit } from "../lib/http/filters.js";
 
 function makeFakeFirestore(initialDocs = {}) {
   const data = new Map(Object.entries(initialDocs));
@@ -74,6 +74,7 @@ describe("applyGetFilterDetail", () => {
         authorDisplayName: "Soojin",
         stars: 5,
         body: "Great warm tone.",
+        photoUrl: "https://cdn.test/review.jpg",
         isVerifiedDownload: true,
         helpfulCount: 2,
         status: "active",
@@ -115,6 +116,7 @@ describe("applyGetFilterDetail", () => {
     assert.equal(result.samples[0].coverURL, "https://cdn.test/sample.jpg");
     assert.equal(result.reviews.length, 1);
     assert.equal(result.reviews[0].authorDisplayName, "Soojin");
+    assert.equal(result.reviews[0].photoUrl, "https://cdn.test/review.jpg");
     assert.equal(result.userHasLiked, true);
     assert.equal(result.filter.author.uid, "u-1");
     assert.equal(result.filter.author.displayName, "Alex");
@@ -190,5 +192,54 @@ describe("applyGetFilterDetail", () => {
       { firestore, presignGetURL: async () => ({ url: "x", expiresAt: 0 }) },
     );
     assert.equal(result.filter.createdAt, 1_700_000_000_000);
+  });
+});
+
+describe("applyReviewImageUploadInit", () => {
+  it("returns a presigned R2 upload and stable public URL for review images", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/abc-123": { status: "approved" },
+    });
+    let signedKey = null;
+    const result = await applyReviewImageUploadInit(
+      "u-1",
+      { filterId: "abc-123", contentType: "image/jpeg", imageBytes: 1234 },
+      {
+        firestore,
+        publicBaseURL: "https://cdn.moodit.test/media/",
+        now: () => 123456,
+        uuid: () => "image-id",
+        presignPutURL: async (key, options) => {
+          signedKey = key;
+          assert.equal(options.contentType, "image/jpeg");
+          return {
+            url: `https://r2.test/upload?key=${encodeURIComponent(key)}`,
+            headers: { "Content-Type": "image/jpeg" },
+            expiresAt: 999,
+          };
+        },
+      },
+    );
+
+    assert.equal(signedKey, "reviews/abc-123/u-1/123456-image-id.jpg");
+    assert.equal(result.objectKey, "reviews/abc-123/u-1/123456-image-id.jpg");
+    assert.equal(result.uploadUrl, "https://r2.test/upload?key=reviews%2Fabc-123%2Fu-1%2F123456-image-id.jpg");
+    assert.deepEqual(result.uploadHeaders, { "Content-Type": "image/jpeg" });
+    assert.equal(result.publicURL, "https://cdn.moodit.test/media/reviews/abc-123/u-1/123456-image-id.jpg");
+  });
+
+  it("rejects missing filters for review image upload", async () => {
+    await assert.rejects(
+      () => applyReviewImageUploadInit(
+        "u-1",
+        { filterId: "missing", contentType: "image/jpeg", imageBytes: 10 },
+        {
+          firestore: makeFakeFirestore({}),
+          publicBaseURL: "https://cdn.test",
+          presignPutURL: async () => ({ url: "x", expiresAt: 0 }),
+        },
+      ),
+      (err) => err && err.code === "not-found",
+    );
   });
 });

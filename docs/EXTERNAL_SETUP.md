@@ -210,12 +210,19 @@
   - Access Key ID
   - Secret Access Key
   - Endpoint: `https://<account-id>.r2.cloudflarestorage.com`
+- Firebase Functions secrets:
+  - `R2_ENDPOINT`
+  - `R2_ACCESS_KEY_ID`
+  - `R2_SECRET_ACCESS_KEY`
+  - `R2_BUCKET`
+  - `R2_PUBLIC_BASE_URL` (`https://cdn.moodit.app` 또는 환경별 CDN base URL)
 - 시크릿은 GCP Secret Manager 또는 Xcode Cloud Environment Variables에 저장 — 절대 git 금지
 
 ### 8.5 CDN 연결 (Public bucket)
 - R2 버킷 → Settings → "Connect Domain" → `cdn.moodit.app`
 - DNS는 Cloudflare에서 관리 (CNAME `cdn` → `<bucket>.r2.dev` 또는 자동)
 - Cache Rules: 30일 TTL, versioned URL 패턴
+- Review image upload는 `reviewImageUploadInit`이 `R2_PUBLIC_BASE_URL` + object key로 공개 URL을 생성하므로, CDN base URL은 trailing slash 없이 등록한다.
 
 ### 8.6 비용
 - 저장: $0.015/GB/mo (10GB 무료)

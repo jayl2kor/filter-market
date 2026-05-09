@@ -13,6 +13,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { getFirestore, FieldValue, type Firestore } from "firebase-admin/firestore";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { requireAuth } from "../lib/auth.js";
 import { loadR2Config, presignPut, presignGet, headWithChecksum } from "../lib/r2.js";
@@ -28,8 +29,10 @@ const R2_ENDPOINT = defineSecret("R2_ENDPOINT");
 const R2_ACCESS_KEY_ID = defineSecret("R2_ACCESS_KEY_ID");
 const R2_SECRET_ACCESS_KEY = defineSecret("R2_SECRET_ACCESS_KEY");
 const R2_BUCKET = defineSecret("R2_BUCKET");
+const R2_PUBLIC_BASE_URL = defineSecret("R2_PUBLIC_BASE_URL");
 
 const r2Secrets = [R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET];
+const r2PublicSecrets = [...r2Secrets, R2_PUBLIC_BASE_URL];
 
 /** Cooldown for /filters/{id}/use to count once per (uid, filter) per window. */
 export const RECORD_USE_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
@@ -244,6 +247,92 @@ export const uploadFinalize = onCall(
   },
 );
 
+const reviewImageUploadInitSchema = z.object({
+  filterId: z.string().min(1).max(128),
+  contentType: z.enum(["image/jpeg", "image/png"]),
+  imageBytes: z.number().int().min(1).max(2_500_000),
+});
+
+export interface ReviewImageUploadInitDeps {
+  firestore?: Firestore;
+  publicBaseURL?: string;
+  now?: () => number;
+  uuid?: () => string;
+  presignPutURL?: (
+    key: string,
+    options: { expiresSeconds?: number; contentType?: string },
+  ) => Promise<{ url: string; headers?: Record<string, string>; expiresAt: number }>;
+}
+
+export interface ReviewImageUploadInitResult {
+  filterId: string;
+  objectKey: string;
+  uploadUrl: string;
+  uploadHeaders: Record<string, string>;
+  publicURL: string;
+  expiresAt: number;
+}
+
+function publicR2URL(baseURL: string, objectKey: string): string {
+  const base = baseURL.replace(/\/+$/, "");
+  const encodedKey = objectKey.split("/").map(encodeURIComponent).join("/");
+  return `${base}/${encodedKey}`;
+}
+
+export async function applyReviewImageUploadInit(
+  uid: string,
+  rawData: unknown,
+  deps: ReviewImageUploadInitDeps = {},
+): Promise<ReviewImageUploadInitResult> {
+  const parsed = reviewImageUploadInitSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId, contentType } = parsed.data;
+
+  const db = deps.firestore ?? getFirestore();
+  const filterSnap = await db.collection("filters").doc(filterId).get();
+  if (!filterSnap.exists) {
+    throw new HttpsError("not-found", `filter ${filterId} not found`);
+  }
+
+  const publicBaseURL = deps.publicBaseURL ?? process.env.R2_PUBLIC_BASE_URL;
+  if (!publicBaseURL) {
+    throw new HttpsError("internal", "R2_PUBLIC_BASE_URL is not configured");
+  }
+
+  const extension = contentType === "image/png" ? "png" : "jpg";
+  const now = deps.now ?? Date.now;
+  const uuid = deps.uuid ?? randomUUID;
+  const objectKey = `reviews/${filterId}/${uid}/${now()}-${uuid()}.${extension}`;
+  const signer = deps.presignPutURL ?? (async (key, options) => {
+    const cfg = loadR2Config();
+    const presigned = await presignPut(cfg, key, {
+      expiresSeconds: options.expiresSeconds,
+      contentType: options.contentType,
+    });
+    return { url: presigned.url, headers: presigned.headers, expiresAt: presigned.expiresAt };
+  });
+  const presigned = await signer(objectKey, { expiresSeconds: 600, contentType });
+
+  return {
+    filterId,
+    objectKey,
+    uploadUrl: presigned.url,
+    uploadHeaders: presigned.headers ?? {},
+    publicURL: publicR2URL(publicBaseURL, objectKey),
+    expiresAt: presigned.expiresAt,
+  };
+}
+
+export const reviewImageUploadInit = onCall(
+  { region, cors: true, secrets: r2PublicSecrets, enforceAppCheck: true },
+  async (req: CallableRequest) => {
+    const uid = requireAuth(req);
+    return applyReviewImageUploadInit(uid, req.data);
+  },
+);
+
 const submitForReviewSchema = z.object({
   filterId: z.string().min(1).max(128),
   tosOriginal: z.boolean(),
@@ -359,6 +448,7 @@ export interface FilterDetailResponse {
     authorDisplayName: string;
     stars: number;
     body: string;
+    photoUrl: string | null;
     isVerifiedDownload: boolean;
     helpfulCount: number;
     createdAt: number | null;
@@ -471,6 +561,7 @@ export async function applyGetFilterDetail(
           ?? "사용자",
         stars: (r.stars as number | undefined) ?? 0,
         body: (r.body as string | undefined) ?? "",
+        photoUrl: (r.photoUrl as string | null) ?? null,
         isVerifiedDownload: (r.isVerifiedDownload as boolean | undefined) ?? false,
         helpfulCount: (r.helpfulCount as number | undefined) ?? 0,
         createdAt: reviewCreatedAt,

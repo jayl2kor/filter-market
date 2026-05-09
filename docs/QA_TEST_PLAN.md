@@ -251,7 +251,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | # | Element (ID) | Expected action | PASS/FAIL |
 |---|---|-----------------|-----------|
 | 6.2.1 | "취소" (toolbar leading) | dismiss |  |
-| 6.2.2 | "게시" (toolbar trailing, `social.compose.send`) | body/stars를 `/filters/{filterId}/reviews/{auto}`에 저장 후 dismiss + 햅틱 |  |
+| 6.2.2 | "게시" (toolbar trailing, `social.compose.send`) | body/stars/author metadata를 `/filters/{filterId}/reviews/{uid}`에 저장 후 dismiss + 햅틱 |  |
 | 6.2.3 | "게시" 빈 텍스트/5자 미만/별점 미선택 시 | disabled (회색), inline helper 표시 |  |
 | 6.2.4 | 280자 초과 입력 | 입력 단계에서 280자로 clamp, 카운터 warning 색 |  |
 | 6.2.5 | 텍스트 에디터 (`social.compose.input`) | 라벨/placeholder 분리, 텍스트 입력, `social.compose.error` 실패 메시지 노출 |  |
@@ -259,8 +259,9 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 6.2.7 | mention 후보 탭 | 마지막 @ token → @<handle> 치환 |  |
 | 6.2.8 | @ 아이콘 (`social.compose.insertMention`) | 본문에 "@" 삽입 → 기존 mention box 표시; 햅틱 |  |
 | 6.2.8b | 별점 (`social.compose.rating.star.1`~`.5`) | 1~5점 탭/드래그 선택, haptic, 보조 라벨 갱신, payload `stars` 포함 |  |
-| 6.2.9 | photo 아이콘 (toolbar, `social.compose.attachImage`) | PHPicker 시트 → 이미지 1장 선택 → 본문 위에 썸네일 표시. 업로드 경로 확정 전에는 제출 차단 + `social.compose.error` 표시 |  |
+| 6.2.9 | photo 아이콘 (toolbar, `social.compose.attachImage`) | PHPicker 시트 → 이미지 1장 선택 → 본문 위에 썸네일 표시. 게시 시 `reviewImageUploadInit` → R2 presigned PUT → review `photoUrl`/`photoObjectKey` 저장 |  |
 | 6.2.9b | 첨부 사진 X 버튼 (`social.compose.removeImage`) | 첨부 이미지 제거 |  |
+| 6.2.9c | 리뷰 첨부 이미지 표시 (`social.review.image`) | ReviewsList listener가 `photoUrl`을 읽고 `FMRemoteImage`로 로딩/실패 fallback 포함 렌더링 |  |
 | 6.2.10 | emoji 아이콘 (`social.compose.emojiToggle`) | 16개 이모지 팔레트 토글 (✨🌅🌇🌙☕️📷🎞️🌿🌸💛🤎🔥✏️🖼🎨🌊) |  |
 | 6.2.10b | 이모지 한 개 탭 (`social.compose.emoji.<emoji>`) | 본문에 해당 이모지 추가; 햅틱 |  |
 | 6.2.11 | 글자 카운터 | text.count / 280 표시, 초과 시 warning 색 |  |

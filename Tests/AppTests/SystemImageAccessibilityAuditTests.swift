@@ -18,7 +18,7 @@ final class SystemImageAccessibilityAuditTests: XCTestCase {
         let auditURL = root.appendingPathComponent("docs/SYSTEM_IMAGE_A11Y_AUDIT.md")
         let audit = try String(contentsOf: auditURL)
 
-        XCTAssertEqual(count, 182, "Update SYSTEM_IMAGE_A11Y_AUDIT.md and this guard when adding/removing system icons.")
+        XCTAssertEqual(count, 183, "Update SYSTEM_IMAGE_A11Y_AUDIT.md and this guard when adding/removing system icons.")
         XCTAssertTrue(audit.contains("Current count: \(count) `Image(systemName:)` calls."))
         XCTAssertTrue(audit.contains("Total: \(count)"))
     }

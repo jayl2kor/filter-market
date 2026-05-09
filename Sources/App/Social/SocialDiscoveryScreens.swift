@@ -1,6 +1,7 @@
 import DesignSystem
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseFunctions
 import Foundation
 import Models
 import SwiftUI
@@ -117,6 +118,8 @@ struct ReviewsListScreen: View {
                     let authorName = data["authorDisplayName"] as? String
                         ?? data["authorName"] as? String
                         ?? "사용자"
+                    let authorHandle = data["authorHandle"] as? String
+                        ?? "@\(authorUid.prefix(8))"
                     let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
                     let initials = String(authorName.prefix(2)).uppercased()
                     let interval = Date().timeIntervalSince(createdAt)
@@ -129,12 +132,15 @@ struct ReviewsListScreen: View {
                         id: doc.documentID,
                         authorUid: authorUid,
                         name: authorName,
-                        handle: "@\(authorUid.prefix(8))",
+                        handle: authorHandle,
                         initials: initials,
                         avatarColors: [Color(hex: 0xF3DCC4), Color(hex: 0xD4A482)],
                         time: timeStr,
                         body: body,
                         stars: Self.intField(data["stars"], default: Self.intField(data["rating"], default: 0)),
+                        photoURL: Self.urlField(data["photoUrl"])
+                            ?? Self.urlField(data["imageURL"])
+                            ?? Self.urlField(data["imageUrl"]),
                         helpfulCount: Self.intField(data["helpfulCount"], default: 0),
                         isHelpful: false,
                         isVerifiedDownload: data["isVerifiedDownload"] as? Bool ?? false,
@@ -162,6 +168,11 @@ struct ReviewsListScreen: View {
         if let number = value as? NSNumber { return number.doubleValue }
         if let string = value as? String { return Double(string) }
         return nil
+    }
+
+    private static func urlField(_ value: Any?) -> URL? {
+        guard let string = value as? String else { return nil }
+        return URL(string: string)
     }
 
     private func applyLocalFilterSummary() {
@@ -415,6 +426,10 @@ struct ReviewsListScreen: View {
                     .foregroundStyle(FMColors.Text.primary)
                     .fixedSize(horizontal: false, vertical: true)
 
+                if let photoURL = review.photoURL {
+                    reviewImage(url: photoURL)
+                }
+
                 HStack(spacing: Sp.md) {
                     Button {
                         Task { await toggleHelpful(review) }
@@ -440,6 +455,28 @@ struct ReviewsListScreen: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("social.review.row")
+    }
+
+    private func reviewImage(url: URL) -> some View {
+        FMRemoteImage(
+            url: url,
+            cornerRadius: R.md,
+            placeholder: {
+                FMSkeleton.rect(height: 160, cornerRadius: R.md)
+            },
+            failure: {
+                RoundedRectangle(cornerRadius: R.md)
+                    .fill(FMColors.Background.bg2)
+                    .overlay {
+                        Image(systemName: "photo")
+                            .foregroundStyle(FMColors.Text.tertiary)
+                    }
+            }
+        )
+        .frame(maxWidth: .infinity)
+        .frame(height: 160)
+        .accessibilityLabel("리뷰 첨부 사진")
+        .accessibilityIdentifier("social.review.image")
     }
 
     private func makerReplyRow(_ reply: SocialMakerReply) -> some View {
@@ -587,6 +624,26 @@ struct ReviewsListScreen: View {
     }
 }
 
+private enum ReviewComposeError: LocalizedError {
+    case imageEncodingFailed
+    case imageTooLarge
+    case invalidUploadResponse
+    case imageUploadFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .imageEncodingFailed:
+            "첨부 사진을 처리하지 못했어요."
+        case .imageTooLarge:
+            "첨부 사진 용량이 너무 커요. 다른 사진을 선택해주세요."
+        case .invalidUploadResponse:
+            "사진 업로드 정보를 읽지 못했어요."
+        case .imageUploadFailed:
+            "첨부 사진 업로드에 실패했어요."
+        }
+    }
+}
+
 struct ReviewComposeScreen: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: MooditStore
@@ -642,7 +699,7 @@ struct ReviewComposeScreen: View {
         }
     }
 
-    /// Firestore /filters/{filterID}/reviews/{auto}에 리뷰 작성 (#26).
+    /// Firestore /filters/{filterID}/reviews/{uid}에 리뷰 작성 (#26).
     /// 실패 시 화면 유지 + haptic 에러; 성공 시 dismiss.
     private func submitReview() async {
         guard !isSubmitting else { return }
@@ -662,24 +719,30 @@ struct ReviewComposeScreen: View {
             FMHaptic.warning.play()
             return
         }
-        guard attachedImage == nil else {
-            errorMessage = "사진 첨부 저장은 아직 준비 중입니다. 사진을 제거하면 리뷰를 게시할 수 있어요."
-            FMHaptic.warning.play()
-            return
-        }
-        let payload: [String: Any] = [
-            "authorUid": uid,
-            "body": body,
-            "filterId": filterID,
-            "stars": rating,
-            "createdAt": FieldValue.serverTimestamp(),
-        ]
         isSubmitting = true
         defer { isSubmitting = false }
         do {
+            let upload = try await uploadAttachedImageIfNeeded(uid: uid)
+            var payload: [String: Any] = [
+                "authorUid": uid,
+                "authorHandle": reviewAuthorHandle(uid: uid),
+                "authorDisplayName": reviewAuthorDisplayName(uid: uid),
+                "authorName": reviewAuthorDisplayName(uid: uid),
+                "body": body,
+                "filterId": filterID,
+                "stars": rating,
+                "status": "active",
+                "isVerifiedDownload": false,
+                "helpfulCount": 0,
+                "createdAt": FieldValue.serverTimestamp(),
+            ]
+            if let upload {
+                payload["photoUrl"] = upload.publicURL.absoluteString
+                payload["photoObjectKey"] = upload.objectKey
+            }
             try await Firestore.firestore()
                 .collection("filters").document(filterID)
-                .collection("reviews").document()
+                .collection("reviews").document(uid)
                 .setData(payload)
             FMHaptic.success.play()
             dismiss()
@@ -719,17 +782,88 @@ struct ReviewComposeScreen: View {
         .sheet(isPresented: $showingPhotoPicker) {
             PhotoPicker { image in
                 attachedImage = image
-                errorMessage = "사진 첨부 저장은 아직 준비 중입니다. 사진을 제거하면 리뷰를 게시할 수 있어요."
+                errorMessage = nil
             }
         }
     }
 
     private var canPost: Bool {
         !isSubmitting &&
-        attachedImage == nil &&
         rating > 0 &&
         text.trimmingCharacters(in: .whitespacesAndNewlines).count >= 5 &&
         text.count <= limit
+    }
+
+    private struct ReviewImageUpload {
+        let publicURL: URL
+        let objectKey: String
+    }
+
+    private func uploadAttachedImageIfNeeded(uid: String) async throws -> ReviewImageUpload? {
+        guard let attachedImage else { return nil }
+        guard let imageData = normalizedJPEGData(from: attachedImage) else {
+            throw ReviewComposeError.imageEncodingFailed
+        }
+        guard imageData.count <= 2_500_000 else {
+            throw ReviewComposeError.imageTooLarge
+        }
+
+        let callable = Functions.functions(region: "asia-northeast3").httpsCallable("reviewImageUploadInit")
+        let result = try await callable.call([
+            "filterId": filterID,
+            "contentType": "image/jpeg",
+            "imageBytes": imageData.count,
+        ])
+        guard let data = result.data as? [String: Any],
+              let uploadURLString = data["uploadUrl"] as? String,
+              let uploadURL = URL(string: uploadURLString),
+              let publicURLString = data["publicURL"] as? String,
+              let publicURL = URL(string: publicURLString),
+              let objectKey = data["objectKey"] as? String else {
+            throw ReviewComposeError.invalidUploadResponse
+        }
+
+        var request = URLRequest(url: uploadURL)
+        request.httpMethod = "PUT"
+        request.httpBody = imageData
+        let headers = data["uploadHeaders"] as? [String: String] ?? [:]
+        for (field, value) in headers {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
+        request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200..<300).contains(httpResponse.statusCode) else {
+            throw ReviewComposeError.imageUploadFailed
+        }
+        return ReviewImageUpload(publicURL: publicURL, objectKey: objectKey)
+    }
+
+    private func reviewAuthorDisplayName(uid: String) -> String {
+        let profileName = store.editableProfile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !profileName.isEmpty { return profileName }
+        return Auth.auth().currentUser?.displayName
+            ?? Auth.auth().currentUser?.email?.split(separator: "@").first.map(String.init)
+            ?? String(uid.prefix(8))
+    }
+
+    private func reviewAuthorHandle(uid: String) -> String {
+        let handle = store.editableProfile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !handle.isEmpty { return handle.hasPrefix("@") ? handle : "@\(handle)" }
+        return "@\(uid.prefix(8))"
+    }
+
+    private func normalizedJPEGData(from image: UIImage) -> Data? {
+        let maxLongEdge: CGFloat = 1600
+        let sourceSize = image.size
+        let longest = max(sourceSize.width, sourceSize.height)
+        let scale = longest > maxLongEdge ? maxLongEdge / longest : 1
+        let targetSize = CGSize(width: sourceSize.width * scale, height: sourceSize.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        let normalized = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+        return normalized.jpegData(compressionQuality: 0.86)
     }
 
     private var editor: some View {
@@ -2384,6 +2518,7 @@ private struct SocialReview: Identifiable {
     let time: String
     let body: String
     let stars: Int
+    let photoURL: URL?
     let helpfulCount: Int
     let isHelpful: Bool
     let isVerifiedDownload: Bool
@@ -2400,6 +2535,7 @@ private struct SocialReview: Identifiable {
             time: "2시간",
             body: "카페 사진에 진짜 잘 어울려요. 강도 80%가 베스트네요.",
             stars: 5,
+            photoURL: nil,
             helpfulCount: 24,
             isHelpful: true,
             isVerifiedDownload: true,
@@ -2421,6 +2557,7 @@ private struct SocialReview: Identifiable {
             time: "5시간",
             body: "Mid-tone에 살짝 마젠타가 도는 느낌이 좋네요. 어떤 LUT 사이즈로 만드셨어요? 33³ 인가요?",
             stars: 4,
+            photoURL: nil,
             helpfulCount: 12,
             isHelpful: false,
             isVerifiedDownload: true,
@@ -2436,6 +2573,7 @@ private struct SocialReview: Identifiable {
             time: "어제",
             body: "제 셀카에는 강도 60%가 자연스러웠어요. 추천!",
             stars: 4,
+            photoURL: nil,
             helpfulCount: 6,
             isHelpful: false,
             isVerifiedDownload: true,
@@ -2451,6 +2589,7 @@ private struct SocialReview: Identifiable {
             time: "2일",
             body: "유럽 여행 사진들에 진짜 다 잘 맞네요. 다른 비슷한 톤도 있나요?",
             stars: 5,
+            photoURL: nil,
             helpfulCount: 4,
             isHelpful: false,
             isVerifiedDownload: false,

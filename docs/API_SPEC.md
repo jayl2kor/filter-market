@@ -271,6 +271,33 @@ REJECTED 또는 작성자 수정 후 재검수.
 { "ok": true, "data": { "status": "PENDING" } }
 ```
 
+### 5.3a `reviewImageUploadInit` — 리뷰 첨부 사진 업로드 URL 발급
+
+Firebase callable. 리뷰 작성 화면에서 사진을 첨부하면 게시 직전에 호출한다.
+
+**요청**
+```json
+{
+  "filterId": "abc-123",
+  "contentType": "image/jpeg",
+  "imageBytes": 523144
+}
+```
+
+**응답**
+```json
+{
+  "filterId": "abc-123",
+  "objectKey": "reviews/abc-123/u-1/123456-image-id.jpg",
+  "uploadUrl": "https://<r2>.r2.cloudflarestorage.com/...?X-Amz-Signature=...",
+  "uploadHeaders": { "Content-Type": "image/jpeg" },
+  "publicURL": "https://cdn.moodit.app/reviews/abc-123/u-1/123456-image-id.jpg",
+  "expiresAt": 1770000000
+}
+```
+
+클라이언트는 `uploadUrl`로 PUT을 완료한 뒤 review 문서에 `photoUrl`과 `photoObjectKey`를 저장한다. Functions 환경에는 `R2_PUBLIC_BASE_URL`이 필요하다.
+
 ### 5.4 `POST /moderation/{filterId}/approve` (모더레이터)
 
 **요청**

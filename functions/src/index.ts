@@ -15,6 +15,7 @@ initializeApp();
 export {
   uploadInit,
   uploadFinalize,
+  reviewImageUploadInit,
   submitForReview,
   recordUse,
   getFilterDetail,
