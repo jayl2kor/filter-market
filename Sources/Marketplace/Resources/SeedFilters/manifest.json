@@ -1,92 +1,302 @@
 [
   {
-    "id": "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4A",
-    "title": "Sunset Vibes",
+    "id": "01900B14-7B1C-7C20-A4F4-000000000001",
+    "title": "Sunlit Portra",
     "version": "1.0.0",
-    "author": {
-      "uid": "preview-maker",
-      "displayName": "Alex"
-    },
-    "tags": ["mood", "golden", "warm", "daily"],
-    "category": "cinematic",
-    "engine": {
-      "type": "lut+params",
-      "minAppVersion": "1.0.0",
-      "minIOSVersion": "17.0",
-      "lutSize": 33,
-      "lutFile": "SeedFilters/luts/sunset-vibes.png"
-    }
-  },
-  {
-    "id": "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4B",
-    "title": "Soft Portra",
-    "version": "1.0.0",
-    "author": {
-      "uid": "maker-portra",
-      "displayName": "Mina"
-    },
-    "tags": ["portrait", "skin", "soft", "daily"],
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["portrait", "skin", "warm", "daily"],
     "category": "portrait",
     "engine": {
       "type": "lut+params",
       "minAppVersion": "1.0.0",
       "minIOSVersion": "17.0",
       "lutSize": 33,
-      "lutFile": "SeedFilters/luts/soft-portra.png"
+      "lutFile": "SeedFilters/luts/sunlit-portra.png"
     }
   },
   {
-    "id": "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4C",
-    "title": "Seoul Night",
+    "id": "01900B14-7B1C-7C20-A4F4-000000000002",
+    "title": "Golden Hour",
     "version": "1.0.0",
-    "author": {
-      "uid": "maker-night",
-      "displayName": "Joon"
-    },
-    "tags": ["night", "moody", "cinematic", "city"],
-    "category": "moody",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["golden", "warm", "sunset", "glow"],
+    "category": "cinematic",
     "engine": {
       "type": "lut+params",
       "minAppVersion": "1.0.0",
       "minIOSVersion": "17.0",
       "lutSize": 33,
-      "lutFile": "SeedFilters/luts/seoul-night.png"
+      "lutFile": "SeedFilters/luts/golden-hour.png"
     }
   },
   {
-    "id": "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4D",
-    "title": "Cafe Cream",
+    "id": "01900B14-7B1C-7C20-A4F4-000000000003",
+    "title": "Soft Velvia",
     "version": "1.0.0",
-    "author": {
-      "uid": "maker-cafe",
-      "displayName": "Nora"
-    },
-    "tags": ["cafe", "cream", "food", "warm"],
-    "category": "food",
-    "engine": {
-      "type": "lut+params",
-      "minAppVersion": "1.0.0",
-      "minIOSVersion": "17.0",
-      "lutSize": 33,
-      "lutFile": "SeedFilters/luts/cafe-cream.png"
-    }
-  },
-  {
-    "id": "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3F4E",
-    "title": "Airy Trip",
-    "version": "1.0.0",
-    "author": {
-      "uid": "maker-trip",
-      "displayName": "Leo"
-    },
-    "tags": ["travel", "airy", "bright", "daily"],
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["travel", "landscape", "natural", "subtle"],
     "category": "travel",
     "engine": {
       "type": "lut+params",
       "minAppVersion": "1.0.0",
       "minIOSVersion": "17.0",
       "lutSize": 33,
-      "lutFile": "SeedFilters/luts/airy-trip.png"
+      "lutFile": "SeedFilters/luts/soft-velvia.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-000000000004",
+    "title": "Pro 400H",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["pastel", "airy", "soft", "fuji"],
+    "category": "pastel",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/pro-400h.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-000000000005",
+    "title": "Cinestill Night",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["night", "neon", "moody", "tungsten"],
+    "category": "moody",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/cinestill-night.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-000000000006",
+    "title": "Tri-X Mono",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["bw", "contrast", "classic", "film"],
+    "category": "bw",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/tri-x-mono.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-000000000007",
+    "title": "Acros Soft",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["bw", "soft", "smooth", "neutral"],
+    "category": "bw",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/acros-soft.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-000000000008",
+    "title": "Sepia Memory",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["vintage", "sepia", "faded", "memory"],
+    "category": "vintage",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/sepia-memory.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-000000000009",
+    "title": "Teal & Orange",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["cinematic", "hollywood", "contrast", "split"],
+    "category": "cinematic",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/teal-orange.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-00000000000A",
+    "title": "Bleach Bypass",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["moody", "desat", "documentary", "high-contrast"],
+    "category": "moody",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/bleach-bypass.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-00000000000B",
+    "title": "Polaroid Fade",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["polaroid", "faded", "instant", "soft"],
+    "category": "vintage",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/polaroid-fade.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-00000000000C",
+    "title": "Lomo Mood",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["lomo", "mood", "contrast", "analog"],
+    "category": "vintage",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/lomo-mood.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-00000000000D",
+    "title": "Cafe Cream",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["food", "cafe", "warm", "cream"],
+    "category": "food",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/cafe-cream-mooditor.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-00000000000E",
+    "title": "Honey Glow",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["food", "honey", "warm", "golden"],
+    "category": "food",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/honey-glow.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-00000000000F",
+    "title": "Seoul Night",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["night", "city", "urban", "neon"],
+    "category": "mood",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/seoul-night-mooditor.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-000000000010",
+    "title": "Cherry Blossom",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["pastel", "pink", "blossom", "spring"],
+    "category": "pastel",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/cherry-blossom.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-000000000011",
+    "title": "Cobalt Sky",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["travel", "sky", "blue", "clear"],
+    "category": "travel",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/cobalt-sky.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-000000000012",
+    "title": "Anime Cel",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["anime", "cel", "stylized", "soft"],
+    "category": "anime",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/anime-cel.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-000000000013",
+    "title": "Indigo Fog",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["fog", "cool", "atmospheric", "indigo"],
+    "category": "mood",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/indigo-fog.png"
+    }
+  },
+  {
+    "id": "01900B14-7B1C-7C20-A4F4-000000000014",
+    "title": "Skin Bloom",
+    "version": "1.0.0",
+    "author": { "uid": "J14Dg6JaH0M25xpcOkCEMJH3qFy1", "displayName": "mooditor" },
+    "tags": ["skin", "portrait", "glow", "soft"],
+    "category": "skin",
+    "engine": {
+      "type": "lut+params",
+      "minAppVersion": "1.0.0",
+      "minIOSVersion": "17.0",
+      "lutSize": 33,
+      "lutFile": "SeedFilters/luts/skin-bloom.png"
     }
   }
 ]
