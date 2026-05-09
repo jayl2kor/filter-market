@@ -10,6 +10,7 @@ import SwiftUI
 /// - 정렬 (최신/이름/카테고리)
 /// - swipe to delete
 struct SavedScreen: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var store: MooditStore
     @State private var hasAppeared = false
     @State private var query = ""
@@ -111,7 +112,7 @@ struct SavedScreen: View {
             }
             .task {
                 try? await Task.sleep(nanoseconds: 220_000_000)
-                withAnimation(.fmFast) { hasAppeared = true }
+                withAnimation(.fmFast.reducedIfNeeded(reduceMotion)) { hasAppeared = true }
             }
             .onChange(of: visibleFilters.map(\.id)) { _, visibleIDs in
                 selectedFilterIDs.formIntersection(Set(visibleIDs))

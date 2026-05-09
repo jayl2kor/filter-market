@@ -64,9 +64,20 @@ public extension View {
     /// 부모 layer 가 modal 진입 시 살짝 뒤로 빠지는 효과.
     /// modal/sheet 가 위로 올라올 때 부모에 적용.
     func fmFadeBack(when: Bool) -> some View {
-        scaleEffect(when ? 0.94 : 1.0, anchor: .center)
+        modifier(FMFadeBackReduceMotionModifier(when: when))
+    }
+}
+
+private struct FMFadeBackReduceMotionModifier: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let when: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(reduceMotion ? 1.0 : (when ? 0.94 : 1.0), anchor: .center)
             .opacity(when ? 0.70 : 1.0)
-            .animation(.fmBase, value: when)
+            .animation(.fmBase.reducedIfNeeded(reduceMotion), value: when)
     }
 }
 

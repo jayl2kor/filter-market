@@ -6,6 +6,7 @@ import SwiftUI
 /// FAQ 항목과 문의 채널을 보여줍니다. 환불 폼은 별도 라우트(`.refundRequest`)로
 /// 분리되어 있으므로 도움말은 정보성 문서와 문의 링크에 집중합니다.
 struct HelpCenterScreen: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var externalURL: ExternalURL?
     @State private var expandedFAQ: String?
     @State private var query = ""
@@ -184,7 +185,7 @@ struct HelpCenterScreen: View {
     private func faqRow(item: FAQItem) -> some View {
         let isExpanded = expandedFAQ == item.id
         Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.easeInOut(duration: 0.2).reducedIfNeeded(reduceMotion)) {
                 expandedFAQ = isExpanded ? nil : item.id
             }
         } label: {

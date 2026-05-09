@@ -950,10 +950,12 @@ private actor SampleReferenceRenderCache {
 }
 
 private struct TagPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.fmFast, value: configuration.isPressed)
+            .animation(.fmFast.reducedIfNeeded(reduceMotion), value: configuration.isPressed)
     }
 }
 

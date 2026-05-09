@@ -8,6 +8,7 @@ import SwiftUI
 /// 컬렉션 그리드 (2열) + 4-사진 모자이크 커버 + 새 컬렉션 만들기 + 편집 모드.
 /// 첫 카드는 "전체 즐겨찾기" 자동 컬렉션 (accent.bg 배경).
 struct FavoritesCollectionScreen: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var store: MooditStore
 
     @State private var collections: [FilterCollection] = isUITesting ? FilterCollection.mock : []
@@ -47,7 +48,7 @@ struct FavoritesCollectionScreen: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(isEditing ? "완료" : "편집") {
                     FMHaptic.selection.play()
-                    withAnimation(.fmFast) { isEditing.toggle() }
+                    withAnimation(.fmFast.reducedIfNeeded(reduceMotion)) { isEditing.toggle() }
                 }
                 .accessibilityIdentifier("collection.edit")
                 .foregroundStyle(FMColors.Accent.primary)

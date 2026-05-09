@@ -129,6 +129,17 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 
 ---
 
+## 3.11 Reduced Motion Regression
+
+| # | Route/Component | Coverage | PASS/FAIL |
+|---|-----------------|----------|-----------|
+| 3.11.1 | DesignSystem controls | FMButton, FMTextField, FMSlider, FMSegmentedControl, FMToggle, FMTabBar press, FMSwipeIndicator가 `accessibilityReduceMotion`에서 `reducedIfNeeded` 또는 정적 fallback을 사용 |  |
+| 3.11.2 | Search/Saved/Collections/Help | 검색 취소/phase 전환, 저장 화면 진입, 컬렉션 편집, FAQ expand가 Reduce Motion에서 fast/ease fallback으로 동작 |  |
+| 3.11.3 | Camera/CapturePreview | 포커스 indicator, capture save banner, 필터 swipe/상태 전환이 Reduce Motion 분기를 유지 |  |
+| 3.11.4 | Marketplace/Onboarding/Profile/Toast | 기존 Reduce Motion 분기와 공용 `fmAnimation`/`reducedIfNeeded` 호출을 유지 |  |
+
+---
+
 ## 4. Marketplace (루트 탭)
 
 **도달 경로**: 로그인 후 탭바 1번째

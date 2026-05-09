@@ -6,6 +6,8 @@ import SwiftUI
 ///
 /// `DESIGN_SYSTEM.md` §8.13 — `bg/3` 컨테이너, 흰 fill 활성, soft shadow.
 public struct FMSegmentedControl<Option: Hashable>: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @Binding private var selection: Option
     private let options: [Option]
     private let title: (Option) -> String
@@ -27,7 +29,7 @@ public struct FMSegmentedControl<Option: Hashable>: View {
             ForEach(options, id: \.self) { option in
                 let isActive = option == selection
                 Button {
-                    withAnimation(.fmSpringTap) {
+                    withAnimation(.fmSpringTap.reducedIfNeeded(reduceMotion)) {
                         selection = option
                     }
                 } label: {

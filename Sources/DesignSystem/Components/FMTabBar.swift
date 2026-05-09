@@ -245,10 +245,12 @@ private extension FMTab {
 // MARK: - Shutter press style
 
 private struct ShutterPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
-            .animation(.fmSpringTap, value: configuration.isPressed)
+            .animation(.fmSpringTap.reducedIfNeeded(reduceMotion), value: configuration.isPressed)
     }
 }
 

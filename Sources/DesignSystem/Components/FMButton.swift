@@ -8,6 +8,8 @@ import UIKit
 /// 변형 4 × 사이즈 3 + loading/disabled 상태.
 /// `DESIGN_SYSTEM.md` §8.1 Button 스펙과 정합.
 public struct FMButton: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     public enum Variant: Sendable {
         case primary
         case secondary
@@ -96,7 +98,7 @@ public struct FMButton: View {
             .overlay(borderShape)
             .scaleEffect(isPressed ? 0.97 : 1.0)
             .opacity(isEnabled && !isLoading ? 1.0 : Opacity.textDisabled)
-            .animation(.fmSpringTap, value: isPressed)
+            .animation(.fmSpringTap.reducedIfNeeded(reduceMotion), value: isPressed)
         }
         .buttonStyle(PressableButtonStyle(isPressed: $isPressed))
         .disabled(isLoading || !isEnabled)

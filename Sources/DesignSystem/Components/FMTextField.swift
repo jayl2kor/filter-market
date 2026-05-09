@@ -8,6 +8,8 @@ import SwiftUI
 /// 라벨 + placeholder + helper text + error 메시지.
 /// `DESIGN_SYSTEM.md` §8.2 TextField 스펙과 정합.
 public struct FMTextField: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     public enum Style: Sendable {
         case plain
         case password
@@ -146,7 +148,7 @@ public struct FMTextField: View {
                             .padding(-2)
                     }
                 }
-                .animation(.fmFast, value: isFocused)
+                .animation(.fmFast.reducedIfNeeded(reduceMotion), value: isFocused)
 
             if let error, !error.isEmpty {
                 Text(error)

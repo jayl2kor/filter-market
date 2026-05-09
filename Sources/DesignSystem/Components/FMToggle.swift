@@ -9,10 +9,11 @@ import SwiftUI
 ///
 /// SwiftUI 기본 `Toggle()` 의 시각만 교체하고 라벨 영역은 그대로 사용.
 public struct FMToggle<Label: View>: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isEnabled) private var isEnabled
+
     @Binding private var isOn: Bool
     private let label: () -> Label
-
-    @Environment(\.isEnabled) private var isEnabled
 
     public init(
         isOn: Binding<Bool>,
@@ -34,7 +35,7 @@ public struct FMToggle<Label: View>: View {
         .onTapGesture {
             guard isEnabled else { return }
             FMHaptic.selection.play()
-            withAnimation(.fmFast) {
+            withAnimation(.fmFast.reducedIfNeeded(reduceMotion)) {
                 isOn.toggle()
             }
         }

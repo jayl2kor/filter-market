@@ -156,7 +156,7 @@ struct SearchScreen: View {
                 .fill(FMColors.Border.subtle)
                 .frame(height: 1)
         }
-        .animation(.fmFast, value: phase)
+        .fmAnimation(.fmFast, value: phase)
     }
 
     // MARK: - Browsing
@@ -564,7 +564,7 @@ struct SearchScreen: View {
 
     private func cancelSearch() {
         searchDebounceTask?.cancel()
-        withAnimation(.fmFast) {
+        withAnimation(.fmFast.reducedIfNeeded(reduceMotion)) {
             query = ""
             debouncedQuery = ""
             isSearchDebouncing = false

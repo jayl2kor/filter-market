@@ -7,6 +7,8 @@ import SwiftUI
 /// 7-dot 가로 페이지 인디케이터. 활성 페이지는 16×4 막대, 비활성은 4×4 점.
 /// 카메라 흐름(다크 토큰)과 일반 라이트 화면 모두에서 사용 가능.
 public struct FMSwipeIndicator: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     public enum Mode: Sendable {
         case light
         case dark
@@ -33,7 +35,7 @@ public struct FMSwipeIndicator: View {
                 Capsule()
                     .fill(isActive ? activeColor : inactiveColor)
                     .frame(width: isActive ? 16 : 4, height: 4)
-                    .animation(.fmFast, value: activeIndex)
+                    .animation(.fmFast.reducedIfNeeded(reduceMotion), value: activeIndex)
             }
         }
         .accessibilityElement(children: .ignore)

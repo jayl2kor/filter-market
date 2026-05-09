@@ -8,6 +8,8 @@ import UIKit
 /// 골드 트랙 + 흰 썸 + soft shadow.
 /// `DESIGN_SYSTEM.md` §8.11 Slider 스펙과 정합.
 public struct FMSlider: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @Binding private var value: Double
     private let range: ClosedRange<Double>
     private let label: String?
@@ -104,7 +106,7 @@ public struct FMSlider: View {
                     )
                     .scaleEffect(isDragging ? 1.15 : 1.0)
                     .offset(x: thumbX)
-                    .animation(.fmFast, value: isDragging)
+                    .animation(.fmFast.reducedIfNeeded(reduceMotion), value: isDragging)
             }
             .contentShape(Rectangle())
             .gesture(

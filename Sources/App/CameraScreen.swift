@@ -644,7 +644,7 @@ struct CameraScreen: View {
         )
 
         let indicator = CameraFocusIndicator(location: indicatorLocation)
-        withAnimation(.fmFast) {
+        withAnimation(.fmFast.reducedIfNeeded(reduceMotion)) {
             focusIndicator = indicator
         }
 
@@ -654,7 +654,7 @@ struct CameraScreen: View {
 
             await MainActor.run {
                 guard focusIndicator?.id == indicator.id else { return }
-                withAnimation(.fmEaseIn) {
+                withAnimation(.fmEaseIn.reducedIfNeeded(reduceMotion)) {
                     focusIndicator = nil
                 }
             }
@@ -1089,6 +1089,8 @@ private final class RecentPhotoThumbnailLoader: ObservableObject {
 /// `CameraCaptureResult` → `CapturePreviewScreen` 어댑터.
 /// 저장/공유/재촬영 액션을 기존 `PhotoLibrarySaver` 와 묶어 처리.
 private struct CapturePreviewHost: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let result: CameraCaptureResult
     let onClose: () -> Void
 
@@ -1116,10 +1118,10 @@ private struct CapturePreviewHost: View {
             if !saveState.message.isEmpty {
                 CaptureSaveBanner(state: saveState)
                     .padding(.top, Sp.xxxl)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .transition(.fmReducible(.move(edge: .top).combined(with: .opacity), reduceMotion: reduceMotion))
             }
         }
-        .animation(.fmEaseOut, value: saveState)
+        .fmAnimation(.fmEaseOut, value: saveState)
         .fmShareSheet(
             isPresented: $showShareSheet,
             items: filteredImage.map { [$0 as Any] } ?? []
