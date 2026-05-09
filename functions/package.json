@@ -18,7 +18,7 @@
     "deploy:staging": "firebase use staging && firebase deploy --only functions",
     "deploy:prod": "firebase use prod && firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test": "npm run build && node --test test/recordUse.test.mjs test/getFilterDetail.test.mjs test/wallet.test.mjs test/moderation.test.mjs test/identity.test.mjs test/submitForReview.test.mjs test/appleReceiptVerifier.test.mjs",
+    "test": "npm run build && node --test test/recordUse.test.mjs test/getFilterDetail.test.mjs test/wallet.test.mjs test/moderation.test.mjs test/identity.test.mjs test/submitForReview.test.mjs test/appleReceiptVerifier.test.mjs test/idempotency.test.mjs",
     "test:rules": "firebase emulators:exec --only firestore --project moodit-rules-test 'node --test test/firestore-rules.test.mjs'"
   },
   "dependencies": {

@@ -485,6 +485,22 @@ export async function applyGetFilterDetail(
   if (!objectKey) {
     throw new HttpsError("internal", "filter has no objectKey");
   }
+  const priceCoins = (data.priceCoins as number | undefined) ?? 0;
+  if (priceCoins > 0) {
+    if (!deps.uid) {
+      throw new HttpsError("permission-denied", "not_entitled");
+    }
+    const entitlementSnap = await db.collection("users").doc(deps.uid)
+      .collection("entitlements").doc(filterId)
+      .get();
+    const proSnap = await db.collection("users").doc(deps.uid)
+      .collection("proStatus").doc("status")
+      .get();
+    const hasActivePro = (proSnap.data()?.active as boolean | undefined) === true;
+    if (!entitlementSnap.exists && !hasActivePro) {
+      throw new HttpsError("permission-denied", "not_entitled");
+    }
+  }
 
   const presigner =
     deps.presignGetURL ??
@@ -526,7 +542,7 @@ export async function applyGetFilterDetail(
       status: (data.status as string) ?? "approved",
       useCount: (data.useCount as number) ?? 0,
       downloadCount: (data.downloadCount as number) ?? 0,
-      priceCoins: (data.priceCoins as number) ?? 0,
+      priceCoins,
       coverURL: (data.coverURL as string | null) ?? null,
       signatureSampleURL: (data.signatureSampleURL as string | null) ?? null,
       ratingAvg: (data.ratingAvg as number | null) ?? null,

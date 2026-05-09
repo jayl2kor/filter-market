@@ -193,6 +193,81 @@ describe("applyGetFilterDetail", () => {
     );
     assert.equal(result.filter.createdAt, 1_700_000_000_000);
   });
+
+  it("rejects paid filters when the user has no entitlement", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/paid-1": {
+        title: "Paid",
+        status: "approved",
+        priceCoins: 120,
+        objectKey: "filters/u/paid-1.fmpkg",
+      },
+    });
+    let didPresign = false;
+    await assert.rejects(
+      () => applyGetFilterDetail(
+        { filterId: "paid-1" },
+        {
+          firestore,
+          uid: "u-current",
+          presignGetURL: async () => {
+            didPresign = true;
+            return { url: "x", expiresAt: 0 };
+          },
+        },
+      ),
+      (err) => err && err.code === "permission-denied" && /not_entitled/.test(err.message),
+    );
+    assert.equal(didPresign, false);
+  });
+
+  it("returns a paid filter when the user has an entitlement", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/paid-1": {
+        title: "Paid",
+        status: "approved",
+        priceCoins: 120,
+        objectKey: "filters/u/paid-1.fmpkg",
+      },
+      "users/u-current/entitlements/paid-1": {
+        filterId: "paid-1",
+      },
+    });
+    const result = await applyGetFilterDetail(
+      { filterId: "paid-1" },
+      {
+        firestore,
+        uid: "u-current",
+        presignGetURL: async () => ({ url: "https://r2.test/paid", expiresAt: 10 }),
+      },
+    );
+    assert.equal(result.filter.priceCoins, 120);
+    assert.equal(result.signedDownloadURL, "https://r2.test/paid");
+  });
+
+  it("returns a paid filter for active Pro users", async () => {
+    const firestore = makeFakeFirestore({
+      "filters/paid-pro": {
+        title: "Paid Pro",
+        status: "approved",
+        priceCoins: 240,
+        objectKey: "filters/u/paid-pro.fmpkg",
+      },
+      "users/u-current/proStatus/status": {
+        active: true,
+      },
+    });
+    const result = await applyGetFilterDetail(
+      { filterId: "paid-pro" },
+      {
+        firestore,
+        uid: "u-current",
+        presignGetURL: async () => ({ url: "https://r2.test/pro", expiresAt: 10 }),
+      },
+    );
+    assert.equal(result.filter.priceCoins, 240);
+    assert.equal(result.signedDownloadURL, "https://r2.test/pro");
+  });
 });
 
 describe("applyReviewImageUploadInit", () => {

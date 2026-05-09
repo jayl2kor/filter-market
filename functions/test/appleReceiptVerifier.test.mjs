@@ -1,8 +1,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 
 import {
+  CERT_FETCH_TIMEOUT_MS,
   decodeWithVerifier,
+  fetchCertForTest,
   loadBundledRootCerts,
   verifyWithVerifier,
 } from "../lib/lib/appleReceiptVerifier.js";
@@ -14,6 +17,12 @@ class FakeVerifier {
   async verifyAndDecodeTransaction(_jws) {
     if (this.payload instanceof Error) throw this.payload;
     return this.payload;
+  }
+}
+
+class FakeRequest extends EventEmitter {
+  destroy(error) {
+    this.emit("error", error);
   }
 }
 
@@ -55,6 +64,20 @@ describe("verifyWithVerifier", () => {
     const certs = loadBundledRootCerts();
     assert.equal(certs.length, 3);
     assert.ok(certs.every((cert) => cert.length > 0));
+  });
+
+  it("destroys certificate fetch requests on timeout", async () => {
+    const request = new FakeRequest();
+    const getImpl = (_url, options, _callback) => {
+      assert.equal(options.timeout, CERT_FETCH_TIMEOUT_MS);
+      queueMicrotask(() => request.emit("timeout"));
+      return request;
+    };
+
+    await assert.rejects(
+      () => fetchCertForTest("https://apple.example.test/root.cer", getImpl),
+      /fetch_cert_timeout/,
+    );
   });
 
   it("decodes transaction metadata needed for subscription status", async () => {

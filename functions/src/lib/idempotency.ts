@@ -3,7 +3,7 @@
  *
  * Strategy:
  *   - Required for non-GET endpoints listed in §9 (POST /filters/{id}/use, etc.).
- *   - On first call, record (uid, key) → response with 24h TTL in Redis.
+ *   - On first call, record (uid, key) -> response with 24h TTL in Redis.
  *   - On replay, return cached response with same status.
  */
 import type Redis from "ioredis";
@@ -15,23 +15,31 @@ export interface CachedResponse {
   body: unknown;
 }
 
+function cacheKey(uid: string, key: string): string {
+  return `idempotency:${encodeURIComponent(uid)}:${encodeURIComponent(key)}`;
+}
+
 /** Look up a cached response. Returns null on miss. */
 export async function get(
-  _redis: Redis,
-  _uid: string,
-  _key: string,
+  redis: Redis,
+  uid: string,
+  key: string,
 ): Promise<CachedResponse | null> {
-  // TODO: GET key, JSON.parse, return null on missing.
-  return null;
+  const cached = await redis.get(cacheKey(uid, key));
+  if (!cached) return null;
+  const parsed = JSON.parse(cached) as Partial<CachedResponse>;
+  if (typeof parsed.status !== "number" || !("body" in parsed)) {
+    return null;
+  }
+  return { status: parsed.status, body: parsed.body };
 }
 
 /** Cache a response keyed by (uid, idempotency-key). */
 export async function put(
-  _redis: Redis,
-  _uid: string,
-  _key: string,
-  _response: CachedResponse,
+  redis: Redis,
+  uid: string,
+  key: string,
+  response: CachedResponse,
 ): Promise<void> {
-  void TTL_SECONDS;
-  // TODO: SET key value EX TTL_SECONDS NX (NX so we don't overwrite a winning race).
+  await redis.set(cacheKey(uid, key), JSON.stringify(response), "EX", TTL_SECONDS, "NX");
 }

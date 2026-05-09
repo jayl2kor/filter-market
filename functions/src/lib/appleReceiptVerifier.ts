@@ -15,6 +15,7 @@
 import * as https from "https";
 import { readFileSync } from "fs";
 import { resolve } from "path";
+import type { ClientRequest, IncomingMessage } from "http";
 import {
   Environment,
   SignedDataVerifier,
@@ -35,7 +36,13 @@ const ROOT_CERT_FILES = [
   "AppleIncRootCertificate.cer",
 ];
 
-const CERT_FETCH_TIMEOUT_MS = 10_000;
+export const CERT_FETCH_TIMEOUT_MS = 10_000;
+
+type HttpsGet = (
+  url: string,
+  options: https.RequestOptions,
+  callback: (res: IncomingMessage) => void,
+) => ClientRequest;
 
 function certDirectory(): string {
   return resolve(__dirname, "../../certs");
@@ -46,9 +53,9 @@ export function loadBundledRootCerts(): Buffer[] {
   return ROOT_CERT_FILES.map((name) => readFileSync(resolve(dir, name)));
 }
 
-async function fetchCert(url: string): Promise<Buffer> {
+async function fetchCert(url: string, getImpl: HttpsGet = https.get): Promise<Buffer> {
   return new Promise<Buffer>((resolve, reject) => {
-    const req = https.get(url, { timeout: CERT_FETCH_TIMEOUT_MS }, (res) => {
+    const req = getImpl(url, { timeout: CERT_FETCH_TIMEOUT_MS }, (res) => {
       if (res.statusCode !== 200) {
         reject(new Error(`fetch_cert_failed: ${url} status=${res.statusCode}`));
         return;
@@ -65,11 +72,15 @@ async function fetchCert(url: string): Promise<Buffer> {
   });
 }
 
+export async function fetchCertForTest(url: string, getImpl: HttpsGet): Promise<Buffer> {
+  return fetchCert(url, getImpl);
+}
+
 async function loadRootCerts(): Promise<Buffer[]> {
   try {
     return loadBundledRootCerts();
   } catch {
-    return Promise.all(ROOT_CERT_URLS.map(fetchCert));
+    return Promise.all(ROOT_CERT_URLS.map((url) => fetchCert(url)));
   }
 }
 
