@@ -86,6 +86,7 @@
 | 2026-05-09 | `npm --prefix functions test` | PASS, 85 tests after profile avatar upload contract was added (#183) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after profile avatar R2 upload and `avatarURL` rendering wiring (#183) |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppUITests/ActionSurfaceSmokeTests -only-testing:AppUITests/PhaseAE2ETests -only-testing:AppUITests/PhaseDE2ETests -only-testing:AppUITests/P0CoreActionTests` | PASS, 32 AppUITests after UI test helper consolidation and action contract refresh (#184) |
+| 2026-05-09 | `xcodebuild ... -only-testing:AppUITests/ActionSurfaceSmokeTests` | PASS, 50 route-isolated XCTest methods after splitting grouped route smoke tests for failure isolation and CI parallelization (#184), xcresult `Test-moodit-2026.05.09_19-18-33-+0900.xcresult` |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/UniversalLinkParserTests` | PASS, 21 tests after percent-encoded route slug coverage (#184) |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/MooditStoreTests` | PASS, 5 tests covering load, download/favorite/remove, editor draft mutations, submit pending, and user-scope reset (#180/#184) |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/ProfileSelfStoreTests` | PASS, 4 tests covering handle normalization, profile baseline mapping, Auth fallback, and unit-test local start/refresh guard (#184) |
