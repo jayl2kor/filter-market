@@ -2,6 +2,7 @@ import DesignSystem
 import FirebaseAuth
 import FirebaseCore
 import FirebaseFirestore
+import FirebaseFunctions
 import FilterEngine
 import Models
 import OSLog
@@ -33,6 +34,10 @@ struct FilterDetailScreen: View {
     @State private var sharePayload: SharePayload?
     @State private var isDescriptionExpanded = false
     @State private var selectedSample: FilterDetailSampleItem?
+    @State private var showingSamplePhotoPicker = false
+    @State private var isUploadingSample = false
+    @State private var sampleUploadErrorMessage: String?
+    @State private var sampleUploadSuccessMessage: String?
 
     init(filter: Filter, mock: FilterDetailMock? = nil, onRefresh: (() async -> Void)? = nil) {
         self.filter = filter
@@ -76,6 +81,11 @@ struct FilterDetailScreen: View {
         .sheet(item: $sharePayload) { payload in
             ShareSheet(activityItems: payload.items)
         }
+        .sheet(isPresented: $showingSamplePhotoPicker) {
+            PhotoPicker { image in
+                Task { await uploadUserSample(image) }
+            }
+        }
         .fullScreenCover(item: $selectedSample) { sample in
             SampleLightboxView(
                 selectedSample: sample,
@@ -97,6 +107,14 @@ struct FilterDetailScreen: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(downloadErrorMessage ?? "")
+        }
+        .alert("샘플 업로드 실패", isPresented: Binding(
+            get: { sampleUploadErrorMessage != nil },
+            set: { if !$0 { sampleUploadErrorMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(sampleUploadErrorMessage ?? "")
         }
     }
 
@@ -477,14 +495,56 @@ struct FilterDetailScreen: View {
 
     private var samplesSection: some View {
         VStack(alignment: .leading, spacing: Sp.sm) {
-            sectionHeader(title: "샘플", more: "\(sampleCount)개 모두 →")
-                .padding(.horizontal, Sp.md)
+            HStack(alignment: .firstTextBaseline, spacing: Sp.sm) {
+                sectionHeader(title: "샘플", more: "\(sampleCount)개 모두 →")
+
+                if canUploadUserSample {
+                    sampleUploadButton
+                }
+            }
+            .padding(.horizontal, Sp.md)
 
             SampleGalleryView(samples: sampleItems, mock: mock) { sample in
                 selectedSample = sample
                 FMHaptic.light.play()
             }
+
+            if let sampleUploadSuccessMessage {
+                Text(sampleUploadSuccessMessage)
+                    .fmTypography(.caption)
+                    .foregroundStyle(FMColors.Semantic.success)
+                    .padding(.horizontal, Sp.md)
+                    .accessibilityIdentifier("filter.detail.sample.upload.status")
+            }
         }
+    }
+
+    private var sampleUploadButton: some View {
+        Button {
+            sampleUploadSuccessMessage = nil
+            sampleUploadErrorMessage = nil
+            showingSamplePhotoPicker = true
+        } label: {
+            Image(systemName: isUploadingSample ? "arrow.triangle.2.circlepath" : "plus.circle.fill")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(isUploadingSample ? FMColors.Text.tertiary : FMColors.Accent.primary)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isUploadingSample)
+        .accessibilityIdentifier("filter.detail.sample.upload")
+        .accessibilityLabel(isUploadingSample ? "샘플 업로드 중" : "샘플 추가")
+        .accessibilityHint("필터를 적용한 내 사진 샘플을 등록합니다")
+    }
+
+    private var canUploadUserSample: Bool {
+        #if DEBUG
+        if isUITesting {
+            return sampleUploadFilterID != nil
+        }
+        #endif
+        return store.isAuthenticated && sampleUploadFilterID != nil
     }
 
     private var sampleCount: Int {
@@ -748,6 +808,17 @@ struct FilterDetailScreen: View {
         return mock.displayTitle
     }
 
+    private var sampleUploadFilterID: String? {
+        if let sourceID = mock.sourceID?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !sourceID.isEmpty {
+            return sourceID
+        }
+        if let filter {
+            return filter.id.uuidString
+        }
+        return nil
+    }
+
     private var ctaTitle: String {
         switch downloadState {
         case .ready:
@@ -820,6 +891,135 @@ struct FilterDetailScreen: View {
         } catch {
             didLikeMockFilter.toggle()
             Telemetry.record(error: error, context: ["where": "FilterDetailScreen.toggleLike", "filter_id": sourceID])
+        }
+    }
+
+    @MainActor
+    private func uploadUserSample(_ image: UIImage) async {
+        guard !isUploadingSample else { return }
+        #if DEBUG
+        if isUITesting {
+            sampleUploadSuccessMessage = "샘플을 등록했습니다."
+            return
+        }
+        #endif
+        guard FirebaseApp.app() != nil else {
+            sampleUploadErrorMessage = "Firebase 설정을 확인해주세요."
+            FMHaptic.warning.play()
+            return
+        }
+        guard let uid = Auth.auth().currentUser?.uid, store.isAuthenticated else {
+            sampleUploadErrorMessage = "로그인이 필요합니다."
+            FMHaptic.warning.play()
+            return
+        }
+        guard let filterID = sampleUploadFilterID else {
+            sampleUploadErrorMessage = "원격 필터에서만 샘플을 등록할 수 있습니다."
+            FMHaptic.warning.play()
+            return
+        }
+        guard let imageData = EditorReferenceSampleImage.normalizedJPEGData(from: image, maxLongEdge: 1600) else {
+            sampleUploadErrorMessage = UserSampleUploadError.invalidImage.localizedDescription
+            FMHaptic.warning.play()
+            return
+        }
+        guard imageData.count <= 4_000_000 else {
+            sampleUploadErrorMessage = UserSampleUploadError.imageTooLarge.localizedDescription
+            FMHaptic.warning.play()
+            return
+        }
+
+        isUploadingSample = true
+        sampleUploadErrorMessage = nil
+        sampleUploadSuccessMessage = nil
+        defer { isUploadingSample = false }
+
+        do {
+            let upload = try await requestSampleUpload(filterID: filterID, imageBytes: imageData.count)
+            try await putSampleImage(imageData, upload: upload)
+            let callable = Functions.functions(region: "asia-northeast3").httpsCallable("addUserSample")
+            _ = try await callable.call([
+                "filterId": filterID,
+                "objectKey": upload.objectKey,
+                "publicURL": upload.publicURL.absoluteString,
+                "categoryHint": mock.filterCategory.rawValue,
+            ])
+            Telemetry.trackAction("sample_uploaded", screen: .filterDetail, parameters: [
+                "filter_id": filterID,
+                "uid_present": !uid.isEmpty
+            ])
+            sampleUploadSuccessMessage = "샘플을 등록했습니다."
+            FMHaptic.success.play()
+            await refreshDetail()
+        } catch {
+            sampleUploadErrorMessage = "샘플 업로드 실패: \(error.localizedDescription)"
+            Telemetry.record(error: error, context: ["where": "FilterDetailScreen.uploadUserSample", "filter_id": filterID])
+            FMHaptic.warning.play()
+        }
+    }
+
+    private struct SampleUploadInit {
+        let publicURL: URL
+        let objectKey: String
+        let uploadURL: URL
+        let uploadHeaders: [String: String]
+    }
+
+    private func requestSampleUpload(filterID: String, imageBytes: Int) async throws -> SampleUploadInit {
+        let callable = Functions.functions(region: "asia-northeast3").httpsCallable("sampleImageUploadInit")
+        let result = try await callable.call([
+            "filterId": filterID,
+            "contentType": "image/jpeg",
+            "imageBytes": imageBytes,
+        ])
+        guard let data = result.data as? [String: Any],
+              let uploadURLString = data["uploadUrl"] as? String,
+              let uploadURL = URL(string: uploadURLString),
+              let publicURLString = data["publicURL"] as? String,
+              let publicURL = URL(string: publicURLString),
+              let objectKey = data["objectKey"] as? String else {
+            throw UserSampleUploadError.invalidUploadResponse
+        }
+        return SampleUploadInit(
+            publicURL: publicURL,
+            objectKey: objectKey,
+            uploadURL: uploadURL,
+            uploadHeaders: data["uploadHeaders"] as? [String: String] ?? [:]
+        )
+    }
+
+    private func putSampleImage(_ imageData: Data, upload: SampleUploadInit) async throws {
+        var request = URLRequest(url: upload.uploadURL)
+        request.httpMethod = "PUT"
+        request.httpBody = imageData
+        for (field, value) in upload.uploadHeaders {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
+        request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200..<300).contains(httpResponse.statusCode) else {
+            throw UserSampleUploadError.imageUploadFailed
+        }
+    }
+
+    private enum UserSampleUploadError: LocalizedError {
+        case invalidImage
+        case imageTooLarge
+        case invalidUploadResponse
+        case imageUploadFailed
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidImage:
+                "이미지를 처리할 수 없습니다."
+            case .imageTooLarge:
+                "이미지 용량이 너무 큽니다."
+            case .invalidUploadResponse:
+                "업로드 응답을 확인할 수 없습니다."
+            case .imageUploadFailed:
+                "이미지 업로드가 완료되지 않았습니다."
+            }
         }
     }
 

@@ -251,6 +251,7 @@ private extension RouteSpec {
     static let filterDetail = RouteSpec(route: "filterDetail", identifiers: [
         "filter.detail.share",
         "filter.detail.follow",
+        "filter.detail.sample.upload",
         "filter.detail.sample.gallery",
         "filter.detail.sample.reference.portrait",
         "filter.detail.reviews",

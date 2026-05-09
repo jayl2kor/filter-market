@@ -1124,8 +1124,11 @@ extension FilterDetailMock {
     static func mock(forRouteID id: String) -> FilterDetailMock {
         #if DEBUG
         let tiles = MarketplaceMockData.trending + MarketplaceMockData.newFilters
-        guard let tile = tiles.first(where: { $0.title == id }) else {
+        guard !id.isEmpty else {
             return .preview
+        }
+        guard let tile = tiles.first(where: { $0.title == id }) else {
+            return fallbackMock(forRouteID: id)
         }
 
         return FilterDetailMock(
@@ -1149,6 +1152,11 @@ extension FilterDetailMock {
             priceLabel: tile.priceLabel
         )
         #else
+        fallbackMock(forRouteID: id)
+        #endif
+    }
+
+    private static func fallbackMock(forRouteID id: String) -> FilterDetailMock {
         FilterDetailMock(
             sourceID: id.isEmpty ? nil : id,
             displayTitle: id.isEmpty ? "필터" : id,
@@ -1169,7 +1177,6 @@ extension FilterDetailMock {
             isPaid: false,
             priceLabel: nil
         )
-        #endif
     }
 }
 
