@@ -362,17 +362,23 @@ struct ProfileScreen: View {
             NavigationLink(value: AppRoute.myFilters) {
                 statContent(value: user.filterCount, label: "필터")
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ProfileStatButtonStyle())
+            .accessibilityLabel("필터 \(user.filterCount.fmDecimal())개, 목록 보기")
+            .accessibilityHint("내 필터 목록을 표시합니다")
             statDivider
             NavigationLink(value: AppRoute.followers(uid: followListUserID)) {
                 statContent(value: user.followerCount, label: "팔로워")
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ProfileStatButtonStyle())
+            .accessibilityLabel("팔로워 \(user.followerCount.fmDecimal())명, 목록 보기")
+            .accessibilityHint("팔로워 목록을 표시합니다")
             statDivider
             NavigationLink(value: AppRoute.following(uid: followListUserID)) {
                 statContent(value: user.followingCount, label: "팔로잉")
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ProfileStatButtonStyle())
+            .accessibilityLabel("팔로잉 \(user.followingCount.fmDecimal())명, 목록 보기")
+            .accessibilityHint("팔로잉 목록을 표시합니다")
         }
         .padding(.vertical, Sp.md)
         .overlay(alignment: .top) {
@@ -400,11 +406,18 @@ struct ProfileScreen: View {
                 .fmTypography(.title)
                 .foregroundStyle(FMColors.Text.primary)
                 .fmCounter()
-            Text(label)
-                .fmTypography(.caption)
-                .foregroundStyle(FMColors.Text.secondary)
+            HStack(spacing: 3) {
+                Text(label)
+                    .fmTypography(.caption)
+                    .foregroundStyle(FMColors.Text.secondary)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(FMColors.Text.tertiary)
+            }
         }
         .frame(maxWidth: .infinity)
+        .frame(minHeight: 52)
+        .contentShape(Rectangle())
     }
 
     private func statItem(value: Int, label: String, action: @escaping () -> Void) -> some View {
@@ -698,6 +711,16 @@ struct ProfileScreen: View {
         default:
             return route.title
         }
+    }
+}
+
+private struct ProfileStatButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1.0)
+            .animation(.fmFast.reducedIfNeeded(reduceMotion), value: configuration.isPressed)
     }
 }
 
