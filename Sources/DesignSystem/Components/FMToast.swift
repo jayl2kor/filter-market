@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - FMToastVariant
 
@@ -176,6 +177,7 @@ public extension View {
 }
 
 private struct FMToastOverlayModifier: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var toast: FMToastMessage?
     @State private var displayedToast: FMToastMessage?
     @State private var queuedToasts: [FMToastMessage] = []
@@ -189,12 +191,22 @@ private struct FMToastOverlayModifier: ViewModifier {
                         .padding(.horizontal, Sp.md)
                         .padding(.bottom, FMLayout.tabBarHeight + Sp.md)
                         .transition(
-                            .move(edge: .bottom).combined(with: .opacity)
+                            .fmReducible(
+                                .move(edge: .bottom).combined(with: .opacity),
+                                reduceMotion: reduceMotion
+                            )
+                        )
+                        .gesture(
+                            DragGesture(minimumDistance: 10)
+                                .onEnded { value in
+                                    guard value.translation.height < -20 else { return }
+                                    dismissDisplayedToast()
+                                }
                         )
                         .zIndex(Z.toast)
                 }
             }
-            .animation(.fmSpringSheet, value: displayedToast?.id)
+            .animation(.fmSpringSheet.reducedIfNeeded(reduceMotion), value: displayedToast?.id)
             .onAppear(perform: consumeIncomingToast)
             .onChange(of: toast?.id) { _, newId in
                 guard newId != nil else { return }
@@ -214,9 +226,14 @@ private struct FMToastOverlayModifier: ViewModifier {
 
     private func show(_ message: FMToastMessage) {
         dismissTask?.cancel()
-        withAnimation(.fmSpringSheet) {
+        withAnimation(.fmSpringSheet.reducedIfNeeded(reduceMotion)) {
             displayedToast = message
         }
+        playHaptic(for: message.variant)
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: message.detail.map { "\(message.title). \($0)" } ?? message.title
+        )
         scheduleDismiss(for: message)
     }
 
@@ -225,15 +242,34 @@ private struct FMToastOverlayModifier: ViewModifier {
         dismissTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: UInt64(message.duration * 1_000_000_000))
             guard !Task.isCancelled else { return }
-            withAnimation(.fmSpringSheet) {
-                displayedToast = nil
-            }
-            if !queuedToasts.isEmpty {
-                let next = queuedToasts.removeFirst()
-                show(next)
-            } else {
-                dismissTask = nil
-            }
+            dismissDisplayedToast()
+        }
+    }
+
+    private func dismissDisplayedToast() {
+        dismissTask?.cancel()
+        withAnimation(.fmSpringSheet.reducedIfNeeded(reduceMotion)) {
+            displayedToast = nil
+        }
+        if !queuedToasts.isEmpty {
+            let next = queuedToasts.removeFirst()
+            show(next)
+        } else {
+            dismissTask = nil
+        }
+    }
+
+    @MainActor
+    private func playHaptic(for variant: FMToastVariant) {
+        switch variant {
+        case .success:
+            FMHaptic.success.play()
+        case .warning:
+            FMHaptic.warning.play()
+        case .error:
+            FMHaptic.error.play()
+        case .info:
+            FMHaptic.light.play()
         }
     }
 }
