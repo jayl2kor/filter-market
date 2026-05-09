@@ -181,6 +181,10 @@ struct FavoritesCollectionScreen: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("collection.card.tap")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(collection.name), \(collection.metaText)")
+        .accessibilityHint("탭하면 컬렉션을 봅니다")
+        .accessibilityAddTraits(.isButton)
         .overlay(alignment: .topTrailing) {
             if isEditing && !collection.isAutoAll {
                 deleteButton(collection)

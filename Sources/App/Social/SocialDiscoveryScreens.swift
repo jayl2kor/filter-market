@@ -1534,39 +1534,45 @@ private struct FollowListScreen: View {
     private func userRow(_ user: SocialUser) -> some View {
         HStack(spacing: Sp.sm) {
             NavigationLink(value: AppRoute.otherProfile(uid: user.handle)) {
-                ZStack(alignment: .bottomTrailing) {
-                    avatar(initials: user.initials, colors: user.avatarColors, size: 44)
-                    if user.newFilterCount > 0 {
-                        Text("\(user.newFilterCount)")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 16, height: 16)
-                            .background(FMColors.Accent.primary, in: Circle())
-                            .overlay {
-                                Circle().strokeBorder(FMColors.Background.bg1, lineWidth: 2)
-                            }
+                HStack(spacing: Sp.sm) {
+                    ZStack(alignment: .bottomTrailing) {
+                        avatar(initials: user.initials, colors: user.avatarColors, size: 44)
+                        if user.newFilterCount > 0 {
+                            Text("\(user.newFilterCount)")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 16, height: 16)
+                                .background(FMColors.Accent.primary, in: Circle())
+                                .overlay {
+                                    Circle().strokeBorder(FMColors.Background.bg1, lineWidth: 2)
+                                }
+                                .accessibilityHidden(true)
+                        }
                     }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text(user.name)
+                                .fmTypography(.callout)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(FMColors.Text.primary)
+                            if user.newFilterCount > 0 {
+                                Text("새 필터 \(user.newFilterCount)")
+                                    .fmTypography(.caption)
+                                    .foregroundStyle(FMColors.Accent.primary)
+                            }
+                        }
+                        Text(user.meta)
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Text.tertiary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .buttonStyle(.plain)
-
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text(user.name)
-                        .fmTypography(.callout)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(FMColors.Text.primary)
-                    if user.newFilterCount > 0 {
-                        Text("새 필터 \(user.newFilterCount)")
-                            .fmTypography(.caption)
-                            .foregroundStyle(FMColors.Accent.primary)
-                    }
-                }
-                Text(user.meta)
-                    .fmTypography(.caption)
-                    .foregroundStyle(FMColors.Text.tertiary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(userAccessibilityLabel(user))
+            .accessibilityHint("탭하면 프로필을 봅니다")
 
             followButton(user)
         }
@@ -1575,6 +1581,14 @@ private struct FollowListScreen: View {
             Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
         }
         .accessibilityIdentifier("social.user.row")
+    }
+
+    private func userAccessibilityLabel(_ user: SocialUser) -> String {
+        var parts = [user.name, user.meta]
+        if user.newFilterCount > 0 {
+            parts.append("새 필터 \(user.newFilterCount)")
+        }
+        return parts.joined(separator: ", ")
     }
 
     private func followButton(_ user: SocialUser) -> some View {

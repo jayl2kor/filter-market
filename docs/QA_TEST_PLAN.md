@@ -161,6 +161,16 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 3.13.4 | Decorative/illustrative icons | empty state, placeholder, preview ornament 아이콘은 VoiceOver 탐색 대상에서 제외되거나 부모 surface에 포함 |  |
 | 3.13.5 | DesignSystem primitives | FMButton, FMTextField, FMTabBar, FMToast, FMAvatar icon semantics가 컴포넌트 단위 계약을 유지 |  |
 
+## 3.14 Card / Row VoiceOver Grouping
+
+| # | Surface | Expected | PASS/FAIL |
+|---|---------|----------|-----------|
+| 3.14.1 | `FMFilterTile` 기반 market/search/saved/profile grid tile | VoiceOver flick 1회가 title, maker, download count, price/free state를 하나의 카드로 읽고 "필터 상세" hint를 제공 |  |
+| 3.14.2 | Marketplace featured/collection card | decorative chevron/icon은 별도 포커스가 되지 않고 카드 단위 label + hint + button trait 제공 |  |
+| 3.14.3 | Favorites collection card | `collection.card.tap`이 collection name + meta를 하나의 카드로 읽음 |  |
+| 3.14.4 | Notifications inbox row | `notif.tap`이 read/unread, notification text, relative time을 하나의 row로 읽고 icon overlay는 숨김 |  |
+| 3.14.5 | Followers/following user row | 프로필 진입 영역은 name/meta/new-filter count를 하나로 읽고 `social.follow.toggle`은 별도 포커스 유지 |  |
+
 ---
 
 ## 4. Marketplace (루트 탭)

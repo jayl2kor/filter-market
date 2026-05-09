@@ -235,6 +235,15 @@ struct NotificationsInboxScreen: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("notif.tap")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(notificationAccessibilityLabel(item))
+        .accessibilityHint("탭하면 알림을 읽음 처리하고 관련 화면을 엽니다")
+        .accessibilityAddTraits(.isButton)
+    }
+
+    private func notificationAccessibilityLabel(_ item: NotificationItem) -> String {
+        let unread = item.isUnread ? "읽지 않은 알림" : "읽은 알림"
+        return "\(unread), \(item.body.plainText), \(item.relativeTime(now: now))"
     }
 
     private func avatar(_ item: NotificationItem) -> some View {
@@ -279,6 +288,7 @@ struct NotificationsInboxScreen: View {
                 Circle().strokeBorder(FMColors.Background.bg1, lineWidth: 2)
             }
             .offset(x: 4, y: 4)
+            .accessibilityHidden(true)
     }
 
     @ViewBuilder
@@ -552,6 +562,15 @@ struct AttributedSegments: Hashable {
     }
 
     let segments: [Segment]
+
+    var plainText: String {
+        segments.map { segment in
+            switch segment {
+            case .normal(let value), .strong(let value):
+                value
+            }
+        }.joined()
+    }
 }
 
 enum NotificationGroup: String, CaseIterable, Hashable {

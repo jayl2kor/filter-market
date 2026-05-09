@@ -540,6 +540,7 @@ private struct FeaturedCard: View {
         .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(data.title), \(data.makerName), 다운로드 \(formattedCount(data.downloadCount))")
+        .accessibilityHint("탭하면 필터 상세를 봅니다")
         .accessibilityAddTraits(.isButton)
     }
 
@@ -573,6 +574,7 @@ private struct CollectionCard: View {
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(FMColors.Text.tertiary)
+                .accessibilityHidden(true)
         }
         .padding(Sp.md)
         .frame(maxWidth: .infinity)
@@ -585,6 +587,7 @@ private struct CollectionCard: View {
         .shadow(color: Color.black.opacity(0.04), radius: 1, x: 0, y: 1)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(entry.title), \(entry.subtitle)")
+        .accessibilityHint("탭하면 컬렉션을 봅니다")
         .accessibilityAddTraits(.isButton)
     }
 

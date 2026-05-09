@@ -58,8 +58,23 @@ public struct FMFilterTile: View {
         content
             .aspectRatio(4.0 / 5.0, contentMode: .fit)
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(data.title), \(data.makerName), 다운로드 \(data.downloadCount)")
+            .accessibilityLabel(accessibilitySummary)
+            .accessibilityHint("탭하면 필터 상세를 봅니다")
             .accessibilityAddTraits(.isButton)
+    }
+
+    private var accessibilitySummary: String {
+        var parts = [
+            data.title,
+            data.makerName,
+            "다운로드 \(data.downloadCount)"
+        ]
+        if let priceLabel = data.priceLabel {
+            parts.append(priceLabel)
+        } else {
+            parts.append("무료")
+        }
+        return parts.joined(separator: ", ")
     }
 
     // MARK: - Subviews
