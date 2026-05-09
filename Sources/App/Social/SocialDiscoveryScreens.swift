@@ -1932,6 +1932,14 @@ private struct FollowListScreen: View {
 
     @MainActor
     private func toggleFollow(_ user: SocialUser) async {
+        #if DEBUG
+        if isUITesting {
+            guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
+            users[index].relationship = users[index].relationship.toggled
+            FMHaptic.selection.play()
+            return
+        }
+        #endif
         guard let actorUid = Auth.auth().currentUser?.uid, let targetUid = user.uid, actorUid != targetUid else {
             guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
             users[index].relationship = users[index].relationship.toggled
@@ -2554,6 +2562,16 @@ struct FollowingFeedScreen: View {
     }
 
     private func toggleLike(_ post: FollowingFeedPost) async {
+        #if DEBUG
+        if isUITesting {
+            if likedFilterIDs.contains(post.id) {
+                likedFilterIDs.remove(post.id)
+            } else {
+                likedFilterIDs.insert(post.id)
+            }
+            return
+        }
+        #endif
         guard let uid = Auth.auth().currentUser?.uid else {
             if likedFilterIDs.contains(post.id) {
                 likedFilterIDs.remove(post.id)
@@ -2587,6 +2605,12 @@ struct FollowingFeedScreen: View {
     }
 
     private func hidePost(_ post: FollowingFeedPost) async {
+        #if DEBUG
+        if isUITesting {
+            posts.removeAll { $0.id == post.id }
+            return
+        }
+        #endif
         guard let uid = Auth.auth().currentUser?.uid else {
             posts.removeAll { $0.id == post.id }
             return
@@ -2946,6 +2970,9 @@ private struct ForYouMaker: Identifiable {
 private struct FollowingFeedPost: Identifiable {
     let filter: Filter
     let caption: String?
+    let displayIntensity: Int
+    let baseLikeCount: Int
+    let baseReviewCount: Int
 
     var id: String { filter.id.uuidString }
     var authorName: String { filter.author.displayName }
@@ -2956,14 +2983,23 @@ private struct FollowingFeedPost: Identifiable {
     }
     var avatarColors: [Color] { [FMColors.Category.portrait, FMColors.Category.mood] }
     var time: String { filter.createdAt.map(Self.relativeTimeString) ?? "방금" }
-    var intensity: Int { 100 }
+    var intensity: Int { displayIntensity }
     var downloadCount: Int { filter.downloadCount > 0 ? filter.downloadCount : filter.useCount }
-    var likeCount: Int { 0 }
-    var reviewCount: Int { 0 }
+    var likeCount: Int { baseLikeCount }
+    var reviewCount: Int { baseReviewCount }
 
-    init(filter: Filter, caption: String? = nil) {
+    init(
+        filter: Filter,
+        caption: String? = nil,
+        intensity: Int = 100,
+        likeCount: Int = 0,
+        reviewCount: Int = 0
+    ) {
         self.filter = filter
         self.caption = caption
+        self.displayIntensity = intensity
+        self.baseLikeCount = likeCount
+        self.baseReviewCount = reviewCount
     }
 
     private static func relativeTimeString(_ date: Date) -> String {
@@ -3028,8 +3064,14 @@ private struct SocialPost: Identifiable {
 private extension SocialPost {
     @MainActor
     func toFollowingFeedPost(store: MooditStore) -> FollowingFeedPost? {
-        if let existing = store.filter(matching: filterName) {
-            return FollowingFeedPost(filter: existing, caption: caption)
+        if let existing = store.filters.first(where: { $0.title.socialMockLookupKey == filterName.socialMockLookupKey }) {
+            return FollowingFeedPost(
+                filter: existing,
+                caption: caption,
+                intensity: intensity,
+                likeCount: likeCount,
+                reviewCount: reviewCount
+            )
         }
         let fallbackFilter = Filter(
             id: UUID(),
@@ -3048,6 +3090,22 @@ private extension SocialPost {
             downloadCount: downloadCount,
             tags: []
         )
-        return FollowingFeedPost(filter: fallbackFilter, caption: caption)
+        return FollowingFeedPost(
+            filter: fallbackFilter,
+            caption: caption,
+            intensity: intensity,
+            likeCount: likeCount,
+            reviewCount: reviewCount
+        )
+    }
+}
+
+private extension String {
+    var socialMockLookupKey: String {
+        lowercased()
+            .replacingOccurrences(of: "@", with: "")
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

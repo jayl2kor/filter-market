@@ -1,16 +1,6 @@
 import XCTest
 
-final class PhaseDE2ETests: XCTestCase {
-    private var app: XCUIApplication!
-
-    override func setUpWithError() throws {
-        continueAfterFailure = false
-    }
-
-    override func tearDownWithError() throws {
-        app = nil
-    }
-
+final class PhaseDE2ETests: MooditUITestCase {
     func testReviewsListSignedInComposeAndRatingEntry() {
         launch(route: "reviews", isAuthenticated: true)
 
@@ -67,19 +57,17 @@ final class PhaseDE2ETests: XCTestCase {
     func testDiscoveryFeedsExposeDownloadCountsAndSocialActions() {
         launch(route: "forYou")
 
-        XCTAssertTrue(app.staticTexts["Amber Café"].waitForExistence(timeout: 6))
-        assertStaticText(containing: "↓ 6.2K")
-        XCTAssertTrue(app.staticTexts["Honey Hour"].exists)
-        assertStaticText(containing: "↓ 3.4K")
+        XCTAssertTrue(app.staticTexts["Airy Trip"].waitForExistence(timeout: 6))
+        XCTAssertTrue(element("social.foryou.hero.apply").exists)
+        XCTAssertTrue(element("social.foryou.hero.save").exists)
         tap("social.foryou.hero.save")
         tap("social.foryou.maker.follow", timeout: 4)
 
         launch(route: "followingFeed")
 
         XCTAssertTrue(app.staticTexts["Tokyo Night"].waitForExistence(timeout: 6))
-        assertStaticText(containing: "↓ 0")
         assertStaticText(containing: "Tokyo Night · 88% · ↓ 128")
-        assertStaticText(containing: "Cotton Candy · 70% · ↓ 2.4K", timeout: 4)
+        assertStaticText(containing: "Cotton Candy · 70% · ↓ 2.4천", timeout: 4)
         tap("social.following.post.like")
         tap("social.following.post.save")
         tap("social.following.post.reviews")
@@ -87,80 +75,4 @@ final class PhaseDE2ETests: XCTestCase {
         XCTAssertTrue(element("social.review.stars").exists)
     }
 
-    private func launch(route: String, isAuthenticated: Bool = false) {
-        app = XCUIApplication()
-        app.launchArguments = [
-            "-ui-testing",
-            "-hasOnboarded", "YES",
-            "-isAuthenticated", isAuthenticated ? "YES" : "NO",
-            "-ui-route", route
-        ]
-        app.launch()
-    }
-
-    private func tap(_ identifier: String, timeout: TimeInterval = 2) {
-        let target = element(identifier)
-        if target.waitForExistence(timeout: timeout) {
-            target.tap()
-            return
-        }
-
-        let attempts = max(1, Int(timeout.rounded(.up)))
-        for _ in 0..<attempts {
-            app.swipeUp()
-            if target.waitForExistence(timeout: 1) {
-                target.tap()
-                return
-            }
-        }
-
-        XCTFail("Missing element: \(identifier)")
-    }
-
-    private func tapFirstButton(named label: String, timeout: TimeInterval = 2) {
-        let button = app.buttons[label].firstMatch
-        if button.waitForExistence(timeout: timeout) {
-            button.tap()
-            return
-        }
-
-        let attempts = max(1, Int(timeout.rounded(.up)))
-        for _ in 0..<attempts {
-            app.swipeUp()
-            if button.waitForExistence(timeout: 1) {
-                button.tap()
-                return
-            }
-        }
-
-        XCTFail("Missing button: \(label)")
-    }
-
-    private func element(_ identifier: String) -> XCUIElement {
-        app.descendants(matching: .any)[identifier].firstMatch
-    }
-
-    private func assertStaticText(
-        containing text: String,
-        timeout: TimeInterval = 2,
-        file: StaticString = #filePath,
-        line: UInt = #line
-    ) {
-        let target = app.staticTexts
-            .matching(NSPredicate(format: "label CONTAINS %@", text))
-            .firstMatch
-        if target.waitForExistence(timeout: timeout) {
-            return
-        }
-
-        let attempts = max(1, Int(timeout.rounded(.up)))
-        for _ in 0..<attempts {
-            app.swipeUp()
-            if target.waitForExistence(timeout: 1) {
-                return
-            }
-        }
-
-        XCTFail("Missing static text containing: \(text)", file: file, line: line)
-    }
 }

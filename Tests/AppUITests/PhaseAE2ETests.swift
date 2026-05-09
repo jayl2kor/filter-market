@@ -1,16 +1,6 @@
 import XCTest
 
-final class PhaseAE2ETests: XCTestCase {
-    private var app: XCUIApplication!
-
-    override func setUpWithError() throws {
-        continueAfterFailure = false
-    }
-
-    override func tearDownWithError() throws {
-        app = nil
-    }
-
+final class PhaseAE2ETests: MooditUITestCase {
     func testMarketplaceDownloadApplyCameraLoop() {
         launch()
 
@@ -98,19 +88,17 @@ final class PhaseAE2ETests: XCTestCase {
     /// destination sheet surfaces. Mirrors what happens for real users on
     /// `.onOpenURL` or a tapped FCM notification.
     func testDeepLinkURLRoutesToFilterDetail() {
-        launch(deepLink: "moodit://filter/Sunset 1973")
+        launch(deepLink: "moodit://filter/Teal%20Story")
 
-        // FilterDetail renders the title as static text; the mock fallback
-        // returns the "Sunset 1973" preview detail when the slug doesn't match
-        // a seeded tile.
+        // FilterDetail renders the title as static text once the route slug is decoded.
         XCTAssertTrue(
-            app.staticTexts["Sunset 1973"].waitForExistence(timeout: 8),
+            app.staticTexts["Teal Story"].waitForExistence(timeout: 8),
             "Deep link should surface the FilterDetail sheet"
         )
     }
 
     func testDeepLinkURLRoutesToReviewsList() {
-        launch(deepLink: "moodit://reviews/Sunset 1973")
+        launch(deepLink: "moodit://reviews/Sunset%201973")
 
         XCTAssertTrue(
             element("social.reviews.filter").waitForExistence(timeout: 8),
@@ -119,7 +107,7 @@ final class PhaseAE2ETests: XCTestCase {
     }
 
     func testDeepLinkURLRoutesToNotifications() {
-        launch(deepLink: "moodit://notifications")
+        launch(isAuthenticated: true, deepLink: "moodit://notifications")
 
         // NotificationsInbox uses the `notif.cat.all` chip; presence of any
         // category chip confirms the screen mounted.
@@ -140,66 +128,4 @@ final class PhaseAE2ETests: XCTestCase {
         )
     }
 
-    private func launch(route: String? = nil, deepLink: String? = nil) {
-        app = XCUIApplication()
-        app.launchArguments = ["-ui-testing", "-hasOnboarded", "YES"]
-        if let route {
-            app.launchArguments += ["-ui-route", route]
-        }
-        if let deepLink {
-            app.launchArguments += ["-deepLink", deepLink]
-        }
-        app.launch()
-        addUIInterruptionMonitor(withDescription: "System permissions") { alert in
-            let allowLabels = ["Allow", "허용", "OK", "확인"]
-            for label in allowLabels where alert.buttons[label].exists {
-                alert.buttons[label].tap()
-                return true
-            }
-            return false
-        }
-    }
-
-    private func tap(_ identifier: String, timeout: TimeInterval = 2) {
-        let button = app.buttons[identifier]
-        if button.waitForExistence(timeout: min(1, timeout)) {
-            button.tap()
-            return
-        }
-
-        let target = element(identifier)
-        if target.waitForExistence(timeout: 0.1) {
-            target.tap()
-            return
-        }
-
-        let attempts = max(1, Int(timeout.rounded(.up)))
-        for _ in 0..<attempts {
-            app.swipeUp()
-            if target.waitForExistence(timeout: 1) {
-                if button.exists {
-                    button.tap()
-                } else {
-                    target.tap()
-                }
-                return
-            }
-        }
-
-        XCTFail("Missing element: \(identifier)")
-    }
-
-    private func element(_ identifier: String) -> XCUIElement {
-        app.descendants(matching: .any)[identifier]
-    }
-
-    private func firstElement(withIdentifierPrefix prefix: String) -> XCUIElement {
-        app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier BEGINSWITH %@", prefix))
-            .firstMatch
-    }
-
-    private func acknowledgeSystemPermissionIfNeeded() {
-        app.tap()
-    }
 }

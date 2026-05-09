@@ -535,7 +535,7 @@ graph TD
 
 | Action ID | Label | Type | Target |
 |---|---|---|---|
-| `report.filterId` | 필터 ID | mutate-state | — |
+| `report.target` | 신고 대상 | read-only | — |
 | `report.reason` | 신고 사유 | mutate-state | — |
 | `report.detail` | 상세 설명 | mutate-state | — |
 | `report.submit` | 신고 제출 | dismiss + present-alert | "감사합니다" |

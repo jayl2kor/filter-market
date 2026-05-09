@@ -14,6 +14,15 @@ final class UniversalLinkParserTests: XCTestCase {
         XCTAssertEqual(id, "sunset-1973")
     }
 
+    func testDecodesPercentEncodedCustomSchemePath() {
+        let url = URL(string: "moodit://filter/Teal%20Story")!
+        let route = UniversalLinkParser.route(for: url)
+        guard case .filterDetail(let id) = route else {
+            return XCTFail("Expected filterDetail, got \(String(describing: route))")
+        }
+        XCTAssertEqual(id, "Teal Story")
+    }
+
     func testParsesReviewsFromCustomScheme() {
         let url = URL(string: "moodit://reviews/sunset-1973")!
         guard case .reviews(let filterId) = UniversalLinkParser.route(for: url) else {

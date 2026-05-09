@@ -48,13 +48,13 @@ enum UniversalLinkParser {
         switch host {
         case "filter":
             guard let slug = pathParts.first, !slug.isEmpty else { return nil }
-            return .filterDetail(id: slug)
+            return .filterDetail(id: slug.removingPercentEncoding ?? slug)
         case "reviews":
             guard let slug = pathParts.first, !slug.isEmpty else { return nil }
-            return .reviews(filterId: slug)
+            return .reviews(filterId: slug.removingPercentEncoding ?? slug)
         case "maker":
             guard let handle = pathParts.first, !handle.isEmpty else { return nil }
-            return .otherProfileHandle(handle: handle)
+            return .otherProfileHandle(handle: handle.removingPercentEncoding ?? handle)
         case "search":
             return searchRoute(from: url)
         case "notifications":
@@ -70,13 +70,13 @@ enum UniversalLinkParser {
         switch first {
         case "f":
             guard let slug = pathParts.dropFirst().first, !slug.isEmpty else { return nil }
-            return .filterDetail(id: slug)
+            return .filterDetail(id: slug.removingPercentEncoding ?? slug)
         case "r":
             guard let slug = pathParts.dropFirst().first, !slug.isEmpty else { return nil }
-            return .reviews(filterId: slug)
+            return .reviews(filterId: slug.removingPercentEncoding ?? slug)
         case "u":
             guard let handle = pathParts.dropFirst().first, !handle.isEmpty else { return nil }
-            return .otherProfileHandle(handle: handle)
+            return .otherProfileHandle(handle: handle.removingPercentEncoding ?? handle)
         case "search":
             return searchRoute(from: url)
         case "notifications":

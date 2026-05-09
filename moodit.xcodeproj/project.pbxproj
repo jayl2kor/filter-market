@@ -88,6 +88,7 @@
 		66A4B1B3373517F5D1EB4E4E /* UniversalLinkParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3297A0A1E3883E05162166A /* UniversalLinkParserTests.swift */; };
 		6839CC2151EBE1198E8657CB /* OnboardingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C206A2EEFDD812773224DCCA /* OnboardingScreen.swift */; };
 		68A750FF2569385DF2C304AE /* ActionSurfaceSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5215E14B3EB3B24446F242DE /* ActionSurfaceSmokeTests.swift */; };
+		A1840001A1840001A1840001 /* XCUIApplication+Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1840000A1840000A1840000 /* XCUIApplication+Helpers.swift */; };
 		69D331B886A65A8C396DD3E4 /* CubeLUTWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4479A775C21420F23475690E /* CubeLUTWriter.swift */; };
 		6B2AB1CD1242ECE4D89F6A68 /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8449417A7F6187C265EC312F /* SafariView.swift */; };
 		6B53D175FFABD0C3BDC39675 /* CameraFocusPointTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CABA210AB5ED4B2D1EEF02ED /* CameraFocusPointTests.swift */; };
@@ -129,6 +130,9 @@
 		961ABCB37D04DAAE1F581E72 /* LUTSamplerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49CE763E3DE75A81BBBA35B /* LUTSamplerTests.swift */; };
 		9958D4572EDCEF827C6DBB2C /* Models.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 17B1469C92033DB00AD14607 /* Models.framework */; };
 		9E4321FB8333C902B57E641F /* FMStateViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54FF1EF5F211CEFF7C33C325 /* FMStateViews.swift */; };
+		A1841001A1841001A1841001 /* WorkflowHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1841000A1841000A1841000 /* WorkflowHelpers.swift */; };
+		A1841003A1841003A1841003 /* WorkflowFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1841002A1841002A1841002 /* WorkflowFormatters.swift */; };
+		A1841005A1841005A1841005 /* EditorAssets.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1841004A1841004A1841004 /* EditorAssets.swift */; };
 		9E741D7E42757E5EC2821E84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A5351CED6F1DF3CD977446C4 /* Assets.xcassets */; };
 		9F86C29BA2A7D32C3C4EB4D9 /* FirestoreFilterRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D6F0C2A387F95021D67B35 /* FirestoreFilterRepository.swift */; };
 		A0E6E49719D0A6D7A9C38C55 /* NumberFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E6E49619D0A6D7A9C38C55 /* NumberFormatting.swift */; };
@@ -470,6 +474,7 @@
 		4EEC78598BE99A55639D3D0C /* FMShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMShareSheet.swift; sourceTree = "<group>"; };
 		51BABF7665EEE2454036ED73 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
 		5215E14B3EB3B24446F242DE /* ActionSurfaceSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionSurfaceSmokeTests.swift; sourceTree = "<group>"; };
+		A1840000A1840000A1840000 /* XCUIApplication+Helpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCUIApplication+Helpers.swift"; sourceTree = "<group>"; };
 		54FF1EF5F211CEFF7C33C325 /* FMStateViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMStateViews.swift; sourceTree = "<group>"; };
 		55E2E24B6C4331B4623F6E78 /* EmailLoginScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailLoginScreen.swift; sourceTree = "<group>"; };
 		55E4166718CCDBCEA85DADDC /* Storage.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Storage.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -560,6 +565,9 @@
 		D55C2B994FDDD188F2E7AC4F /* ReviewStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewStoreTests.swift; sourceTree = "<group>"; };
 		D71D1E904D3ED77082B0D87B /* PhotoLibrarySaverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibrarySaverTests.swift; sourceTree = "<group>"; };
 		D9A8691D508900487D769105 /* DocumentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPicker.swift; sourceTree = "<group>"; };
+		A1841000A1841000A1841000 /* WorkflowHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowHelpers.swift; sourceTree = "<group>"; };
+		A1841002A1841002A1841002 /* WorkflowFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowFormatters.swift; sourceTree = "<group>"; };
+		A1841004A1841004A1841004 /* EditorAssets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorAssets.swift; sourceTree = "<group>"; };
 		DB733F6CAB461FE90147DBD6 /* MooditApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditApp.swift; sourceTree = "<group>"; };
 		DCF82BA88FE8A0FCB5612ACD /* ReduceMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReduceMotion.swift; sourceTree = "<group>"; };
 		DCFD3ADD882050868B6A4166 /* AppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -695,6 +703,7 @@
 				02E26598FAA2FF4EE515FE88 /* Collections */,
 				A4F43DB05D482C6A5FB93770 /* Components */,
 				4A3938BC29E90908A2396257 /* Login */,
+				A1841006A1841006A1841006 /* Maker */,
 				A660DB695F311617AC6E978B /* Marketplace */,
 				B7E3A195B89326D1131568BC /* Moderation */,
 				06431724D69890BA12C2EAE7 /* Notifications */,
@@ -891,6 +900,7 @@
 				F955DDCB3AB6FF6DF562DEEB /* P0CoreActionTests.swift */,
 				031240A7C4FF22A39D812901 /* PhaseAE2ETests.swift */,
 				C2AB334B67D4E8AF48CFE47A /* PhaseDE2ETests.swift */,
+				A1840000A1840000A1840000 /* XCUIApplication+Helpers.swift */,
 			);
 			name = AppUITests;
 			path = Tests/AppUITests;
@@ -979,8 +989,18 @@
 				8449417A7F6187C265EC312F /* SafariView.swift */,
 				EDDC44D1B0AC277DE3702EB6 /* ShareSheet.swift */,
 				B19DD5AAC14A1F95C5C8F00F /* UITestingFlag.swift */,
+				A1841002A1841002A1841002 /* WorkflowFormatters.swift */,
+				A1841000A1841000A1841000 /* WorkflowHelpers.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		A1841006A1841006A1841006 /* Maker */ = {
+			isa = PBXGroup;
+			children = (
+				A1841004A1841004A1841004 /* EditorAssets.swift */,
+			);
+			path = Maker;
 			sourceTree = "<group>";
 		};
 		A50933A6E720A6F5A2AC6138 /* Products */ = {
@@ -1692,6 +1712,7 @@
 				F95F458D04B29B44227F86EC /* CapturePreviewScreen.swift in Sources */,
 				328DBE45D7E28194B6C3008E /* DeepLinkDestination.swift in Sources */,
 				3C88C368561FCC7244D72012 /* DocumentPicker.swift in Sources */,
+				A1841005A1841005A1841005 /* EditorAssets.swift in Sources */,
 				D06642B60C0907C0DC558D7F /* EmailLoginScreen.swift in Sources */,
 				B6B51C13A41C8CEE2FBEDA74 /* FavoritesCollectionScreen.swift in Sources */,
 				019F4D27F33F709256F90E13 /* FilterDetailLoaderScreen.swift in Sources */,
@@ -1734,6 +1755,8 @@
 				DD9E7C1FCBD83D80D21EDAC3 /* UITestingFlag.swift in Sources */,
 				82FAE0D69D2C7240027DD8B5 /* UniversalLinkParser.swift in Sources */,
 				ABAF746CA4063BD52ED5C991 /* WalletLedger.swift in Sources */,
+				A1841003A1841003A1841003 /* WorkflowFormatters.swift in Sources */,
+				A1841001A1841001A1841001 /* WorkflowHelpers.swift in Sources */,
 				B148ABD74D88ACC39F803CE3 /* WorkflowScreens.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1843,6 +1866,7 @@
 				29D8ACDB88DB6E0FB5C6CA1A /* P0CoreActionTests.swift in Sources */,
 				90AF110E28F18A7A8128FE77 /* PhaseAE2ETests.swift in Sources */,
 				D0EA17DBE0352ACC8D76E23C /* PhaseDE2ETests.swift in Sources */,
+				A1840001A1840001A1840001 /* XCUIApplication+Helpers.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

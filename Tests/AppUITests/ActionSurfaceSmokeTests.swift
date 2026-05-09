@@ -1,17 +1,7 @@
 import XCTest
 
 @MainActor
-final class ActionSurfaceSmokeTests: XCTestCase {
-    private var app: XCUIApplication!
-
-    override func setUpWithError() throws {
-        continueAfterFailure = false
-    }
-
-    override func tearDownWithError() throws {
-        app = nil
-    }
-
+final class ActionSurfaceSmokeTests: MooditUITestCase {
     func testMakerEditorAndUploadSurfaces() {
         assertRoute("editor", exposes: [
             "editor.preview",
@@ -106,7 +96,7 @@ final class ActionSurfaceSmokeTests: XCTestCase {
         ])
 
         assertRoute("reportForm", exposes: [
-            "report.filterId",
+            "report.target",
             "report.reason",
             "report.detail",
             "report.submit"
@@ -137,7 +127,7 @@ final class ActionSurfaceSmokeTests: XCTestCase {
             "mod.rejected.detail",
             "mod.rejected.support",
             "mod.rejected.appeal",
-            "mod.rejected.cancel",
+            "mod.rejected.delete",
             "mod.rejected.edit"
         ])
     }
@@ -333,57 +323,9 @@ final class ActionSurfaceSmokeTests: XCTestCase {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        launch(route: route)
+        launch(route: route, isAuthenticated: true)
         for identifier in identifiers {
             assertExists(identifier, route: route, file: file, line: line)
         }
-    }
-
-    private func launch(route: String) {
-        app = XCUIApplication()
-        app.launchArguments = [
-            "-ui-testing",
-            "-hasOnboarded", "YES",
-            "-isAuthenticated", "YES",
-            "-ui-route", route
-        ]
-        app.launch()
-    }
-
-    private func assertExists(
-        _ identifier: String,
-        route: String,
-        timeout: TimeInterval = 4,
-        file: StaticString = #filePath,
-        line: UInt = #line
-    ) {
-        if element(identifier).waitForExistence(timeout: timeout) {
-            return
-        }
-
-        for _ in 0..<6 {
-            app.swipeUp()
-            if element(identifier).waitForExistence(timeout: 1) {
-                return
-            }
-        }
-
-        for _ in 0..<6 {
-            app.swipeDown()
-            if element(identifier).waitForExistence(timeout: 1) {
-                return
-            }
-        }
-
-        XCTAssertTrue(
-            element(identifier).exists,
-            "Missing element: \(identifier) on route: \(route)",
-            file: file,
-            line: line
-        )
-    }
-
-    private func element(_ identifier: String) -> XCUIElement {
-        app.descendants(matching: .any)[identifier].firstMatch
     }
 }

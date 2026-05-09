@@ -16,6 +16,8 @@
 | 누락된 액션/화면 selector 보정 | `ActionSurfaceSmokeTests`, `P0CoreActionTests`와 관련 SwiftUI accessibility ID 보강 | Done |
 | 실패한 automated QA 수정 | paywall UI-test Firebase 호출 우회, filter download cancel, help center/capture preview/permission route 보강 | Done |
 | 화면/핵심 액션 텔레메트리 | `Telemetry.fmTrackScreen` modifier가 root tab, camera cover, 모든 `AppRoute` destination의 진입/이탈 duration을 기록. Marketplace/Search/FilterDetail/Camera 핵심 funnel/action/empty/error/refresh 이벤트 추가 | Done |
+| UI Test helper consolidation | `MooditUITestCase` 공통 launch/tap/assert/helper를 추가하고 `ActionSurfaceSmokeTests`, `PhaseAE2ETests`, `PhaseDE2ETests`, `P0CoreActionTests`의 중복 헬퍼를 제거 | Done |
+| Workflow helper extraction | `WorkflowScreens.swift`의 공용 workflow UI/formatter/editor asset helper를 `WorkflowHelpers.swift`, `WorkflowFormatters.swift`, `EditorAssets.swift`로 분리하고 UI-test 전용 분기를 `#if DEBUG`로 제한 | Done |
 | 실기기/외부 서비스 QA | Apple/Google Sign-In, StoreKit sandbox, 실제 카메라 촬영/저장/공유, APNs/FCM push, App Settings deep link | Blocked |
 
 ## Automated Verification
@@ -68,6 +70,8 @@
 | 2026-05-09 | `npm --prefix functions run build` + `node --test functions/test/identity.test.mjs` | PASS, 17 identity tests after `profileAvatarUploadInit` and profile avatar URL/object-key validation (#183) |
 | 2026-05-09 | `npm --prefix functions test` | PASS, 85 tests after profile avatar upload contract was added (#183) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after profile avatar R2 upload and `avatarURL` rendering wiring (#183) |
+| 2026-05-09 | `xcodebuild ... -only-testing:AppUITests/ActionSurfaceSmokeTests -only-testing:AppUITests/PhaseAE2ETests -only-testing:AppUITests/PhaseDE2ETests -only-testing:AppUITests/P0CoreActionTests` | PASS, 32 AppUITests after UI test helper consolidation and action contract refresh (#184) |
+| 2026-05-09 | `xcodebuild ... -only-testing:AppTests/UniversalLinkParserTests` | PASS, 21 tests after percent-encoded route slug coverage (#184) |
 | 2026-05-09 | `npm --prefix functions test` | PASS, 93 tests after idempotency cache implementation, Apple cert timeout coverage, and paid filter entitlement/Pro gating in `getFilterDetail` (#182) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after #162 screen/action telemetry wiring |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/TelemetryTests test` | PASS, 3 tests after #162 telemetry parameter sanitizer coverage |

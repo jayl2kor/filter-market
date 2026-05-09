@@ -117,7 +117,7 @@ QA 중 새 버튼을 발견하면 아래 중 하나로 처리한다.
 |---|---|---|---|---|
 | `mod.queue` | `AppRoute.modQueue` | `ModerationQueueScreen` | Implemented, NeedsFirebaseQA | `modqueue.empty`, `mod.queue.filter.tap`, `mod.queue.row` |
 | `mod.detail` | `AppRoute.modDetail(id:)` | `ModerationDetailScreen` | Implemented, NeedsFirebaseQA | filter metadata/preview, `modDetail.approve`, `modDetail.reason`, `modDetail.reject`, `modDetail.undo`, `mod.detail.takedown` |
-| `mod.rejected` | `AppRoute.filterRejected(id:)` | `FilterRejectedScreen` | Implemented | `mod.rejected.review`, `mod.rejected.detail`, `mod.rejected.support`, `mod.rejected.appeal`, `mod.rejected.cancel`, `mod.rejected.edit` |
+| `mod.rejected` | `AppRoute.filterRejected(id:)` | `FilterRejectedScreen` | Implemented | `mod.rejected.review`, `mod.rejected.detail`, `mod.rejected.support`, `mod.rejected.appeal`, `mod.rejected.delete`, `mod.rejected.edit` |
 
 ### 4.7 Wallet / Payment / Pro
 
@@ -270,6 +270,7 @@ QA를 시작하기 전 반드시 아래 순서로 정의를 고정한다.
 | 2026-05-08 | `PhaseAE2ETests` | Marketplace download/apply/camera, camera HUD, built-in filters, photo edit, deep links |
 | 2026-05-08 | `PhaseDE2ETests` | Reviews, rating, guest auth gate, follow lists, For You/following feed social actions |
 | 2026-05-09 | `ActionSurfaceSmokeTests` | Maker/editor/upload including reference photo preview and signature sample controls, account/data rights, notifications, reports, collections, moderation, wallet/commerce, wallet transactions/order/refund, Pro plan/invoice, payout placeholders, search, filter detail sample gallery/download/paywall/after-download, universal link landing, edit profile, help center, capture preview, permission priming/denied action contracts |
+| 2026-05-09 | `MooditUITestCase` shared helper | Consolidated launch/tap/assert/system-permission helpers used by ActionSurface, Phase A/D, and P0 UI tests |
 
 ## 9.2 Latest Verification
 
@@ -296,6 +297,7 @@ QA를 시작하기 전 반드시 아래 순서로 정의를 고정한다.
 | 2026-05-09 | `xcodebuild ... -only-testing:FilterEngineTests/PhotoFilterRendererTests` | PASS, editor reference preview renderer regression, xcresult `Test-moodit-2026.05.09_03-12-31-+0900.xcresult` |
 | 2026-05-09 | `xcodebuild ... -only-testing:ModelsTests/FilterManifestTests` | PASS, `signatureSampleURL` decode coverage, xcresult `Test-moodit-2026.05.09_03-27-46-+0900.xcresult` |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppUITests/ActionSurfaceSmokeTests/testMakerEditorAndUploadSurfaces -only-testing:AppUITests/ActionSurfaceSmokeTests/testMarketplaceSupportPermissionAndPreviewSurfaces` | PASS, editor reference controls, upload signature controls, detail sample gallery, xcresult `Test-moodit-2026.05.09_03-29-09-+0900.xcresult` |
+| 2026-05-09 | `xcodebuild ... -only-testing:AppUITests/ActionSurfaceSmokeTests -only-testing:AppUITests/PhaseAE2ETests -only-testing:AppUITests/PhaseDE2ETests -only-testing:AppUITests/P0CoreActionTests` | PASS, 32 tests after shared UI test helper consolidation |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after #55/#57 |
 | 2026-05-09 | `npm run build` in `functions` + `node --test test/getFilterDetail.test.mjs` | PASS, Cloud Function detail response includes `signatureSampleURL` |
 | 2026-05-09 | `npm --prefix functions test` | PASS after filter detail metadata expansion, 57 tests |

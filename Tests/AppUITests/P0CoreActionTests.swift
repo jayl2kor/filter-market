@@ -1,17 +1,7 @@
 import XCTest
 
 @MainActor
-final class P0CoreActionTests: XCTestCase {
-    private var app: XCUIApplication!
-
-    override func setUpWithError() throws {
-        continueAfterFailure = false
-    }
-
-    override func tearDownWithError() throws {
-        app = nil
-    }
-
+final class P0CoreActionTests: MooditUITestCase {
     func testLoginContract() {
         launch(route: "login")
 
@@ -152,66 +142,4 @@ final class P0CoreActionTests: XCTestCase {
         assertExists("help.faq.coin", timeout: 4)
     }
 
-    private func launch(route: String? = nil, isAuthenticated: Bool = false) {
-        app = XCUIApplication()
-        app.launchArguments = [
-            "-ui-testing",
-            "-hasOnboarded", "YES",
-            "-isAuthenticated", isAuthenticated ? "YES" : "NO"
-        ]
-        if let route {
-            app.launchArguments += ["-ui-route", route]
-        }
-        app.launch()
-    }
-
-    private func tap(_ identifier: String, timeout: TimeInterval = 2) {
-        let target = element(identifier)
-        if target.waitForExistence(timeout: timeout) {
-            target.tap()
-            return
-        }
-
-        let attempts = max(1, Int(timeout.rounded(.up)))
-        for _ in 0..<attempts {
-            app.swipeUp()
-            if target.waitForExistence(timeout: 1) {
-                target.tap()
-                return
-            }
-        }
-
-        XCTFail("Missing element: \(identifier)")
-    }
-
-    private func assertExists(
-        _ identifier: String,
-        timeout: TimeInterval = 2,
-        file: StaticString = #filePath,
-        line: UInt = #line
-    ) {
-        let target = element(identifier)
-        if target.waitForExistence(timeout: timeout) {
-            return
-        }
-
-        let attempts = max(1, Int(timeout.rounded(.up)))
-        for _ in 0..<attempts {
-            app.swipeUp()
-            if target.waitForExistence(timeout: 1) {
-                return
-            }
-        }
-
-        XCTAssertTrue(
-            target.exists,
-            "Missing element: \(identifier)",
-            file: file,
-            line: line
-        )
-    }
-
-    private func element(_ identifier: String) -> XCUIElement {
-        app.descendants(matching: .any)[identifier].firstMatch
-    }
 }
