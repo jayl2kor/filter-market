@@ -149,6 +149,18 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 3.12.1 | Text tokens | `primary` 4.5:1 이상, `secondary`/`tertiary` 3.0:1 이상을 `bg0`~`bg3` light/dark에서 검증 |  |
 | 3.12.2 | Accent/Semantic tokens | `accent.primary` 3.0:1 이상, `success`/`warning`/`error`/`info` 4.5:1 이상을 `bg0`/`bg2` light/dark에서 검증 |  |
 
+## 3.13 System Image Accessibility
+
+**자동 검증**: `AppTests/SystemImageAccessibilityAuditTests`는 `Sources/App`, `Sources/DesignSystem`의 `Image(systemName:)` 호출 수가 [SYSTEM_IMAGE_A11Y_AUDIT.md](./SYSTEM_IMAGE_A11Y_AUDIT.md)의 현재 감사 수량과 일치하는지 확인한다.
+
+| # | Icon group | Coverage | PASS/FAIL |
+|---|------------|----------|-----------|
+| 3.13.1 | Standalone toolbar/icon buttons | Marketplace notification, profile settings/share, filter detail back/share/like 등이 명확한 VoiceOver label/value를 제공 |  |
+| 3.13.2 | Parent-labeled icon controls | 텍스트가 있는 Button/NavigationLink 아이콘은 중복 SF Symbol 이름을 읽지 않고 부모 라벨만 읽힘 |  |
+| 3.13.3 | Status/rating icons | 별점, verified badge, wallet ledger, rejection reason row가 row/card의 결합된 의미로 읽힘 |  |
+| 3.13.4 | Decorative/illustrative icons | empty state, placeholder, preview ornament 아이콘은 VoiceOver 탐색 대상에서 제외되거나 부모 surface에 포함 |  |
+| 3.13.5 | DesignSystem primitives | FMButton, FMTextField, FMTabBar, FMToast, FMAvatar icon semantics가 컴포넌트 단위 계약을 유지 |  |
+
 ---
 
 ## 4. Marketplace (루트 탭)
