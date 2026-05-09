@@ -3988,22 +3988,19 @@ struct ModerationDetailScreen: View {
 
     private func moderationPreviewTile(title: String, url: URL?, fallbackTitle: String, category: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            ZStack {
-                if let url {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image.resizable().scaledToFill()
-                        default:
-                            FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: fallbackTitle, category: category))
-                        }
+            FMRemoteImage(
+                url: url,
+                cornerRadius: R.md,
+                placeholder: {
+                    GeometryReader { proxy in
+                        FMSkeleton.rect(height: proxy.size.height, cornerRadius: R.md)
                     }
-                } else {
+                },
+                failure: {
                     FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: fallbackTitle, category: category))
                 }
-            }
+            )
             .frame(height: 120)
-            .clipShape(RoundedRectangle(cornerRadius: R.md))
             .overlay {
                 RoundedRectangle(cornerRadius: R.md)
                     .strokeBorder(FMColors.Border.subtle, lineWidth: 1)

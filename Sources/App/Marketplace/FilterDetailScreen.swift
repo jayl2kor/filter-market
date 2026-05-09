@@ -203,22 +203,20 @@ struct FilterDetailScreen: View {
 
     @ViewBuilder
     private var beforeHeroLayer: some View {
-        if let url = mock.signatureSampleURL ?? mock.coverURL {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .overlay {
-                            Color.black.opacity(0.18)
-                        }
-                default:
-                    placeholderHeroLayer
-                }
+        let url = mock.signatureSampleURL ?? mock.coverURL
+        FMRemoteImage(
+            url: url,
+            placeholder: {
+                placeholderHeroLayer
+            },
+            failure: {
+                placeholderHeroLayer
             }
-        } else {
-            placeholderHeroLayer
+        )
+        .overlay {
+            if url != nil {
+                Color.black.opacity(0.18)
+            }
         }
     }
 
@@ -780,18 +778,17 @@ private struct SignatureSampleTile: View {
     let categoryHint: Color
 
     var body: some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .success(let image):
-                image
-                    .resizable()
-                    .scaledToFill()
-            default:
+        FMRemoteImage(
+            url: url,
+            cornerRadius: R.md,
+            placeholder: {
+                samplePlaceholder
+            },
+            failure: {
                 samplePlaceholder
             }
-        }
+        )
         .frame(width: 172, height: 220)
-        .clipShape(RoundedRectangle(cornerRadius: R.md))
         .overlay(alignment: .topLeading) {
             sampleBadge("SIGNATURE")
                 .padding(Sp.xs)

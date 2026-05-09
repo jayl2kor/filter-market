@@ -88,20 +88,15 @@ public struct FMAvatar: View {
                 .resizable()
                 .scaledToFill()
         case .url(let url):
-            if let url {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    case .failure, .empty:
-                        fallbackContent
-                    @unknown default:
-                        fallbackContent
-                    }
+            FMRemoteImage(
+                url: url,
+                placeholder: {
+                    FMSkeleton.circle(diameter: size.diameter)
+                },
+                failure: {
+                    fallbackContent
                 }
-            } else {
-                fallbackContent
-            }
+            )
         case .initials(let text):
             initialsContent(text)
         case .symbol(let name):

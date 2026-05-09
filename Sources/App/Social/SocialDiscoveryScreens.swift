@@ -282,18 +282,16 @@ struct ReviewsListScreen: View {
 
     @ViewBuilder
     private var filterMiniCover: some View {
-        if let coverURL = filterSummary.coverURL {
-            AsyncImage(url: coverURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                default:
-                    filterMiniPlaceholder
-                }
+        FMRemoteImage(
+            url: filterSummary.coverURL,
+            cornerRadius: R.sm,
+            placeholder: {
+                FMSkeleton.rect(height: 36, cornerRadius: R.sm)
+            },
+            failure: {
+                filterMiniPlaceholder
             }
-        } else {
-            filterMiniPlaceholder
-        }
+        )
     }
 
     private var filterMiniPlaceholder: some View {
@@ -1768,18 +1766,18 @@ struct ForYouFeedScreen: View {
 
     @ViewBuilder
     private func filterCover(_ filter: Filter) -> some View {
-        if let coverURL = filter.coverURL {
-            AsyncImage(url: coverURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                default:
-                    FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filter.title, category: filter.category.rawValue))
+        FMRemoteImage(
+            url: filter.coverURL,
+            cornerRadius: R.lg,
+            placeholder: {
+                GeometryReader { proxy in
+                    FMSkeleton.rect(height: proxy.size.height, cornerRadius: R.lg)
                 }
+            },
+            failure: {
+                FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filter.title, category: filter.category.rawValue))
             }
-        } else {
-            FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filter.title, category: filter.category.rawValue))
-        }
+        )
     }
 
     private func heroSubtitle(_ filter: Filter) -> String {
@@ -2114,18 +2112,18 @@ struct FollowingFeedScreen: View {
 
     @ViewBuilder
     private func followingFilterCover(_ filter: Filter) -> some View {
-        if let coverURL = filter.coverURL {
-            AsyncImage(url: coverURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                default:
-                    FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filter.title, category: filter.category.rawValue))
+        FMRemoteImage(
+            url: filter.coverURL,
+            cornerRadius: R.lg,
+            placeholder: {
+                GeometryReader { proxy in
+                    FMSkeleton.rect(height: proxy.size.height, cornerRadius: R.lg)
                 }
+            },
+            failure: {
+                FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filter.title, category: filter.category.rawValue))
             }
-        } else {
-            FMFilterCoverArt(motif: FilterCoverMotifResolver.motif(for: filter.title, category: filter.category.rawValue))
-        }
+        )
     }
 
     private func attachFeedListeners() {

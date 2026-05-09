@@ -93,22 +93,18 @@ public struct FMFilterTile: View {
 
     @ViewBuilder
     private var preview: some View {
-        if let url = data.previewImageURL {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                case .empty:
-                    GeometryReader { proxy in
-                        FMSkeleton.rect(height: proxy.size.height, cornerRadius: R.lg)
-                    }
-                default:
-                    placeholderImage
+        FMRemoteImage(
+            url: data.previewImageURL,
+            cornerRadius: R.lg,
+            placeholder: {
+                GeometryReader { proxy in
+                    FMSkeleton.rect(height: proxy.size.height, cornerRadius: R.lg)
                 }
+            },
+            failure: {
+                placeholderImage
             }
-        } else {
-            placeholderImage
-        }
+        )
     }
 
     private var placeholderImage: some View {

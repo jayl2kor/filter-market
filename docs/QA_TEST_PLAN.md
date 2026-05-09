@@ -150,6 +150,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 | 4.12 | SearchScreen 최근 검색 | 검색 submit/추천 키워드/최근 항목 탭 시 UID별 UserDefaults에 최대 8개 저장. 앱 재시작 후 복원되고, 다른 계정/guest 키와 섞이지 않음 |  |
 | 4.13 | SearchScreen 인기 메이커 | 검색어 입력 중 인기 메이커 그룹/정렬 계산이 반복되지 않고, filter 목록 변경 시에만 캐시 갱신 |  |
 | 4.14 | `market.trending.empty` / `market.new.empty` | EmptyState CTA "새로고침" → `store.load(force: true)` 재시도 |  |
+| 4.15 | Remote image surfaces | 마켓 카드, 리뷰 미니카드, For You/Following 커버, 검수 미리보기는 `FMRemoteImage`를 통해 로딩 skeleton, 실패 motif fallback, 고정 corner/aspect 처리를 일관 적용 |  |
 
 ---
 

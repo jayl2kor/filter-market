@@ -98,6 +98,7 @@
 		74D91101BA09C2626EBA493F /* FMSegmentedControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0E964CBD9F708F068F5A6D /* FMSegmentedControl.swift */; };
 		75A416B3410AC840412C0A6F /* MooditStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309D364AADCB11180774B6FA /* MooditStore.swift */; };
 		75F33C73DA3BC861435F6AC7 /* FMFilterTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE714DB5A01C5928F5C1BFE /* FMFilterTile.swift */; };
+		7B97A97197A97197A9710097 /* FMRemoteImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B97A97097A97097A9700097 /* FMRemoteImage.swift */; };
 		779C514D860B6D87A3C81EDF /* ProfileScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E614651E5A9700CB58E8A1E /* ProfileScreen.swift */; };
 		79245DCD08E34AB83325F9F3 /* BasicYUVShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = BDF21144BA3731FF0820005E /* BasicYUVShaders.metal */; };
 		79E17671285BFC380C5C20A4 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = BFDEF708AF07F7B0C9463F9B /* GoogleService-Info.plist */; };
@@ -444,6 +445,7 @@
 		262D62B6D5841F62F0571E28 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		263FD67F0D11FE5383E01C00 /* LUTPresetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LUTPresetTests.swift; sourceTree = "<group>"; };
 		2AE714DB5A01C5928F5C1BFE /* FMFilterTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMFilterTile.swift; sourceTree = "<group>"; };
+		7B97A97097A97097A9700097 /* FMRemoteImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMRemoteImage.swift; sourceTree = "<group>"; };
 		2AFA82DFCEE85E69059916A3 /* LUTResourceResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LUTResourceResolverTests.swift; sourceTree = "<group>"; };
 		2B7EE3D08FC1F1519F5C9369 /* SearchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchScreen.swift; sourceTree = "<group>"; };
 		2E5D829DD1B8D916258D7572 /* FilterRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterRepository.swift; sourceTree = "<group>"; };
@@ -851,6 +853,7 @@
 				8F86D1D5E6735BD3AB3A6DCB /* FMEmptyStateIllustration.swift */,
 				0C02D9ED1D6B811A8A0E35B9 /* FMFilterCoverArt.swift */,
 				2AE714DB5A01C5928F5C1BFE /* FMFilterTile.swift */,
+				7B97A97097A97097A9700097 /* FMRemoteImage.swift */,
 				FE0E964CBD9F708F068F5A6D /* FMSegmentedControl.swift */,
 				D351682BABF67206F22ADF96 /* FMSkeleton.swift */,
 				EC3E2D13CC029413A91CB862 /* FMSlider.swift */,
@@ -1750,6 +1753,7 @@
 				9071BF6F7FE7934E2C8B37B0 /* FMEmptyStateIllustration.swift in Sources */,
 				1D0B5B8906557E718C570557 /* FMFilterCoverArt.swift in Sources */,
 				75F33C73DA3BC861435F6AC7 /* FMFilterTile.swift in Sources */,
+				7B97A97197A97197A9710097 /* FMRemoteImage.swift in Sources */,
 				2534AD7C4F016174A9875268 /* FMPushTransition.swift in Sources */,
 				74D91101BA09C2626EBA493F /* FMSegmentedControl.swift in Sources */,
 				278A17624F20B2C4950E510E /* FMShareSheet.swift in Sources */,
