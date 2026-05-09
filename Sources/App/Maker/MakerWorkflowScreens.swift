@@ -164,7 +164,6 @@ private struct EditorPreviewRenderKey: Hashable {
 
 struct FilterEditorScreen: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: MooditStore
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @State private var showCancelAlert = false
     @State private var selectedReferenceItem: PhotosPickerItem?
@@ -202,7 +201,7 @@ struct FilterEditorScreen: View {
                         .fontWeight(.semibold)
                 }
                 .simultaneousGesture(TapGesture().onEnded {
-                    store.saveEditorDraft()
+                    editorDraftStore.saveEditorDraft()
                 })
                 .accessibilityIdentifier("editor.next")
             }
@@ -212,7 +211,7 @@ struct FilterEditorScreen: View {
             isPresented: $showCancelAlert
         ) {
             Button("임시 저장") {
-                store.saveEditorDraft()
+                editorDraftStore.saveEditorDraft()
                 dismiss()
             }
             Button("버리기", role: .destructive) {
@@ -329,7 +328,7 @@ struct FilterEditorScreen: View {
                     compactRouteButton("초안 저장", icon: "tray.and.arrow.down")
                 }
                 .simultaneousGesture(TapGesture().onEnded {
-                    store.saveEditorDraft()
+                    editorDraftStore.saveEditorDraft()
                 })
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("editor.draft")
@@ -688,7 +687,6 @@ struct EditorLUTImportScreen: View {
 }
 
 struct EditorDraftSaveScreen: View {
-    @EnvironmentObject private var store: MooditStore
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
 
     var body: some View {
@@ -771,7 +769,7 @@ struct EditorDraftSaveScreen: View {
                 routeButton("초안 저장 후 내 필터", icon: "tray")
             }
             .simultaneousGesture(TapGesture().onEnded {
-                store.saveEditorDraft()
+                editorDraftStore.saveEditorDraft()
             })
             .buttonStyle(.plain)
             .accessibilityIdentifier("editor.draft.save")
@@ -780,7 +778,7 @@ struct EditorDraftSaveScreen: View {
                 routeButton("바로 마켓 공유", icon: "paperplane")
             }
             .simultaneousGesture(TapGesture().onEnded {
-                store.saveEditorDraft()
+                editorDraftStore.saveEditorDraft()
             })
             .buttonStyle(.plain)
             .accessibilityIdentifier("editor.draft.publish")
@@ -789,7 +787,6 @@ struct EditorDraftSaveScreen: View {
 }
 
 struct UploadCoverScreen: View {
-    @EnvironmentObject private var store: MooditStore
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @Environment(\.dismiss) private var dismiss
     @State private var showCancelAlert = false
@@ -823,7 +820,7 @@ struct UploadCoverScreen: View {
                     routeButton("다음", icon: "arrow.right")
                 }
                 .simultaneousGesture(TapGesture().onEnded {
-                    store.saveCurrentUploadDraftIfNeeded()
+                    editorDraftStore.saveCurrentUploadDraftIfNeeded()
                 })
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("upload.next")
@@ -848,7 +845,7 @@ struct UploadCoverScreen: View {
         }
         .confirmationDialog("업로드를 취소할까요?", isPresented: $showCancelAlert, titleVisibility: .visible) {
             Button("초안 저장하고 나가기") {
-                store.saveEditorDraft()
+                editorDraftStore.saveEditorDraft()
                 dismiss()
             }
             Button("초안 버리고 나가기", role: .destructive) {
@@ -863,7 +860,7 @@ struct UploadCoverScreen: View {
             Task { await loadSignatureSample(from: item) }
         }
         .onDisappear {
-            store.saveCurrentUploadDraftIfNeeded()
+            editorDraftStore.saveCurrentUploadDraftIfNeeded()
         }
     }
 
@@ -1037,7 +1034,6 @@ struct UploadCoverScreen: View {
 }
 
 struct UploadTagsCategoryScreen: View {
-    @EnvironmentObject private var store: MooditStore
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @Environment(\.dismiss) private var dismiss
     @State private var pendingTag = ""
@@ -1054,7 +1050,7 @@ struct UploadTagsCategoryScreen: View {
                     routeButton("다음", icon: "arrow.right")
                 }
                 .simultaneousGesture(TapGesture().onEnded {
-                    store.saveCurrentUploadDraftIfNeeded()
+                    editorDraftStore.saveCurrentUploadDraftIfNeeded()
                 })
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("upload.next")
@@ -1079,7 +1075,7 @@ struct UploadTagsCategoryScreen: View {
         }
         .confirmationDialog("업로드를 취소할까요?", isPresented: $showCancelAlert, titleVisibility: .visible) {
             Button("초안 저장하고 나가기") {
-                store.saveCurrentUploadDraftIfNeeded()
+                editorDraftStore.saveCurrentUploadDraftIfNeeded()
                 dismiss()
             }
             Button("초안 버리고 나가기", role: .destructive) {
@@ -1091,7 +1087,7 @@ struct UploadTagsCategoryScreen: View {
             Text("작성한 내용을 임시저장하면 다음에 이어 쓸 수 있어요.")
         }
         .onDisappear {
-            store.saveCurrentUploadDraftIfNeeded()
+            editorDraftStore.saveCurrentUploadDraftIfNeeded()
         }
     }
 
@@ -1172,7 +1168,6 @@ struct UploadTagsCategoryScreen: View {
 }
 
 struct UploadTOSSubmitScreen: View {
-    @EnvironmentObject private var store: MooditStore
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @Environment(\.dismiss) private var dismiss
     @State private var showCancelAlert = false
@@ -1192,7 +1187,7 @@ struct UploadTOSSubmitScreen: View {
                     routeButton("검수 제출", icon: "paperplane.fill")
                 }
                 .simultaneousGesture(TapGesture().onEnded {
-                    store.submitCurrentDraft()
+                    editorDraftStore.submitCurrentDraft()
                 })
                 .buttonStyle(.plain)
                 .disabled(!editorDraftStore.editorDraft.isReadyForSubmit)
@@ -1218,7 +1213,7 @@ struct UploadTOSSubmitScreen: View {
         }
         .confirmationDialog("업로드를 취소할까요?", isPresented: $showCancelAlert, titleVisibility: .visible) {
             Button("초안 저장하고 나가기") {
-                store.saveCurrentUploadDraftIfNeeded()
+                editorDraftStore.saveCurrentUploadDraftIfNeeded()
                 dismiss()
             }
             Button("초안 버리고 나가기", role: .destructive) {
@@ -1230,7 +1225,7 @@ struct UploadTOSSubmitScreen: View {
             Text("작성한 내용을 임시저장하면 다음에 이어 쓸 수 있어요.")
         }
         .onDisappear {
-            store.saveCurrentUploadDraftIfNeeded()
+            editorDraftStore.saveCurrentUploadDraftIfNeeded()
         }
     }
 
@@ -1376,7 +1371,6 @@ struct UploadPendingReviewScreen: View {
 // FilterRejectedScreen — `Sources/App/Moderation/FilterRejectedScreen.swift`
 
 struct MyFiltersScreen: View {
-    @EnvironmentObject private var store: MooditStore
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @State private var selectedDraft: MakerFilterDraft?
     @State private var showTakedownAlert = false
@@ -1419,7 +1413,7 @@ struct MyFiltersScreen: View {
         .alert("비공개로 전환할까요?", isPresented: $showTakedownAlert) {
             Button("전환", role: .destructive) {
                 if let selectedDraft {
-                    store.markMakerFilterPrivate(selectedDraft)
+                    editorDraftStore.markMakerFilterPrivate(selectedDraft)
                 }
             }
             Button("취소", role: .cancel) {}

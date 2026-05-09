@@ -763,12 +763,11 @@ final class MooditStore: ObservableObject {
     }
 
     func saveEditorDraft() {
-        persistMakerDraft(editorDraftStore.saveEditorDraft())
+        _ = editorDraftStore.saveEditorDraft()
     }
 
     func saveCurrentUploadDraftIfNeeded() {
-        guard let draft = editorDraftStore.saveCurrentUploadDraftIfNeeded() else { return }
-        persistMakerDraft(draft)
+        _ = editorDraftStore.saveCurrentUploadDraftIfNeeded()
     }
 
     func addUploadCover() {
@@ -804,29 +803,7 @@ final class MooditStore: ObservableObject {
     }
 
     func submitCurrentDraft() {
-        let draft = editorDraftStore.submitCurrentDraft()
-        persistMakerDraft(draft)
-        // (#44) firestoreFilterId가 있으면 submitForReview callable 호출.
-        // uploadInit/uploadFinalize 흐름이 아직 client에서 호출되지 않으면 nil — silent skip.
-        guard let fsId = draft.firestoreFilterId else { return }
-        let payload: [String: Any] = [
-            "filterId": fsId,
-            "tosOriginal": draft.tosOriginal,
-            "tosPolicy": draft.tosPolicy,
-            "tosCommercial": draft.tosCommercial,
-        ]
-        Task { [weak self] in
-            do {
-                _ = try await Functions.functions(region: "asia-northeast3")
-                    .httpsCallable("submitForReview")
-                    .call(payload)
-            } catch {
-                // (#47) silent failure 제거 — 사용자에게 알림 가능하게 store에 메시지 게시.
-                await MainActor.run { [weak self] in
-                    self?.lastSubmitErrorMessage = "검수 제출 실패: \(error.localizedDescription)"
-                }
-            }
-        }
+        _ = editorDraftStore.submitCurrentDraft()
     }
 
     func startEditing(_ draft: MakerFilterDraft) {
@@ -834,50 +811,7 @@ final class MooditStore: ObservableObject {
     }
 
     func markMakerFilterPrivate(_ draft: MakerFilterDraft) {
-        guard let updatedDraft = editorDraftStore.markMakerFilterPrivate(draft) else { return }
-        persistMakerDraft(updatedDraft)
-    }
-
-    private func persistMakerDraft(_ draft: MakerFilterDraft) {
-        #if DEBUG
-        guard !isUITesting else { return }
-        #endif
-        guard let uid = SessionStore.currentFirebaseUID else { return }
-        var payload: [String: Any] = [
-            "name": draft.name,
-            "summary": draft.summary,
-            "category": draft.category.rawValue,
-            "tags": draft.tags,
-            "parameterValues": draft.parameterValues,
-            "coverCount": draft.coverCount,
-            "beforeAfterEnabled": draft.beforeAfterEnabled,
-            "tosOriginal": draft.tosOriginal,
-            "tosPolicy": draft.tosPolicy,
-            "tosCommercial": draft.tosCommercial,
-            "status": draft.status.rawValue,
-            "updatedAt": FieldValue.serverTimestamp()
-        ]
-        if let lutFileName = draft.lutFileName {
-            payload["lutFileName"] = lutFileName
-        }
-        if let signatureSampleKind = draft.signatureSampleKind {
-            payload["signatureSampleKind"] = signatureSampleKind.rawValue
-        }
-        if let submittedAt = draft.submittedAt {
-            payload["submittedAt"] = Timestamp(date: submittedAt)
-        }
-        if let firestoreFilterId = draft.firestoreFilterId {
-            payload["firestoreFilterId"] = firestoreFilterId
-        }
-        Firestore.firestore()
-            .collection("users").document(uid)
-            .collection("makerDrafts").document(draft.id.uuidString)
-            .setData(payload, merge: true) { [weak self] error in
-                guard let error else { return }
-                Task { @MainActor in
-                    self?.lastSubmitErrorMessage = "메이커 초안 저장 실패: \(error.localizedDescription)"
-                }
-            }
+        _ = editorDraftStore.markMakerFilterPrivate(draft)
     }
 
     private func scheduleEditorDraftPersistence() {
