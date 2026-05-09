@@ -199,6 +199,7 @@ struct FilterDetailMock: Sendable {
     let categoryHint: Color
     let isPaid: Bool
     let priceLabel: String?
+    let userHasLiked: Bool
 
     init(
         sourceID: String? = nil,
@@ -219,7 +220,8 @@ struct FilterDetailMock: Sendable {
         reviews: [Review],
         categoryHint: Color,
         isPaid: Bool,
-        priceLabel: String?
+        priceLabel: String?,
+        userHasLiked: Bool = false
     ) {
         self.sourceID = sourceID
         self.displayTitle = displayTitle
@@ -240,6 +242,7 @@ struct FilterDetailMock: Sendable {
         self.categoryHint = categoryHint
         self.isPaid = isPaid
         self.priceLabel = priceLabel
+        self.userHasLiked = userHasLiked
     }
 
     struct Review: Identifiable, Sendable {

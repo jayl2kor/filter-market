@@ -203,6 +203,30 @@ match /filters/{filterId}/comments/{commentId} {
 }
 ```
 
+#### `filters/{filterId}/likes/{uid}` — 좋아요
+
+```javascript
+match /filters/{filterId}/likes/{uid} {
+  allow read: if true;
+  allow create: if isOwner(uid)
+    && request.resource.data.keys().hasOnly(['uid','createdAt'])
+    && request.resource.data.uid == uid
+    && request.resource.data.createdAt is timestamp;
+  allow delete: if isOwner(uid);
+  allow update: if false;
+}
+```
+
+#### `filters/{filterId}/samples/{sampleId}` — 샘플 메타
+
+```javascript
+match /filters/{filterId}/samples/{sampleId} {
+  allow read: if true;
+  // 샘플 등록/삭제는 업로드 검증과 이미지 처리 후 Cloud Functions/Admin SDK에서만 수행
+  allow write: if false;
+}
+```
+
 ### 3.3 `users/{uid}/favorites/{filterId}` — 즐겨찾기
 
 ```javascript
@@ -547,6 +571,13 @@ firebase emulators:exec --only firestore "npm test"
 - [ ] 본인 댓글 본문 수정 → 성공
 - [ ] 본인 댓글 status를 hidden으로 변경 → 거부 (모더레이터만)
 - [ ] 모더레이터가 임의 댓글 delete → 성공
+
+#### `likes` / `samples`
+- [ ] 본인이 `filters/{filterId}/likes/{uid}` create/delete → 성공
+- [ ] 다른 uid로 like edge 생성 또는 타인의 like delete → 거부
+- [ ] like update → 거부
+- [ ] 샘플 메타 read → 성공
+- [ ] 클라이언트 샘플 메타 write → 거부
 
 #### `follows`
 - [ ] 본인이 A→B follow → 성공

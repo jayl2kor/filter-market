@@ -81,6 +81,12 @@ service cloud.firestore {
         && isFilterMaker(filterId);
     }
 
+    function validLikeCreate(d, uid) {
+      return d.keys().hasOnly(['uid', 'createdAt'])
+        && d.uid == uid
+        && d.createdAt is timestamp;
+    }
+
     // ---- collections ----------------------------------------------------
 
     // Filters — see docs/FIRESTORE_RULES.md §3.2 for the full canonical rules.
@@ -116,6 +122,18 @@ service cloud.firestore {
       // applyRecordUse). Direct client writes are rejected.
       match /uses/{uid} {
         allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      match /likes/{uid} {
+        allow read: if true;
+        allow create: if isOwner(uid) && validLikeCreate(request.resource.data, uid);
+        allow delete: if isOwner(uid);
+        allow update: if false;
+      }
+
+      match /samples/{sampleId} {
+        allow read: if true;
         allow write: if false;
       }
     }

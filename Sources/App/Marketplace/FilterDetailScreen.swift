@@ -1,4 +1,7 @@
 import DesignSystem
+import FirebaseAuth
+import FirebaseCore
+import FirebaseFirestore
 import FilterEngine
 import Models
 import OSLog
@@ -33,14 +36,17 @@ struct FilterDetailScreen: View {
 
     init(filter: Filter, mock: FilterDetailMock? = nil, onRefresh: (() async -> Void)? = nil) {
         self.filter = filter
-        self.mock = mock ?? FilterDetailMock.mock(for: filter)
+        let resolvedMock = mock ?? FilterDetailMock.mock(for: filter)
+        self.mock = resolvedMock
         self.onRefresh = onRefresh
+        _didLikeMockFilter = State(initialValue: resolvedMock.userHasLiked)
     }
 
     init(mock: FilterDetailMock, onRefresh: (() async -> Void)? = nil) {
         self.filter = nil
         self.mock = mock
         self.onRefresh = onRefresh
+        _didLikeMockFilter = State(initialValue: mock.userHasLiked)
     }
 
     /// `MarketplaceScreen` 의 navigationDestination 에서 호출.
@@ -48,6 +54,7 @@ struct FilterDetailScreen: View {
         self.filter = nil
         self.mock = mock.mock
         self.onRefresh = nil
+        _didLikeMockFilter = State(initialValue: mock.mock.userHasLiked)
     }
 
     var body: some View {
@@ -633,13 +640,9 @@ struct FilterDetailScreen: View {
     private var ctaBar: some View {
         HStack(spacing: Sp.sm) {
             Button {
-                if let filter {
-                    store.toggleFavorite(filter)
-                } else {
-                    didLikeMockFilter.toggle()
+                Task {
+                    await toggleLike()
                 }
-                FMHaptic.light.play()
-                Telemetry.trackAction(isLiked ? "filter_liked" : "filter_unliked", screen: .filterDetail)
             } label: {
                 VStack(spacing: 2) {
                     Image(systemName: isLiked ? "heart.fill" : "heart")
@@ -772,7 +775,52 @@ struct FilterDetailScreen: View {
     }
 
     private var likeDisplayCount: Int {
-        mock.likeCount + (isLiked ? 1 : 0)
+        let delta: Int
+        switch (mock.userHasLiked, isLiked) {
+        case (true, false): delta = -1
+        case (false, true): delta = 1
+        default: delta = 0
+        }
+        return max(0, mock.likeCount + delta)
+    }
+
+    @MainActor
+    private func toggleLike() async {
+        let targetState = !isLiked
+        if let filter {
+            store.toggleFavorite(filter)
+            FMHaptic.light.play()
+            Telemetry.trackAction(targetState ? "filter_liked" : "filter_unliked", screen: .filterDetail)
+            return
+        }
+
+        didLikeMockFilter = targetState
+        FMHaptic.light.play()
+        Telemetry.trackAction(targetState ? "filter_liked" : "filter_unliked", screen: .filterDetail)
+
+        guard FirebaseApp.app() != nil,
+              let uid = Auth.auth().currentUser?.uid,
+              let sourceID = mock.sourceID
+        else {
+            return
+        }
+
+        do {
+            let ref = Firestore.firestore()
+                .collection("filters").document(sourceID)
+                .collection("likes").document(uid)
+            if targetState {
+                try await ref.setData([
+                    "uid": uid,
+                    "createdAt": FieldValue.serverTimestamp()
+                ], merge: true)
+            } else {
+                try await ref.delete()
+            }
+        } catch {
+            didLikeMockFilter.toggle()
+            Telemetry.record(error: error, context: ["where": "FilterDetailScreen.toggleLike", "filter_id": sourceID])
+        }
     }
 
     private func searchQuery(forTag tag: String) -> String {

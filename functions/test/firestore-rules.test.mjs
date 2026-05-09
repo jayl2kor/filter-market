@@ -242,6 +242,58 @@ const suite = describe(
       );
     });
 
+    it("allows users to create and delete only their own filter like edge", async () => {
+      const owner = env.authenticatedContext(AUTHOR_UID);
+      const stranger = env.authenticatedContext(STRANGER_UID);
+      const likePath = `filters/${FILTER_ID}/likes/${AUTHOR_UID}`;
+
+      await assertSucceeds(
+        owner.firestore().doc(likePath).set({
+          uid: AUTHOR_UID,
+          createdAt: new Date(),
+        })
+      );
+
+      await assertFails(
+        stranger.firestore().doc(`filters/${FILTER_ID}/likes/${STRANGER_UID}`).set({
+          uid: AUTHOR_UID,
+          createdAt: new Date(),
+        })
+      );
+
+      await assertFails(
+        owner.firestore().doc(likePath).update({ uid: AUTHOR_UID, note: "mutable" })
+      );
+
+      await assertFails(stranger.firestore().doc(likePath).delete());
+      await assertSucceeds(owner.firestore().doc(likePath).delete());
+    });
+
+    it("keeps filter sample metadata read-only for clients", async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        await ctx
+          .firestore()
+          .doc(`filters/${FILTER_ID}/samples/sample-1`)
+          .set({
+            kind: "user",
+            coverURL: "https://cdn.example.com/sample.jpg",
+            createdAt: new Date(),
+          });
+      });
+
+      const anon = env.unauthenticatedContext();
+      await assertSucceeds(anon.firestore().doc(`filters/${FILTER_ID}/samples/sample-1`).get());
+
+      const owner = env.authenticatedContext(AUTHOR_UID);
+      await assertFails(
+        owner.firestore().doc(`filters/${FILTER_ID}/samples/sample-2`).set({
+          kind: "user",
+          coverURL: "https://cdn.example.com/sample-2.jpg",
+          createdAt: new Date(),
+        })
+      );
+    });
+
     it("scopes notifications reads to the recipient", async () => {
       await env.withSecurityRulesDisabled(async (ctx) => {
         await ctx

@@ -155,6 +155,7 @@ struct FilterDetailResponse {
     let authorDisplayName: String
     let samples: [SamplePreview]
     let reviews: [ReviewPreview]
+    let userHasLiked: Bool
     let signedDownloadURL: URL
     let expiresAt: Date
 
@@ -235,6 +236,7 @@ struct FilterDetailResponse {
                 createdAt: createdAt
             )
         }
+        self.userHasLiked = (dict["userHasLiked"] as? Bool) ?? false
         self.signedDownloadURL = signedURL
         let expiresAtSeconds = (dict["expiresAt"] as? Double) ?? 0
         self.expiresAt = Date(timeIntervalSince1970: expiresAtSeconds)
@@ -285,7 +287,8 @@ struct FilterDetailResponse {
             },
             categoryHint: filterCategory.swatch.first ?? FMColors.Category.cinematic,
             isPaid: priceCoins > 0,
-            priceLabel: priceCoins > 0 ? "\(priceCoins) 코인" : nil
+            priceLabel: priceCoins > 0 ? "\(priceCoins) 코인" : nil,
+            userHasLiked: userHasLiked
         )
     }
 
