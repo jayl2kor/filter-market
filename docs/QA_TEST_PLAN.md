@@ -412,8 +412,12 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 
 | # | Element | Expected | PASS/FAIL |
 |---|---|---|---|
-| 10.1.1 | 카테고리 chip | 카테고리별 필터 |  |
-| 10.1.2 | 필터 카드 | 카메라로 적용 |  |
+| 10.1.1 | `builtin.search` | title/maker/category/tag 기준으로 내장 필터를 검색하고 결과가 없으면 no-search empty state 표시 |  |
+| 10.1.2 | `builtin.category.all` / `builtin.category.<rawValue>` | 전체 또는 카테고리별 sticky section + grid로 필터링 |  |
+| 10.1.3 | `builtin.filter.tap.<uuid>` | 사용 가능한 필터 카드는 상세 화면으로 이동 |  |
+| 10.1.4 | `builtin.filter.apply.<uuid>` | 무료/사용 가능 필터는 카메라로 적용, Pro 잠김 필터는 Pro 안내 sheet 표시 |  |
+| 10.1.5 | `builtin.filter.locked.<uuid>` | Pro 잠김 카드는 lock badge와 VoiceOver value "Pro 잠김"을 제공하고 Pro sheet 표시 |  |
+| 10.1.6 | `builtin.filter.locked.pro` | Pro 안내 sheet에서 Pro 멤버십 화면으로 이동 |  |
 
 ### 10.2 FilterEditor / Parameters / LUT / Draft
 

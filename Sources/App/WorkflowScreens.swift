@@ -1168,6 +1168,9 @@ struct PhotoEditScreen: View {
 struct BuiltinFilterLibraryScreen: View {
     @EnvironmentObject private var store: MooditStore
     @State private var isCameraPresented = false
+    @State private var query = ""
+    @State private var selectedCategory: FilterCategory?
+    @State private var lockedFilter: Filter?
 
     private let columns = [
         GridItem(.flexible(), spacing: Sp.sm),
@@ -1183,29 +1186,25 @@ struct BuiltinFilterLibraryScreen: View {
                     symbol: "camera.filters"
                 )
 
-                LazyVGrid(columns: columns, spacing: Sp.sm) {
-                    ForEach(store.filters) { filter in
-                        VStack(alignment: .leading, spacing: Sp.sm) {
-                            NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
-                                FMFilterTile(data: tileData(for: filter))
-                            }
-                            .buttonStyle(.plain)
+                searchAndCategoryControls
 
-                            HStack(spacing: Sp.xs) {
-                                FMButton("적용", icon: "camera.fill", variant: .primary, size: .sm) {
-                                    store.select(filter)
-                                    isCameraPresented = true
+                if visibleFilters.isEmpty {
+                    FMEmptyState(.noSearchResults(query: query.isEmpty ? selectedCategory?.displayTitle ?? "기본 필터" : query)) {
+                        query = ""
+                        selectedCategory = nil
+                    }
+                    .frame(minHeight: 320)
+                } else {
+                    LazyVStack(alignment: .leading, spacing: Sp.lg, pinnedViews: [.sectionHeaders]) {
+                        ForEach(visibleCategories, id: \.rawValue) { category in
+                            Section {
+                                LazyVGrid(columns: columns, spacing: Sp.sm) {
+                                    ForEach(filters(in: category)) { filter in
+                                        filterCard(filter)
+                                    }
                                 }
-                                .accessibilityIdentifier("builtin.filter.apply.\(filter.id.uuidString)")
-                                NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
-                                    Image(systemName: "info.circle")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundStyle(FMColors.Text.primary)
-                                        .frame(width: 36, height: 36)
-                                        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityIdentifier("builtin.filter.info.\(filter.id.uuidString)")
+                            } header: {
+                                sectionHeader(category)
                             }
                         }
                     }
@@ -1228,6 +1227,13 @@ struct BuiltinFilterLibraryScreen: View {
         .task {
             await store.load()
         }
+        .sheet(item: $lockedFilter) { filter in
+            NavigationStack {
+                BuiltinFilterLockedSheet(filter: filter)
+                    .environmentObject(store)
+                    .appRouteDestinations()
+            }
+        }
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraScreen(isPresentedAsCover: true)
                 .environmentObject(store)
@@ -1235,15 +1241,214 @@ struct BuiltinFilterLibraryScreen: View {
         }
     }
 
+    private var searchAndCategoryControls: some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            FMTextField.search(text: $query, placeholder: "필터 검색")
+                .accessibilityIdentifier("builtin.search")
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Sp.xs) {
+                    FMChip("전체", isSelected: selectedCategory == nil, size: .sm) {
+                        selectedCategory = nil
+                        FMHaptic.selection.play()
+                    }
+                    .accessibilityIdentifier("builtin.category.all")
+
+                    ForEach(FilterCategory.allCases, id: \.rawValue) { category in
+                        FMChip(category.displayTitle, isSelected: selectedCategory == category, size: .sm) {
+                            selectedCategory = category
+                            FMHaptic.selection.play()
+                        }
+                        .accessibilityIdentifier("builtin.category.\(category.rawValue)")
+                    }
+                }
+                .padding(.vertical, Sp.xxs)
+            }
+        }
+    }
+
+    private var normalizedQuery: String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private var matchingFilters: [Filter] {
+        let filteredBySearch = store.filters.filter { filter in
+            guard !normalizedQuery.isEmpty else { return true }
+            return filter.title.lowercased().contains(normalizedQuery)
+                || filter.author.displayName.lowercased().contains(normalizedQuery)
+                || filter.category.displayTitle.lowercased().contains(normalizedQuery)
+                || filter.category.rawValue.lowercased().contains(normalizedQuery)
+                || filter.tags.contains { $0.lowercased().contains(normalizedQuery) }
+        }
+
+        guard let selectedCategory else { return filteredBySearch }
+        return filteredBySearch.filter { $0.category == selectedCategory }
+    }
+
+    private var visibleFilters: [Filter] {
+        matchingFilters
+    }
+
+    private var visibleCategories: [FilterCategory] {
+        FilterCategory.allCases.filter { category in
+            visibleFilters.contains { $0.category == category }
+        }
+    }
+
+    private func filters(in category: FilterCategory) -> [Filter] {
+        visibleFilters.filter { $0.category == category }
+    }
+
+    private func sectionHeader(_ category: FilterCategory) -> some View {
+        HStack {
+            Text(category.displayTitle)
+                .fmTypography(.headline)
+                .foregroundStyle(FMColors.Text.primary)
+            Spacer()
+            Text("\(filters(in: category).count)")
+                .fmTypography(.caption)
+                .foregroundStyle(FMColors.Text.secondary)
+                .monospacedDigit()
+        }
+        .padding(.vertical, Sp.xs)
+        .background(FMColors.Background.bg1)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func filterCard(_ filter: Filter) -> some View {
+        let locked = isLocked(filter)
+
+        return VStack(alignment: .leading, spacing: Sp.sm) {
+            Group {
+                if locked {
+                    Button {
+                        lockedFilter = filter
+                        FMHaptic.selection.play()
+                    } label: {
+                        tileView(for: filter, locked: true)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("builtin.filter.locked.\(filter.id.uuidString)")
+                    .accessibilityHint("Pro 필터입니다. 가입 안내를 봅니다.")
+                } else {
+                    NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                        tileView(for: filter, locked: false)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("builtin.filter.tap.\(filter.id.uuidString)")
+                }
+            }
+            .accessibilityValue(locked ? "Pro 잠김" : "사용 가능")
+
+            HStack(spacing: Sp.xs) {
+                FMButton(locked ? "Pro" : "적용", icon: locked ? "lock.fill" : "camera.fill", variant: locked ? .secondary : .primary, size: .sm) {
+                    if locked {
+                        lockedFilter = filter
+                    } else {
+                        store.select(filter)
+                        isCameraPresented = true
+                    }
+                }
+                .accessibilityIdentifier("builtin.filter.apply.\(filter.id.uuidString)")
+                .accessibilityHint(locked ? "Pro 가입 안내를 봅니다." : "카메라에 이 필터를 적용합니다.")
+
+                NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(FMColors.Text.primary)
+                        .frame(width: 36, height: 36)
+                        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(filter.title) 정보")
+                .accessibilityIdentifier("builtin.filter.info.\(filter.id.uuidString)")
+            }
+        }
+    }
+
+    private func tileView(for filter: Filter, locked: Bool) -> some View {
+        FMFilterTile(data: tileData(for: filter))
+            .overlay(alignment: .topTrailing) {
+                if filter.priceCoins > 0 {
+                    Label("Pro", systemImage: locked ? "lock.fill" : "sparkles")
+                        .font(.caption.weight(.bold))
+                        .labelStyle(.titleAndIcon)
+                        .foregroundStyle(locked ? FMColors.Semantic.warning : FMColors.Accent.primary)
+                        .padding(.horizontal, Sp.xs)
+                        .padding(.vertical, 6)
+                        .background(.regularMaterial, in: Capsule())
+                        .padding(Sp.xs)
+                }
+            }
+    }
+
+    private func isLocked(_ filter: Filter) -> Bool {
+        filter.priceCoins > 0 && !store.isProActive
+    }
+
     private func tileData(for filter: Filter) -> FMFilterTileData {
         FMFilterTileData(
             title: filter.title,
             makerName: filter.author.displayName,
             downloadCount: 0,
-            priceLabel: store.isDownloaded(filter) ? "저장됨" : "기본",
+            priceLabel: tilePriceLabel(for: filter),
             categoryHint: filter.category.swatch.first,
             categoryKey: filter.category.rawValue
         )
+    }
+
+    private func tilePriceLabel(for filter: Filter) -> String {
+        if store.isDownloaded(filter) { return "저장됨" }
+        if filter.priceCoins > 0 { return store.isProActive ? "Pro 포함" : "Pro" }
+        return "무료"
+    }
+}
+
+private struct BuiltinFilterLockedSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let filter: Filter
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Sp.lg) {
+            Label("Pro 전용 필터", systemImage: "lock.fill")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(FMColors.Semantic.warning)
+
+            VStack(alignment: .leading, spacing: Sp.xs) {
+                Text(filter.title)
+                    .fmTypography(.title)
+                    .foregroundStyle(FMColors.Text.primary)
+                Text("\(filter.category.displayTitle) 카테고리")
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Text.secondary)
+            }
+
+            Text("Pro 멤버십을 활성화하면 이 필터를 카메라와 편집 화면에서 바로 사용할 수 있습니다.")
+                .fmTypography(.body)
+                .foregroundStyle(FMColors.Text.secondary)
+
+            NavigationLink(value: AppRoute.proSubscription) {
+                Label("Pro 멤버십 보기", systemImage: "sparkles")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("builtin.filter.locked.pro")
+
+            Button("닫기") {
+                dismiss()
+            }
+            .buttonStyle(.bordered)
+            .frame(maxWidth: .infinity)
+            .accessibilityIdentifier("builtin.filter.locked.close")
+        }
+        .padding(Sp.lg)
+        .presentationDetents([.medium])
+        .navigationTitle("Pro 필터")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

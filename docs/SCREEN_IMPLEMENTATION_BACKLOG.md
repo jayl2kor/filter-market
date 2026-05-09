@@ -43,7 +43,7 @@
 | `15-camera-timer-countdown.html` | `CameraTimerCountdownScreen` | `Bespoke` | countdown cancel UX refinement |
 | `16-photo-import.html` | `PhotoImportScreen` | `Bespoke` | OS PhotosPicker selection QA |
 | `17-photo-edit.html` | `PhotoEditScreen` | `Bespoke` | compare slider, edit history, larger image QA |
-| `19-builtin-filter-library.html` | `BuiltinFilterLibraryScreen` | `Bespoke` | filter package/detail API 연결 |
+| `19-builtin-filter-library.html` | `BuiltinFilterLibraryScreen` | `Bespoke` | filter package/detail API 연결, paid seed QA |
 | `permissions/*` | `Sources/App/Permissions/*` | `Bespoke` | 실제 권한 resolver 와 모든 진입점 연결 |
 | `11*`, `12*`, `20`~`54` | `WorkflowScreens.swift` route views | `Workflow/Bespoke` | 화면별 서비스/API/스토어 통합 |
 
@@ -60,7 +60,7 @@
 | `15-camera-timer-countdown.html` | `AppRoute.cameraTimer` → `CameraTimerCountdownScreen` | `Bespoke` | OFF/3s/10s 선택과 capture countdown overlay 완료. cancel refinement 남음 |
 | `16-photo-import.html` | `AppRoute.photoImport` → `PhotoImportScreen` | `Bespoke` | `PhotosPicker` 단일 선택, preview, edit route, limited-library 안내/관리 진입 완료. OS picker QA 남음 |
 | `17-photo-edit.html` | `AppRoute.photoEdit` → `PhotoEditScreen` | `Bespoke` | `PhotoFilterRenderer` 기반 필터/강도/저장/공유 완료. compare slider 남음 |
-| `19-builtin-filter-library.html` | `AppRoute.builtinFilters` → `BuiltinFilterLibraryScreen` | `Bespoke` | 번들 필터 목록, 선택, 카메라 적용 흐름 완료. API/detail 연결 남음 |
+| `19-builtin-filter-library.html` | `AppRoute.builtinFilters` → `BuiltinFilterLibraryScreen` | `Bespoke` | 검색, 카테고리 섹션, 무료/Pro lock 구분, 선택, 카메라 적용 흐름 완료. API/detail 연결 및 paid seed QA 남음 |
 | `07b-filter-download.html` | `AppRoute.filterDownload` → `FilterDownloadProgressScreen` | `Bespoke` | `MooditStore.download(_:)` 연동 완료. 실제 package/API progress 연결 남음 |
 | `07c-filter-after-download.html` | `AppRoute.filterAfterDownload` → `FilterAfterDownloadScreen` | `Bespoke` | apply/favorite/remove 연동 완료. collection picker/persistence 남음 |
 
