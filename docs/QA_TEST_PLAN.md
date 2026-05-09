@@ -480,7 +480,7 @@ xcodebuild -project moodit.xcodeproj -scheme moodit \
 
 | # | ID | Expected | PASS/FAIL |
 |---|---|---|---|
-| 11.2.1 | `profile.edit.avatar.change` | PhotosPicker → 선택 이미지를 512px 장변 JPEG로 normalize, avatar preview 갱신 |  |
+| 11.2.1 | `profile.edit.avatar.change` | PhotosPicker → 선택 이미지를 512px 장변 JPEG로 normalize, avatar preview 갱신. 저장 시 `profileAvatarUploadInit` → R2 presigned PUT → `/users/{uid}` `avatarURL`/`photoURL`/`avatarObjectKey` 저장 |  |
 | 11.2.2 | `profile.edit.handle.check` | 유저네임 중복 확인 (mock). UI 문구는 "핸들"이 아니라 "유저네임" |  |
 | 11.2.3 | `profile.edit.save` | 저장 + dismiss |  |
 

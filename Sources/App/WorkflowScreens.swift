@@ -1347,6 +1347,7 @@ struct EditProfileScreen: View {
         .sheet(isPresented: $isAvatarPickerPresented) {
             PhotoPicker { image in
                 draft.avatarImageData = image.normalizedJPEGData(maxDimension: 512)
+                draft.avatarURL = nil
             }
         }
     }
@@ -1383,6 +1384,9 @@ struct EditProfileScreen: View {
                 .scaledToFill()
                 .frame(width: 104, height: 104)
                 .clipShape(Circle())
+        } else if let avatarURL = draft.avatarURL {
+            FMAvatar(url: avatarURL, size: .xl, fallback: draft.initials)
+                .frame(width: 104, height: 104)
         } else {
             Circle()
                 .fill(avatarGradient)

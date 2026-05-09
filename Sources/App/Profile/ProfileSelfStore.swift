@@ -134,6 +134,7 @@ final class ProfileSelfStore: ObservableObject {
                         handle: p.handle,
                         bio: p.bio,
                         avatarInitials: p.avatarInitials,
+                        avatarURL: p.avatarURL,
                         filterCount: self.myFilters.count,
                         followerCount: p.followerCount,
                         followingCount: p.followingCount,
@@ -213,6 +214,7 @@ final class ProfileSelfStore: ObservableObject {
         let handle = displayHandle(from: rawHandle)
         let bio = (doc?["bio"] as? String) ?? ""
         let initials = String(displayName.prefix(2)).uppercased()
+        let avatarURL = url(from: doc?["avatarURL"]) ?? url(from: doc?["photoURL"])
         let followerCount = (doc?["followerCount"] as? Int) ?? 0
         let followingCount = (doc?["followingCount"] as? Int) ?? 0
         return ProfileUser(
@@ -220,11 +222,17 @@ final class ProfileSelfStore: ObservableObject {
             handle: handle,
             bio: bio,
             avatarInitials: initials,
+            avatarURL: avatarURL,
             filterCount: filterCount,
             followerCount: followerCount,
             followingCount: followingCount,
             isOwnProfile: true
         )
+    }
+
+    private static func url(from value: Any?) -> URL? {
+        guard let string = value as? String else { return nil }
+        return URL(string: string)
     }
 
     static func displayHandle(from rawValue: String) -> String {

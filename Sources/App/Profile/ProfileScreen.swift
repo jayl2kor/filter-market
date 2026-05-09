@@ -67,11 +67,17 @@ struct ProfileScreen: View {
                 handle: otherUid.map { "@" + String($0.prefix(8)) } ?? "@user",
             bio: "",
             avatarInitials: "··",
+            avatarURL: nil,
             filterCount: 0,
             followerCount: 0,
             followingCount: 0,
             isOwnProfile: otherUid == nil
         )
+    }
+
+    private static func url(from value: Any?) -> URL? {
+        guard let string = value as? String else { return nil }
+        return URL(string: string)
     }
 
     private func loadOtherProfile() async {
@@ -99,6 +105,7 @@ struct ProfileScreen: View {
             let handle = ProfileSelfStore.displayHandle(from: rawHandle)
             let bio = (data["bio"] as? String) ?? ""
             let initials = String(displayName.prefix(2)).uppercased()
+            let avatarURL = Self.url(from: data["avatarURL"]) ?? Self.url(from: data["photoURL"])
             let followerCount = (data["followerCount"] as? Int) ?? 0
             let followingCount = (data["followingCount"] as? Int) ?? 0
             let filterCount = (data["filterCount"] as? Int) ?? 0
@@ -107,6 +114,7 @@ struct ProfileScreen: View {
                 handle: handle,
                 bio: bio,
                 avatarInitials: initials,
+                avatarURL: avatarURL,
                 filterCount: filterCount,
                 followerCount: followerCount,
                 followingCount: followingCount,
@@ -334,7 +342,7 @@ struct ProfileScreen: View {
 
     private var profileHead: some View {
         VStack(spacing: Sp.sm) {
-            FMAvatar(initials: user.avatarInitials, size: .xl)
+            FMAvatar(url: user.avatarURL, size: .xl, fallback: user.avatarInitials)
 
             Text(user.displayName)
                 .fmTypography(.titleLarge)

@@ -78,6 +78,7 @@ struct EditableProfile: Equatable {
     var photoSharingAllowed: Bool
     var avatarVariant: Int
     var avatarImageData: Data?
+    var avatarURL: URL?
 
     /// Preview / Xcode SwiftUI Preview 전용 — 실제 앱에서는 사용하지 않음.
     static let preview = EditableProfile(
@@ -88,7 +89,8 @@ struct EditableProfile: Equatable {
         makerPageVisible: true,
         photoSharingAllowed: false,
         avatarVariant: 0,
-        avatarImageData: nil
+        avatarImageData: nil,
+        avatarURL: nil
     )
 
     /// 비로그인 / 로딩 중 placeholder. 실제 displayName/handle 은 Firebase Auth + Firestore 에서 채워짐.
@@ -100,7 +102,8 @@ struct EditableProfile: Equatable {
         makerPageVisible: true,
         photoSharingAllowed: false,
         avatarVariant: 0,
-        avatarImageData: nil
+        avatarImageData: nil,
+        avatarURL: nil
     )
 
     var displayHandle: String {
@@ -342,6 +345,23 @@ struct MakerFilterDraft: Identifiable, Equatable, Codable {
     }
 }
 
+private enum ProfileAvatarUploadError: LocalizedError {
+    case imageTooLarge
+    case invalidUploadResponse
+    case uploadFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .imageTooLarge:
+            "프로필 사진 용량이 너무 커요. 다른 사진을 선택해주세요."
+        case .invalidUploadResponse:
+            "프로필 사진 업로드 정보를 읽지 못했어요."
+        case .uploadFailed:
+            "프로필 사진 업로드에 실패했어요."
+        }
+    }
+}
+
 @MainActor
 final class MooditStore: ObservableObject {
     @Published private(set) var filters: [Filter] = []
@@ -416,6 +436,10 @@ final class MooditStore: ObservableObject {
     private var saveProfileGeneration = 0
     private var currentUserID: String?
     private var isApplyingRemoteEditorDraft = false
+    private struct ProfileAvatarUpload {
+        let publicURL: URL
+        let objectKey: String
+    }
     /// Universal Link / push tap에서 도착한 라우트. RootShell이 관찰해 표시한다.
     /// 한 번 처리되면 nil로 리셋한다.
     @Published var pendingDeepLinkRoute: AppRoute?
@@ -429,6 +453,11 @@ final class MooditStore: ObservableObject {
             isAuthenticated = Self.uiTestingAuthenticationFlag()
         }
         #endif
+    }
+
+    private static func url(from value: Any?) -> URL? {
+        guard let string = value as? String else { return nil }
+        return URL(string: string)
     }
 
     // MooditStore lives the entire app lifetime so explicit deinit cleanup is
@@ -548,7 +577,8 @@ final class MooditStore: ObservableObject {
                 makerPageVisible: editableProfile.makerPageVisible,
                 photoSharingAllowed: editableProfile.photoSharingAllowed,
                 avatarVariant: editableProfile.avatarVariant,
-                avatarImageData: editableProfile.avatarImageData
+                avatarImageData: editableProfile.avatarImageData,
+                avatarURL: editableProfile.avatarURL
             )
         }
         walletListener = db.collection("users").document(uid)
@@ -585,7 +615,10 @@ final class MooditStore: ObservableObject {
                         makerPageVisible: (data["makerPageVisible"] as? Bool) ?? self.editableProfile.makerPageVisible,
                         photoSharingAllowed: (data["photoSharingAllowed"] as? Bool) ?? self.editableProfile.photoSharingAllowed,
                         avatarVariant: (data["avatarVariant"] as? Int) ?? self.editableProfile.avatarVariant,
-                        avatarImageData: self.editableProfile.avatarImageData
+                        avatarImageData: self.editableProfile.avatarImageData,
+                        avatarURL: Self.url(from: data["avatarURL"])
+                            ?? Self.url(from: data["photoURL"])
+                            ?? self.editableProfile.avatarURL
                     )
                 }
             }
@@ -1098,6 +1131,44 @@ final class MooditStore: ObservableObject {
         }
     }
 
+    private func uploadProfileAvatarImageData(_ data: Data?) async throws -> ProfileAvatarUpload? {
+        guard let data else { return nil }
+        guard data.count <= 1_500_000 else {
+            throw ProfileAvatarUploadError.imageTooLarge
+        }
+
+        let callable = Functions.functions(region: "asia-northeast3").httpsCallable("profileAvatarUploadInit")
+        let result = try await callable.call([
+            "contentType": "image/jpeg",
+            "imageBytes": data.count
+        ])
+        guard let payload = result.data as? [String: Any],
+              let uploadURLString = payload["uploadUrl"] as? String,
+              let uploadURL = URL(string: uploadURLString),
+              let publicURLString = payload["publicURL"] as? String,
+              let publicURL = URL(string: publicURLString),
+              let objectKey = payload["objectKey"] as? String else {
+            throw ProfileAvatarUploadError.invalidUploadResponse
+        }
+
+        var request = URLRequest(url: uploadURL)
+        request.httpMethod = "PUT"
+        request.httpBody = data
+        let headers = payload["uploadHeaders"] as? [String: String] ?? [:]
+        for (field, value) in headers {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
+        request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200..<300).contains(httpResponse.statusCode) else {
+            throw ProfileAvatarUploadError.uploadFailed
+        }
+
+        return ProfileAvatarUpload(publicURL: publicURL, objectKey: objectKey)
+    }
+
     func saveProfile(_ profile: EditableProfile) {
         editableProfile = profile
         lastProfileSavedAt = Date()
@@ -1110,15 +1181,26 @@ final class MooditStore: ObservableObject {
         saveProfileTask = Task { [weak self, profile, generation] in
             let region = "asia-northeast3"
             do {
-                let updateCallable = Functions.functions(region: region).httpsCallable("updateProfile")
-                _ = try await updateCallable.call([
+                guard let self else { return }
+                let avatarUpload = try await self.uploadProfileAvatarImageData(profile.avatarImageData)
+                let avatarURL = avatarUpload?.publicURL ?? profile.avatarURL
+                var payload: [String: Any] = [
                     "displayName": profile.displayName,
                     "bio": profile.bio,
                     "website": profile.website,
                     "makerPageVisible": profile.makerPageVisible,
                     "photoSharingAllowed": profile.photoSharingAllowed,
                     "avatarVariant": profile.avatarVariant
-                ] as [String: Any])
+                ]
+                if let avatarURL {
+                    payload["avatarURL"] = avatarURL.absoluteString
+                    payload["photoURL"] = avatarURL.absoluteString
+                }
+                if let avatarUpload {
+                    payload["avatarObjectKey"] = avatarUpload.objectKey
+                }
+                let updateCallable = Functions.functions(region: region).httpsCallable("updateProfile")
+                _ = try await updateCallable.call(payload)
                 if !profile.handle.isEmpty {
                     let handleCallable = Functions.functions(region: region).httpsCallable("setHandle")
                     _ = try await handleCallable.call(["handle": profile.handle])
@@ -1126,6 +1208,9 @@ final class MooditStore: ObservableObject {
                 guard !Task.isCancelled else { return }
                 await MainActor.run { [weak self] in
                     guard let self, self.saveProfileGeneration == generation else { return }
+                    if let avatarURL {
+                        self.editableProfile.avatarURL = avatarURL
+                    }
                     self.lastSubmitErrorMessage = nil
                     self.saveProfileTask = nil
                 }

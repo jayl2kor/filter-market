@@ -139,6 +139,7 @@ moodit은 두 가지 호출 경로를 사용한다.
 | PATCH | `/me` | 프로필 갱신 | 인증 |
 | DELETE | `/me` | 계정 삭제 요청 (30일 grace) | 인증 |
 | GET | `/me/export` | GDPR 내보내기 (JSON) | 인증 |
+| CALLABLE | `profileAvatarUploadInit` | 프로필 아바타 R2 presigned PUT URL 발급 | 인증 |
 
 #### Filter — Maker
 
@@ -270,6 +271,31 @@ REJECTED 또는 작성자 수정 후 재검수.
 ```json
 { "ok": true, "data": { "status": "PENDING" } }
 ```
+
+### 5.3aa `profileAvatarUploadInit` — 프로필 아바타 업로드 URL 발급
+
+Firebase callable. 프로필 편집 화면에서 사진을 선택하고 저장할 때 호출한다.
+
+**요청**
+```json
+{
+  "contentType": "image/jpeg",
+  "imageBytes": 412832
+}
+```
+
+**응답**
+```json
+{
+  "objectKey": "users/u-1/avatar/123456-avatar-id.jpg",
+  "uploadUrl": "https://<r2>.r2.cloudflarestorage.com/...?X-Amz-Signature=...",
+  "uploadHeaders": { "Content-Type": "image/jpeg" },
+  "publicURL": "https://cdn.moodit.app/users/u-1/avatar/123456-avatar-id.jpg",
+  "expiresAt": 1770000000
+}
+```
+
+클라이언트는 `uploadUrl`로 PUT을 완료한 뒤 `updateProfile` callable에 `avatarURL`, `photoURL`, `avatarObjectKey`를 함께 저장한다. Functions 환경에는 `R2_PUBLIC_BASE_URL`이 필요하다. 현재 허용 타입은 JPEG/PNG, 최대 크기는 1.5MB다.
 
 ### 5.3a `reviewImageUploadInit` — 리뷰 첨부 사진 업로드 URL 발급
 

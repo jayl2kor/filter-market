@@ -315,7 +315,7 @@ struct SettingsScreen: View {
 
     private var profileCard: some View {
         HStack(spacing: Sp.md) {
-            FMAvatar(initials: store.editableProfile.initials, size: .md)
+            FMAvatar(url: store.editableProfile.avatarURL, size: .md, fallback: store.editableProfile.initials)
 
             VStack(alignment: .leading, spacing: Sp.xxs) {
                 Text(store.editableProfile.displayName.isEmpty

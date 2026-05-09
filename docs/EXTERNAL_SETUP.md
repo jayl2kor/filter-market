@@ -222,7 +222,7 @@
 - R2 버킷 → Settings → "Connect Domain" → `cdn.moodit.app`
 - DNS는 Cloudflare에서 관리 (CNAME `cdn` → `<bucket>.r2.dev` 또는 자동)
 - Cache Rules: 30일 TTL, versioned URL 패턴
-- Review image upload는 `reviewImageUploadInit`이 `R2_PUBLIC_BASE_URL` + object key로 공개 URL을 생성하므로, CDN base URL은 trailing slash 없이 등록한다.
+- Review image upload는 `reviewImageUploadInit`, profile avatar upload는 `profileAvatarUploadInit`이 `R2_PUBLIC_BASE_URL` + object key로 공개 URL을 생성하므로, CDN base URL은 trailing slash 없이 등록한다.
 
 ### 8.6 비용
 - 저장: $0.015/GB/mo (10GB 무료)

@@ -12,6 +12,7 @@ struct ProfileUser: Sendable {
     let handle: String
     let bio: String
     let avatarInitials: String
+    let avatarURL: URL?
     let filterCount: Int
     let followerCount: Int
     let followingCount: Int
@@ -24,6 +25,7 @@ extension ProfileUser {
         handle: "@sample.maker",
         bio: "필름 카메라가 추억이 된 시대,\n디지털 위에 빛을 그립니다.",
         avatarInitials: "JS",
+        avatarURL: nil,
         filterCount: 24,
         followerCount: 1_240,
         followingCount: 86,
@@ -35,6 +37,7 @@ extension ProfileUser {
         handle: "@alex.lab",
         bio: "Color science / film emulation.",
         avatarInitials: "AL",
+        avatarURL: nil,
         filterCount: 18,
         followerCount: 2_400,
         followingCount: 142,
@@ -46,6 +49,7 @@ extension ProfileUser {
         handle: "@newcomer",
         bio: "이제 막 시작한 메이커입니다.",
         avatarInitials: "NC",
+        avatarURL: nil,
         filterCount: 0,
         followerCount: 0,
         followingCount: 12,

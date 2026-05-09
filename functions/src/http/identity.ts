@@ -3,12 +3,22 @@
  */
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { requireAdmin, requireAuth, type Role } from "../lib/auth.js";
+import { loadR2Config, presignPut } from "../lib/r2.js";
 
 const region = "asia-northeast3";
+
+const R2_ENDPOINT = defineSecret("R2_ENDPOINT");
+const R2_ACCESS_KEY_ID = defineSecret("R2_ACCESS_KEY_ID");
+const R2_SECRET_ACCESS_KEY = defineSecret("R2_SECRET_ACCESS_KEY");
+const R2_BUCKET = defineSecret("R2_BUCKET");
+const R2_PUBLIC_BASE_URL = defineSecret("R2_PUBLIC_BASE_URL");
+const r2PublicSecrets = [R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_BASE_URL];
 
 const setRoleSchema = z.object({
   targetUid: z.string().min(1).max(128),
@@ -131,6 +141,9 @@ const updateProfileSchema = z.object({
   makerPageVisible: z.boolean().optional(),
   photoSharingAllowed: z.boolean().optional(),
   avatarVariant: z.number().int().min(0).max(64).optional(),
+  avatarURL: z.string().url().optional(),
+  photoURL: z.string().url().optional(),
+  avatarObjectKey: z.string().min(1).max(512).optional(),
 });
 
 export async function applyUpdateProfile(
@@ -157,6 +170,81 @@ export const updateProfile = onCall({ region, cors: true, enforceAppCheck: true 
   const uid = requireAuth(req);
   return applyUpdateProfile(uid, req.data);
 });
+
+const profileAvatarUploadInitSchema = z.object({
+  contentType: z.enum(["image/jpeg", "image/png"]),
+  imageBytes: z.number().int().min(1).max(1_500_000),
+});
+
+export interface ProfileAvatarUploadInitDeps {
+  publicBaseURL?: string;
+  now?: () => number;
+  uuid?: () => string;
+  presignPutURL?: (
+    key: string,
+    options: { expiresSeconds?: number; contentType?: string },
+  ) => Promise<{ url: string; headers?: Record<string, string>; expiresAt: number }>;
+}
+
+export interface ProfileAvatarUploadInitResult {
+  objectKey: string;
+  uploadUrl: string;
+  uploadHeaders: Record<string, string>;
+  publicURL: string;
+  expiresAt: number;
+}
+
+function publicR2URL(baseURL: string, objectKey: string): string {
+  const base = baseURL.replace(/\/+$/, "");
+  const encodedKey = objectKey.split("/").map(encodeURIComponent).join("/");
+  return `${base}/${encodedKey}`;
+}
+
+export async function applyProfileAvatarUploadInit(
+  uid: string,
+  rawData: unknown,
+  deps: ProfileAvatarUploadInitDeps = {},
+): Promise<ProfileAvatarUploadInitResult> {
+  const parsed = profileAvatarUploadInitSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { contentType } = parsed.data;
+  const publicBaseURL = deps.publicBaseURL ?? process.env.R2_PUBLIC_BASE_URL;
+  if (!publicBaseURL) {
+    throw new HttpsError("internal", "R2_PUBLIC_BASE_URL is not configured");
+  }
+
+  const extension = contentType === "image/png" ? "png" : "jpg";
+  const now = deps.now ?? Date.now;
+  const uuid = deps.uuid ?? randomUUID;
+  const objectKey = `users/${uid}/avatar/${now()}-${uuid()}.${extension}`;
+  const signer = deps.presignPutURL ?? (async (key, options) => {
+    const cfg = loadR2Config();
+    const presigned = await presignPut(cfg, key, {
+      expiresSeconds: options.expiresSeconds,
+      contentType: options.contentType,
+    });
+    return { url: presigned.url, headers: presigned.headers, expiresAt: presigned.expiresAt };
+  });
+  const presigned = await signer(objectKey, { expiresSeconds: 600, contentType });
+
+  return {
+    objectKey,
+    uploadUrl: presigned.url,
+    uploadHeaders: presigned.headers ?? {},
+    publicURL: publicR2URL(publicBaseURL, objectKey),
+    expiresAt: presigned.expiresAt,
+  };
+}
+
+export const profileAvatarUploadInit = onCall(
+  { region, cors: true, secrets: r2PublicSecrets, enforceAppCheck: true },
+  async (req: CallableRequest) => {
+    const uid = requireAuth(req);
+    return applyProfileAvatarUploadInit(uid, req.data);
+  },
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // deleteAccount

@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import {
   applySetHandle,
   applyUpdateProfile,
+  applyProfileAvatarUploadInit,
   applyDeleteAccount,
 } from "../lib/http/identity.js";
 
@@ -152,10 +153,84 @@ describe("applyUpdateProfile", () => {
     );
   });
 
+  it("stores avatar URLs and object key", async () => {
+    const firestore = makeFakeFirestore({});
+    await applyUpdateProfile(
+      "u-1",
+      {
+        avatarURL: "https://cdn.moodit.test/users/u-1/avatar/a.jpg",
+        photoURL: "https://cdn.moodit.test/users/u-1/avatar/a.jpg",
+        avatarObjectKey: "users/u-1/avatar/a.jpg",
+      },
+      { firestore },
+    );
+    const doc = firestore._data.get("users/u-1");
+    assert.equal(doc.avatarURL, "https://cdn.moodit.test/users/u-1/avatar/a.jpg");
+    assert.equal(doc.photoURL, "https://cdn.moodit.test/users/u-1/avatar/a.jpg");
+    assert.equal(doc.avatarObjectKey, "users/u-1/avatar/a.jpg");
+  });
+
   it("rejects empty payload? — actually empty is allowed (no-op merge)", async () => {
     const firestore = makeFakeFirestore({});
     const result = await applyUpdateProfile("u-1", {}, { firestore });
     assert.equal(result.ok, true);
+  });
+});
+
+describe("applyProfileAvatarUploadInit", () => {
+  it("returns a presigned PUT target and public URL", async () => {
+    const result = await applyProfileAvatarUploadInit(
+      "u-1",
+      { contentType: "image/jpeg", imageBytes: 1234 },
+      {
+        publicBaseURL: "https://cdn.moodit.test/media/",
+        now: () => 123456,
+        uuid: () => "avatar-id",
+        presignPutURL: async (key, options) => ({
+          url: `https://r2.moodit.test/${key}`,
+          headers: { "content-type": options.contentType ?? "" },
+          expiresAt: 654321,
+        }),
+      },
+    );
+
+    assert.equal(result.objectKey, "users/u-1/avatar/123456-avatar-id.jpg");
+    assert.equal(result.uploadUrl, "https://r2.moodit.test/users/u-1/avatar/123456-avatar-id.jpg");
+    assert.deepEqual(result.uploadHeaders, { "content-type": "image/jpeg" });
+    assert.equal(result.publicURL, "https://cdn.moodit.test/media/users/u-1/avatar/123456-avatar-id.jpg");
+    assert.equal(result.expiresAt, 654321);
+  });
+
+  it("rejects oversized images", async () => {
+    await assert.rejects(
+      () => applyProfileAvatarUploadInit(
+        "u-1",
+        { contentType: "image/jpeg", imageBytes: 1_500_001 },
+        {
+          publicBaseURL: "https://cdn.moodit.test",
+          presignPutURL: async () => {
+            throw new Error("should not sign");
+          },
+        },
+      ),
+      (err) => err && err.code === "invalid-argument",
+    );
+  });
+
+  it("requires public base URL configuration", async () => {
+    await assert.rejects(
+      () => applyProfileAvatarUploadInit(
+        "u-1",
+        { contentType: "image/png", imageBytes: 128 },
+        {
+          publicBaseURL: "",
+          presignPutURL: async () => {
+            throw new Error("should not sign");
+          },
+        },
+      ),
+      (err) => err && err.code === "internal",
+    );
   });
 });
 
