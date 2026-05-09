@@ -79,13 +79,14 @@ struct FilterDownloadProgressScreen: View {
     let filterID: String
 
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @State private var phase: DownloadPhase = .preparing
     @State private var progress: Double = 0
     @State private var hasStarted = false
     @State private var toast: FMToastMessage?
 
     private var filter: Filter? {
-        store.filter(matching: filterID) ?? store.filters.first
+        filterLibraryStore.filter(matching: filterID) ?? filterLibraryStore.filters.first
     }
 
     var body: some View {
@@ -256,7 +257,7 @@ struct FilterDownloadProgressScreen: View {
     private func startDownloadIfNeeded() async {
         guard !hasStarted else { return }
         hasStarted = true
-        await store.load()
+        await filterLibraryStore.load()
         await runDownload()
     }
 
@@ -273,13 +274,13 @@ struct FilterDownloadProgressScreen: View {
             await markDownloaded()
             return
         }
-        if store.downloadedFilterIDs.contains(filterIDAsUUID) {
+        if filterLibraryStore.downloadedFilterIDs.contains(filterIDAsUUID) {
             progress = 1
             phase = .completed
             toast = FMToastMessage(.success, "다운로드 완료", detail: "카메라에서 적용해보세요")
             return
         }
-        if let filter, store.isDownloaded(filter) {
+        if let filter, filterLibraryStore.isDownloaded(filter) {
             progress = 1
             phase = .completed
             toast = FMToastMessage(.success, "다운로드 완료", detail: "카메라에서 적용해보세요")
@@ -342,11 +343,12 @@ struct FilterAfterDownloadScreen: View {
     let filterID: String
 
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @State private var isCameraPresented = false
     @State private var showRemoveAlert = false
 
     private var filter: Filter? {
-        store.filter(matching: filterID) ?? store.filters.first
+        filterLibraryStore.filter(matching: filterID) ?? filterLibraryStore.filters.first
     }
 
     var body: some View {
@@ -363,7 +365,7 @@ struct FilterAfterDownloadScreen: View {
         .navigationTitle("다운로드 완료")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await store.load()
+            await filterLibraryStore.load()
         }
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraScreen(isPresentedAsCover: true)
@@ -411,7 +413,7 @@ struct FilterAfterDownloadScreen: View {
                             .foregroundStyle(FMColors.Text.secondary)
                         HStack(spacing: Sp.xs) {
                             PillText("Downloaded")
-                            if store.isFavorite(filter) {
+                            if filterLibraryStore.isFavorite(filter) {
                                 PillText("Favorite")
                             }
                         }
@@ -454,7 +456,7 @@ struct FilterAfterDownloadScreen: View {
     }
 
     private var favoriteIcon: String {
-        guard let filter, store.isFavorite(filter) else { return "heart" }
+        guard let filter, filterLibraryStore.isFavorite(filter) else { return "heart" }
         return "heart.fill"
     }
 
@@ -506,7 +508,7 @@ struct FilterAfterDownloadScreen: View {
 
     private func applyFilter() {
         guard let filter else { return }
-        store.select(filter)
+        filterLibraryStore.select(filter)
         FMHaptic.success.play()
         isCameraPresented = true
     }
@@ -548,6 +550,8 @@ private enum DownloadPhase: Equatable {
 
 struct BuiltinFilterLibraryScreen: View {
     @EnvironmentObject private var store: MooditStore
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var walletStore: WalletStore
     @State private var isCameraPresented = false
     @State private var query = ""
     @State private var selectedCategory: FilterCategory?
@@ -606,12 +610,14 @@ struct BuiltinFilterLibraryScreen: View {
             }
         }
         .task {
-            await store.load()
+            await filterLibraryStore.load()
         }
         .sheet(item: $lockedFilter) { filter in
             NavigationStack {
                 BuiltinFilterLockedSheet(filter: filter)
                     .environmentObject(store)
+                    .environmentObject(filterLibraryStore)
+                    .environmentObject(walletStore)
                     .appRouteDestinations()
             }
         }
@@ -653,7 +659,7 @@ struct BuiltinFilterLibraryScreen: View {
     }
 
     private var matchingFilters: [Filter] {
-        let filteredBySearch = store.filters.filter { filter in
+        let filteredBySearch = filterLibraryStore.filters.filter { filter in
             guard !normalizedQuery.isEmpty else { return true }
             return filter.title.lowercased().contains(normalizedQuery)
                 || filter.author.displayName.lowercased().contains(normalizedQuery)
@@ -726,7 +732,7 @@ struct BuiltinFilterLibraryScreen: View {
                     if locked {
                         lockedFilter = filter
                     } else {
-                        store.select(filter)
+                        filterLibraryStore.select(filter)
                         isCameraPresented = true
                     }
                 }
@@ -764,7 +770,7 @@ struct BuiltinFilterLibraryScreen: View {
     }
 
     private func isLocked(_ filter: Filter) -> Bool {
-        filter.priceCoins > 0 && !store.isProActive
+        filter.priceCoins > 0 && !walletStore.isProActive
     }
 
     private func tileData(for filter: Filter) -> FMFilterTileData {
@@ -779,8 +785,8 @@ struct BuiltinFilterLibraryScreen: View {
     }
 
     private func tilePriceLabel(for filter: Filter) -> String {
-        if store.isDownloaded(filter) { return "저장됨" }
-        if filter.priceCoins > 0 { return store.isProActive ? "Pro 포함" : "Pro" }
+        if filterLibraryStore.isDownloaded(filter) { return "저장됨" }
+        if filter.priceCoins > 0 { return walletStore.isProActive ? "Pro 포함" : "Pro" }
         return "무료"
     }
 }
