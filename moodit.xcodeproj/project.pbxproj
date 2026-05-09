@@ -141,6 +141,10 @@
 		A1841003A1841003A1841003 /* WorkflowFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1841002A1841002A1841002 /* WorkflowFormatters.swift */; };
 		A1841005A1841005A1841005 /* EditorAssets.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1841004A1841004A1841004 /* EditorAssets.swift */; };
 		B1780501B1780501B1780501 /* MakerWorkflowScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1780500B1780500B1780500 /* MakerWorkflowScreens.swift */; };
+		B1780601B1780601B1780601 /* ProfileWorkflowScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1780600B1780600B1780600 /* ProfileWorkflowScreens.swift */; };
+		B1780603B1780603B1780603 /* UniversalLinkLandingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1780602B1780602B1780602 /* UniversalLinkLandingScreen.swift */; };
+		B1780605B1780605B1780605 /* DataExportScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1780604B1780604B1780604 /* DataExportScreen.swift */; };
+		B1780607B1780607B1780607 /* NotificationSettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1780606B1780606B1780606 /* NotificationSettingsScreen.swift */; };
 		9E741D7E42757E5EC2821E84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A5351CED6F1DF3CD977446C4 /* Assets.xcassets */; };
 		9F86C29BA2A7D32C3C4EB4D9 /* FirestoreFilterRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D6F0C2A387F95021D67B35 /* FirestoreFilterRepository.swift */; };
 		A0E6E49719D0A6D7A9C38C55 /* NumberFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E6E49619D0A6D7A9C38C55 /* NumberFormatting.swift */; };
@@ -158,7 +162,6 @@
 		ABCC5902D81179EB7B018B09 /* seoul-night.png in Resources */ = {isa = PBXBuildFile; fileRef = 5D87FD05B6A4C0641B8D4EB3 /* seoul-night.png */; };
 		ACFD5FFBFCEDB4E03D732F5E /* MetalPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 212A616007826DB1E7DE92A4 /* MetalPreviewView.swift */; };
 		AFD7AEBB326608EF88B3F71C /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = A5D7782EB8953AA7AE5D5CE6 /* FirebaseAnalytics */; };
-		B148ABD74D88ACC39F803CE3 /* WorkflowScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1152BAA438B340357C6C329F /* WorkflowScreens.swift */; };
 		B1CD12D2367D89250AA4105B /* FilterManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DC99BD5846478274C37F771 /* FilterManifest.swift */; };
 		B36790AE144F28051E6EA6D7 /* Spacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B91AF1E51A3C1C8C4AA180 /* Spacing.swift */; };
 		B5A246E02823D8C8B52F79C9 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDDC44D1B0AC277DE3702EB6 /* ShareSheet.swift */; };
@@ -437,7 +440,6 @@
 		0C02D9ED1D6B811A8A0E35B9 /* FMFilterCoverArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FMFilterCoverArt.swift; sourceTree = "<group>"; };
 		0E2773DDF94E1A12850CA219 /* sunset-vibes.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "sunset-vibes.png"; sourceTree = "<group>"; };
 		103F2FF5A434AB306BE21D50 /* FilterRepositoryDefaultImplTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterRepositoryDefaultImplTests.swift; sourceTree = "<group>"; };
-		1152BAA438B340357C6C329F /* WorkflowScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowScreens.swift; sourceTree = "<group>"; };
 		1550BD6AB2042D987AD08B34 /* Iconography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Iconography.swift; sourceTree = "<group>"; };
 		15C0EF4AFA982EF0A2155BB3 /* LUTResourceResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LUTResourceResolver.swift; sourceTree = "<group>"; };
 		16B91AF1E51A3C1C8C4AA180 /* Spacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spacing.swift; sourceTree = "<group>"; };
@@ -586,6 +588,10 @@
 		A1841002A1841002A1841002 /* WorkflowFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowFormatters.swift; sourceTree = "<group>"; };
 		A1841004A1841004A1841004 /* EditorAssets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorAssets.swift; sourceTree = "<group>"; };
 		B1780500B1780500B1780500 /* MakerWorkflowScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakerWorkflowScreens.swift; sourceTree = "<group>"; };
+		B1780600B1780600B1780600 /* ProfileWorkflowScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileWorkflowScreens.swift; sourceTree = "<group>"; };
+		B1780602B1780602B1780602 /* UniversalLinkLandingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalLinkLandingScreen.swift; sourceTree = "<group>"; };
+		B1780604B1780604B1780604 /* DataExportScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataExportScreen.swift; sourceTree = "<group>"; };
+		B1780606B1780606B1780606 /* NotificationSettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsScreen.swift; sourceTree = "<group>"; };
 		DB733F6CAB461FE90147DBD6 /* MooditApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MooditApp.swift; sourceTree = "<group>"; };
 		DCF82BA88FE8A0FCB5612ACD /* ReduceMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReduceMotion.swift; sourceTree = "<group>"; };
 		DCFD3ADD882050868B6A4166 /* AppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -716,8 +722,8 @@
 				73490DCE4E96064FA169A8B8 /* PushRegistration.swift */,
 				4A85F65669CA14E88C1B508F /* RootShell.swift */,
 				E8FCFE1455B495581E5BF208 /* SavedScreen.swift */,
+				B1780602B1780602B1780602 /* UniversalLinkLandingScreen.swift */,
 				86BA83FCE61060469C1A1033 /* UniversalLinkParser.swift */,
-				1152BAA438B340357C6C329F /* WorkflowScreens.swift */,
 				0CEE06F50544FA166805902E /* Camera */,
 				02E26598FAA2FF4EE515FE88 /* Collections */,
 				A4F43DB05D482C6A5FB93770 /* Components */,
@@ -769,6 +775,7 @@
 		06431724D69890BA12C2EAE7 /* Notifications */ = {
 			isa = PBXGroup;
 			children = (
+				B1780606B1780606B1780606 /* NotificationSettingsScreen.swift */,
 				C999E9C145CB6ED65709111A /* NotificationsInboxScreen.swift */,
 				E7561CD59BD68FFE708CF509 /* NotificationsInboxStore.swift */,
 			);
@@ -1149,6 +1156,7 @@
 		D28F39C7EE1EC8EFE2A3CA82 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				B1780604B1780604B1780604 /* DataExportScreen.swift */,
 				4395CC485D1308878417DE79 /* HelpCenterScreen.swift */,
 				76BF415E945426E88A165335 /* SettingsScreen.swift */,
 			);
@@ -1218,6 +1226,7 @@
 				C9FFDB0F9F4D725AC87EEA94 /* ProfileMockData.swift */,
 				8E614651E5A9700CB58E8A1E /* ProfileScreen.swift */,
 				AB94A4B9C756853CECD34ED5 /* ProfileSelfStore.swift */,
+				B1780600B1780600B1780600 /* ProfileWorkflowScreens.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -1785,12 +1794,15 @@
 				C3103871CBE6A50DBB440C3F /* StoreKitManager.swift in Sources */,
 				47D43CB68B0D53B02819C462 /* Telemetry.swift in Sources */,
 				DD9E7C1FCBD83D80D21EDAC3 /* UITestingFlag.swift in Sources */,
+				B1780603B1780603B1780603 /* UniversalLinkLandingScreen.swift in Sources */,
 				82FAE0D69D2C7240027DD8B5 /* UniversalLinkParser.swift in Sources */,
 				ABAF746CA4063BD52ED5C991 /* WalletLedger.swift in Sources */,
 				B1780401B1780401B1780401 /* WalletWorkflowScreens.swift in Sources */,
 				A1841003A1841003A1841003 /* WorkflowFormatters.swift in Sources */,
 				A1841001A1841001A1841001 /* WorkflowHelpers.swift in Sources */,
-				B148ABD74D88ACC39F803CE3 /* WorkflowScreens.swift in Sources */,
+				B1780605B1780605B1780605 /* DataExportScreen.swift in Sources */,
+				B1780607B1780607B1780607 /* NotificationSettingsScreen.swift in Sources */,
+				B1780601B1780601B1780601 /* ProfileWorkflowScreens.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
