@@ -15,6 +15,10 @@ struct RootShell: View {
     @AppStorage("hasOnboarded") private var hasOnboarded: Bool = false
 
     @State private var selectedTab: FMTab = .market
+    @State private var marketNavigationPath = NavigationPath()
+    @State private var searchNavigationPath = NavigationPath()
+    @State private var savedNavigationPath = NavigationPath()
+    @State private var profileNavigationPath = NavigationPath()
     @State private var isCameraPresented = false
     @State private var showHandleOnboarding = false
     @State private var deferredDeepLinkRoute: AppRoute?
@@ -137,21 +141,42 @@ struct RootShell: View {
 
     @ViewBuilder
     private var tabContent: some View {
+        NavigationStack(path: selectedTabNavigationPath) {
+            selectedTabContent
+                .appRouteDestinations()
+        }
+    }
+
+    private var selectedTabNavigationPath: Binding<NavigationPath> {
         switch selectedTab {
         case .market:
-            MarketplaceScreen()
+            $marketNavigationPath
         case .search:
-            NavigationStack {
-                SearchScreen()
-                    .appRouteDestinations()
-            }
+            $searchNavigationPath
         case .shutter:
             // 도달하지 않음 — fullScreenCover 로 처리.
-            MarketplaceScreen()
+            $marketNavigationPath
         case .saved:
-            SavedScreen()
+            $savedNavigationPath
         case .profile:
-            ProfileScreen()
+            $profileNavigationPath
+        }
+    }
+
+    @ViewBuilder
+    private var selectedTabContent: some View {
+        switch selectedTab {
+        case .market:
+            MarketplaceScreen(ownsNavigationStack: false)
+        case .search:
+            SearchScreen()
+        case .shutter:
+            // 도달하지 않음 — fullScreenCover 로 처리.
+            MarketplaceScreen(ownsNavigationStack: false)
+        case .saved:
+            SavedScreen(ownsNavigationStack: false)
+        case .profile:
+            ProfileScreen(ownsNavigationStack: false)
         }
     }
 

@@ -36,6 +36,7 @@ struct ProfileScreen: View {
     private let injectedUser: ProfileUser?
     /// 다른 사용자 프로필 진입 시 uid. nil이면 본인 프로필.
     private let otherUid: String?
+    private let ownsNavigationStack: Bool
     @State private var selectedSection: ProfileSection = .myFilters
     @State private var hasAppeared = false
     @State private var navigateToLogin = false
@@ -46,14 +47,16 @@ struct ProfileScreen: View {
     @State private var isOtherProfileNotFound = false
     @State private var otherProfileLoadError: String?
 
-    init(user: ProfileUser? = nil) {
+    init(user: ProfileUser? = nil, ownsNavigationStack: Bool = true) {
         self.injectedUser = user
         self.otherUid = nil
+        self.ownsNavigationStack = ownsNavigationStack
     }
 
-    init(otherUid: String) {
+    init(otherUid: String, ownsNavigationStack: Bool = true) {
         self.injectedUser = nil
         self.otherUid = otherUid
+        self.ownsNavigationStack = ownsNavigationStack
     }
 
     /// 화면에 표시할 사용자 — 우선순위: 외부 주입 > otherUid 로드 결과 > store.currentUserProfile (본인) > placeholder.
@@ -156,10 +159,22 @@ struct ProfileScreen: View {
         }
     }
 
+    @ViewBuilder
+    private func navigationContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        if ownsNavigationStack {
+            NavigationStack {
+                content()
+                    .appRouteDestinations()
+            }
+        } else {
+            content()
+        }
+    }
+
     // MARK: - Guest (비로그인)
 
     private var guestBody: some View {
-        NavigationStack {
+        navigationContainer {
             VStack(spacing: Sp.lg) {
                 Spacer()
 
@@ -211,14 +226,13 @@ struct ProfileScreen: View {
                     navigateToLogin = false
                 })
             }
-            .appRouteDestinations()
         }
     }
 
     // MARK: - Authenticated (로그인 후)
 
     private var authenticatedBody: some View {
-        NavigationStack {
+        navigationContainer {
             ScrollView {
                 if shouldShowOtherProfileError {
                     otherProfileErrorState
@@ -280,7 +294,6 @@ struct ProfileScreen: View {
             }
             .toolbarBackground(FMColors.Background.bg0, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .appRouteDestinations()
         }
         .task {
             if otherUid == nil {
@@ -785,7 +798,7 @@ struct ProfileHandleResolverScreen: View {
     var body: some View {
         Group {
             if let resolvedUID {
-                ProfileScreen(otherUid: resolvedUID)
+                ProfileScreen(otherUid: resolvedUID, ownsNavigationStack: false)
             } else {
                 VStack(spacing: Sp.md) {
                     if isLoading {

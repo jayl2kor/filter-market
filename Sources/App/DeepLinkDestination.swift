@@ -41,7 +41,7 @@ struct DeepLinkDestination: View {
         case .rating(let filterId):
             RatingFormScreen(filterID: filterId)
         case .otherProfile(let uid):
-            ProfileScreen(otherUid: uid)
+            ProfileScreen(otherUid: uid, ownsNavigationStack: false)
         case .otherProfileHandle(let handle):
             ProfileHandleResolverScreen(handle: handle)
         case .followers(let uid):
@@ -145,7 +145,7 @@ struct DeepLinkDestination: View {
         case .notificationSettings:
             NotificationSettingsScreen()
         case .savedFilters:
-            SavedScreen()
+            SavedScreen(ownsNavigationStack: false)
         }
     }
 }

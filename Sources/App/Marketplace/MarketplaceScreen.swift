@@ -17,42 +17,58 @@ struct MarketplaceScreen: View {
     @State private var hasAppeared = false
     @State private var prefetchedImageURLs: Set<URL> = []
 
+    private let ownsNavigationStack: Bool
+
+    init(ownsNavigationStack: Bool = true) {
+        self.ownsNavigationStack = ownsNavigationStack
+    }
+
     /// store.load() 가 끝났을 때 false 가 된다. 로딩 시는 skeleton.
     private var isLoading: Bool {
         !hasAppeared || (store.isLoading && store.filters.isEmpty)
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Sp.lg) {
-                    headerBar
-
-                    greeting
-                        .padding(.horizontal, Sp.md)
-
-                    if let error = store.loadError, store.filters.isEmpty {
-                        errorState(error)
-                    } else if isLoading {
-                        loadingState
-                    } else {
-                        loadedSections
-                    }
+        Group {
+            if ownsNavigationStack {
+                NavigationStack {
+                    content
+                        .appRouteDestinations()
                 }
-                .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+            } else {
+                content
             }
-            .refreshable {
-                await store.load(force: true)
-            }
-            .background(FMColors.Background.bg0)
-            .appRouteDestinations()
-            .toolbar(.hidden, for: .navigationBar)
         }
         .task {
             // 첫 진입 시 hasAppeared를 즉시 true — store.isLoading + 데이터 도착 여부로
             // skeleton/empty/content를 분기. (#18 hardcoded 350ms sleep 제거)
             hasAppeared = true
         }
+    }
+
+    private var content: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                headerBar
+
+                greeting
+                    .padding(.horizontal, Sp.md)
+
+                if let error = store.loadError, store.filters.isEmpty {
+                    errorState(error)
+                } else if isLoading {
+                    loadingState
+                } else {
+                    loadedSections
+                }
+            }
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+        .refreshable {
+            await store.load(force: true)
+        }
+        .background(FMColors.Background.bg0)
+        .toolbar(.hidden, for: .navigationBar)
     }
 
     // MARK: - Header

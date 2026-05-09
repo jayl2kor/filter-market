@@ -148,13 +148,13 @@ extension View {
                 SettingsScreen()
 
             case .otherProfile(let uid):
-                ProfileScreen(otherUid: uid)
+                ProfileScreen(otherUid: uid, ownsNavigationStack: false)
 
             case .otherProfileHandle(let handle):
                 ProfileHandleResolverScreen(handle: handle)
 
             case .savedFilters:
-                SavedScreen()
+                SavedScreen(ownsNavigationStack: false)
 
             case .filterDownload(let id):
                 FilterDownloadProgressScreen(filterID: id)

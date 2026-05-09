@@ -21,6 +21,12 @@ struct SavedScreen: View {
     @State private var isRefreshing = false
     @State private var showEmptySearch = false
 
+    private let ownsNavigationStack: Bool
+
+    init(ownsNavigationStack: Bool = true) {
+        self.ownsNavigationStack = ownsNavigationStack
+    }
+
     private let columns = [
         GridItem(.flexible(), spacing: Sp.sm),
         GridItem(.flexible(), spacing: Sp.sm)
@@ -57,72 +63,81 @@ struct SavedScreen: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if isLoading {
-                    skeletonGrid
-                } else if store.libraryFilters.isEmpty {
-                    emptyDownloadsScroll
-                } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: Sp.md) {
-                            controls
+        Group {
+            if ownsNavigationStack {
+                NavigationStack {
+                    content
+                        .appRouteDestinations()
+                }
+            } else {
+                content
+            }
+        }
+    }
 
-                            if visibleFilters.isEmpty {
-                                filteredEmptyState
+    private var content: some View {
+        Group {
+            if isLoading {
+                skeletonGrid
+            } else if store.libraryFilters.isEmpty {
+                emptyDownloadsScroll
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Sp.md) {
+                        controls
+
+                        if visibleFilters.isEmpty {
+                            filteredEmptyState
                                 .accessibilityIdentifier("saved.empty.filtered")
-                            } else {
-                                LazyVGrid(columns: columns, spacing: Sp.sm) {
-                                    ForEach(visibleFilters) { filter in
-                                        savedTile(filter)
-                                    }
+                        } else {
+                            LazyVGrid(columns: columns, spacing: Sp.sm) {
+                                ForEach(visibleFilters) { filter in
+                                    savedTile(filter)
                                 }
                             }
                         }
-                        .padding(.horizontal, Sp.md)
-                        .padding(.top, Sp.sm)
-                        .padding(.bottom, FMLayout.tabBarHeight + Sp.xxl)
                     }
+                    .padding(.horizontal, Sp.md)
+                    .padding(.top, Sp.sm)
+                    .padding(.bottom, FMLayout.tabBarHeight + Sp.xxl)
                 }
             }
-            .refreshable {
-                await refreshSavedFilters()
-            }
-            .background(FMColors.Background.bg1)
-            .navigationTitle("저장됨")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(isEditing ? "완료" : "편집") {
-                        isEditing.toggle()
-                        if !isEditing {
-                            selectedFilterIDs.removeAll()
-                        }
-                        FMHaptic.selection.play()
+        }
+        .refreshable {
+            await refreshSavedFilters()
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("저장됨")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(isEditing ? "완료" : "편집") {
+                    isEditing.toggle()
+                    if !isEditing {
+                        selectedFilterIDs.removeAll()
                     }
-                    .disabled(store.libraryFilters.isEmpty)
-                    .accessibilityIdentifier("saved.edit")
+                    FMHaptic.selection.play()
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(value: AppRoute.builtinFilters) {
-                        Image(systemName: "camera.filters")
-                    }
-                    .accessibilityLabel("기본 필터")
+                .disabled(store.libraryFilters.isEmpty)
+                .accessibilityIdentifier("saved.edit")
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(value: AppRoute.builtinFilters) {
+                    Image(systemName: "camera.filters")
                 }
+                .accessibilityLabel("기본 필터")
             }
-            .task {
-                try? await Task.sleep(nanoseconds: 220_000_000)
-                withAnimation(.fmFast.reducedIfNeeded(reduceMotion)) { hasAppeared = true }
-            }
-            .onChange(of: visibleFilters.map(\.id)) { _, visibleIDs in
-                selectedFilterIDs.formIntersection(Set(visibleIDs))
-            }
-            .navigationDestination(isPresented: $showEmptySearch) {
-                SearchScreen()
-                    .appRouteDestinations()
-                    .environmentObject(store)
-            }
-            .appRouteDestinations()
+        }
+        .task {
+            try? await Task.sleep(nanoseconds: 220_000_000)
+            withAnimation(.fmFast.reducedIfNeeded(reduceMotion)) { hasAppeared = true }
+        }
+        .onChange(of: visibleFilters.map(\.id)) { _, visibleIDs in
+            selectedFilterIDs.formIntersection(Set(visibleIDs))
+        }
+        .navigationDestination(isPresented: $showEmptySearch) {
+            SearchScreen()
+                .environmentObject(store)
         }
     }
 
