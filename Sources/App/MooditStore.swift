@@ -1,6 +1,4 @@
 import Combine
-import FirebaseAuth
-import FirebaseCore
 import FirebaseFirestore
 import FirebaseFunctions
 import Foundation
@@ -33,6 +31,7 @@ final class MooditStore: ObservableObject {
     let filterLibraryStore: FilterLibraryStore
     let walletStore: WalletStore
     let editorDraftStore: EditorDraftStore
+    let sessionStore: SessionStore
     var filters: [Filter] { filterLibraryStore.filters }
     var downloadedFilterIDs: Set<Filter.ID> { filterLibraryStore.downloadedFilterIDs }
     var favoriteFilterIDs: Set<Filter.ID> { filterLibraryStore.favoriteFilterIDs }
@@ -94,7 +93,7 @@ final class MooditStore: ObservableObject {
     /// 코인 잔액 — Firestore /users/{uid}/wallet/balance.value 미러.
     /// `subscribeToWallet()` 호출 시 실시간 갱신.
     var coinBalance: Int { walletStore.coinBalance }
-    @Published private(set) var isAuthenticated: Bool = false
+    var isAuthenticated: Bool { sessionStore.isAuthenticated }
     /// Pro 멤버십 활성화 여부 — /users/{uid}/proStatus.active 미러.
     var isProActive: Bool { walletStore.isProActive }
 
@@ -105,12 +104,10 @@ final class MooditStore: ObservableObject {
     private var exportRequestsListener: ListenerRegistration?
     private var makerDraftsListener: ListenerRegistration?
     private var editorDraftListener: ListenerRegistration?
-    private var authStateHandle: AuthStateDidChangeListenerHandle?
     private var notificationPreferencesSaveTask: Task<Void, Never>?
     private var editorDraftSaveTask: Task<Void, Never>?
     private var saveProfileTask: Task<Void, Never>?
     private var saveProfileGeneration = 0
-    private var currentUserID: String?
     private var isApplyingRemoteEditorDraft = false
     private struct ProfileAvatarUpload {
         let publicURL: URL
@@ -123,14 +120,17 @@ final class MooditStore: ObservableObject {
     private var filterLibraryCancellable: AnyCancellable?
     private var walletCancellable: AnyCancellable?
     private var editorDraftCancellable: AnyCancellable?
+    private var sessionCancellable: AnyCancellable?
 
     init(repository: any FilterRepository = BundleSeedFilterRepository()) {
         let filterLibraryStore = FilterLibraryStore(repository: repository)
         let walletStore = WalletStore()
         let editorDraftStore = EditorDraftStore()
+        let sessionStore = SessionStore()
         self.filterLibraryStore = filterLibraryStore
         self.walletStore = walletStore
         self.editorDraftStore = editorDraftStore
+        self.sessionStore = sessionStore
         filterLibraryCancellable = filterLibraryStore.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
@@ -140,33 +140,18 @@ final class MooditStore: ObservableObject {
         editorDraftCancellable = editorDraftStore.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
+        sessionCancellable = sessionStore.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
         editorDraftStore.onEditorDraftChanged = { [weak self] _ in
             guard let self, !self.isApplyingRemoteEditorDraft else { return }
             self.scheduleEditorDraftPersistence()
         }
-        #if DEBUG
-        if isUITesting {
-            isAuthenticated = Self.uiTestingAuthenticationFlag()
-        }
-        #endif
     }
 
     private static func url(from value: Any?) -> URL? {
         guard let string = value as? String else { return nil }
         return URL(string: string)
-    }
-
-    nonisolated private static var currentFirebaseUser: User? {
-        guard !isUnitTesting, FirebaseApp.app() != nil else { return nil }
-        return Auth.auth().currentUser
-    }
-
-    nonisolated private static var currentFirebaseUID: String? {
-        currentFirebaseUser?.uid
-    }
-
-    nonisolated private static var isUnitTesting: Bool {
-        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
 
     // MooditStore lives the entire app lifetime so explicit deinit cleanup is
@@ -179,28 +164,12 @@ final class MooditStore: ObservableObject {
     /// 로그인 상태 변화에 따라 /users/{uid}/wallet 와 /users/{uid}/proStatus 리스너를 설치 / 해제.
     /// 앱 진입 시 한 번만 호출하면 자동으로 추적.
     func subscribeToWallet() {
-        #if DEBUG
-        guard !isUITesting else {
-            hasLoadedProfile = true
-            isAuthenticated = Self.uiTestingAuthenticationFlag()
-            return
-        }
-        #endif
-        guard !Self.isUnitTesting, FirebaseApp.app() != nil else {
-            hasLoadedProfile = true
-            isAuthenticated = false
-            return
-        }
-        guard authStateHandle == nil else { return } // idempotent
-        authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+        sessionStore.subscribeToAuthState { [weak self] user in
             guard let self else { return }
-            Task { @MainActor in
-                Telemetry.setUserId(user?.uid)
-                self.isAuthenticated = (user != nil)
-                self.attachWalletListeners(uid: user?.uid)
-                if user != nil {
-                    PushRegistration.shared.retryDeviceRegistrationForCurrentUser()
-                }
+            Telemetry.setUserId(user?.uid)
+            self.attachWalletListeners(uid: user?.uid)
+            if user != nil {
+                PushRegistration.shared.retryDeviceRegistrationForCurrentUser()
             }
         }
     }
@@ -209,8 +178,8 @@ final class MooditStore: ObservableObject {
         #if DEBUG
         guard !isUITesting else { return }
         #endif
-        guard let user = Self.currentFirebaseUser else {
-            isAuthenticated = false
+        guard let user = SessionStore.currentFirebaseUser else {
+            sessionStore.setAuthenticated(false)
             attachWalletListeners(uid: nil)
             return
         }
@@ -220,28 +189,17 @@ final class MooditStore: ObservableObject {
             Telemetry.record(error: error, context: ["source": "refreshOnForeground"])
         }
         attachWalletListeners(uid: user.uid)
-        isAuthenticated = true
+        sessionStore.setAuthenticated(true)
         PushRegistration.shared.retryDeviceRegistrationForCurrentUser()
         await load(force: true)
     }
 
     func setLocalAuthenticationFallback(_ authenticated: Bool) {
-        isAuthenticated = authenticated
+        sessionStore.setLocalAuthenticationFallback(authenticated)
         if !authenticated {
             resetUserScopedState()
         }
     }
-
-    #if DEBUG
-    private static func uiTestingAuthenticationFlag() -> Bool {
-        let args = ProcessInfo.processInfo.arguments
-        guard let index = args.firstIndex(of: "-isAuthenticated"),
-              args.indices.contains(index + 1) else {
-            return false
-        }
-        return ["1", "true", "yes"].contains(args[index + 1].lowercased())
-    }
-    #endif
 
     private func attachWalletListeners(uid: String?) {
         persistEditorDraftLocallyForCurrentUser()
@@ -263,21 +221,19 @@ final class MooditStore: ObservableObject {
         editorDraftListener = nil
         notificationPreferencesSaveTask = nil
         editorDraftSaveTask = nil
-        currentUserID = uid
+        sessionStore.attach(uid: uid)
         walletStore.attach(uid: uid)
 
         guard let uid else {
             // 로그아웃 / 미로그인 — 본인 스코프 모든 상태 즉시 정리.
             // 이전 사용자 잔재 방지 (#17).
-            hasLoadedProfile = false  // (#47) 미로그인 reset
             resetUserScopedState()
             return
         }
-        hasLoadedProfile = false  // (#47) 새 uid attach 시 — 다음 snapshot이 도착하면 true
         restoreEditorDraftFromDisk(uid: uid)
         let db = Firestore.firestore()
         // Auth.currentUser의 displayName/email 즉시 사용해 editableProfile 부분 채움.
-        if let authUser = Self.currentFirebaseUser {
+        if let authUser = SessionStore.currentFirebaseUser {
             editableProfile = EditableProfile(
                 displayName: authUser.displayName ?? authUser.email?.split(separator: "@").first.map(String.init) ?? "",
                 handle: authUser.email?.split(separator: "@").first.map(String.init) ?? String(authUser.uid.prefix(8)),
@@ -294,7 +250,7 @@ final class MooditStore: ObservableObject {
             .addSnapshotListener { [weak self] snapshot, _ in
                 guard let self else { return }
                 Task { @MainActor in
-                    self.hasLoadedProfile = true  // (#47) 첫 snapshot 도착 신호
+                    self.sessionStore.markProfileLoaded()  // (#47) 첫 snapshot 도착 신호
                     guard let data = snapshot?.data() else { return }
                     self.editableProfile = EditableProfile(
                         displayName: (data["displayName"] as? String) ?? self.editableProfile.displayName,
@@ -495,7 +451,7 @@ final class MooditStore: ObservableObject {
     }
     /// (#47) /users/{uid} 첫 listener snapshot이 도착했는지 — RootShell의 핸들 검사 등에서 사용.
     /// listener attach 시 false → 첫 snapshot 도착 시 true. 비로그인 시 false.
-    @Published private(set) var hasLoadedProfile: Bool = false
+    var hasLoadedProfile: Bool { sessionStore.hasLoadedProfile }
     /// 업로드/리뷰 등 비동기 callable 실패 시 사용자에 보여줄 에러 메시지 (#47).
     @Published var lastSubmitErrorMessage: String?
 
@@ -520,7 +476,7 @@ final class MooditStore: ObservableObject {
         #if DEBUG
         guard !isUITesting else { return }
         #endif
-        guard Self.currentFirebaseUID != nil else { return }
+        guard SessionStore.currentFirebaseUID != nil else { return }
         notificationPreferencesSaveTask?.cancel()
         notificationPreferencesSaveTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 800_000_000)
@@ -530,7 +486,7 @@ final class MooditStore: ObservableObject {
     }
 
     private func persistNotificationPreferences(_ preferences: NotificationPreferences) async {
-        guard let uid = Self.currentFirebaseUID else { return }
+        guard let uid = SessionStore.currentFirebaseUID else { return }
         let ref = Firestore.firestore()
             .collection("users").document(uid)
             .collection("notificationPreferences").document("main")
@@ -577,7 +533,7 @@ final class MooditStore: ObservableObject {
         #if DEBUG
         guard !isUITesting else { return }
         #endif
-        guard let uid = Self.currentFirebaseUID else { return }
+        guard let uid = SessionStore.currentFirebaseUID else { return }
         let ref = Firestore.firestore()
             .collection("users").document(uid)
             .collection("savedFilters").document(filterId.uuidString)
@@ -610,7 +566,7 @@ final class MooditStore: ObservableObject {
         #if DEBUG
         guard !isUITesting else { return }
         #endif
-        guard let uid = Self.currentFirebaseUID else { return }
+        guard let uid = SessionStore.currentFirebaseUID else { return }
         let ref = Firestore.firestore()
             .collection("users").document(uid)
             .collection("favorites").document(filterId.uuidString)
@@ -651,7 +607,7 @@ final class MooditStore: ObservableObject {
         importedPhotoData = nil
         editorDraftStore.resetUserScopedState()
         exportRequests = []
-        hasLoadedProfile = false
+        sessionStore.markProfileUnloaded()
         lastPaymentErrorMessage = nil
         lastSubmitErrorMessage = nil
         saveProfileTask?.cancel()
@@ -837,7 +793,7 @@ final class MooditStore: ObservableObject {
 
     func requestDataExport() {
         guard !selectedExportCategories.isEmpty else { return }
-        let uid = Self.currentFirebaseUID
+        let uid = SessionStore.currentFirebaseUID
         let ref = uid.map {
             Firestore.firestore()
                 .collection("users").document($0)
@@ -979,7 +935,7 @@ final class MooditStore: ObservableObject {
         #if DEBUG
         guard !isUITesting else { return }
         #endif
-        guard let uid = Self.currentFirebaseUID else { return }
+        guard let uid = SessionStore.currentFirebaseUID else { return }
         var payload: [String: Any] = [
             "name": draft.name,
             "summary": draft.summary,
@@ -1018,7 +974,7 @@ final class MooditStore: ObservableObject {
     }
 
     private func scheduleEditorDraftPersistence() {
-        guard let uid = currentUserID else { return }
+        guard let uid = sessionStore.currentUserID else { return }
         let draft = editorDraft
         if draft.hasUserContent {
             persistEditorDraftToDisk(uid: uid, draft: draft)
@@ -1094,7 +1050,7 @@ final class MooditStore: ObservableObject {
     }
 
     private func persistEditorDraftLocallyForCurrentUser() {
-        guard let currentUserID, editorDraft.hasUserContent else { return }
+        guard let currentUserID = sessionStore.currentUserID, editorDraft.hasUserContent else { return }
         persistEditorDraftToDisk(uid: currentUserID, draft: editorDraft)
     }
 

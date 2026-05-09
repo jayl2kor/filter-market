@@ -123,7 +123,7 @@ struct RootShell: View {
             // (#32) 핸들 미설정 + 인증 + listener 첫 도착 후에만 sheet trigger.
             syncHandleOnboarding(profile: profile)
         }
-        .onReceive(store.$hasLoadedProfile) { loaded in
+        .onReceive(store.sessionStore.$hasLoadedProfile) { loaded in
             // (#47) hardcoded sleep 제거 — store가 첫 listener snapshot을 받으면 검사 트리거.
             guard loaded, store.isAuthenticated else { return }
             syncHandleOnboarding(profile: store.editableProfile)
