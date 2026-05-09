@@ -1,4 +1,5 @@
 import DesignSystem
+import Foundation
 import Models
 import SwiftUI
 
@@ -13,6 +14,7 @@ struct MarketplaceScreen: View {
 
     @State private var selectedCategory: String = "전체"
     @State private var hasAppeared = false
+    @State private var prefetchedImageURLs: Set<URL> = []
 
     /// store.load() 가 끝났을 때 false 가 된다. 로딩 시는 skeleton.
     private var isLoading: Bool {
@@ -142,6 +144,9 @@ struct MarketplaceScreen: View {
             newFiltersSection
             collectionsSection
         }
+        .onAppear {
+            prefetchCovers(in: Array(store.trendingFilters.prefix(8)) + Array(filteredNewFilters.prefix(8)))
+        }
     }
 
     // Trending carousel
@@ -163,6 +168,9 @@ struct MarketplaceScreen: View {
                                     .frame(width: 268)
                             }
                             .buttonStyle(.plain)
+                            .onAppear {
+                                prefetchCovers(in: Array(store.trendingFilters.dropFirst(index + 1).prefix(8)))
+                            }
                             .accessibilityIdentifier("market.trending.\(index)")
                         }
                     }
@@ -219,6 +227,9 @@ struct MarketplaceScreen: View {
                             FMFilterTile(data: filter.toTileData())
                         }
                         .buttonStyle(.plain)
+                        .onAppear {
+                            prefetchCovers(in: Array(filteredNewFilters.dropFirst(index + 1).prefix(8)))
+                        }
                         .accessibilityIdentifier("market.tile.\(index)")
                     }
                 }
@@ -350,6 +361,19 @@ struct MarketplaceScreen: View {
 
     private var categoryChips: [String] {
         ["전체"] + FilterCategory.allCases.map(\.displayTitle)
+    }
+
+    private func prefetchCovers(in filters: [Filter]) {
+        let urls = filters
+            .compactMap { $0.toTileData().previewImageURL }
+            .filter { !prefetchedImageURLs.contains($0) }
+        guard !urls.isEmpty else { return }
+        prefetchedImageURLs.formUnion(urls)
+        urls.forEach { url in
+            Task.detached(priority: .utility) {
+                _ = try? await URLSession.shared.data(from: url)
+            }
+        }
     }
 
     private func sectionHeader(title: String, more: String?) -> some View {

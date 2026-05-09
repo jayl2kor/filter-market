@@ -98,6 +98,10 @@ public struct FMFilterTile: View {
                 switch phase {
                 case .success(let image):
                     image.resizable().scaledToFill()
+                case .empty:
+                    GeometryReader { proxy in
+                        FMSkeleton.rect(height: proxy.size.height, cornerRadius: R.lg)
+                    }
                 default:
                     placeholderImage
                 }
