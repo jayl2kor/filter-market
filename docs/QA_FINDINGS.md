@@ -18,6 +18,7 @@
 | 화면/핵심 액션 텔레메트리 | `Telemetry.fmTrackScreen` modifier가 root tab, camera cover, 모든 `AppRoute` destination의 진입/이탈 duration을 기록. Marketplace/Search/FilterDetail/Camera 핵심 funnel/action/empty/error/refresh 이벤트 추가 | Done |
 | UI Test helper consolidation | `MooditUITestCase` 공통 launch/tap/assert/helper를 추가하고 `ActionSurfaceSmokeTests`, `PhaseAE2ETests`, `PhaseDE2ETests`, `P0CoreActionTests`의 중복 헬퍼를 제거 | Done |
 | Workflow helper extraction | `WorkflowScreens.swift`의 공용 workflow UI/formatter/editor asset helper를 `WorkflowHelpers.swift`, `WorkflowFormatters.swift`, `EditorAssets.swift`로 분리하고 UI-test 전용 분기를 `#if DEBUG`로 제한 | Done |
+| Workflow camera screen extraction | `CameraAspectPickerScreen`, `CameraTimerCountdownScreen`, `PhotoImportScreen`, `PhotoEditScreen`을 `Sources/App/Camera/CameraWorkflowScreens.swift`로 분리하고 `WorkflowScreens.swift`를 5,891 LOC로 축소 | Partial |
 | MooditStore unit baseline | Firebase가 설정된 test host에서도 순수 상태 테스트가 외부 Firestore/Auth에 닿지 않도록 unit-test guard를 추가하고 load/download/favorite/editor draft/submit/reset 상태 전이를 `MooditStoreTests`로 고정 | Partial |
 | MooditStore model extraction | camera/editor/profile/export/notification/maker draft domain value types를 `MooditStoreModels.swift`로 분리해 store 본문 분리의 첫 경계를 확보 | Partial |
 | ProfileSelfStore unit baseline | Firebase가 설정되지 않은 단위 테스트에서 Auth/Firestore 접근을 우회하고 profile baseline/handle normalization/start-refresh local reset을 `ProfileSelfStoreTests`로 고정 | Done |
@@ -83,6 +84,7 @@
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` + `xcodebuild ... -only-testing:AppTests/MooditStoreTests` | PASS after extracting `MooditStoreModels.swift`, 5 MooditStore tests (#180) |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/FilterDetailResponseParsingTests` | PASS, Swift Testing 1 test covering `userHasLiked`/counter/sample/review mapping into FilterDetail mock adapter (#64/#184) |
 | 2026-05-09 | `npm --prefix functions run test:rules` | PASS, 23 Firestore rules tests after adding filter likes owner create/delete and client-read-only samples policies (#64) |
+| 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` + `xcodebuild ... -only-testing:AppUITests/PhaseAE2ETests/testCameraHudAndPhotoImportEntry` | PASS after moving camera workflow screens out of `WorkflowScreens.swift` (#178) |
 | 2026-05-09 | `npm --prefix functions test` | PASS, 93 tests after idempotency cache implementation, Apple cert timeout coverage, and paid filter entitlement/Pro gating in `getFilterDetail` (#182) |
 | 2026-05-09 | `xcodebuild ... -destination 'generic/platform=iOS Simulator' ... build` | PASS after #162 screen/action telemetry wiring |
 | 2026-05-09 | `xcodebuild ... -only-testing:AppTests/TelemetryTests test` | PASS, 3 tests after #162 telemetry parameter sanitizer coverage |
