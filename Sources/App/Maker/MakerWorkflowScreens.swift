@@ -532,8 +532,6 @@ struct EditorParametersScreen: View {
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @State private var selectedSection: EditorParameterSection = .lighting
 
-    private let parameters = ["exposure", "contrast", "saturation", "grain", "vignette"]
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Sp.lg) {
@@ -544,7 +542,7 @@ struct EditorParametersScreen: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 EditorReferencePreview(height: 300)
                 sectionTabs
-                sliders
+                sectionContent
                 compareCard
                 NavigationLink(value: AppRoute.editorLUT) {
                     routeButton("계속", icon: "arrow.right")
@@ -565,7 +563,9 @@ struct EditorParametersScreen: View {
             HStack(spacing: Sp.xs) {
                 ForEach(EditorParameterSection.allCases) { section in
                     FMChip(section.title, isSelected: selectedSection == section) {
-                        selectedSection = section
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            selectedSection = section
+                        }
                     }
                     .accessibilityIdentifier(section.actionID)
                 }
@@ -573,10 +573,19 @@ struct EditorParametersScreen: View {
         }
     }
 
-    private var sliders: some View {
+    @ViewBuilder
+    private var sectionContent: some View {
+        if selectedSection == .lut {
+            lutCard
+        } else {
+            sliders(for: selectedSection.parameterKeys)
+        }
+    }
+
+    private func sliders(for keys: [String]) -> some View {
         FMCard {
             VStack(spacing: Sp.md) {
-                ForEach(parameters, id: \.self) { key in
+                ForEach(keys, id: \.self) { key in
                     FMSlider(
                         value: Binding(
                             get: { editorDraftStore.editorDraft.parameterValues[key] ?? 0 },
@@ -591,6 +600,30 @@ struct EditorParametersScreen: View {
             }
             .accessibilityIdentifier("editor.param.slider")
         }
+    }
+
+    private var lutCard: some View {
+        FMCard {
+            VStack(alignment: .leading, spacing: Sp.sm) {
+                HStack(spacing: Sp.sm) {
+                    Image(systemName: "cube.transparent")
+                        .foregroundStyle(FMColors.Accent.primary)
+                    Text("LUT")
+                        .fmTypography(.headline)
+                        .foregroundStyle(FMColors.Text.primary)
+                }
+                Text("Cube LUT 파일을 가져와 톤 매핑을 적용합니다.")
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Text.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                NavigationLink(value: AppRoute.editorLUT) {
+                    routeButton("LUT 가져오기", icon: "square.and.arrow.down")
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("editor.lut.import")
+            }
+        }
+        .accessibilityIdentifier("editor.lut.card")
     }
 
     private func parameterValueLabel(_ value: Double) -> String {
