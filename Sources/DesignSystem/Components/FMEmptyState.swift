@@ -9,6 +9,7 @@ public enum FMEmptyStateKind: Sendable {
     case emptyProfile(isOwnProfile: Bool, makerName: String?)
     case emptyDownloads
     case emptyReviews(isLoggedIn: Bool)
+    case emptyBlocklist
 
     var illustration: FMEmptyStateIllustration.Kind {
         switch self {
@@ -17,6 +18,7 @@ public enum FMEmptyStateKind: Sendable {
         case .emptyProfile: .profile
         case .emptyDownloads: .downloads
         case .emptyReviews: .comments
+        case .emptyBlocklist: .blocklist
         }
     }
 
@@ -32,6 +34,8 @@ public enum FMEmptyStateKind: Sendable {
             "다운로드한 필터가 없어요"
         case .emptyReviews:
             "첫 번째 리뷰를 남겨보세요"
+        case .emptyBlocklist:
+            "차단한 사용자가 없어요"
         }
     }
 
@@ -49,6 +53,8 @@ public enum FMEmptyStateKind: Sendable {
             isLoggedIn
                 ? "메이커에게 감상을 전해주세요.\n별점과 함께 남기면 더욱 생생하게 전달돼요."
                 : "리뷰를 남기려면 로그인이 필요해요."
+        case .emptyBlocklist:
+            "차단한 사용자는 이곳에 표시됩니다."
         }
     }
 
@@ -59,6 +65,7 @@ public enum FMEmptyStateKind: Sendable {
         case .emptyProfile(let isOwn, _): isOwn ? "첫 필터 만들기" : nil
         case .emptyDownloads: "마켓 둘러보기"
         case .emptyReviews(let isLoggedIn): isLoggedIn ? "리뷰 쓰기" : "로그인"
+        case .emptyBlocklist: nil
         }
     }
 }
@@ -154,6 +161,11 @@ public struct FMEmptyState: View {
 
 #Preview("Empty reviews (logged out)") {
     FMEmptyState(.emptyReviews(isLoggedIn: false)) {}
+        .background(FMColors.Background.bg1)
+}
+
+#Preview("Empty blocklist") {
+    FMEmptyState(.emptyBlocklist)
         .background(FMColors.Background.bg1)
 }
 
