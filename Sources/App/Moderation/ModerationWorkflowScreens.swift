@@ -480,6 +480,36 @@ private enum ModerationAction {
     }
 }
 
+private struct BlockListEmptyState: View {
+    var body: some View {
+        VStack(spacing: Sp.xl) {
+            Image(systemName: "person.2.slash")
+                .font(.system(size: 56, weight: .light))
+                .foregroundStyle(FMColors.Text.tertiary)
+                .frame(width: 96, height: 96)
+                .accessibilityHidden(true)
+
+            VStack(spacing: Sp.xs) {
+                Text("차단한 사용자가 없어요")
+                    .fmTypography(.headline)
+                    .foregroundStyle(FMColors.Text.primary)
+                    .multilineTextAlignment(.center)
+
+                Text("차단한 사용자는 이곳에 표시됩니다.")
+                    .fmTypography(.body)
+                    .foregroundStyle(FMColors.Text.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, Sp.xxl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("차단한 사용자가 없어요. 차단한 사용자는 이곳에 표시됩니다.")
+    }
+}
+
 struct BlockListScreen: View {
     @State private var blockedUsers: [BlockedUserEntry] = []
     @State private var listener: ListenerRegistration?
@@ -506,7 +536,7 @@ struct BlockListScreen: View {
                 ProgressView()
                     .padding(.top, Sp.lg)
             } else if blockedUsers.isEmpty {
-                FMEmptyState(.emptyMarket)
+                BlockListEmptyState()
                     .padding(.horizontal, Sp.md)
                     .accessibilityIdentifier("blocklist.empty")
             } else {
