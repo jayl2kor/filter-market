@@ -25,13 +25,7 @@ final class EditorDraftStore: ObservableObject {
     var onEditorDraftChanged: ((MakerFilterDraft) -> Void)?
 
     func resetUserScopedState() {
-        editorReferencePhotoData = nil
-        editorReferencePhotoRevision = 0
-        editorReferenceSampleKind = .portrait
-        editorImportedLUT = nil
-        editorImportedLUTRevision = 0
-        editorDraft = MakerFilterDraft.empty
-        uploadStep = .cover
+        resetEditorDraft()
         selectedMakerStatus = .all
         makerFilters = []
         lastSubmitErrorMessage = nil
