@@ -17,6 +17,8 @@ enum Telemetry {
         case iapAttempted      = "iap_attempted"
         case iapSucceeded      = "iap_succeeded"
         case iapFailed         = "iap_failed"
+        case iapProductsLoadEmpty   = "iap_products_load_empty"
+        case iapProductsLoadPartial = "iap_products_load_partial"
 
         // Filter purchase (코인 차감)
         case filterPurchaseAttempted    = "filter_purchase_attempted"

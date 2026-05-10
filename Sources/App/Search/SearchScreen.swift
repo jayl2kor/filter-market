@@ -7,13 +7,15 @@ import SwiftUI
 // MARK: - SearchPhase
 
 enum SearchPhase: Hashable {
-    case browsing       // 빈 query — 발견 피드/추천/최근/인기
+    case discovering    // 기본 — 발견 피드
+    case browsing       // 검색 필드 focus — 최근/추천/인기
     case typing         // 입력 중 — 자동완성/실시간 결과
     case results        // submit 후 — 그리드 결과 + 결과 없음 빈 상태
 
     var telemetryName: String {
         switch self {
-        case .browsing: "discovering"
+        case .discovering: "discovering"
+        case .browsing: "browsing"
         case .typing: "typing"
         case .results: "results"
         }
@@ -35,12 +37,13 @@ struct PopularMaker: Identifiable, Sendable {
 
 /// 발견 — 8번 화면.
 ///
-/// 헤더 + 입력 + 취소 / browsing(발견 피드 + 최근/추천/메이커) / typing(필터 + 메이커) / results(그리드 + 빈상태).
+/// 헤더 + 입력 + 취소 / discovering(발견 피드) / browsing(최근/추천/메이커) / typing(필터 + 메이커) / results(그리드 + 빈상태).
 struct SearchScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var sessionStore: SessionStore
+    @EnvironmentObject private var walletStore: WalletStore
     @State private var query: String = ""
     @State private var debouncedQuery: String = ""
     @State private var isSearchDebouncing = false
@@ -49,24 +52,33 @@ struct SearchScreen: View {
     @State private var recentSearches: [String] = []
     @State private var recentSearchesStorageKey: String = ""
     @State private var cachedPopularMakers: [PopularMaker] = []
-    @State private var phase: SearchPhase = .browsing
+    @State private var phase: SearchPhase = .discovering
+    @State private var didTrackDiscoverImpression = false
+    @State private var suppressNextQueryDebounce = false
     @FocusState private var isFieldFocused: Bool
 
     private let initialCategory: String?
     private let showsBackButton: Bool
+    private let openRoute: ((AppRoute) -> Void)?
 
     private let suggestedKeywords = [
         "#골든아워", "#필름룩", "#씨네마틱", "#카페",
         "#포트레이트", "#모노톤", "#비비드", "#무드"
     ]
 
-    init(initialQuery: String? = nil, initialCategory: String? = nil, showsBackButton: Bool = false) {
+    init(
+        initialQuery: String? = nil,
+        initialCategory: String? = nil,
+        showsBackButton: Bool = false,
+        openRoute: ((AppRoute) -> Void)? = nil
+    ) {
         let query = initialQuery ?? initialCategory ?? ""
         self._query = State(initialValue: query)
         self._debouncedQuery = State(initialValue: query)
-        self._phase = State(initialValue: query.isEmpty ? .browsing : .results)
+        self._phase = State(initialValue: query.isEmpty ? .discovering : .results)
         self.initialCategory = initialCategory
         self.showsBackButton = showsBackButton
+        self.openRoute = openRoute
     }
 
     var body: some View {
@@ -76,6 +88,8 @@ struct SearchScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     switch phase {
+                    case .discovering:
+                        discoveringContent
                     case .browsing:
                         browsingContent
                     case .typing:
@@ -97,6 +111,7 @@ struct SearchScreen: View {
         .onAppear {
             loadRecentSearches()
             refreshPopularMakers(from: filterLibraryStore.filters)
+            trackDiscoverImpressionIfNeeded()
         }
         .task {
             await filterLibraryStore.load()
@@ -105,7 +120,21 @@ struct SearchScreen: View {
             refreshPopularMakers(from: filters)
         }
         .onChange(of: query) { _, newValue in
+            if suppressNextQueryDebounce {
+                suppressNextQueryDebounce = false
+                return
+            }
             scheduleDebouncedSearch(for: newValue)
+        }
+        .onChange(of: isFieldFocused) { _, focused in
+            guard focused, phase == .discovering else { return }
+            withAnimation(.fmFast.reducedIfNeeded(reduceMotion)) {
+                phase = .browsing
+            }
+        }
+        .onChange(of: phase) { _, newValue in
+            guard newValue == .discovering else { return }
+            trackDiscoverImpressionIfNeeded()
         }
         .onChange(of: sessionStore.isAuthenticated) { _, _ in
             loadRecentSearches()
@@ -118,7 +147,7 @@ struct SearchScreen: View {
     // MARK: - Top bar
 
     private var searchTopBar: some View {
-        HStack(spacing: Sp.xs) {
+        HStack(spacing: Sp.sm) {
             if showsBackButton {
                 Button {
                     dismiss()
@@ -134,12 +163,10 @@ struct SearchScreen: View {
                 .accessibilityIdentifier("search.back")
             }
 
-            FMTextField.search(
-                text: $query,
-                placeholder: "필터, 메이커, 분위기 검색"
-            )
-            .focused($isFieldFocused)
-            .onSubmit {
+            FMSearchHeader(
+                placeholder: "필터, 메이커, 분위기 검색",
+                text: $query
+            ) {
                 guard !query.isEmpty else { return }
                 searchDebounceTask?.cancel()
                 debouncedQuery = query
@@ -151,10 +178,20 @@ struct SearchScreen: View {
                     "source": "keyboard"
                 ])
             }
+            .accessibilityIdentifier("search.searchHeader")
+            .focused($isFieldFocused)
             .frame(maxWidth: .infinity)
             .layoutPriority(1)
 
-            if !query.isEmpty || phase == .results {
+            if showsHeaderActions {
+                headerActions
+                    .transition(
+                        .fmReducible(
+                            .opacity.combined(with: .move(edge: .trailing)),
+                            reduceMotion: reduceMotion
+                        )
+                    )
+            } else if showsBackButton && (!query.isEmpty || phase != .discovering) {
                 Button {
                     Telemetry.trackAction("search_cancelled", screen: .search, parameters: [
                         "phase": phase.telemetryName
@@ -185,21 +222,102 @@ struct SearchScreen: View {
         .padding(.bottom, Sp.sm)
         .background(FMColors.Background.bg0)
         .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(FMColors.Border.subtle)
-                .frame(height: 1)
+            if showsBackButton {
+                Rectangle()
+                    .fill(FMColors.Border.subtle)
+                    .frame(height: 1)
+            }
         }
         .fmAnimation(.fmFast, value: phase)
+    }
+
+    private var showsHeaderActions: Bool {
+        !showsBackButton
+    }
+
+    private var headerActions: some View {
+        HStack(spacing: Sp.sm) {
+            routeLink(value: .wallet) {
+                HStack(spacing: 4) {
+                    Image(systemName: "circle.hexagongrid.fill")
+                        .font(.system(size: IconSize.sm, weight: .semibold))
+                        .foregroundStyle(FMColors.Accent.primary)
+                    Text(walletStore.coinBalance.formatted())
+                        .fmTypography(.subhead)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Text.primary)
+                        .monospacedDigit()
+                }
+                .padding(.horizontal, Sp.sm)
+                .frame(height: 44)
+                .background(FMColors.Background.bg2, in: Capsule())
+                .overlay {
+                    Capsule()
+                        .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+                }
+            }
+            .buttonStyle(.plain)
+            .simultaneousGesture(TapGesture().onEnded {
+                Telemetry.trackAction("wallet_opened", screen: .search, parameters: ["source": "header"])
+            })
+            .accessibilityIdentifier("search.header.coinBalance")
+            .accessibilityLabel("코인 잔액 \(walletStore.coinBalance)개, 지갑 열기")
+
+            routeLink(value: .notifications) {
+                Image(systemName: "bell")
+                    .font(.system(size: IconSize.lg, weight: .regular))
+                    .foregroundStyle(FMColors.Text.primary)
+                    .frame(width: 44, height: 44)
+                    .background(FMColors.Background.bg2, in: Circle())
+                    .overlay {
+                        Circle()
+                            .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+                    }
+            }
+            .buttonStyle(.plain)
+            .simultaneousGesture(TapGesture().onEnded {
+                Telemetry.trackAction("notifications_opened", screen: .search, parameters: ["source": "header"])
+            })
+            .accessibilityLabel("알림")
+        }
+    }
+
+    @ViewBuilder
+    private func routeLink<Label: View>(
+        value route: AppRoute,
+        @ViewBuilder label: () -> Label
+    ) -> some View {
+        if let openRoute {
+            Button {
+                openRoute(route)
+            } label: {
+                label()
+            }
+        } else {
+            NavigationLink(value: route) {
+                label()
+            }
+        }
+    }
+
+    // MARK: - Discovering
+
+    private var discoveringContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            discoverHeroSection
+            sectionDivider
+            discoverRailSection
+            sectionDivider
+            keywordsSection
+            sectionDivider
+            popularMakersSection
+        }
     }
 
     // MARK: - Browsing
 
     private var browsingContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            discoverHeroSection
-            sectionDivider
-            discoverRailSection
-            sectionDivider
             recentSection
             sectionDivider
             keywordsSection
@@ -221,7 +339,7 @@ struct SearchScreen: View {
             }
 
             if let filter = discoverHeroFilter {
-                NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                routeLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
                     ZStack(alignment: .bottomLeading) {
                         discoverCover(filter)
                         LinearGradient(
@@ -285,7 +403,7 @@ struct SearchScreen: View {
                     .fmTypography(.headline)
                     .foregroundStyle(FMColors.Text.primary)
                 Spacer()
-                NavigationLink(value: AppRoute.forYou) {
+                routeLink(value: AppRoute.forYou) {
                     Text("For You")
                         .fmTypography(.caption)
                         .fontWeight(.semibold)
@@ -303,7 +421,7 @@ struct SearchScreen: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: Sp.sm) {
                         ForEach(Array(discoverRailFilters.enumerated()), id: \.element.id) { index, filter in
-                            NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                            routeLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
                                 FMFilterTile(data: filter.toTileData())
                                     .frame(width: 148)
                             }
@@ -382,9 +500,7 @@ struct SearchScreen: View {
                 .frame(width: 18, height: 18)
 
             Button {
-                query = term
-                phase = .results
-                rememberSearch(term)
+                submitSearch(term)
                 Telemetry.trackFunnelStep("search_discovery", step: "query_submitted", screen: .search, parameters: [
                     "query_length": term.count,
                     "source": "recent"
@@ -424,9 +540,7 @@ struct SearchScreen: View {
                 ForEach(suggestedKeywords, id: \.self) { keyword in
                     FMChip(keyword, size: .sm) {
                         let stripped = keyword.replacingOccurrences(of: "#", with: "")
-                        query = stripped
-                        phase = .results
-                        rememberSearch(stripped)
+                        submitSearch(stripped)
                         Telemetry.trackFunnelStep("search_discovery", step: "query_submitted", screen: .search, parameters: [
                             "query_length": stripped.count,
                             "source": "suggested_keyword"
@@ -449,7 +563,7 @@ struct SearchScreen: View {
                     .fmTypography(.headline)
                     .foregroundStyle(FMColors.Text.primary)
                 Spacer()
-                NavigationLink(value: AppRoute.forYou) {
+                routeLink(value: AppRoute.forYou) {
                     Text("전체 →")
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Accent.primary)
@@ -486,7 +600,7 @@ struct SearchScreen: View {
     }
 
     private func makerCell(_ maker: PopularMaker) -> some View {
-        NavigationLink(value: AppRoute.otherProfile(uid: maker.id)) {
+        routeLink(value: AppRoute.otherProfile(uid: maker.id)) {
             VStack(spacing: Sp.xs) {
                 FMAvatar(url: maker.avatarURL, size: .lg, fallback: maker.initials)
                     .overlay {
@@ -565,7 +679,7 @@ struct SearchScreen: View {
                         spacing: Sp.sm
                     ) {
                         ForEach(Array(filteredFilters.enumerated()), id: \.offset) { index, filter in
-                            NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                            routeLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
                                 FMFilterTile(data: filter.toTileData())
                             }
                             .buttonStyle(.plain)
@@ -599,7 +713,7 @@ struct SearchScreen: View {
     }
 
     private func makerRow(_ maker: PopularMaker) -> some View {
-        NavigationLink(value: AppRoute.otherProfile(uid: maker.id)) {
+        routeLink(value: AppRoute.otherProfile(uid: maker.id)) {
             HStack(spacing: Sp.sm) {
                 FMAvatar(url: maker.avatarURL, size: .sm, fallback: maker.initials)
                 VStack(alignment: .leading, spacing: 2) {
@@ -678,7 +792,7 @@ struct SearchScreen: View {
                         spacing: Sp.sm
                     ) {
                         ForEach(Array(filteredFilters.enumerated()), id: \.offset) { index, filter in
-                            NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                            routeLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
                                 FMFilterTile(data: filter.toTileData())
                             }
                             .buttonStyle(.plain)
@@ -810,11 +924,24 @@ struct SearchScreen: View {
     private func cancelSearch() {
         searchDebounceTask?.cancel()
         withAnimation(.fmFast.reducedIfNeeded(reduceMotion)) {
+            isFieldFocused = false
             query = ""
             debouncedQuery = ""
             isSearchDebouncing = false
-            phase = .browsing
+            phase = .discovering
         }
+    }
+
+    private func submitSearch(_ value: String) {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        searchDebounceTask?.cancel()
+        suppressNextQueryDebounce = query != trimmed
+        query = trimmed
+        debouncedQuery = trimmed
+        isSearchDebouncing = false
+        phase = .results
+        rememberSearch(trimmed)
     }
 
     private func scheduleDebouncedSearch(for newValue: String) {
@@ -823,7 +950,7 @@ struct SearchScreen: View {
         guard !trimmed.isEmpty else {
             debouncedQuery = ""
             isSearchDebouncing = false
-            phase = .browsing
+            phase = isFieldFocused ? .browsing : .discovering
             return
         }
 
@@ -844,6 +971,14 @@ struct SearchScreen: View {
         ])
         await filterLibraryStore.load(force: true)
         debouncedQuery = query
+    }
+
+    private func trackDiscoverImpressionIfNeeded() {
+        guard !didTrackDiscoverImpression, phase == .discovering else { return }
+        didTrackDiscoverImpression = true
+        Telemetry.trackFunnelStep("search_discovery", step: "discover_impression", screen: .search, parameters: [
+            "filter_count": filterLibraryStore.filters.count
+        ])
     }
 
     private func rememberSearch(_ term: String) {

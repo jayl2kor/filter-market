@@ -300,7 +300,7 @@ struct FilterDetailResponse {
             makerInitials: initials,
             makerAvatarURL: authorAvatarURL,
             categoryLabel: priceCoins > 0 ? "유료 필터 · \(priceCoins) 코인" : "무료 필터",
-            downloadCount: downloadCount > 0 ? downloadCount : useCount,
+            downloadCount: downloadCount,
             rating: ratingAvg ?? 0,
             reviewCount: reviewCount,
             likeCount: likeCount,

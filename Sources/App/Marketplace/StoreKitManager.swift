@@ -25,6 +25,7 @@ public final class StoreKitManager: ObservableObject {
     @Published public private(set) var lastError: String?
     @Published public private(set) var lastCoinCreditResult: CoinCreditResult?
     @Published public private(set) var isProcessing = false
+    @Published public private(set) var lastProductsLoadFailureKind: ProductsLoadFailureKind?
 
     private var updatesTask: Task<Void, Never>?
     private let region: String
@@ -40,19 +41,51 @@ public final class StoreKitManager: ObservableObject {
 
     // MARK: - Products
 
+    public enum ProductsLoadFailureKind: String, Equatable, Sendable {
+        case empty
+        case partial
+        case requestFailed
+    }
+
     /// App Store Connect에서 등록된 상품을 가져옴.
     /// 실패 시 lastError에 기록하고 빈 배열 유지.
-    public func loadProducts(ids: [String] = IAPProductIDs.allIDs) async {
+    public func loadProducts(ids: [String] = IAPProductIDs.allIDs, retryOnEmpty: Bool = true) async {
+        await loadProducts(ids: ids, attempt: 1)
+        guard retryOnEmpty, products.isEmpty, lastProductsLoadFailureKind == .empty else { return }
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        await loadProducts(ids: ids, attempt: 2)
+    }
+
+    private func loadProducts(ids: [String], attempt: Int) async {
         do {
             let loaded = try await Product.products(for: ids)
             // 일관된 표시 순서 (코인 4종 → Pro 2종) 위해 IAPProductIDs.allIDs 순서 매칭.
             self.products = ids.compactMap { id in loaded.first(where: { $0.id == id }) }
+            let loadedIDs = Set(loaded.map(\.id))
+            let missingIDs = Self.missingProductIDs(requested: ids, loaded: loadedIDs)
             if self.products.isEmpty {
-                self.lastError = "현재 결제 패키지를 불러올 수 없습니다. 잠시 후 다시 시도해주세요."
+                self.lastProductsLoadFailureKind = .empty
+                self.lastError = Self.emptyProductsMessage
+                Telemetry.log(.iapProductsLoadEmpty, parameters: [
+                    "requested_count": ids.count,
+                    "attempt": attempt,
+                    "missing_product_ids": missingIDs.joined(separator: ",")
+                ])
+            } else if !missingIDs.isEmpty {
+                self.lastProductsLoadFailureKind = .partial
+                self.lastError = nil
+                Telemetry.log(.iapProductsLoadPartial, parameters: [
+                    "requested_count": ids.count,
+                    "loaded_count": self.products.count,
+                    "attempt": attempt,
+                    "missing_product_ids": missingIDs.joined(separator: ",")
+                ])
             } else {
+                self.lastProductsLoadFailureKind = nil
                 self.lastError = nil
             }
         } catch {
+            self.lastProductsLoadFailureKind = .requestFailed
             self.lastError = "상품을 불러오지 못했어요: \(error.localizedDescription)"
             self.products = []
         }
@@ -184,6 +217,18 @@ public final class StoreKitManager: ObservableObject {
         IAPProductIDs.isProSubscription(productId)
             ? "proSubscriptionUpdate"
             : "creditCoinsFromIAP"
+    }
+
+    nonisolated static func missingProductIDs(requested: [String], loaded: Set<String>) -> [String] {
+        requested.filter { !loaded.contains($0) }
+    }
+
+    nonisolated private static var emptyProductsMessage: String {
+        #if DEBUG
+        return "결제 상품을 찾지 못했어요. 개발 빌드에서는 Xcode scheme의 StoreKit Configuration 연결을 확인하고, TestFlight/운영에서는 App Store Connect 상품 ID와 판매 가능 상태를 확인해주세요."
+        #else
+        return "현재 결제 패키지를 불러올 수 없습니다. 잠시 후 다시 시도해주세요."
+        #endif
     }
 
     nonisolated static func parseCoinCreditResult(_ data: Any) -> CoinCreditResult? {

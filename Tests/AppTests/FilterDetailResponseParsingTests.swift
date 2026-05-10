@@ -88,4 +88,28 @@ struct FilterDetailResponseParsingTests {
         #expect(response.paywall)
         #expect(response.toMock().isPaid)
     }
+
+    @Test("detail mock uses downloadCount without useCount fallback")
+    func detailMockDoesNotUseUseCountAsDownloadCount() throws {
+        let response = try FilterDetailResponse(json: [
+            "filter": [
+                "id": "used-filter",
+                "title": "Used Often",
+                "useCount": 9_100,
+                "downloadCount": 0,
+                "author": [
+                    "uid": "maker-1",
+                    "displayName": "Maker"
+                ],
+            ],
+            "samples": [],
+            "reviews": [],
+        ])
+
+        let mock = response.toMock()
+
+        #expect(mock.downloadCount == 0)
+        #expect(mock.reviewCount == 0)
+        #expect(mock.likeCount == 0)
+    }
 }

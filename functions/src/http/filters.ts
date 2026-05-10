@@ -6,6 +6,7 @@
  *   POST  /uploadFinalize           §5.2  upload finalize
  *   POST  /submitForReview          §5.3  submit for review
  *   POST  /use                      §5.7  idempotent use counter
+ *   POST  /download                 §5.9  idempotent download counter
  *   GET   /getFilterDetail/:id      §5.8  detail with signed CDN URL
  *   POST  /report                   §5.6  user report
  */
@@ -41,6 +42,10 @@ const recordUseSchema = z.object({
   filterId: z.string().min(1).max(128),
 });
 
+const recordDownloadSchema = z.object({
+  filterId: z.string().min(1).max(128),
+});
+
 export interface RecordUseDeps {
   firestore?: Firestore;
   now?: () => Date;
@@ -49,6 +54,17 @@ export interface RecordUseDeps {
 export interface RecordUseResult {
   filterId: string;
   useCount: number;
+  counted: boolean;
+}
+
+export interface RecordDownloadDeps {
+  firestore?: Firestore;
+  now?: () => Date;
+}
+
+export interface RecordDownloadResult {
+  filterId: string;
+  downloadCount: number;
   counted: boolean;
 }
 
@@ -92,6 +108,48 @@ export async function applyRecordUse(
     tx.set(useRef, { lastUseAt: now }, { merge: true });
 
     return { filterId, useCount: previousCount + 1, counted: true };
+  });
+}
+
+/**
+ * Idempotent download counter for a (uid, filter) pair.
+ *
+ * Download count is a marketplace metric and must not fall back to useCount.
+ * The per-user ledger prevents repeated saves or retries from inflating the
+ * public "downloads" label.
+ */
+export async function applyRecordDownload(
+  uid: string,
+  rawData: unknown,
+  deps: RecordDownloadDeps = {},
+): Promise<RecordDownloadResult> {
+  const parsed = recordDownloadSchema.safeParse(rawData);
+  if (!parsed.success) {
+    throw new HttpsError("invalid-argument", parsed.error.message);
+  }
+  const { filterId } = parsed.data;
+
+  const db = deps.firestore ?? getFirestore();
+  const now = (deps.now ?? (() => new Date()))();
+  const filterRef = db.collection("filters").doc(filterId);
+  const downloadRef = filterRef.collection("downloads").doc(uid);
+
+  return db.runTransaction(async (tx) => {
+    const filterSnap = await tx.get(filterRef);
+    if (!filterSnap.exists) {
+      throw new HttpsError("not-found", `filter ${filterId} not found`);
+    }
+
+    const downloadSnap = await tx.get(downloadRef);
+    const previousCount = (filterSnap.get("downloadCount") as number | undefined) ?? 0;
+    if (downloadSnap.exists) {
+      return { filterId, downloadCount: previousCount, counted: false };
+    }
+
+    tx.update(filterRef, { downloadCount: previousCount + 1 });
+    tx.set(downloadRef, { downloadedAt: now }, { merge: true });
+
+    return { filterId, downloadCount: previousCount + 1, counted: true };
   });
 }
 
@@ -681,6 +739,12 @@ export const recordUse = onCall({ region, cors: true, enforceAppCheck: true }, a
   return applyRecordUse(uid, req.data);
 });
 
+/** POST /filters/{id}/download — idempotent per (uid, filter). */
+export const recordDownload = onCall({ region, cors: true, enforceAppCheck: true }, async (req: CallableRequest) => {
+  const uid = requireAuth(req);
+  return applyRecordDownload(uid, req.data);
+});
+
 const getFilterDetailSchema = z.object({
   filterId: z.string().min(1).max(128),
 });
@@ -931,7 +995,24 @@ export async function applyGetFilterDetail(
       }))(objectKey);
 
   const author = (data.author as { uid?: string; displayName?: string } | undefined) ?? {};
+  const authorUid = author.uid ?? (data.authorUid as string | undefined) ?? "unknown";
+  let authorProfile: Record<string, unknown> = {};
+  if (authorUid !== "unknown") {
+    try {
+      const authorSnap = await db.collection("users").doc(authorUid).get();
+      authorProfile = authorSnap.data() ?? {};
+    } catch {
+      authorProfile = {};
+    }
+  }
+  const authorDisplayName =
+    (authorProfile.displayName as string | undefined) ??
+    (authorProfile.handle as string | undefined) ??
+    author.displayName ??
+    "Unknown";
   const authorAvatarURL =
+    (authorProfile.avatarURL as string | undefined) ??
+    (authorProfile.photoURL as string | undefined) ??
     (author as { avatarURL?: string; photoURL?: string }).avatarURL ??
     (author as { avatarURL?: string; photoURL?: string }).photoURL ??
     (data.authorAvatarURL as string | undefined) ??
@@ -977,8 +1058,8 @@ export async function applyGetFilterDetail(
       tags: Array.isArray(data.tags) ? data.tags.filter((tag): tag is string => typeof tag === "string") : [],
       createdAt,
       author: {
-        uid: author.uid ?? (data.authorUid as string | undefined) ?? "unknown",
-        displayName: author.displayName ?? "Unknown",
+        uid: authorUid,
+        displayName: authorDisplayName,
         avatarURL: authorAvatarURL,
         photoURL: authorAvatarURL,
       },

@@ -1,5 +1,6 @@
 import DesignSystem
 import CryptoKit
+import FirebaseFunctions
 import FilterEngine
 import Foundation
 import Marketplace
@@ -312,7 +313,14 @@ struct FilterDownloadProgressScreen: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("filter.download.completed.next")
-                } else if phase == .failed {
+                } else if case .failed(.entitlementRequired) = phase {
+                    NavigationLink(value: AppRoute.paywallSingle(filterId: filterID)) {
+                        routeButtonLabel("구매 화면으로 이동", icon: "creditcard")
+                            .accessibilityIdentifier("filter.download.paywall")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("filter.download.paywall")
+                } else if phase.isRetryable {
                     FMButton("다시 시도", icon: "arrow.clockwise", variant: .primary, size: .lg) {
                         Task { await retryDownload() }
                     }
@@ -371,6 +379,7 @@ struct FilterDownloadProgressScreen: View {
     private func retryDownload() async {
         phase = .preparing
         progress = 0
+        toast = nil
         await runDownload()
     }
 
@@ -392,7 +401,13 @@ struct FilterDownloadProgressScreen: View {
             toast = FMToastMessage(.success, "다운로드 완료", detail: "카메라에서 적용해보세요")
             return
         }
-        phase = .downloading
+        if let filter,
+           filter.priceCoins <= 0,
+           Self.hasBundledPackageResource(for: filter) {
+            await markDownloadedFromBundledResource()
+            return
+        }
+        phase = .fetchingDetail
 
         #if DEBUG
         if isUITesting {
@@ -401,11 +416,21 @@ struct FilterDownloadProgressScreen: View {
         }
         #endif
 
+        let detail: FilterDetailResponse
         do {
-            let detail = try await FilterDetailLoaderScreen.fetchDetail(filterId: filterID)
-            guard let signedDownloadURL = detail.signedDownloadURL else {
-                throw SignedFilterPackageDownloader.DownloadError.missingSignedDownloadURL
-            }
+            detail = try await FilterDetailLoaderScreen.fetchDetail(filterId: filterID)
+        } catch {
+            fail(with: DownloadFailureReason(error: error, stage: .detailFetch))
+            return
+        }
+
+        guard let signedDownloadURL = detail.signedDownloadURL else {
+            fail(with: DownloadFailureReason.missingSignedURL(detail: detail))
+            return
+        }
+
+        phase = .downloading
+        do {
             _ = try await SignedFilterPackageDownloader.download(
                 from: signedDownloadURL,
                 filterID: filterID,
@@ -415,13 +440,22 @@ struct FilterDownloadProgressScreen: View {
                     progress = value
                 }
             }
+        } catch {
+            fail(with: DownloadFailureReason(error: error, stage: .packageDownload))
+            return
+        }
+
+        phase = .saving
+        do {
             try await markDownloadedAfterPackageFetch()
             FMHaptic.success.play()
+            progress = 1
             phase = .completed
             toast = FMToastMessage(.success, "다운로드 완료", detail: "카메라에서 적용해보세요")
         } catch {
-            phase = .failed
-            toast = FMToastMessage(.error, "다운로드 실패", detail: "네트워크를 확인하고 다시 시도하세요")
+            progress = min(progress, 0.98)
+            phase = .syncFailed
+            toast = FMToastMessage(.warning, "동기화 실패", detail: "다운로드는 완료됐지만 저장 상태를 동기화하지 못했어요")
         }
     }
 
@@ -435,8 +469,26 @@ struct FilterDownloadProgressScreen: View {
             phase = .completed
             toast = FMToastMessage(.success, "다운로드 완료", detail: "카메라에서 적용해보세요")
         } catch {
-            phase = .failed
-            toast = FMToastMessage(.error, "다운로드 실패", detail: "네트워크를 확인하고 다시 시도하세요")
+            progress = min(progress, 0.98)
+            phase = .syncFailed
+            toast = FMToastMessage(.warning, "동기화 실패", detail: "다운로드는 완료됐지만 저장 상태를 동기화하지 못했어요")
+        }
+    }
+
+    @MainActor
+    private func markDownloadedFromBundledResource() async {
+        phase = .saving
+        progress = 0.92
+        do {
+            try await markDownloadedAfterPackageFetch()
+            FMHaptic.success.play()
+            progress = 1
+            phase = .completed
+            toast = FMToastMessage(.success, "다운로드 완료", detail: "카메라에서 적용해보세요")
+        } catch {
+            progress = 0.98
+            phase = .syncFailed
+            toast = FMToastMessage(.warning, "동기화 실패", detail: "다운로드는 완료됐지만 저장 상태를 동기화하지 못했어요")
         }
     }
 
@@ -446,6 +498,38 @@ struct FilterDownloadProgressScreen: View {
         } else {
             try await filterLibraryStore.download(filterID: filterID)
         }
+    }
+
+    @MainActor
+    private func fail(with reason: DownloadFailureReason) {
+        progress = min(progress, reason.maximumFailureProgress)
+        phase = .failed(reason)
+        toast = FMToastMessage(.error, reason.toastTitle, detail: reason.toastDetail)
+    }
+
+    nonisolated static func hasBundledPackageResource(for filter: Filter) -> Bool {
+        guard let lutFile = filter.engine.lutFile?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !lutFile.isEmpty else {
+            return false
+        }
+        let path = lutFile as NSString
+        let subdirectory = path.deletingLastPathComponent
+        let fileName = path.deletingPathExtension
+        let fileExtension = path.pathExtension
+        let bundledURL = MarketplaceResources.bundle.url(
+            forResource: fileName,
+            withExtension: fileExtension.isEmpty ? nil : fileExtension,
+            subdirectory: subdirectory.isEmpty ? nil : subdirectory
+        )
+        let resourceURL = MarketplaceResources.bundle.resourceURL?.appendingPathComponent(lutFile)
+        let flattenedURL = MarketplaceResources.bundle.url(
+            forResource: fileName,
+            withExtension: fileExtension.isEmpty ? nil : fileExtension
+        )
+        let flattenedResourceURL = MarketplaceResources.bundle.resourceURL?.appendingPathComponent(path.lastPathComponent)
+        return [bundledURL, resourceURL, flattenedURL, flattenedResourceURL]
+            .compactMap { $0 }
+            .contains { FileManager.default.fileExists(atPath: $0.path) }
     }
 }
 
@@ -622,36 +706,203 @@ struct FilterAfterDownloadScreen: View {
     }
 }
 
-private enum DownloadPhase: Equatable {
+enum DownloadFailureStage: Equatable {
+    case detailFetch
+    case packageDownload
+}
+
+enum DownloadFailureReason: Equatable {
+    case filterUnavailable
+    case packageNotReady
+    case entitlementRequired
+    case fileDownloadFailed
+    case packageValidationFailed
+    case invalidFilterID
+    case unknown
+
+    init(error: Error, stage: DownloadFailureStage) {
+        let nsError = error as NSError
+        if nsError.domain == FunctionsErrorDomain {
+            switch FunctionsErrorCode(rawValue: nsError.code) {
+            case .notFound:
+                self = .filterUnavailable
+                return
+            case .permissionDenied:
+                self = .entitlementRequired
+                return
+            case .internal:
+                self = .packageNotReady
+                return
+            default:
+                break
+            }
+        }
+
+        if error is URLError {
+            self = .fileDownloadFailed
+            return
+        }
+
+        if let downloadError = error as? SignedFilterPackageDownloader.DownloadError {
+            switch downloadError {
+            case .invalidFilterID:
+                self = .invalidFilterID
+            case .httpStatus, .responseTooLarge, .fileTooLarge:
+                self = .fileDownloadFailed
+            case .checksumMismatch, .invalidLUTPayload:
+                self = .packageValidationFailed
+            case .missingSignedDownloadURL:
+                self = .packageNotReady
+            }
+            return
+        }
+
+        self = stage == .detailFetch ? .filterUnavailable : .unknown
+    }
+
+    static func missingSignedURL(detail: FilterDetailResponse) -> DownloadFailureReason {
+        detail.paywall || detail.priceCoins > 0 ? .entitlementRequired : .packageNotReady
+    }
+
+    var title: String {
+        switch self {
+        case .filterUnavailable:
+            "필터 정보 없음"
+        case .packageNotReady:
+            "파일 준비 중"
+        case .entitlementRequired:
+            "구매 필요"
+        case .fileDownloadFailed:
+            "파일 다운로드 실패"
+        case .packageValidationFailed:
+            "파일 검증 실패"
+        case .invalidFilterID:
+            "잘못된 필터"
+        case .unknown:
+            "다운로드 실패"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .filterUnavailable:
+            "필터 정보를 찾을 수 없어요. 삭제됐거나 아직 승인되지 않았을 수 있습니다."
+        case .packageNotReady:
+            "다운로드 파일이 아직 준비되지 않았어요. 잠시 후 다시 시도해 주세요."
+        case .entitlementRequired:
+            "이 필터를 받으려면 구매 또는 Pro 권한이 필요합니다."
+        case .fileDownloadFailed:
+            "필터 파일 다운로드에 실패했어요. 연결 상태를 확인하고 다시 시도해 주세요."
+        case .packageValidationFailed:
+            "필터 파일을 검증하지 못했어요. 파일이 손상됐거나 호환되지 않습니다."
+        case .invalidFilterID:
+            "필터 식별자가 올바르지 않아 다운로드를 시작할 수 없어요."
+        case .unknown:
+            "다운로드를 완료하지 못했어요. 다시 시도해 주세요."
+        }
+    }
+
+    var toastTitle: String {
+        switch self {
+        case .filterUnavailable:
+            "필터 정보 없음"
+        case .packageNotReady:
+            "파일 준비 중"
+        case .entitlementRequired:
+            "구매 필요"
+        case .fileDownloadFailed:
+            "다운로드 실패"
+        case .packageValidationFailed:
+            "검증 실패"
+        case .invalidFilterID:
+            "잘못된 필터"
+        case .unknown:
+            "다운로드 실패"
+        }
+    }
+
+    var toastDetail: String {
+        switch self {
+        case .filterUnavailable:
+            "필터 정보를 찾을 수 없어요"
+        case .packageNotReady:
+            "다운로드 파일이 아직 준비되지 않았어요"
+        case .entitlementRequired:
+            "구매 화면에서 권한을 확인해 주세요"
+        case .fileDownloadFailed:
+            "파일 다운로드에 실패했어요"
+        case .packageValidationFailed:
+            "필터 파일을 검증하지 못했어요"
+        case .invalidFilterID:
+            "필터 ID를 확인해 주세요"
+        case .unknown:
+            "잠시 후 다시 시도해 주세요"
+        }
+    }
+
+    var maximumFailureProgress: Double {
+        switch self {
+        case .filterUnavailable, .packageNotReady, .entitlementRequired, .invalidFilterID:
+            0
+        case .fileDownloadFailed, .packageValidationFailed, .unknown:
+            0.98
+        }
+    }
+}
+
+enum DownloadPhase: Equatable {
     case preparing
+    case fetchingDetail
     case downloading
+    case saving
     case completed
-    case failed
+    case syncFailed
+    case failed(DownloadFailureReason)
 
     var title: String {
         switch self {
         case .preparing: "준비 중"
+        case .fetchingDetail: "정보 확인 중"
         case .downloading: "다운로드 중"
+        case .saving: "저장 중"
         case .completed: "완료"
-        case .failed: "실패"
+        case .syncFailed: "동기화 필요"
+        case .failed(let reason): reason.title
         }
     }
 
     var description: String {
         switch self {
         case .preparing: "필터 패키지를 확인하고 있습니다."
+        case .fetchingDetail: "필터 정보와 다운로드 권한을 확인하고 있습니다."
         case .downloading: "LUT와 필터 메타데이터를 저장하고 있습니다."
+        case .saving: "다운로드 상태를 저장하고 있습니다."
         case .completed: "저장됨 탭에서 사용할 수 있습니다."
-        case .failed: "필터 정보를 찾지 못했습니다. 다시 시도해 주세요."
+        case .syncFailed: "다운로드는 완료됐지만 저장 상태 동기화에 실패했어요. 다시 시도해 주세요."
+        case .failed(let reason): reason.description
         }
     }
 
     var systemImage: String {
         switch self {
         case .preparing: "arrow.down.circle"
+        case .fetchingDetail: "doc.text.magnifyingglass"
         case .downloading: "arrow.down.circle.fill"
+        case .saving: "tray.and.arrow.down.fill"
         case .completed: "checkmark.circle.fill"
+        case .syncFailed: "icloud.slash"
         case .failed: "exclamationmark.triangle.fill"
+        }
+    }
+
+    var isRetryable: Bool {
+        switch self {
+        case .failed(.entitlementRequired), .completed:
+            false
+        case .failed, .syncFailed:
+            true
+        default:
+            false
         }
     }
 }

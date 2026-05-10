@@ -119,6 +119,10 @@ describe("applyGetFilterDetail", () => {
       "filters/abc-123/likes/u-current": {
         createdAt: 1,
       },
+      "users/u-1": {
+        displayName: "Fresh Alex",
+        avatarURL: "https://cdn.test/fresh-avatar.jpg",
+      },
     });
     let presignedKey = null;
     const presignGetURL = async (key) => {
@@ -150,7 +154,9 @@ describe("applyGetFilterDetail", () => {
     assert.equal(result.userHasLiked, true);
     assert.equal(result.paywall, false);
     assert.equal(result.filter.author.uid, "u-1");
-    assert.equal(result.filter.author.displayName, "Alex");
+    assert.equal(result.filter.author.displayName, "Fresh Alex");
+    assert.equal(result.filter.author.avatarURL, "https://cdn.test/fresh-avatar.jpg");
+    assert.equal(result.filter.author.photoURL, "https://cdn.test/fresh-avatar.jpg");
     assert.equal(result.signedDownloadURL, "https://r2.test/signed?key=filters%2Fu-1%2Fabc-123.fmpkg");
     assert.equal(result.expiresAt, 9_999_999);
   });

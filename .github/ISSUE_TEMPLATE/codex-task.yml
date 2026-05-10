@@ -1,0 +1,188 @@
+name: Codex Task
+description: Codex가 바로 구현/수정에 착수할 수 있는 작업 이슈입니다.
+title: "[Task] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Codex가 이슈만 보고 작업할 수 있도록 **결과, 범위, 관련 파일, 완료 기준, 검증 방법**을 구체적으로 작성해주세요.
+        모호한 요구사항, 암묵적인 제외 범위, 재현 불가한 버그는 작업 지연의 가장 큰 원인입니다.
+
+  - type: input
+    id: goal
+    attributes:
+      label: 목표
+      description: 사용자 또는 시스템 관점에서 달성해야 하는 최종 결과를 한 문장으로 적어주세요.
+      placeholder: 예) 마켓 필터 상세 화면에서 다운로드한 필터를 즉시 카메라에 적용할 수 있어야 한다.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: 작업 유형
+      description: 가장 가까운 유형을 선택해주세요.
+      options:
+        - feature
+        - bug
+        - test
+        - refactor
+        - infra
+        - docs
+        - spike
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 담당 영역
+      description: 작업의 주된 코드 영역을 선택해주세요.
+      options:
+        - app
+        - camera
+        - filter-engine
+        - models
+        - storage
+        - marketplace
+        - editor
+        - auth
+        - backend
+        - security
+        - moderation
+        - payments
+        - design-system
+        - docs
+        - unknown
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 우선순위
+      description: 마일스톤 진행에 미치는 영향을 기준으로 선택해주세요.
+      options:
+        - p0 - 즉시 처리, milestone 차단
+        - p1 - 현재 milestone 핵심
+        - p2 - 중요하지만 차단 아님
+        - p3 - 여유 있을 때
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 배경과 현재 동작
+      description: 왜 필요한 작업인지, 현재 앱/서버/테스트가 어떻게 동작하는지 적어주세요.
+      placeholder: |
+        - 현재 ...
+        - 문제 또는 기회는 ...
+        - 관련 문서/이전 이슈/PR은 ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: 범위
+      description: 포함할 일과 제외할 일을 분리해 적어주세요. Codex가 과도하게 확장하지 않도록 중요합니다.
+      value: |
+        포함:
+        - 
+
+        제외:
+        - 
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation_notes
+    attributes:
+      label: 구현 메모
+      description: 예상 파일, 타입, API, 의존 이슈, 설계 제약을 적어주세요. 확실하지 않은 내용은 추정이라고 표시해주세요.
+      placeholder: |
+        - 관련 파일/모듈:
+        - 주요 타입/API:
+        - 의존 이슈:
+        - 참고 문서:
+    validations:
+      required: false
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 재현 절차
+      description: 버그 또는 UI 동작 변경이면 필수로 적어주세요. 기능/인프라 작업이면 비워도 됩니다.
+      placeholder: |
+        1. ...
+        2. ...
+        3. 실제 결과:
+        4. 기대 결과:
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: 완료 기준
+      description: 체크 가능한 결과 중심 기준을 작성해주세요.
+      value: |
+        - [ ] 
+        - [ ] 테스트가 추가되거나 기존 테스트가 갱신된다.
+        - [ ] 관련 문서 또는 상태 기록이 필요한 경우 갱신된다.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: 검증 방법
+      description: Codex가 작업 후 실행해야 하는 명령과 수동 확인 항목을 적어주세요.
+      value: |
+        자동 검증:
+        - [ ] `./scripts/test.sh`
+        - [ ] `./scripts/build.sh`
+
+        수동 검증:
+        - [ ] 해당 없음
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device_required
+    attributes:
+      label: 실기기 검증 필요 여부
+      description: 카메라, PhotoKit, Metal preview, 성능, 센서, 권한 플로우는 Simulator만으로 완료 처리하지 않습니다.
+      options:
+        - iPhone 실기기 검증이 필요합니다.
+        - Simulator 또는 단위 테스트만으로 충분합니다.
+        - 아직 판단할 수 없습니다.
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: 제약과 주의사항
+      description: 건드리면 안 되는 파일, 호환성, 보안/개인정보, 성능 목표, 디자인 제약을 적어주세요.
+      placeholder: |
+        - 기존 사용자 변경을 되돌리지 않는다.
+        - 카메라/Metal 변경은 성능 회귀를 만들지 않는다.
+        - Firestore Rules 변경은 emulator 테스트를 동반한다.
+    validations:
+      required: false
+
+  - type: textarea
+    id: codex_handoff
+    attributes:
+      label: Codex 작업 지시
+      description: Codex가 특히 지켜야 할 작업 방식이 있으면 적어주세요.
+      value: |
+        - 기존 코드 스타일과 모듈 경계를 우선한다.
+        - 불필요한 리팩터링은 하지 않는다.
+        - 작업 전후 `git status --short`로 변경 범위를 확인한다.
+        - 완료 후 변경 파일과 검증 결과를 PR/코멘트에 요약한다.
+    validations:
+      required: false

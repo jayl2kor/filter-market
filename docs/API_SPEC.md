@@ -356,16 +356,24 @@ Firebase callable. 리뷰 작성 화면에서 사진을 첨부하면 게시 직�
 
 **응답** — `reports/{reportId}` 생성, 누적 N회 시 자동 비공개.
 
-### 5.7 `POST /filters/{id}/use` — 다운로드/적용 카운트 (idempotent)
+### 5.7 `POST /filters/{id}/use` — 적용 카운트 (idempotent)
 
 ```http
 POST /filters/01900b.../use
 Idempotency-Key: <client-generated-uuid>
 ```
 
-서버는 동일 Idempotency-Key 60초 내 중복 무시. 샤드 카운터(10 샤드) 증가 + downloads 컬렉션에 사용자 이력 기록.
+서버는 동일 사용자/필터 기준 1시간 쿨다운 안의 중복 호출을 무시하고 `useCount`만 증가시킨다. 이 값은 카메라에서 필터가 적용된 횟수이며 마켓 카드의 `다운로드 N` 라벨에는 사용하지 않는다.
 
-### 5.8 `GET /filters/{id}` — 상세 (signed CDN URL)
+### 5.8 `POST /filters/{id}/download` — 다운로드 카운트 (idempotent)
+
+```http
+POST /filters/01900b.../download
+```
+
+앱에서 필터 패키지 저장이 성공한 뒤 callable `recordDownload`를 호출한다. 서버는 `filters/{filterId}/downloads/{uid}` ledger 문서를 확인해 같은 사용자의 반복 다운로드를 중복 카운트하지 않고, 최초 다운로드일 때만 `filters/{filterId}.downloadCount`를 1 증가시킨다.
+
+### 5.9 `GET /filters/{id}` — 상세 (signed CDN URL)
 
 **응답**
 ```json

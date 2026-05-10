@@ -223,11 +223,13 @@ struct EditProfileScreen: View {
     @State private var lastCheckedHandle = ""
     @State private var isAvatarPickerPresented = false
     @State private var showDiscardChangesDialog = false
+    @State private var isSavingProfile = false
 
     private var canSave: Bool {
         !draft.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !draft.handle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && handleStatus == .available
+            && !isSavingProfile
     }
 
     private var hasUnsavedChanges: Bool {
@@ -258,7 +260,16 @@ struct EditProfileScreen: View {
                 .accessibilityLabel("닫기")
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button("저장") { save() }
+                Button {
+                    Task { await save() }
+                } label: {
+                    if isSavingProfile {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Text("저장")
+                    }
+                }
                     .disabled(!canSave)
                     .accessibilityIdentifier("profile.edit.save")
             }
@@ -278,7 +289,7 @@ struct EditProfileScreen: View {
         ) {
             sessionStore.clearLastSubmitError()
         }
-        .interactiveDismissDisabled(hasUnsavedChanges)
+        .interactiveDismissDisabled(hasUnsavedChanges || isSavingProfile)
         .confirmationDialog(
             "변경사항을 버릴까요?",
             isPresented: $showDiscardChangesDialog,
@@ -300,6 +311,7 @@ struct EditProfileScreen: View {
     }
 
     private func closeEditor() {
+        guard !isSavingProfile else { return }
         if hasUnsavedChanges {
             showDiscardChangesDialog = true
         } else {
@@ -541,10 +553,16 @@ struct EditProfileScreen: View {
         UIAccessibility.post(notification: .announcement, argument: status.message)
     }
 
-    private func save() {
+    private func save() async {
         guard canSave else { return }
-        sessionStore.saveProfile(draft)
-        dismiss()
+        isSavingProfile = true
+        defer { isSavingProfile = false }
+        do {
+            draft = try await sessionStore.saveProfile(draft)
+            dismiss()
+        } catch {
+            FMHaptic.warning.play()
+        }
     }
 }
 

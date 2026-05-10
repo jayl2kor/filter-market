@@ -1,6 +1,6 @@
 # System Image Accessibility Audit
 
-> Updated: 2026-05-09 KST  
+> Updated: 2026-05-10 KST  
 > Scope: `Sources/App`, `Sources/DesignSystem`
 
 ## Rule
@@ -17,7 +17,7 @@ Every `Image(systemName:)` must fall into one of these categories:
 
 ## Current Audit
 
-- Current count: 203 `Image(systemName:)` calls.
+- Current count: 207 `Image(systemName:)` calls.
 - Current coverage model: all calls are classified by owner context rather than every icon carrying its own label.
 - Guardrail: `AppTests/SystemImageAccessibilityAuditTests` fails if the count changes without updating this audit, forcing new icons to be reviewed.
 
@@ -25,14 +25,14 @@ Every `Image(systemName:)` must fall into one of these categories:
 
 | Bucket | Count | Examples | Decision |
 |---|---:|---|---|
-| DesignSystem primitives | 17 | `FMButton`, `FMTextField`, `FMTabBar`, `FMToast`, `FMAvatar` | Component owns label/hidden behavior |
+| DesignSystem primitives | 18 | `FMButton`, `FMTextField`, `FMSearchHeader`, `FMTabBar`, `FMToast`, `FMAvatar` | Component owns label/hidden behavior |
 | Navigation and disclosure chrome | 33 | chevrons, back arrows, route rows | Parent `Button`/`NavigationLink` or row text owns meaning |
 | Icon + visible text controls | 55 | wallet rows, editor/upload actions, settings rows | Visible text is the accessible label |
-| Standalone toolbar/icon buttons | 31 | share, notification, settings, support, search back, camera controls, modal close controls | Parent control carries explicit label or stable action ID; manual VoiceOver pass required |
+| Standalone toolbar/icon buttons | 34 | share, notification, settings, support, search back, camera controls, modal close controls | Parent control carries explicit label or stable action ID; manual VoiceOver pass required |
 | Status/metadata icons | 39 | rating stars, verified badges, wallet ledger icons, rejection policy icons | Parent row/card text owns state, or row is combined |
 | Decorative/illustrative icons | 28 | placeholders, empty states, preview ornaments, PhotoImport permission notices | Decorative; hidden or contained by parent surface |
 
-Total: 203
+Total: 207
 
 ## Manual QA Gate
 

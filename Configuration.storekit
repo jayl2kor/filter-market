@@ -1,0 +1,178 @@
+{
+  "identifier": "B7C4A1E9",
+  "nonRenewingSubscriptions": [
+  ],
+  "products": [
+    {
+      "displayPrice": "1200",
+      "familyShareable": false,
+      "internalID": "C100A001",
+      "localizations": [
+        {
+          "description": "moodit에서 필터 구매에 사용할 수 있는 코인 100개입니다.",
+          "displayName": "100 코인",
+          "locale": "ko_KR"
+        },
+        {
+          "description": "100 coins for filter purchases in moodit.",
+          "displayName": "100 Coins",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.jayl2kor.moodit.coins.100",
+      "referenceName": "100 Coins",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "5900",
+      "familyShareable": false,
+      "internalID": "C550A002",
+      "localizations": [
+        {
+          "description": "moodit에서 필터 구매에 사용할 수 있는 코인 550개입니다.",
+          "displayName": "550 코인",
+          "locale": "ko_KR"
+        },
+        {
+          "description": "550 coins for filter purchases in moodit.",
+          "displayName": "550 Coins",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.jayl2kor.moodit.coins.550",
+      "referenceName": "550 Coins",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "12000",
+      "familyShareable": false,
+      "internalID": "C120A003",
+      "localizations": [
+        {
+          "description": "moodit에서 필터 구매에 사용할 수 있는 코인 1200개입니다.",
+          "displayName": "1200 코인",
+          "locale": "ko_KR"
+        },
+        {
+          "description": "1200 coins for filter purchases in moodit.",
+          "displayName": "1200 Coins",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.jayl2kor.moodit.coins.1200",
+      "referenceName": "1200 Coins",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "29000",
+      "familyShareable": false,
+      "internalID": "C300A004",
+      "localizations": [
+        {
+          "description": "moodit에서 필터 구매에 사용할 수 있는 코인 3000개입니다.",
+          "displayName": "3000 코인",
+          "locale": "ko_KR"
+        },
+        {
+          "description": "3000 coins for filter purchases in moodit.",
+          "displayName": "3000 Coins",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "com.jayl2kor.moodit.coins.3000",
+      "referenceName": "3000 Coins",
+      "type": "Consumable"
+    }
+  ],
+  "settings": {
+    "_askToBuyEnabled": false,
+    "_billingRetryEnabled": false,
+    "_disableDialogs": false,
+    "_locale": "ko_KR",
+    "_storefront": "KOR"
+  },
+  "subscriptionGroups": [
+    {
+      "id": "MOPRO001",
+      "localizations": [
+        {
+          "customAppName": "moodit",
+          "locale": "ko_KR",
+          "subscriptionName": "moodit Pro"
+        },
+        {
+          "customAppName": "moodit",
+          "locale": "en_US",
+          "subscriptionName": "moodit Pro"
+        }
+      ],
+      "name": "moodit Pro",
+      "subscriptions": [
+        {
+          "adHocOffers": [
+          ],
+          "codeOffers": [
+          ],
+          "displayPrice": "4900",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "PROM0001",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "광고 없이 사용하고 Pro 전용 기능을 이용할 수 있는 월간 멤버십입니다.",
+              "displayName": "moodit Pro 월간",
+              "locale": "ko_KR"
+            },
+            {
+              "description": "Monthly membership for an ad-free moodit experience and Pro features.",
+              "displayName": "moodit Pro Monthly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "com.jayl2kor.moodit.pro.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "moodit Pro Monthly",
+          "subscriptionGroupID": "MOPRO001",
+          "type": "RecurringSubscription",
+          "winbackOffers": [
+          ]
+        },
+        {
+          "adHocOffers": [
+          ],
+          "codeOffers": [
+          ],
+          "displayPrice": "39000",
+          "familyShareable": false,
+          "groupNumber": 2,
+          "internalID": "PROY0002",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "광고 없이 사용하고 Pro 전용 기능을 이용할 수 있는 연간 멤버십입니다.",
+              "displayName": "moodit Pro 연간",
+              "locale": "ko_KR"
+            },
+            {
+              "description": "Yearly membership for an ad-free moodit experience and Pro features.",
+              "displayName": "moodit Pro Yearly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "com.jayl2kor.moodit.pro.yearly",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "moodit Pro Yearly",
+          "subscriptionGroupID": "MOPRO001",
+          "type": "RecurringSubscription",
+          "winbackOffers": [
+          ]
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 4,
+    "minor": 0
+  }
+}

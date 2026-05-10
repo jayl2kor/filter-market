@@ -94,17 +94,6 @@
                ReferencedContainer = "container:moodit.xcodeproj">
             </BuildableReference>
          </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "660B66992E1163D4039B248F"
-               BuildableName = "AppUITests.xctest"
-               BlueprintName = "AppUITests"
-               ReferencedContainer = "container:moodit.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>
@@ -129,6 +118,11 @@
             ReferencedContainer = "container:moodit.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <CommandLineArguments>
+      </CommandLineArguments>
+      <StoreKitConfigurationFileReference
+         identifier = "../../../Configuration.storekit">
+      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

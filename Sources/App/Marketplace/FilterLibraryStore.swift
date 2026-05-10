@@ -19,13 +19,18 @@ final class FilterLibraryStore: ObservableObject {
     @Published private(set) var lastSyncErrorMessage: String?
 
     private let repository: any FilterRepository
+    private let recordDownload: @Sendable (String) async throws -> Void
 
-    init(repository: any FilterRepository = BundleSeedFilterRepository()) {
+    init(
+        repository: any FilterRepository = BundleSeedFilterRepository(),
+        recordDownload: @escaping @Sendable (String) async throws -> Void = FilterLibraryStore.defaultRecordDownload
+    ) {
         self.repository = repository
+        self.recordDownload = recordDownload
     }
 
     var selectedFilter: AppFilter? {
-        guard let selectedFilterID else { return filters.first }
+        guard let selectedFilterID else { return nil }
         return filters.first { $0.id == selectedFilterID }
     }
 
@@ -95,12 +100,14 @@ final class FilterLibraryStore: ObservableObject {
 
     func download(_ filter: AppFilter) async throws {
         try await persistSavedFilter(filterID: filter.id, save: true)
+        try await recordDownload(filter.id.uuidString)
         markDownloaded(filter.id)
     }
 
     func download(filterID: String) async throws {
         guard let id = UUID(uuidString: filterID) else { return }
         try await persistSavedFilter(filterID: id, save: true)
+        try await recordDownload(id.uuidString)
         markDownloaded(id)
     }
 
@@ -113,7 +120,7 @@ final class FilterLibraryStore: ObservableObject {
         downloadedFilterIDs.remove(filter.id)
         favoriteFilterIDs.remove(filter.id)
         if selectedFilterID == filter.id {
-            selectedFilterID = libraryFilters.first?.id ?? filters.first?.id
+            selectedFilterID = libraryFilters.first?.id
         }
         return snapshot
     }
@@ -238,6 +245,17 @@ final class FilterLibraryStore: ObservableObject {
         }
     }
 
+    private static func defaultRecordDownload(filterID: String) async throws {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        guard SessionStore.currentFirebaseUID != nil else { return }
+        _ = try await FirebaseSideEffects.callFunction(
+            "recordDownload",
+            data: ["filterId": filterID]
+        )
+    }
+
     private func applyLoadedFilters(_ loadedFilters: [AppFilter]) {
         let previousSelectedFilterID = selectedFilterID
 
@@ -249,7 +267,7 @@ final class FilterLibraryStore: ObservableObject {
         } else if let firstDownloadedFilter = loadedFilters.first(where: { downloadedFilterIDs.contains($0.id) }) {
             selectedFilterID = firstDownloadedFilter.id
         } else {
-            selectedFilterID = loadedFilters.first?.id
+            selectedFilterID = nil
         }
     }
 

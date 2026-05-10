@@ -224,6 +224,13 @@
 - Cache Rules: 30일 TTL, versioned URL 패턴
 - Review image upload는 `reviewImageUploadInit`, profile avatar upload는 `profileAvatarUploadInit`이 `R2_PUBLIC_BASE_URL` + object key로 공개 URL을 생성하므로, CDN base URL은 trailing slash 없이 등록한다.
 
+### 8.5.1 프로필 아바타 저장 점검
+- Firebase Functions secrets에 `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_BASE_URL`이 모두 배포되어 있어야 한다.
+- `R2_PUBLIC_BASE_URL`은 `https://cdn.moodit.app`처럼 public read가 가능한 CDN/base URL이어야 하며 trailing slash를 붙이지 않는다.
+- 프로필 사진 저장 후 Firestore `/users/{uid}` 문서에 `avatarURL`, `photoURL`, `avatarObjectKey`가 기록되는지 확인한다.
+- 기록된 `avatarURL`을 브라우저 또는 `curl -I`로 열었을 때 200 응답과 image content-type이 나와야 한다.
+- 실패 진단은 `firebase functions:log --only profileAvatarUploadInit,updateProfile`로 확인한다. `R2_PUBLIC_BASE_URL is not configured` 또는 R2 credential 오류가 보이면 secrets/CDN 설정을 먼저 복구한다.
+
 ### 8.6 비용
 - 저장: $0.015/GB/mo (10GB 무료)
 - Class A (write) 요청: $4.50 / 1M

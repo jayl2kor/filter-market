@@ -572,7 +572,8 @@ extension AppRoute {
 
         case .editor:
             [
-                .init("editor.params", "파라미터 편집", systemImage: "slider.horizontal.3", target: .editorParameters),
+                .init("editor.param.slider", "노출 / 대비 / 채도 조정", systemImage: "slider.horizontal.below.rectangle"),
+                .init("editor.compare.hold", "비포 보기", systemImage: "rectangle.lefthalf.filled"),
                 .init("editor.lut", "LUT 가져오기", systemImage: "cube.transparent", target: .editorLUT),
                 .init("editor.draft", "초안 저장", systemImage: "tray.and.arrow.down", target: .editorDraft),
                 .init("editor.next", "마켓 공유로 계속", systemImage: "arrow.right", target: .uploadCover)
@@ -1137,11 +1138,12 @@ extension FilterDetailMock {
             displayTitle: tile.title,
             makerHandle: tile.makerName,
             makerInitials: String(tile.makerName.replacingOccurrences(of: "@", with: "").prefix(2)).uppercased(),
+            makerAvatarURL: tile.makerAvatarURL,
             categoryLabel: tile.priceLabel == nil ? "무료 필터" : "유료 필터",
             downloadCount: tile.downloadCount,
             rating: 4.7,
-            reviewCount: max(24, tile.downloadCount / 40),
-            likeCount: tile.downloadCount / 6,
+            reviewCount: 0,
+            likeCount: 0,
             description: "NAVIGATION.md 라우트에서 열린 필터입니다. 무료 다운로드, Coin 구매, 리뷰, 신고, 공유 흐름을 이 상세 화면에서 이어갈 수 있습니다.",
             tags: ["#mood", "#daily", "#route", "#moodit"],
             coverURL: tile.previewImageURL,

@@ -398,7 +398,7 @@ struct ProfileScreen: View {
 
     private var profileHead: some View {
         VStack(spacing: Sp.sm) {
-            FMAvatar(url: user.avatarURL, size: .xl, fallback: user.avatarInitials)
+            profileAvatar
 
             Text(user.displayName)
                 .fmTypography(.titleLarge)
@@ -420,6 +420,19 @@ struct ProfileScreen: View {
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(profileAccessibilityLabel)
+    }
+
+    @ViewBuilder
+    private var profileAvatar: some View {
+        if user.isOwnProfile {
+            EditableProfileAvatar(
+                profile: sessionStore.editableProfile,
+                size: .xl,
+                fallback: user.avatarInitials
+            )
+        } else {
+            FMAvatar(url: user.avatarURL, size: .xl, fallback: user.avatarInitials)
+        }
     }
 
     private var profileAccessibilityLabel: String {

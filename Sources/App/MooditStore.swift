@@ -520,8 +520,9 @@ final class MooditStore: ObservableObject {
         editorDraftStore.setEditorReferenceSampleKind(kind)
     }
 
-    func saveProfile(_ profile: EditableProfile) {
-        sessionStore.saveProfile(profile)
+    @discardableResult
+    func saveProfile(_ profile: EditableProfile) async throws -> EditableProfile {
+        try await sessionStore.saveProfile(profile)
     }
 
     func markAccountDeletionRequested() async throws {

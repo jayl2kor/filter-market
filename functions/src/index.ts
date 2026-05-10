@@ -27,6 +27,7 @@ export {
   toggleFilterLike,
   submitForReview,
   recordUse,
+  recordDownload,
   getFilterDetail,
   reportFilter,
 } from "./http/filters.js";

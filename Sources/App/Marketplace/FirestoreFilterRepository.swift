@@ -36,7 +36,7 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
             .whereField("status", isEqualTo: FilterStatus.approved.rawValue)
             .limit(to: 200)
             .getDocuments()
-        return snapshot.documents.compactMap { Self.decode($0) }
+        return await withFreshAuthorProfiles(snapshot.documents.compactMap { Self.decode($0) })
     }
 
     public func filter(id: Models.Filter.ID) async throws -> Models.Filter {
@@ -44,7 +44,7 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
         guard doc.exists, let filter = Self.decode(doc) else {
             throw FirestoreFilterRepositoryError.notFound(id)
         }
-        return filter
+        return await withFreshAuthorProfiles([filter]).first ?? filter
     }
 
     public func trending(limit: Int = 24) async throws -> [Models.Filter] {
@@ -53,7 +53,7 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
             .order(by: "useCount", descending: true)
             .limit(to: limit)
             .getDocuments()
-        return snapshot.documents.compactMap { Self.decode($0) }
+        return await withFreshAuthorProfiles(snapshot.documents.compactMap { Self.decode($0) })
     }
 
     public func newFilters(limit: Int = 24) async throws -> [Models.Filter] {
@@ -62,7 +62,7 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
             .order(by: "createdAt", descending: true)
             .limit(to: limit)
             .getDocuments()
-        return snapshot.documents.compactMap { Self.decode($0) }
+        return await withFreshAuthorProfiles(snapshot.documents.compactMap { Self.decode($0) })
     }
 
     public func search(query: String, category: FilterCategory? = nil, limit: Int = 50) async throws -> [Models.Filter] {
@@ -74,7 +74,7 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
             ref = ref.whereField("category", isEqualTo: category.rawValue)
         }
         let snapshot = try await ref.limit(to: 200).getDocuments()
-        let all = snapshot.documents.compactMap { Self.decode($0) }
+        let all = await withFreshAuthorProfiles(snapshot.documents.compactMap { Self.decode($0) })
         let q = query.lowercased()
         if q.isEmpty {
             return Array(all.prefix(limit))
@@ -87,6 +87,27 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
                 }
                 .prefix(limit)
         )
+    }
+
+    private func withFreshAuthorProfiles(_ filters: [Models.Filter]) async -> [Models.Filter] {
+        let uids = Array(Set(filters.map(\.author.uid).filter { !$0.isEmpty && $0 != "unknown" }))
+        guard !uids.isEmpty else { return filters }
+
+        var profiles: [String: [String: Any]] = [:]
+        for uid in uids {
+            do {
+                let doc = try await db.collection("users").document(uid).getDocument()
+                if let data = doc.data() {
+                    profiles[uid] = data
+                }
+            } catch {
+                continue
+            }
+        }
+
+        return filters.map { filter in
+            Self.filter(filter, applyingAuthorProfileData: profiles[filter.author.uid])
+        }
     }
 
     /// Firestore document → `Models.Filter`. 누락 필드는 기본값으로 흡수, 핵심 필드(id/title) 누락 시 nil.
@@ -152,6 +173,44 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
             ratingAvg: ratingAvg,
             downloadCount: downloadCount
         )
+    }
+
+    static func filter(_ filter: Models.Filter, applyingAuthorProfileData data: [String: Any]?) -> Models.Filter {
+        guard let data else { return filter }
+        let displayName = Self.stringValue(data["displayName"], data["handle"])
+            ?? filter.author.displayName
+        let avatarURL = Self.url(data["avatarURL"], data["photoURL"])
+            ?? filter.author.avatarURL
+        let author = FilterAuthor(uid: filter.author.uid, displayName: displayName, avatarURL: avatarURL)
+        return Models.Filter(
+            id: filter.id,
+            title: filter.title,
+            version: filter.version,
+            author: author,
+            category: filter.category,
+            engine: filter.engine,
+            useCount: filter.useCount,
+            createdAt: filter.createdAt,
+            status: filter.status,
+            priceCoins: filter.priceCoins,
+            coverURL: filter.coverURL,
+            signatureSampleURL: filter.signatureSampleURL,
+            ratingAvg: filter.ratingAvg,
+            downloadCount: filter.downloadCount,
+            tags: filter.tags
+        )
+    }
+
+    private static func stringValue(_ values: Any?...) -> String? {
+        for value in values {
+            if let string = value as? String {
+                let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    return trimmed
+                }
+            }
+        }
+        return nil
     }
 
     private static func url(_ values: Any?...) -> URL? {

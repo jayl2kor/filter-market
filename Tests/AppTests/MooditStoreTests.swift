@@ -30,7 +30,8 @@ final class MooditStoreTests: XCTestCase {
         await store.load()
 
         XCTAssertEqual(store.filters.map(\.title), ["Older", "Newer", "Rejected"])
-        XCTAssertEqual(store.selectedFilterID, older.id)
+        XCTAssertNil(store.selectedFilterID)
+        XCTAssertNil(store.selectedFilter)
         XCTAssertTrue(store.downloadedFilterIDs.isEmpty)
         XCTAssertEqual(store.trendingFilters.map(\.title), ["Newer", "Older"])
         XCTAssertEqual(store.newFiltersList.map(\.title), ["Newer", "Older"])
@@ -56,7 +57,7 @@ final class MooditStoreTests: XCTestCase {
 
         XCTAssertFalse(store.isDownloaded(second))
         XCTAssertFalse(store.isFavorite(second))
-        XCTAssertEqual(store.selectedFilterID, first.id)
+        XCTAssertNil(store.selectedFilterID)
     }
 
     func testEditorDraftMutationsNormalizeAndResetState() {

@@ -26,7 +26,8 @@ struct FilterLibraryStoreTests {
         await store.load()
 
         #expect(store.filters.map(\.title) == ["Older", "Newer"])
-        #expect(store.selectedFilterID == older.id)
+        #expect(store.selectedFilterID == nil)
+        #expect(store.selectedFilter == nil)
         #expect(store.downloadedFilterIDs.isEmpty)
         #expect(store.trendingFilters.map(\.title) == ["Newer", "Older"])
         #expect(store.newFiltersList.map(\.title) == ["Newer", "Older"])
@@ -52,7 +53,7 @@ struct FilterLibraryStoreTests {
 
         #expect(!store.isDownloaded(second))
         #expect(!store.isFavorite(second))
-        #expect(store.selectedFilterID == first.id)
+        #expect(store.selectedFilterID == nil)
 
         store.restore(snapshot)
         store.rollbackFavorite(second, shouldSave: shouldSave)
@@ -98,6 +99,55 @@ struct FilterLibraryStoreTests {
         #expect(store.selectedFilterID == second.id)
     }
 
+    @Test("empty download state never exposes an implicit selected filter")
+    func emptyDownloadStateHasNoImplicitSelectedFilter() async {
+        let first = makeFilter(id: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E4F01", title: "First")
+        let second = makeFilter(id: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E4F02", title: "Second")
+        let store = FilterLibraryStore(repository: MockFilterRepository(filters: [first, second]))
+
+        await store.load()
+
+        #expect(store.downloadedFilterIDs.isEmpty)
+        #expect(store.selectedFilterID == nil)
+        #expect(store.selectedFilter == nil)
+
+        store.markDownloaded(second.id)
+        await store.load(force: true)
+
+        #expect(store.selectedFilterID == second.id)
+        #expect(store.selectedFilter?.id == second.id)
+    }
+
+    @Test("download records the server-side download counter after saving")
+    func downloadRecordsServerCounter() async throws {
+        let filter = makeFilter(id: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E4A11", title: "Counter")
+        let recorder = DownloadRecordSpy()
+        let store = FilterLibraryStore(
+            repository: MockFilterRepository(filters: [filter]),
+            recordDownload: { filterID in
+                await recorder.record(filterID)
+            }
+        )
+        await store.load()
+
+        try await store.download(filter)
+
+        #expect(store.isDownloaded(filter))
+        #expect(await recorder.recordedFilterIDs() == [filter.id.uuidString])
+    }
+
+    @Test("market tile download count does not fall back to use count")
+    func tileMappingUsesOnlyDownloadCount() {
+        let filter = makeFilter(
+            id: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E4A12",
+            title: "Used Often",
+            useCount: 9_100,
+            downloadCount: 0
+        )
+
+        #expect(filter.toTileData().downloadCount == 0)
+    }
+
     @Test("route lookup supports uuid, normalized title, and partial tokens")
     func routeLookupUsesNormalizedKeys() async {
         let filter = makeFilter(id: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E4C01", title: "Seoul-Night")
@@ -113,6 +163,7 @@ struct FilterLibraryStoreTests {
         id: String,
         title: String,
         useCount: Int = 0,
+        downloadCount: Int = 0,
         createdAt: Date? = nil
     ) -> AppFilter {
         AppFilter(
@@ -130,8 +181,21 @@ struct FilterLibraryStoreTests {
             ),
             useCount: useCount,
             createdAt: createdAt,
-            status: .approved
+            status: .approved,
+            downloadCount: downloadCount
         )
+    }
+}
+
+private actor DownloadRecordSpy {
+    private var ids: [String] = []
+
+    func record(_ id: String) {
+        ids.append(id)
+    }
+
+    func recordedFilterIDs() -> [String] {
+        ids
     }
 }
 

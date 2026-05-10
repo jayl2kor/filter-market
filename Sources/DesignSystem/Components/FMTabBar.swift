@@ -12,7 +12,7 @@ public enum FMTab: Hashable, CaseIterable, Sendable {
     var systemImage: String {
         switch self {
         case .market: "bag"
-        case .search: "magnifyingglass"
+        case .search: "safari"
         case .shutter: "camera.fill"
         case .saved: "bookmark"
         case .profile: "person.crop.circle"
@@ -22,7 +22,7 @@ public enum FMTab: Hashable, CaseIterable, Sendable {
     var systemImageFilled: String {
         switch self {
         case .market: "bag.fill"
-        case .search: "magnifyingglass"
+        case .search: "safari.fill"
         case .shutter: "camera.fill"
         case .saved: "bookmark.fill"
         case .profile: "person.crop.circle.fill"
@@ -115,8 +115,8 @@ public struct FMTabBar: View {
             tabButton(.profile)
         }
         .frame(height: FMLayout.tabBarHeight)
-        .padding(.top, 6)
-        .padding(.bottom, 8)
+        .padding(.top, 4)
+        .padding(.bottom, 2)
         .background(FMColors.Background.bg2)
         .overlay(alignment: .top) {
             Rectangle()

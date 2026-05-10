@@ -375,11 +375,11 @@ struct SettingsScreen: View {
 
     private var profileCard: some View {
         HStack(spacing: Sp.md) {
-            FMAvatar(
-                url: sessionStore.isAuthenticated ? sessionStore.editableProfile.avatarURL : nil,
-                size: .md,
-                fallback: sessionStore.isAuthenticated ? sessionStore.editableProfile.initials : "G"
-            )
+            if sessionStore.isAuthenticated {
+                EditableProfileAvatar(profile: sessionStore.editableProfile, size: .md)
+            } else {
+                FMAvatar(initials: "G", size: .md)
+            }
 
             VStack(alignment: .leading, spacing: Sp.xxs) {
                 Text(profileDisplayTitle)

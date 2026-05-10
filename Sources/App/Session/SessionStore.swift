@@ -22,6 +22,17 @@ private enum SessionProfileAvatarUploadError: LocalizedError {
     }
 }
 
+struct ProfileAvatarUpload: Equatable, Sendable {
+    let publicURL: URL
+    let objectKey: String
+}
+
+struct SessionProfileSaveClient: Sendable {
+    var uploadAvatarImageData: @Sendable (Data?) async throws -> ProfileAvatarUpload?
+    var updateProfile: @Sendable ([String: Any]) async throws -> Void
+    var setHandle: @Sendable (String) async throws -> Void
+}
+
 @MainActor
 final class SessionStore: ObservableObject {
     @Published private(set) var isAuthenticated = false
@@ -46,11 +57,7 @@ final class SessionStore: ObservableObject {
     private var notificationPreferencesSaveTask: Task<Void, Never>?
     private var saveProfileTask: Task<Void, Never>?
     private var saveProfileGeneration = 0
-
-    private struct ProfileAvatarUpload {
-        let publicURL: URL
-        let objectKey: String
-    }
+    var profileSaveClient: SessionProfileSaveClient?
 
     nonisolated static var currentFirebaseUser: User? {
         guard !isUnitTesting, FirebaseApp.app() != nil else { return nil }
@@ -265,61 +272,76 @@ final class SessionStore: ObservableObject {
         }
     }
 
-    func saveProfile(_ profile: EditableProfile) {
-        editableProfile = profile
-        lastProfileSavedAt = Date()
+    @discardableResult
+    func saveProfile(_ profile: EditableProfile) async throws -> EditableProfile {
         lastSubmitErrorMessage = nil
         saveProfileTask?.cancel()
+        saveProfileTask = nil
         saveProfileGeneration += 1
         let generation = saveProfileGeneration
-        saveProfileTask = Task { [weak self, profile, generation] in
-            let region = "asia-northeast3"
-            do {
-                guard let self else { return }
-                let avatarUpload = try await self.uploadProfileAvatarImageData(profile.avatarImageData)
-                let avatarURL = avatarUpload?.publicURL ?? profile.avatarURL
-                var payload: [String: Any] = [
-                    "displayName": profile.displayName,
-                    "bio": profile.bio,
-                    "website": profile.website,
-                    "makerPageVisible": profile.makerPageVisible,
-                    "photoSharingAllowed": profile.photoSharingAllowed,
-                    "avatarVariant": profile.avatarVariant
-                ]
-                if let avatarURL {
-                    payload["avatarURL"] = avatarURL.absoluteString
-                    payload["photoURL"] = avatarURL.absoluteString
-                }
-                if let avatarUpload {
-                    payload["avatarObjectKey"] = avatarUpload.objectKey
-                }
-                let updateCallable = Functions.functions(region: region).httpsCallable("updateProfile")
-                _ = try await updateCallable.call(payload)
-                if !profile.handle.isEmpty {
-                    let handleCallable = Functions.functions(region: region).httpsCallable("setHandle")
-                    _ = try await handleCallable.call(["handle": profile.handle])
-                }
-                guard !Task.isCancelled else { return }
-                await MainActor.run { [weak self] in
-                    guard let self, self.saveProfileGeneration == generation else { return }
-                    if let avatarURL {
-                        self.editableProfile.avatarURL = avatarURL
-                    }
-                    self.lastSubmitErrorMessage = nil
-                    self.saveProfileTask = nil
-                }
-            } catch {
-                guard !Task.isCancelled else { return }
-                await MainActor.run { [weak self] in
-                    guard let self, self.saveProfileGeneration == generation else { return }
-                    self.lastSubmitErrorMessage = "프로필 저장 실패: \(error.localizedDescription)"
-                    self.saveProfileTask = nil
-                }
+
+        do {
+            let client = profileSaveClient ?? defaultProfileSaveClient()
+            let avatarUpload = try await client.uploadAvatarImageData(profile.avatarImageData)
+            let avatarURL = avatarUpload?.publicURL ?? profile.avatarURL
+            var payload: [String: Any] = [
+                "displayName": profile.displayName,
+                "bio": profile.bio,
+                "website": profile.website,
+                "makerPageVisible": profile.makerPageVisible,
+                "photoSharingAllowed": profile.photoSharingAllowed,
+                "avatarVariant": profile.avatarVariant
+            ]
+            if let avatarURL {
+                payload["avatarURL"] = avatarURL.absoluteString
+                payload["photoURL"] = avatarURL.absoluteString
             }
+            if let avatarUpload {
+                payload["avatarObjectKey"] = avatarUpload.objectKey
+            }
+
+            try await client.updateProfile(payload)
+
+            if !profile.handle.isEmpty {
+                try await client.setHandle(profile.handle)
+            }
+
+            guard saveProfileGeneration == generation else { return editableProfile }
+            var savedProfile = profile
+            if let avatarURL {
+                savedProfile.avatarURL = avatarURL
+            }
+            if avatarUpload != nil {
+                savedProfile.avatarImageData = nil
+            }
+            editableProfile = savedProfile
+            lastProfileSavedAt = Date()
+            lastSubmitErrorMessage = nil
+            return savedProfile
+        } catch {
+            guard saveProfileGeneration == generation else { throw error }
+            lastSubmitErrorMessage = "프로필 저장 실패: \(error.localizedDescription)"
+            throw error
         }
     }
 
-    private func uploadProfileAvatarImageData(_ data: Data?) async throws -> ProfileAvatarUpload? {
+    private func defaultProfileSaveClient() -> SessionProfileSaveClient {
+        SessionProfileSaveClient(
+            uploadAvatarImageData: { data in
+                try await Self.uploadProfileAvatarImageData(data)
+            },
+            updateProfile: { payload in
+                let callable = Functions.functions(region: "asia-northeast3").httpsCallable("updateProfile")
+                _ = try await callable.call(payload)
+            },
+            setHandle: { handle in
+                let callable = Functions.functions(region: "asia-northeast3").httpsCallable("setHandle")
+                _ = try await callable.call(["handle": handle])
+            }
+        )
+    }
+
+    private nonisolated static func uploadProfileAvatarImageData(_ data: Data?) async throws -> ProfileAvatarUpload? {
         guard let data else { return nil }
         guard data.count <= 1_500_000 else {
             throw SessionProfileAvatarUploadError.imageTooLarge

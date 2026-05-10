@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Project docs
+    url: https://github.com/jayl2kor/filter-market/tree/main/docs
+    about: 설계/로드맵/상태 문서는 docs 디렉터리를 먼저 확인해주세요.

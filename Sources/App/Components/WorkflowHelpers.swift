@@ -193,3 +193,54 @@ func uploadStepIndex(_ step: UploadStep) -> Int {
     case .pending: 3
     }
 }
+
+enum MakerStep: CaseIterable, Sendable {
+    case edit
+    case lut
+    case draft
+
+    var title: String {
+        switch self {
+        case .edit: "편집"
+        case .lut: "LUT"
+        case .draft: "초안"
+        }
+    }
+}
+
+func makerStepIndex(_ step: MakerStep) -> Int {
+    switch step {
+    case .edit: 0
+    case .lut: 1
+    case .draft: 2
+    }
+}
+
+@MainActor
+func makerProgress(active: MakerStep) -> some View {
+    HStack(spacing: Sp.xs) {
+        ForEach(MakerStep.allCases, id: \.self) { step in
+            VStack(spacing: 4) {
+                Circle()
+                    .fill(makerStepIndex(step) <= makerStepIndex(active) ? FMColors.Accent.primary : FMColors.Background.bg3)
+                    .frame(width: 26, height: 26)
+                    .overlay {
+                        Text("\(makerStepIndex(step) + 1)")
+                            .fmTypography(.caption)
+                            .foregroundStyle(makerStepIndex(step) <= makerStepIndex(active) ? .white : FMColors.Text.tertiary)
+                    }
+                Text(step.title)
+                    .fmTypography(.caption)
+                    .foregroundStyle(step == active ? FMColors.Text.primary : FMColors.Text.tertiary)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+    .padding(Sp.sm)
+    .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("필터 만들기 \(MakerStep.allCases.count)단계 중 \(makerStepIndex(active) + 1)단계")
+    .accessibilityValue(active.title)
+    .accessibilityIdentifier("maker.progress")
+}

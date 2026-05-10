@@ -31,6 +31,7 @@ struct FilterDetailScreen: View {
     @State private var sharePayload: SharePayload?
     @State private var isDescriptionExpanded = false
     @State private var selectedSample: FilterDetailSampleItem?
+    @State private var showingSampleList = false
     @State private var showingSamplePhotoPicker = false
     @State private var isUploadingSample = false
     @State private var sampleUploadErrorMessage: String?
@@ -63,9 +64,10 @@ struct FilterDetailScreen: View {
         scrollContent
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 ctaBar
-            }
+        }
         .background(FMColors.Background.bg0)
         .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 backButton
@@ -92,6 +94,9 @@ struct FilterDetailScreen: View {
                 category: mock.filterCategory,
                 categoryHint: mock.categoryHint
             )
+        }
+        .sheet(isPresented: $showingSampleList) {
+            SampleListSheetView(samples: sampleItems, mock: mock)
         }
         .onDisappear {
             downloadTask?.cancel()
@@ -142,8 +147,10 @@ struct FilterDetailScreen: View {
 
                 samplesSection
 
-                reviewsSection
-                    .padding(.horizontal, Sp.md)
+                if shouldShowReviewsSection {
+                    reviewsSection
+                        .padding(.horizontal, Sp.md)
+                }
             }
             .padding(.bottom, Sp.xl)
         }
@@ -312,15 +319,15 @@ struct FilterDetailScreen: View {
             Text(isFollowing ? "팔로잉" : "팔로우")
                 .fmTypography(.caption)
                 .fontWeight(.semibold)
-                .padding(.horizontal, Sp.md)
-                .frame(minHeight: 44)
+                .padding(.horizontal, Sp.sm)
+                .frame(minHeight: 38)
                 .foregroundStyle(isFollowing ? FMColors.Text.secondary : .white)
                 .background(
                     isFollowing ? FMColors.Background.bg2 : FMColors.Accent.primary,
-                    in: RoundedRectangle(cornerRadius: R.md)
+                    in: RoundedRectangle(cornerRadius: R.sm)
                 )
                 .overlay {
-                    RoundedRectangle(cornerRadius: R.md)
+                    RoundedRectangle(cornerRadius: R.sm)
                         .strokeBorder(
                             isFollowing ? FMColors.Border.default : FMColors.Accent.primary,
                             lineWidth: 1
@@ -441,7 +448,7 @@ struct FilterDetailScreen: View {
     private var samplesSection: some View {
         VStack(alignment: .leading, spacing: Sp.sm) {
             HStack(alignment: .firstTextBaseline, spacing: Sp.sm) {
-                sectionHeader(title: "샘플", more: "\(sampleCount)개 모두 →")
+                sampleSectionHeader
 
                 if canUploadUserSample {
                     sampleUploadButton
@@ -461,6 +468,31 @@ struct FilterDetailScreen: View {
                     .padding(.horizontal, Sp.md)
                     .accessibilityIdentifier("filter.detail.sample.upload.status")
             }
+        }
+    }
+
+    private var sampleSectionHeader: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("샘플")
+                .fmTypography(.title)
+                .foregroundStyle(FMColors.Text.primary)
+
+            Spacer()
+
+            Button {
+                showingSampleList = true
+                FMHaptic.light.play()
+                Telemetry.trackAction("sample_list_opened", screen: .filterDetail, parameters: [
+                    "sample_count": sampleCount
+                ])
+            } label: {
+                Text("\(sampleCount)개 모두 →")
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Accent.primary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("filter.detail.samples")
+            .accessibilityLabel("샘플 \(sampleCount)개 모두 보기")
         }
     }
 
@@ -511,6 +543,10 @@ struct FilterDetailScreen: View {
     }
 
     // MARK: - Reviews
+
+    private var shouldShowReviewsSection: Bool {
+        mock.reviewCount > 0 && !mock.reviews.isEmpty
+    }
 
     private var reviewsSection: some View {
         VStack(alignment: .leading, spacing: Sp.sm) {
@@ -591,7 +627,7 @@ struct FilterDetailScreen: View {
             Image(systemName: "chevron.left")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(FMColors.Text.primary)
-                .frame(width: 36, height: 36)
+                .frame(width: 44, height: 44)
                 .background(.regularMaterial, in: Circle())
                 .overlay {
                     Circle()
@@ -705,8 +741,8 @@ struct FilterDetailScreen: View {
         }
         .padding(.horizontal, Sp.md)
         .padding(.top, Sp.sm)
-        .padding(.bottom, FMLayout.tabBarHeight + Sp.sm)
-        .background(FMColors.Background.bg0.opacity(0.96))
+        .padding(.bottom, Sp.sm)
+        .background(FMColors.Background.bg0)
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(FMColors.Border.default)
@@ -1102,6 +1138,88 @@ private struct SampleGalleryView: View {
 
     @ViewBuilder
     private func sampleTile(_ sample: FilterDetailSampleItem) -> some View {
+        FilterDetailSampleTile(sample: sample, mock: mock)
+    }
+}
+
+private struct SampleListSheetView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let samples: [FilterDetailSampleItem]
+    let mock: FilterDetailMock
+
+    @State private var selectedSample: FilterDetailSampleItem?
+
+    private let columns = [
+        GridItem(.adaptive(minimum: 172), spacing: Sp.sm, alignment: .top)
+    ]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: Sp.md) {
+                    ForEach(samples) { sample in
+                        Button {
+                            selectedSample = sample
+                            FMHaptic.light.play()
+                            Telemetry.trackAction("sample_opened", screen: .filterDetail, parameters: [
+                                "sample_kind": sample.telemetryKind,
+                                "source": "sample_list"
+                            ])
+                        } label: {
+                            VStack(alignment: .leading, spacing: Sp.xs) {
+                                FilterDetailSampleTile(sample: sample, mock: mock)
+
+                                Text(sample.title)
+                                    .fmTypography(.subhead)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(FMColors.Text.primary)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("\(sample.title) 샘플")
+                        .accessibilityHint("탭 하면 풀화면으로 봅니다")
+                    }
+                }
+                .padding(Sp.md)
+            }
+            .background(FMColors.Background.bg0)
+            .navigationTitle("샘플")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: IconSize.sm, weight: .semibold))
+                            .foregroundStyle(FMColors.Text.primary)
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel("닫기")
+                }
+            }
+        }
+        .accessibilityIdentifier("filter.detail.sample.list")
+        .fullScreenCover(item: $selectedSample) { sample in
+            SampleLightboxView(
+                selectedSample: sample,
+                samples: samples,
+                filterTitle: mock.displayTitle,
+                makerHandle: mock.makerHandle,
+                category: mock.filterCategory,
+                categoryHint: mock.categoryHint
+            )
+        }
+    }
+}
+
+private struct FilterDetailSampleTile: View {
+    let sample: FilterDetailSampleItem
+    let mock: FilterDetailMock
+
+    var body: some View {
         switch sample.kind {
         case .signature(let url):
             SignatureSampleTile(url: url, categoryHint: mock.categoryHint)

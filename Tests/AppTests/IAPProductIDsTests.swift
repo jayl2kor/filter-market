@@ -80,6 +80,23 @@ final class IAPProductIDsTests: XCTestCase {
         )
     }
 
+    func testStoreKitMissingProductIDsPreservesRequestedOrder() {
+        XCTAssertEqual(
+            StoreKitManager.missingProductIDs(
+                requested: [
+                    IAPProductIDs.coins100,
+                    IAPProductIDs.coins550,
+                    IAPProductIDs.proMonthly,
+                ],
+                loaded: [IAPProductIDs.coins550]
+            ),
+            [
+                IAPProductIDs.coins100,
+                IAPProductIDs.proMonthly,
+            ]
+        )
+    }
+
     func testStoreKitCoinCreditResultParsesSwiftAndNSNumberValues() {
         XCTAssertEqual(
             StoreKitManager.parseCoinCreditResult([

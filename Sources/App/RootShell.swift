@@ -197,7 +197,9 @@ struct RootShell: View {
             }
 
             tabNavigationStack(.search, path: $searchNavigationPath) {
-                SearchScreen()
+                SearchScreen { route in
+                    searchNavigationPath.append(route)
+                }
             }
 
             tabNavigationStack(.saved, path: $savedNavigationPath) {
@@ -486,7 +488,7 @@ private extension FMTab {
     var telemetryName: String {
         switch self {
         case .market: "market"
-        case .search: "search"
+        case .search: "discover"
         case .shutter: "shutter"
         case .saved: "saved"
         case .profile: "profile"

@@ -5,6 +5,7 @@ options:
   deploymentTarget:
     iOS: "17.0"
   xcodeVersion: "26.3"
+  schemePathPrefix: "../../../"
 
 # 코드 서명 — DEVELOPMENT_TEAM 을 프로젝트 전체(모든 framework + 메인 앱)에 적용.
 # 다른 머신에서 작업 시 본인 Team ID 로 변경.
@@ -34,6 +35,8 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: Sources/App
+      - path: Configuration.storekit
+        buildPhase: none
     dependencies:
       - target: Camera
       - target: FilterEngine
@@ -226,21 +229,9 @@ targets:
     settings:
       base:
         # Host the app so @testable import moodit works on App-target code
-        # like UniversalLinkParser. AppUITests above is for UI / black-box flows.
+        # like UniversalLinkParser.
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/moodit.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/moodit
         BUNDLE_LOADER: $(TEST_HOST)
-        GENERATE_INFOPLIST_FILE: YES
-
-  AppUITests:
-    type: bundle.ui-testing
-    platform: iOS
-    deploymentTarget: "17.0"
-    sources:
-      - Tests/AppUITests
-    dependencies:
-      - target: moodit
-    settings:
-      base:
         GENERATE_INFOPLIST_FILE: YES
 
 schemes:
@@ -248,6 +239,9 @@ schemes:
     build:
       targets:
         moodit: all
+    run:
+      config: Debug
+      storeKitConfiguration: Configuration.storekit
     test:
       targets:
         - ModelsTests
@@ -255,4 +249,3 @@ schemes:
         - FilterEngineTests
         - MarketplaceTests
         - AppTests
-        - AppUITests

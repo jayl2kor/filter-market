@@ -92,22 +92,8 @@ struct MarketplaceScreen: View {
     private var headerBar: some View {
         HStack(spacing: Sp.sm) {
             NavigationLink(value: AppRoute.search(initialQuery: nil, category: nil)) {
-                HStack(spacing: Sp.xs) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: IconSize.sm, weight: .medium))
-                        .foregroundStyle(FMColors.Text.tertiary)
-                    Text("필터, 메이커, 분위기 검색")
-                        .fmTypography(.body)
-                        .foregroundStyle(FMColors.Text.tertiary)
-                    Spacer()
-                }
-                .padding(.horizontal, Sp.sm)
-                .frame(height: 44)
-                .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
-                .overlay {
-                    RoundedRectangle(cornerRadius: R.md)
-                        .strokeBorder(FMColors.Border.default, lineWidth: 1)
-                }
+                FMSearchHeader(placeholder: "필터, 메이커, 분위기 검색")
+                    .accessibilityIdentifier("market.searchHeader")
             }
             .buttonStyle(.plain)
             .simultaneousGesture(TapGesture().onEnded {
@@ -580,11 +566,12 @@ struct MarketplaceScreen: View {
             displayTitle: tile.title,
             makerHandle: tile.makerName,
             makerInitials: String(tile.makerName.replacingOccurrences(of: "@", with: "").prefix(2)).uppercased(),
+            makerAvatarURL: tile.makerAvatarURL,
             categoryLabel: "필터",
             downloadCount: tile.downloadCount,
             rating: 4.7,
-            reviewCount: max(50, tile.downloadCount / 30),
-            likeCount: tile.downloadCount / 5,
+            reviewCount: 0,
+            likeCount: 0,
             description: "메이커가 직접 조정한 톤커브로, 일상의 순간을 한 단계 더 풍부한 분위기로 끌어올립니다. 강도 60~80% 에서 가장 자연스럽게 어울려요.",
             tags: ["#mood", "#daily", "#warm", "#analog"],
             coverURL: tile.previewImageURL,
@@ -673,10 +660,24 @@ private struct FeaturedCard: View {
                     .fmTypography(.headline)
                     .foregroundStyle(.white)
                     .lineLimit(1)
-                Text("\(data.makerName) · 다운로드 \(formattedCount(data.downloadCount))")
-                    .fmTypography(.subhead)
-                    .foregroundStyle(.white.opacity(0.8))
-                    .lineLimit(1)
+                HStack(spacing: Sp.xxs) {
+                    FMAvatar(
+                        url: data.makerAvatarURL,
+                        size: .xs,
+                        fallback: String(data.makerName.replacingOccurrences(of: "@", with: "").prefix(2)).uppercased()
+                    )
+                    Text(data.makerName)
+                        .fmTypography(.subhead)
+                        .foregroundStyle(.white.opacity(0.8))
+                        .lineLimit(1)
+                    Text("·")
+                        .fmTypography(.subhead)
+                        .foregroundStyle(.white.opacity(0.65))
+                    Text("다운로드 \(formattedCount(data.downloadCount))")
+                        .fmTypography(.subhead)
+                        .foregroundStyle(.white.opacity(0.8))
+                        .lineLimit(1)
+                }
             }
             .padding(Sp.md)
         }

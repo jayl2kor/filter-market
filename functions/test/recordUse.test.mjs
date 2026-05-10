@@ -10,7 +10,7 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
-import { applyRecordUse, RECORD_USE_COOLDOWN_MS } from "../lib/http/filters.js";
+import { applyRecordDownload, applyRecordUse, RECORD_USE_COOLDOWN_MS } from "../lib/http/filters.js";
 
 function makeFakeFirestore(initialDocs = {}) {
   const data = new Map(Object.entries(initialDocs));
@@ -180,6 +180,72 @@ describe("applyRecordUse", () => {
           "u-han",
           { filterId: "missing-filter" },
           { firestore: empty, now: () => new Date(nowMs) }
+        ),
+      (err) => err.code === "not-found" || /not found/.test(err.message)
+    );
+  });
+});
+
+describe("applyRecordDownload", () => {
+  const filterPath = "filters/sunset-1973";
+  const downloadPath = "filters/sunset-1973/downloads/u-han";
+
+  it("counts the first download and persists the per-user ledger row", async () => {
+    const nowMs = Date.UTC(2026, 4, 7, 12, 0, 0);
+    const firestore = makeFakeFirestore({
+      [filterPath]: { downloadCount: 0, useCount: 9_100 },
+    });
+
+    const result = await applyRecordDownload(
+      "u-han",
+      { filterId: "sunset-1973" },
+      { firestore, now: () => new Date(nowMs) }
+    );
+
+    assert.deepEqual(result, {
+      filterId: "sunset-1973",
+      downloadCount: 1,
+      counted: true,
+    });
+    assert.equal(firestore._data.get(filterPath).downloadCount, 1);
+    assert.equal(firestore._data.get(filterPath).useCount, 9_100);
+    assert.equal(firestore._data.get(downloadPath).downloadedAt.getTime(), nowMs);
+  });
+
+  it("does not double-count the same user's repeated download", async () => {
+    const nowMs = Date.UTC(2026, 4, 7, 12, 0, 0);
+    const firestore = makeFakeFirestore({
+      [filterPath]: { downloadCount: 4 },
+    });
+
+    await applyRecordDownload(
+      "u-han",
+      { filterId: "sunset-1973" },
+      { firestore, now: () => new Date(nowMs) }
+    );
+    const second = await applyRecordDownload(
+      "u-han",
+      { filterId: "sunset-1973" },
+      { firestore, now: () => new Date(nowMs + 1_000) }
+    );
+
+    assert.deepEqual(second, {
+      filterId: "sunset-1973",
+      downloadCount: 5,
+      counted: false,
+    });
+    assert.equal(firestore._data.get(filterPath).downloadCount, 5);
+  });
+
+  it("rejects missing filters", async () => {
+    const firestore = makeFakeFirestore();
+
+    await assert.rejects(
+      () =>
+        applyRecordDownload(
+          "u-han",
+          { filterId: "missing-filter" },
+          { firestore, now: () => new Date() }
         ),
       (err) => err.code === "not-found" || /not found/.test(err.message)
     );

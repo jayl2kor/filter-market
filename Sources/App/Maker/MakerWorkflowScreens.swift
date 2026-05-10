@@ -22,6 +22,8 @@ private struct EditorReferencePreview: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
             } else {
                 LinearGradient(
                     colors: editorDraftStore.editorDraft.category.swatch,
@@ -49,6 +51,7 @@ private struct EditorReferencePreview: View {
                     .lineLimit(1)
             }
             .padding(Sp.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             if isRendering && renderedImage == nil {
                 ProgressView()
@@ -61,6 +64,7 @@ private struct EditorReferencePreview: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
+        .clipped()
         .clipShape(RoundedRectangle(cornerRadius: R.lg))
         .overlay {
             RoundedRectangle(cornerRadius: R.lg)
@@ -168,20 +172,25 @@ struct FilterEditorScreen: View {
     @State private var showCancelAlert = false
     @State private var selectedReferenceItem: PhotosPickerItem?
     @State private var referenceLoadError: String?
+    @State private var selectedParameterKey: String = EditorAdjustment.exposure.key
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Sp.lg) {
+                makerProgress(active: .edit)
                 editorPreview
                 referenceSourceControls
-                quickStats
-                editorActions
-                parameterPreview
             }
             .padding(Sp.md)
-            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+            .padding(.bottom, Sp.md)
         }
         .background(FMColors.Background.bg1)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
+                adjustmentDock
+                stickyContinueBar
+            }
+        }
         .navigationTitle("필터 에디터")
         .navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled(true)
@@ -228,7 +237,17 @@ struct FilterEditorScreen: View {
     }
 
     private var editorPreview: some View {
-        EditorReferencePreview(height: 420)
+        EditorReferencePreview(height: 360)
+            .overlay(alignment: .topTrailing) {
+                Label("길게 눌러 비교", systemImage: "rectangle.lefthalf.filled")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, Sp.sm)
+                    .padding(.vertical, 6)
+                    .background(.black.opacity(0.42), in: Capsule())
+                    .padding(Sp.md)
+                    .accessibilityHidden(true)
+            }
     }
 
     @ViewBuilder
@@ -250,8 +269,13 @@ struct FilterEditorScreen: View {
                         editorDraftStore.setEditorReferencePhotoData(nil)
                     } label: {
                         Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20, weight: .regular))
                             .foregroundStyle(FMColors.Text.tertiary)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("참조 사진 제거")
                     .accessibilityIdentifier("editor.reference.photo.clear")
                 }
             }
@@ -261,8 +285,7 @@ struct FilterEditorScreen: View {
                     ForEach(EditorReferenceSampleKind.allCases) { kind in
                         FMChip(
                             kind.title,
-                            isSelected: !hasReferencePhoto && editorDraftStore.editorReferenceSampleKind == kind,
-                            size: .sm
+                            isSelected: !hasReferencePhoto && editorDraftStore.editorReferenceSampleKind == kind
                         ) {
                             editorDraftStore.setEditorReferenceSampleKind(kind)
                             FMHaptic.selection.play()
@@ -301,83 +324,207 @@ struct FilterEditorScreen: View {
         }
     }
 
-    private var quickStats: some View {
-        HStack(spacing: Sp.sm) {
-            editorMetric("LUT", value: editorDraftStore.editorDraft.lutFileName ?? "기본")
-            editorMetric("커버", value: "\(editorDraftStore.editorDraft.coverCount)장")
-            editorMetric("태그", value: "\(editorDraftStore.editorDraft.tags.count)개")
-        }
-    }
-
-    private var editorActions: some View {
-        VStack(spacing: Sp.sm) {
-            NavigationLink(value: AppRoute.editorParameters) {
-                routeButton("파라미터 편집", icon: "slider.horizontal.3")
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("editor.params")
-
-            HStack(spacing: Sp.sm) {
-                NavigationLink(value: AppRoute.editorLUT) {
-                    compactRouteButton("LUT", icon: "cube.transparent")
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("editor.lut")
-
-                NavigationLink(value: AppRoute.editorDraft) {
-                    compactRouteButton("초안 저장", icon: "tray.and.arrow.down")
-                }
-                .simultaneousGesture(TapGesture().onEnded {
-                    editorDraftStore.saveEditorDraft()
-                })
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("editor.draft")
-            }
-
+    private var stickyContinueBar: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(FMColors.Border.subtle)
+                .frame(height: 0.5)
             NavigationLink(value: AppRoute.uploadCover) {
                 routeButton("마켓 공유로 계속", icon: "arrow.right")
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("editor.next")
+            .padding(.horizontal, Sp.md)
+            .padding(.vertical, Sp.sm)
         }
+        .background(FMColors.Background.bg1)
     }
 
-    private var parameterPreview: some View {
-        FMCard {
-            VStack(alignment: .leading, spacing: Sp.sm) {
-                sectionLabel("주요 파라미터")
-                ForEach(["exposure", "contrast", "saturation"], id: \.self) { key in
-                    HStack {
-                        Text(parameterTitle(key))
-                            .fmTypography(.body)
-                            .foregroundStyle(FMColors.Text.primary)
-                        Spacer()
-                        Text("\(Int((editorDraftStore.editorDraft.parameterValues[key] ?? 0) * 100))")
-                            .fmTypography(.headline)
-                            .foregroundStyle(FMColors.Accent.primary)
-                    }
-                    if key != "saturation" {
-                        workflowDivider()
-                    }
+    private var adjustmentDock: some View {
+        VStack(spacing: Sp.md) {
+            adjustmentSliderRow
+            parameterStrip
+        }
+        .padding(.horizontal, Sp.md)
+        .padding(.top, Sp.md)
+        .padding(.bottom, Sp.sm)
+        .background(FMColors.Background.bg2)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(FMColors.Border.subtle)
+                .frame(height: 0.5)
+        }
+        .accessibilityIdentifier("editor.dock")
+    }
+
+    private var adjustmentSliderRow: some View {
+        let key = selectedParameterKey
+        let value = editorDraftStore.editorDraft.parameterValues[key] ?? 0
+        let isAtZero = abs(value) < 0.0001
+        return VStack(alignment: .leading, spacing: Sp.xs) {
+            HStack {
+                Text(parameterTitle(key))
+                    .fmTypography(.subhead)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(FMColors.Text.primary)
+                Spacer()
+                Button {
+                    guard !isAtZero else { return }
+                    editorDraftStore.updateEditorParameter(key, value: 0)
+                    FMHaptic.light.play()
+                } label: {
+                    Text(parameterSliderValueLabel(value))
+                        .fmTypography(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(isAtZero ? FMColors.Text.tertiary : FMColors.Accent.primary)
+                        .padding(.horizontal, Sp.sm)
+                        .frame(minHeight: 28)
+                        .background(
+                            isAtZero ? Color.clear : FMColors.Accent.bg,
+                            in: Capsule()
+                        )
+                        .contentShape(Capsule())
                 }
+                .buttonStyle(.plain)
+                .disabled(isAtZero)
+                .accessibilityLabel(isAtZero ? "현재 원본" : "\(parameterTitle(key)) 원본으로 되돌리기")
+                .accessibilityIdentifier("editor.param.reset.\(key)")
             }
+            FMSlider(
+                value: Binding(
+                    get: { editorDraftStore.editorDraft.parameterValues[key] ?? 0 },
+                    set: { editorDraftStore.updateEditorParameter(key, value: $0) }
+                ),
+                range: -1...1,
+                label: nil,
+                showValue: false
+            )
+            .id(key)
+            .accessibilityIdentifier("editor.param.slider.\(key)")
         }
+        .accessibilityIdentifier("editor.param.slider")
     }
 
-    private func editorMetric(_ title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .fmTypography(.caption)
-                .foregroundStyle(FMColors.Text.tertiary)
-            Text(value)
-                .fmTypography(.headline)
-                .foregroundStyle(FMColors.Text.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+    private var parameterStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Sp.md) {
+                ForEach(EditorAdjustment.allCases) { adjustment in
+                    parameterStripItem(adjustment)
+                }
+                Divider()
+                    .frame(height: 32)
+                    .padding(.horizontal, Sp.xxs)
+                lutStripItem
+            }
+            .padding(.vertical, Sp.xs)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Sp.sm)
-        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+        .accessibilityIdentifier("editor.param.strip")
+    }
+
+    private func parameterStripItem(_ adjustment: EditorAdjustment) -> some View {
+        let key = adjustment.key
+        let value = editorDraftStore.editorDraft.parameterValues[key] ?? 0
+        let progress = min(1, abs(value))
+        let isSelected = selectedParameterKey == key
+        return Button {
+            selectedParameterKey = key
+            FMHaptic.selection.play()
+        } label: {
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? FMColors.Accent.bg : Color.clear)
+                        .frame(width: 44, height: 44)
+                    Circle()
+                        .stroke(FMColors.Border.subtle, lineWidth: 2)
+                        .frame(width: 44, height: 44)
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(FMColors.Accent.primary, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                        .frame(width: 44, height: 44)
+                        .rotationEffect(.degrees(-90))
+                    Image(systemName: adjustment.systemImage)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(isSelected ? FMColors.Accent.primary : FMColors.Text.secondary)
+                }
+                Text(adjustment.title)
+                    .fmTypography(.caption)
+                    .foregroundStyle(isSelected ? FMColors.Text.primary : FMColors.Text.tertiary)
+                    .lineLimit(1)
+            }
+            .frame(width: 64)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(
+            TapGesture(count: 2).onEnded {
+                editorDraftStore.updateEditorParameter(key, value: 0)
+                selectedParameterKey = key
+                FMHaptic.light.play()
+            }
+        )
+        .accessibilityLabel("\(adjustment.title)\(isSelected ? ", 선택됨" : ""), 두 번 탭하면 원본으로 되돌립니다")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityIdentifier("editor.param.strip.\(key)")
+    }
+
+    private var lutStripItem: some View {
+        let hasCustomLUT = editorDraftStore.editorDraft.lutFileName != nil
+        return NavigationLink(value: AppRoute.editorLUT) {
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .stroke(FMColors.Border.subtle, lineWidth: 2)
+                        .frame(width: 44, height: 44)
+                    if hasCustomLUT {
+                        Circle()
+                            .stroke(FMColors.Accent.primary, lineWidth: 2)
+                            .frame(width: 44, height: 44)
+                    }
+                    Image(systemName: "cube.transparent")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(hasCustomLUT ? FMColors.Accent.primary : FMColors.Text.secondary)
+                }
+                Text("LUT")
+                    .fmTypography(.caption)
+                    .foregroundStyle(FMColors.Text.tertiary)
+                    .lineLimit(1)
+            }
+            .frame(width: 64)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(hasCustomLUT ? "LUT 가져오기, 사용자 LUT 적용됨" : "LUT 가져오기")
+        .accessibilityIdentifier("editor.lut")
+    }
+
+    private func parameterSliderValueLabel(_ value: Double) -> String {
+        if abs(value) < 0.0001 {
+            return "원본"
+        }
+        return String(format: "%+.2f", value)
+    }
+}
+
+private enum EditorAdjustment: String, CaseIterable, Identifiable {
+    case exposure
+    case contrast
+    case saturation
+    case grain
+    case vignette
+
+    var id: String { rawValue }
+    var key: String { rawValue }
+    var title: String { parameterTitle(rawValue) }
+
+    var systemImage: String {
+        switch self {
+        case .exposure: "sun.max"
+        case .contrast: "circle.lefthalf.filled"
+        case .saturation: "drop.fill"
+        case .grain: "circle.dotted"
+        case .vignette: "circle.dashed"
+        }
     }
 }
 
@@ -390,11 +537,11 @@ struct EditorParametersScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Sp.lg) {
-                workflowHeader(
-                    title: "파라미터",
-                    subtitle: "조명, 색, 질감 값을 조정해 필터 룩을 만듭니다.",
-                    symbol: "slider.horizontal.3"
-                )
+                Text("조명, 색, 질감 값을 조정해 필터 룩을 만듭니다.")
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Text.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 EditorReferencePreview(height: 300)
                 sectionTabs
                 sliders
@@ -417,7 +564,7 @@ struct EditorParametersScreen: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Sp.xs) {
                 ForEach(EditorParameterSection.allCases) { section in
-                    FMChip(section.title, isSelected: selectedSection == section, size: .sm) {
+                    FMChip(section.title, isSelected: selectedSection == section) {
                         selectedSection = section
                     }
                     .accessibilityIdentifier(section.actionID)
@@ -481,6 +628,7 @@ struct EditorLUTImportScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Sp.lg) {
+                makerProgress(active: .lut)
                 workflowHeader(
                     title: "LUT 파일 추가",
                     subtitle: "Cube LUT 파일을 연결하고 검증 상태를 확인합니다.",
@@ -692,6 +840,7 @@ struct EditorDraftSaveScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Sp.lg) {
+                makerProgress(active: .draft)
                 workflowHeader(
                     title: "초안 저장",
                     subtitle: "마켓 공유 전에 이름과 설명을 정리합니다.",
@@ -995,6 +1144,8 @@ struct UploadCoverScreen: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
             } else {
                 LinearGradient(
                     colors: editorDraftStore.editorDraft.category.swatch,
