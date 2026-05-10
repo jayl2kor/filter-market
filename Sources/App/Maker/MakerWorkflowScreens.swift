@@ -531,8 +531,11 @@ private enum EditorAdjustment: String, CaseIterable, Identifiable {
 struct EditorParametersScreen: View {
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @State private var selectedSection: EditorParameterSection = .lighting
-
-    private let parameters = ["exposure", "contrast", "saturation", "grain", "vignette"]
+    /// Local UI-only LUT strength (0…1). Intentionally not persisted to
+    /// `editorDraft.parameterValues` — issue #290 explicitly forbids
+    /// changing the persisted parameter schema. Adds an affordance to the
+    /// LUT section without polluting slider storage.
+    @State private var lutStrength: Double = 1.0
 
     var body: some View {
         ScrollView {
@@ -544,7 +547,7 @@ struct EditorParametersScreen: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 EditorReferencePreview(height: 300)
                 sectionTabs
-                sliders
+                sectionContent
                 compareCard
                 NavigationLink(value: AppRoute.editorLUT) {
                     routeButton("계속", icon: "arrow.right")
@@ -565,7 +568,9 @@ struct EditorParametersScreen: View {
             HStack(spacing: Sp.xs) {
                 ForEach(EditorParameterSection.allCases) { section in
                     FMChip(section.title, isSelected: selectedSection == section) {
-                        selectedSection = section
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            selectedSection = section
+                        }
                     }
                     .accessibilityIdentifier(section.actionID)
                 }
@@ -573,10 +578,19 @@ struct EditorParametersScreen: View {
         }
     }
 
-    private var sliders: some View {
+    @ViewBuilder
+    private var sectionContent: some View {
+        if selectedSection == .lut {
+            lutCard
+        } else {
+            sliders(for: selectedSection.parameterKeys)
+        }
+    }
+
+    private func sliders(for keys: [String]) -> some View {
         FMCard {
             VStack(spacing: Sp.md) {
-                ForEach(parameters, id: \.self) { key in
+                ForEach(keys, id: \.self) { key in
                     FMSlider(
                         value: Binding(
                             get: { editorDraftStore.editorDraft.parameterValues[key] ?? 0 },
@@ -590,6 +604,48 @@ struct EditorParametersScreen: View {
                 }
             }
             .accessibilityIdentifier("editor.param.slider")
+        }
+    }
+
+    private var lutCard: some View {
+        FMCard {
+            VStack(alignment: .leading, spacing: Sp.md) {
+                HStack(spacing: Sp.sm) {
+                    Image(systemName: "cube.transparent")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(FMColors.Accent.primary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(editorDraftStore.editorDraft.lutFileName ?? "LUT 파일 없음")
+                            .fmTypography(.headline)
+                            .foregroundStyle(FMColors.Text.primary)
+                        Text("LUT 파일을 가져오거나 강도를 조절해 색감을 정밀 제어합니다.")
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Text.secondary)
+                    }
+                }
+
+                NavigationLink(value: AppRoute.editorLUT) {
+                    routeButton("LUT 가져오기", icon: "tray.and.arrow.down")
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("editor.lut.entry")
+
+                VStack(alignment: .leading, spacing: Sp.xs) {
+                    HStack {
+                        Text("LUT 강도")
+                            .fmTypography(.body)
+                            .foregroundStyle(FMColors.Text.primary)
+                        Spacer()
+                        Text("\(Int(lutStrength * 100))")
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Text.tertiary)
+                    }
+                    Slider(value: $lutStrength, in: 0...1)
+                        .tint(FMColors.Accent.primary)
+                        .accessibilityIdentifier("editor.lut.intensity")
+                }
+            }
+            .accessibilityIdentifier("editor.lut.card")
         }
     }
 

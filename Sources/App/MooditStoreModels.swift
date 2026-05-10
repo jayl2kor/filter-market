@@ -202,6 +202,19 @@ enum EditorParameterSection: String, CaseIterable, Identifiable {
     var actionID: String {
         "editor.tab.\(rawValue)"
     }
+
+    /// Parameter keys whose sliders belong to this section.
+    /// `.lut` returns `[]` because the LUT section uses dedicated controls instead of sliders.
+    /// The union of all non-`.lut` cases is the canonical set of slider parameters.
+    var parameterKeys: [String] {
+        switch self {
+        case .lighting: ["exposure", "contrast"]
+        case .color: ["saturation"]
+        case .detail: ["grain"]
+        case .effects: ["vignette"]
+        case .lut: []
+        }
+    }
 }
 
 enum UploadStep: String, CaseIterable, Identifiable {
