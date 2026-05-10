@@ -13,6 +13,7 @@ public struct FMEmptyStateIllustration: View {
         case profile
         case downloads
         case comments
+        case blocklist
     }
 
     public let kind: Kind
@@ -52,7 +53,24 @@ public struct FMEmptyStateIllustration: View {
         case .comments:
             CommentsIllustration(stroke: FMColors.Accent.primary)
                 .frame(width: size * 0.62, height: size * 0.62)
+        case .blocklist:
+            BlocklistIllustration(stroke: FMColors.Accent.primary)
+                .frame(width: size * 0.6, height: size * 0.6)
         }
+    }
+}
+
+// MARK: - Blocklist — 차단 사용자 컨텍스트 (사람 두 명 + 슬래시)
+
+private struct BlocklistIllustration: View {
+    let stroke: Color
+    var body: some View {
+        Image(systemName: "person.2.slash")
+            .resizable()
+            .scaledToFit()
+            .symbolRenderingMode(.monochrome)
+            .foregroundStyle(stroke)
+            .accessibilityHidden(true)
     }
 }
 
@@ -339,6 +357,7 @@ private struct CommentsIllustration: View {
             row("profile", .profile)
             row("downloads", .downloads)
             row("comments", .comments)
+            row("blocklist", .blocklist)
         }
         .padding(Sp.xl)
     }
@@ -364,6 +383,7 @@ private func row(_ title: String, _ kind: FMEmptyStateIllustration.Kind) -> some
             row("profile", .profile)
             row("downloads", .downloads)
             row("comments", .comments)
+            row("blocklist", .blocklist)
         }
         .padding(Sp.xl)
     }

@@ -506,7 +506,7 @@ struct BlockListScreen: View {
                 ProgressView()
                     .padding(.top, Sp.lg)
             } else if blockedUsers.isEmpty {
-                FMEmptyState(.emptyMarket)
+                FMEmptyState(.emptyBlocklist)
                     .padding(.horizontal, Sp.md)
                     .accessibilityIdentifier("blocklist.empty")
             } else {
