@@ -183,6 +183,22 @@ enum EditorParameterSection: String, CaseIterable, Identifiable {
     var actionID: String {
         "editor.tab.\(rawValue)"
     }
+
+    /// Parameter keys (matching `editorDraft.parameterValues` keys) shown as
+    /// sliders for this section. The `.lut` case intentionally returns an
+    /// empty array — that section renders dedicated LUT controls instead of
+    /// sliders. The union across all cases must match the canonical slider
+    /// key set with no duplicates; this invariant is regression-tested in
+    /// `EditorParameterSectionTests`.
+    var parameterKeys: [String] {
+        switch self {
+        case .lighting: ["exposure", "contrast"]
+        case .color: ["saturation"]
+        case .detail: ["grain"]
+        case .effects: ["vignette"]
+        case .lut: []
+        }
+    }
 }
 
 enum UploadStep: String, CaseIterable, Identifiable {

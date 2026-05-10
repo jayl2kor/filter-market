@@ -1709,8 +1709,19 @@ struct FilterEditorScreen: View {
 struct EditorParametersScreen: View {
     @EnvironmentObject private var store: MooditStore
     @State private var selectedSection: EditorParameterSection = .lighting
+    /// Local UI-only LUT strength (0…1). The persisted draft schema
+    /// (`editorDraft.parameterValues`) is intentionally not extended here —
+    /// see issue #290 scope. The strength control gives the LUT section a
+    /// matching affordance without changing storage keys.
+    @State private var lutStrength: Double = 1.0
 
-    private let parameters = ["exposure", "contrast", "saturation", "grain", "vignette"]
+    /// Slider keys for the active section. The view derives this from
+    /// `EditorParameterSection.parameterKeys` so the section tabs filter
+    /// the rendered sliders. The empty array on `.lut` triggers the LUT
+    /// control card instead of slider rendering.
+    private var visibleParameterKeys: [String] {
+        selectedSection.parameterKeys
+    }
 
     var body: some View {
         ScrollView {
@@ -1721,7 +1732,7 @@ struct EditorParametersScreen: View {
                     symbol: "slider.horizontal.3"
                 )
                 sectionTabs
-                sliders
+                sectionContent
                 compareCard
                 NavigationLink(value: AppRoute.editorLUT) {
                     routeButton("계속", icon: "arrow.right")
@@ -1742,7 +1753,9 @@ struct EditorParametersScreen: View {
             HStack(spacing: Sp.xs) {
                 ForEach(EditorParameterSection.allCases) { section in
                     FMChip(section.title, isSelected: selectedSection == section, size: .sm) {
-                        selectedSection = section
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            selectedSection = section
+                        }
                     }
                     .accessibilityIdentifier(section.actionID)
                 }
@@ -1750,10 +1763,19 @@ struct EditorParametersScreen: View {
         }
     }
 
+    @ViewBuilder
+    private var sectionContent: some View {
+        if selectedSection == .lut {
+            lutCard
+        } else {
+            sliders
+        }
+    }
+
     private var sliders: some View {
         FMCard {
             VStack(spacing: Sp.md) {
-                ForEach(parameters, id: \.self) { key in
+                ForEach(visibleParameterKeys, id: \.self) { key in
                     VStack(alignment: .leading, spacing: Sp.xs) {
                         HStack {
                             Text(parameterTitle(key))
@@ -1777,6 +1799,51 @@ struct EditorParametersScreen: View {
                 }
             }
             .accessibilityIdentifier("editor.param.slider")
+        }
+    }
+
+    /// LUT section content. Replaces sliders with a dedicated LUT
+    /// entry/strength card so the section tab can manage LUT-only
+    /// affordances without polluting the slider list.
+    private var lutCard: some View {
+        FMCard {
+            VStack(alignment: .leading, spacing: Sp.md) {
+                HStack(spacing: Sp.sm) {
+                    Image(systemName: "cube.transparent")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(FMColors.Accent.primary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(store.editorDraft.lutFileName ?? "LUT 파일 없음")
+                            .fmTypography(.headline)
+                            .foregroundStyle(FMColors.Text.primary)
+                        Text("LUT 파일을 가져오거나 강도를 조절해 색감을 정밀 제어합니다.")
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Text.secondary)
+                    }
+                }
+
+                NavigationLink(value: AppRoute.editorLUT) {
+                    routeButton("LUT 가져오기", icon: "tray.and.arrow.down")
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("editor.lut.entry")
+
+                VStack(alignment: .leading, spacing: Sp.xs) {
+                    HStack {
+                        Text("LUT 강도")
+                            .fmTypography(.body)
+                            .foregroundStyle(FMColors.Text.primary)
+                        Spacer()
+                        Text("\(Int(lutStrength * 100))")
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Text.tertiary)
+                    }
+                    Slider(value: $lutStrength, in: 0...1)
+                        .tint(FMColors.Accent.primary)
+                        .accessibilityIdentifier("editor.lut.intensity")
+                }
+            }
+            .accessibilityIdentifier("editor.lut.card")
         }
     }
 
