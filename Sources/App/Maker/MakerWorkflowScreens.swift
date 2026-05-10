@@ -531,6 +531,11 @@ private enum EditorAdjustment: String, CaseIterable, Identifiable {
 struct EditorParametersScreen: View {
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @State private var selectedSection: EditorParameterSection = .lighting
+    /// Local UI-only LUT strength (0…1). Intentionally not persisted to
+    /// `editorDraft.parameterValues` — issue #290 explicitly forbids
+    /// changing the persisted parameter schema. Adds an affordance to the
+    /// LUT section without polluting slider storage.
+    @State private var lutStrength: Double = 1.0
 
     var body: some View {
         ScrollView {
@@ -604,26 +609,44 @@ struct EditorParametersScreen: View {
 
     private var lutCard: some View {
         FMCard {
-            VStack(alignment: .leading, spacing: Sp.sm) {
+            VStack(alignment: .leading, spacing: Sp.md) {
                 HStack(spacing: Sp.sm) {
                     Image(systemName: "cube.transparent")
+                        .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(FMColors.Accent.primary)
-                    Text("LUT")
-                        .fmTypography(.headline)
-                        .foregroundStyle(FMColors.Text.primary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(editorDraftStore.editorDraft.lutFileName ?? "LUT 파일 없음")
+                            .fmTypography(.headline)
+                            .foregroundStyle(FMColors.Text.primary)
+                        Text("LUT 파일을 가져오거나 강도를 조절해 색감을 정밀 제어합니다.")
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Text.secondary)
+                    }
                 }
-                Text("Cube LUT 파일을 가져와 톤 매핑을 적용합니다.")
-                    .fmTypography(.subhead)
-                    .foregroundStyle(FMColors.Text.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+
                 NavigationLink(value: AppRoute.editorLUT) {
-                    routeButton("LUT 가져오기", icon: "square.and.arrow.down")
+                    routeButton("LUT 가져오기", icon: "tray.and.arrow.down")
                 }
                 .buttonStyle(.plain)
-                .accessibilityIdentifier("editor.lut.import")
+                .accessibilityIdentifier("editor.lut.entry")
+
+                VStack(alignment: .leading, spacing: Sp.xs) {
+                    HStack {
+                        Text("LUT 강도")
+                            .fmTypography(.body)
+                            .foregroundStyle(FMColors.Text.primary)
+                        Spacer()
+                        Text("\(Int(lutStrength * 100))")
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Text.tertiary)
+                    }
+                    Slider(value: $lutStrength, in: 0...1)
+                        .tint(FMColors.Accent.primary)
+                        .accessibilityIdentifier("editor.lut.intensity")
+                }
             }
+            .accessibilityIdentifier("editor.lut.card")
         }
-        .accessibilityIdentifier("editor.lut.card")
     }
 
     private func parameterValueLabel(_ value: Double) -> String {
