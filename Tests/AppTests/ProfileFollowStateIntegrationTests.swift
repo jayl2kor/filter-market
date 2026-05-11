@@ -54,6 +54,18 @@ final class ProfileFollowStateIntegrationTests: XCTestCase {
         XCTAssertFalse(social.contains("?? \"me\""))
     }
 
+    func testFollowSegmentsSwitchInPlaceInsteadOfPushingRoutes() throws {
+        let social = try source("Sources/App/Social/SocialDiscoveryScreens.swift")
+
+        XCTAssertTrue(social.contains("@State private var activeMode: Mode"))
+        XCTAssertTrue(social.contains("segmentButton(title: \"팔로워 \\(followerCount.formatted())\", mode: .followers)"))
+        XCTAssertTrue(social.contains("segmentButton(title: \"팔로잉 \\(followingCount.formatted())\", mode: .following)"))
+        XCTAssertTrue(social.contains("activeMode = mode"))
+        XCTAssertFalse(social.contains("segmentLink(title:"))
+        XCTAssertFalse(social.contains("route: .followers(uid: userID)"))
+        XCTAssertFalse(social.contains("route: .following(uid: userID)"))
+    }
+
     private func source(_ path: String) throws -> String {
         try String(contentsOf: repositoryRoot().appendingPathComponent(path))
     }
