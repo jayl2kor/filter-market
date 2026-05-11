@@ -183,6 +183,8 @@ struct FilterDetailMock: Sendable {
     let sourceID: String?
     let makerUID: String?
     let displayTitle: String
+    /// 제작자의 실제 표시 이름 — 핸들(`@xxx`) 과 별개. 프로필 화면 seed 로 전달.
+    let makerDisplayName: String?
     let makerHandle: String
     let makerInitials: String
     let makerAvatarURL: URL?
@@ -207,6 +209,7 @@ struct FilterDetailMock: Sendable {
         sourceID: String? = nil,
         makerUID: String? = nil,
         displayTitle: String,
+        makerDisplayName: String? = nil,
         makerHandle: String,
         makerInitials: String,
         makerAvatarURL: URL? = nil,
@@ -230,6 +233,7 @@ struct FilterDetailMock: Sendable {
         self.sourceID = sourceID
         self.makerUID = makerUID
         self.displayTitle = displayTitle
+        self.makerDisplayName = makerDisplayName
         self.makerHandle = makerHandle
         self.makerInitials = makerInitials
         self.makerAvatarURL = makerAvatarURL
@@ -328,6 +332,7 @@ extension FilterDetailMock {
             sourceID: filter.id.uuidString,
             makerUID: filter.author.uid,
             displayTitle: filter.title,
+            makerDisplayName: filter.author.displayName,
             makerHandle: "@" + filter.author.displayName.lowercased(),
             makerInitials: String(filter.author.displayName.prefix(2)).uppercased(),
             makerAvatarURL: filter.author.avatarURL,

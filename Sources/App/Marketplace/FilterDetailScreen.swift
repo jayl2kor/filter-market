@@ -304,12 +304,7 @@ struct FilterDetailScreen: View {
                 .foregroundStyle(FMColors.Text.primary)
 
             HStack(spacing: Sp.xs) {
-                FMAvatar(url: mock.makerAvatarURL, size: .md, fallback: mock.makerInitials)
-
-                Text(mock.makerHandle.replacingOccurrences(of: "@", with: ""))
-                    .fmTypography(.subhead)
-                    .foregroundStyle(FMColors.Text.primary)
-                    .fontWeight(.semibold)
+                makerByline
 
                 Text("·")
                     .foregroundStyle(FMColors.Text.tertiary)
@@ -323,6 +318,59 @@ struct FilterDetailScreen: View {
                 followButton
             }
         }
+    }
+
+    @ViewBuilder
+    private var makerByline: some View {
+        let handleText = mock.makerHandle.replacingOccurrences(of: "@", with: "")
+        let bylineContent = HStack(spacing: Sp.xs) {
+            FMAvatar(url: mock.makerAvatarURL, size: .md, fallback: mock.makerInitials)
+
+            Text(handleText)
+                .fmTypography(.subhead)
+                .foregroundStyle(FMColors.Text.primary)
+                .fontWeight(.semibold)
+        }
+
+        if let route = makerProfileRoute {
+            NavigationLink(value: route) {
+                bylineContent
+            }
+            .buttonStyle(.plain)
+            .simultaneousGesture(TapGesture().onEnded {
+                FMHaptic.light.play()
+                Telemetry.trackAction("maker_profile_opened", screen: .filterDetail)
+            })
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("filter.detail.maker.link")
+            .accessibilityLabel("\(handleText) 프로필 보기")
+            .accessibilityHint("메이커 프로필로 이동합니다")
+        } else {
+            bylineContent
+        }
+    }
+
+    private var makerProfileRoute: AppRoute? {
+        if let uid = mock.makerUID?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !uid.isEmpty,
+           uid != "unknown" {
+            return .otherProfile(uid: uid, seed: makerProfileSeed)
+        }
+        let handle = mock.makerHandle
+            .replacingOccurrences(of: "@", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !handle.isEmpty else { return nil }
+        return .otherProfileHandle(handle: handle)
+    }
+
+    /// Firestore `/users/{uid}` 응답이 비어 있을 때 사용할 폴백 값 — 필터 카드에 이미 표시 중인 정보 그대로.
+    private var makerProfileSeed: ProfileUserSeed {
+        ProfileUserSeed(
+            displayName: mock.makerDisplayName,
+            handle: mock.makerHandle,
+            avatarURL: mock.makerAvatarURL,
+            avatarInitials: mock.makerInitials
+        )
     }
 
     private var followButton: some View {
