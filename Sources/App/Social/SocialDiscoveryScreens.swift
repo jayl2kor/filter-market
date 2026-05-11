@@ -1563,10 +1563,10 @@ private struct FollowListScreen: View {
         case following
     }
 
-    let mode: Mode
     let userID: String
     @Binding var query: String
     @Binding var users: [SocialUser]
+    @State private var activeMode: Mode
     @State private var titleHandle: String = ""
     @State private var followerCount: Int = 0
     @State private var followingCount: Int = 0
@@ -1574,6 +1574,13 @@ private struct FollowListScreen: View {
     @State private var listListener: ListenerRegistration?
     @State private var profileListener: ListenerRegistration?
     @State private var resolvedUserID: String?
+
+    init(mode: Mode, userID: String, query: Binding<String>, users: Binding<[SocialUser]>) {
+        self.userID = userID
+        self._query = query
+        self._users = users
+        self._activeMode = State(initialValue: mode)
+    }
 
     private var normalizedInputUserID: String {
         userID.replacingOccurrences(of: "@", with: "")
@@ -1584,7 +1591,7 @@ private struct FollowListScreen: View {
     }
 
     private var followListTaskID: String {
-        "\(mode)|\(userID)|\(sessionStore.currentUserID ?? "")"
+        "\(activeMode)|\(userID)|\(sessionStore.currentUserID ?? "")"
     }
 
     private var filteredUsers: [SocialUser] {
@@ -1617,16 +1624,22 @@ private struct FollowListScreen: View {
 
     private var segment: some View {
         HStack(spacing: 0) {
-            segmentLink(title: "팔로워 \(followerCount.formatted())", route: .followers(uid: userID), isActive: mode == .followers)
-            segmentLink(title: "팔로잉 \(followingCount.formatted())", route: .following(uid: userID), isActive: mode == .following)
+            segmentButton(title: "팔로워 \(followerCount.formatted())", mode: .followers)
+            segmentButton(title: "팔로잉 \(followingCount.formatted())", mode: .following)
         }
         .overlay(alignment: .bottom) {
             Rectangle().fill(FMColors.Border.subtle).frame(height: 1)
         }
     }
 
-    private func segmentLink(title: String, route: AppRoute, isActive: Bool) -> some View {
-        NavigationLink(value: route) {
+    private func segmentButton(title: String, mode: Mode) -> some View {
+        let isActive = activeMode == mode
+        return Button {
+            guard activeMode != mode else { return }
+            query = ""
+            users = []
+            activeMode = mode
+        } label: {
             Text(title)
                 .fmTypography(.callout)
                 .fontWeight(isActive ? .semibold : .medium)
@@ -1640,17 +1653,18 @@ private struct FollowListScreen: View {
                 }
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(mode == .followers ? "social.followers.tab" : "social.following.tab")
     }
 
     private var searchField: some View {
         HStack(spacing: Sp.xs) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(FMColors.Text.tertiary)
-            TextField(mode == .followers ? "팔로워 검색" : "팔로잉 검색", text: $query)
+            TextField(activeMode == .followers ? "팔로워 검색" : "팔로잉 검색", text: $query)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.search)
-                .accessibilityIdentifier(mode == .followers ? "social.followers.search" : "social.following.search")
+                .accessibilityIdentifier(activeMode == .followers ? "social.followers.search" : "social.following.search")
         }
         .padding(.horizontal, Sp.sm)
         .frame(height: 44)
@@ -1668,8 +1682,8 @@ private struct FollowListScreen: View {
                 if filteredUsers.isEmpty {
                     FMEmptyState(.emptyMarket)
                         .padding(.vertical, Sp.lg)
-                        .accessibilityIdentifier(mode == .followers ? "social.followers.empty" : "social.following.empty")
-                } else if mode == .following {
+                        .accessibilityIdentifier(activeMode == .followers ? "social.followers.empty" : "social.following.empty")
+                } else if activeMode == .following {
                     groupLabel("최근 활동 있음")
                     ForEach(filteredUsers.filter { $0.newFilterCount > 0 }) { user in
                         userRow(user)
@@ -1677,7 +1691,7 @@ private struct FollowListScreen: View {
                     groupLabel("전체")
                 }
 
-                ForEach(mode == .following ? filteredUsers.filter { $0.newFilterCount == 0 } : filteredUsers) { user in
+                ForEach(activeMode == .following ? filteredUsers.filter { $0.newFilterCount == 0 } : filteredUsers) { user in
                     userRow(user)
                 }
             }
@@ -1779,7 +1793,7 @@ private struct FollowListScreen: View {
 
     private var navigationTitle: String {
         if !titleHandle.isEmpty { return titleHandle }
-        return mode == .followers ? "팔로워" : "팔로잉"
+        return activeMode == .followers ? "팔로워" : "팔로잉"
     }
 
     private func attachRealtimeData() {
@@ -1797,7 +1811,7 @@ private struct FollowListScreen: View {
         let targetUserID = resolvedFollowListUserID()
         guard !targetUserID.isEmpty else {
             resolvedUserID = nil
-            titleHandle = mode == .followers ? "팔로워" : "팔로잉"
+            titleHandle = activeMode == .followers ? "팔로워" : "팔로잉"
             users = []
             return
         }
@@ -1807,12 +1821,12 @@ private struct FollowListScreen: View {
             .addSnapshotListener { snapshot, _ in
                 let data = snapshot?.data() ?? [:]
                 let handle = (data["handle"] as? String) ?? ""
-                titleHandle = handle.isEmpty ? (mode == .followers ? "팔로워" : "팔로잉") : (handle.hasPrefix("@") ? handle : "@\(handle)")
+                titleHandle = handle.isEmpty ? (activeMode == .followers ? "팔로워" : "팔로잉") : (handle.hasPrefix("@") ? handle : "@\(handle)")
                 followerCount = (data["followerCount"] as? Int) ?? 0
                 followingCount = (data["followingCount"] as? Int) ?? 0
             }
 
-        let field = mode == .followers ? "targetUid" : "actorUid"
+        let field = activeMode == .followers ? "targetUid" : "actorUid"
         listListener = db.collection("follows")
             .whereField(field, isEqualTo: targetUserID)
             .limit(to: 100)
@@ -1821,7 +1835,7 @@ private struct FollowListScreen: View {
                 Task {
                     let loaded = await loadUsers(for: docs)
                     await MainActor.run {
-                        if mode == .followers {
+                        if activeMode == .followers {
                             followerCount = docs.count
                         } else {
                             followingCount = docs.count
@@ -1846,7 +1860,7 @@ private struct FollowListScreen: View {
         var result: [SocialUser] = []
         for doc in docs {
             let data = doc.data()
-            guard let uid = (mode == .followers ? data["actorUid"] : data["targetUid"]) as? String else {
+            guard let uid = (activeMode == .followers ? data["actorUid"] : data["targetUid"]) as? String else {
                 continue
             }
             do {
@@ -1878,13 +1892,13 @@ private struct FollowListScreen: View {
         guard let actorUid = currentActorUid, actorUid != uid else {
             return .notFollowing
         }
-        if mode == .following, effectiveUserID == actorUid {
+        if activeMode == .following, effectiveUserID == actorUid {
             return .following
         }
         do {
             let snapshot = try await db.collection("follows").document("\(actorUid)_\(uid)").getDocument()
             guard snapshot.exists else { return .notFollowing }
-            return mode == .followers ? .mutual : .following
+            return activeMode == .followers ? .mutual : .following
         } catch {
             return .notFollowing
         }
@@ -1897,7 +1911,7 @@ private struct FollowListScreen: View {
         defer { isRefreshing = false }
 
         guard !isUITesting else {
-            users = mode == .followers ? SocialUser.followers : SocialUser.following
+            users = activeMode == .followers ? SocialUser.followers : SocialUser.following
             followerCount = SocialUser.followers.count
             followingCount = SocialUser.following.count
             return
@@ -1910,16 +1924,16 @@ private struct FollowListScreen: View {
             let profile = try await db.collection("users").document(targetUserID).getDocument()
             let data = profile.data() ?? [:]
             let handle = (data["handle"] as? String) ?? ""
-            titleHandle = handle.isEmpty ? (mode == .followers ? "팔로워" : "팔로잉") : (handle.hasPrefix("@") ? handle : "@\(handle)")
+            titleHandle = handle.isEmpty ? (activeMode == .followers ? "팔로워" : "팔로잉") : (handle.hasPrefix("@") ? handle : "@\(handle)")
             followerCount = (data["followerCount"] as? Int) ?? followerCount
             followingCount = (data["followingCount"] as? Int) ?? followingCount
 
-            let field = mode == .followers ? "targetUid" : "actorUid"
+            let field = activeMode == .followers ? "targetUid" : "actorUid"
             let snapshot = try await db.collection("follows")
                 .whereField(field, isEqualTo: targetUserID)
                 .limit(to: 100)
                 .getDocuments()
-            if mode == .followers {
+            if activeMode == .followers {
                 followerCount = snapshot.documents.count
             } else {
                 followingCount = snapshot.documents.count
