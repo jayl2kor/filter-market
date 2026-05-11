@@ -35,6 +35,8 @@ struct ProfileScreen: View {
     private let injectedUser: ProfileUser?
     /// 다른 사용자 프로필 진입 시 uid. nil이면 본인 프로필.
     private let otherUid: String?
+    /// 호출지(예: 필터 상세)에서 미리 알고 있는 표시 정보 — Firestore 응답 이전/누락 필드의 폴백.
+    private let seed: ProfileUserSeed?
     private let ownsNavigationStack: Bool
     @State private var selectedSection: ProfileSection = .myFilters
     @State private var hasAppeared = false
@@ -52,19 +54,24 @@ struct ProfileScreen: View {
     init(user: ProfileUser? = nil, ownsNavigationStack: Bool = true) {
         self.injectedUser = user
         self.otherUid = nil
+        self.seed = nil
         self.ownsNavigationStack = ownsNavigationStack
     }
 
-    init(otherUid: String, ownsNavigationStack: Bool = true) {
+    init(otherUid: String, seed: ProfileUserSeed? = nil, ownsNavigationStack: Bool = true) {
         self.injectedUser = nil
         self.otherUid = otherUid
+        self.seed = seed
         self.ownsNavigationStack = ownsNavigationStack
     }
 
-    /// 화면에 표시할 사용자 — 우선순위: 외부 주입 > otherUid 로드 결과 > profileStore.currentUserProfile (본인) > placeholder.
+    /// 화면에 표시할 사용자 — 우선순위: 외부 주입 > otherUid 로드 결과 > seed (호출지가 알고 있는 정보) > profileStore.currentUserProfile (본인) > placeholder.
     private var user: ProfileUser {
         if let injectedUser { return injectedUser }
         if otherUid != nil, let other = otherProfileState.value { return other }
+        if otherUid != nil, let seedUser = Self.profileUser(fromSeed: seed, uid: otherUid) {
+            return seedUser
+        }
         if otherUid == nil, let mine = profileStore.currentUserProfile { return mine }
         // 로드 전 placeholder.
         return ProfileUser(
@@ -78,6 +85,42 @@ struct ProfileScreen: View {
             followingCount: 0,
             isOwnProfile: otherUid == nil
         )
+    }
+
+    /// 호출지 seed 를 ProfileUser 로 변환. displayName/handle 중 하나라도 의미 있는 값이 있어야 화면에 노출.
+    /// 통계(팔로워/팔로잉/필터 수)는 Firestore 로드 전에는 알 수 없으므로 0 으로 둠 — 로드 완료 시 덮어쓰여짐.
+    static func profileUser(fromSeed seed: ProfileUserSeed?, uid: String?) -> ProfileUser? {
+        guard let seed else { return nil }
+        let displayName = seed.displayName.flatMap(Self.nonEmpty)
+        let rawHandle = seed.handle.flatMap(Self.nonEmpty)
+        guard displayName != nil || rawHandle != nil else { return nil }
+        let resolvedDisplayName = displayName ?? "..."
+        let resolvedHandle: String = {
+            if let rawHandle {
+                let stripped = rawHandle.hasPrefix("@") ? String(rawHandle.dropFirst()) : rawHandle
+                return ProfileSelfStore.displayHandle(from: stripped)
+            }
+            if let uid { return "@" + String(uid.prefix(8)) }
+            return "@user"
+        }()
+        let initials = seed.avatarInitials.flatMap(Self.nonEmpty)
+            ?? String(resolvedDisplayName.prefix(2)).uppercased()
+        return ProfileUser(
+            displayName: resolvedDisplayName,
+            handle: resolvedHandle,
+            bio: "",
+            avatarInitials: initials,
+            avatarURL: seed.avatarURL,
+            filterCount: 0,
+            followerCount: 0,
+            followingCount: 0,
+            isOwnProfile: false
+        )
+    }
+
+    private static func nonEmpty(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private static func url(from value: Any?) -> URL? {
@@ -103,12 +146,22 @@ struct ProfileScreen: View {
                 ))
                 return
             }
-            let displayName = (data["displayName"] as? String) ?? "사용자"
-            let rawHandle = (data["handle"] as? String) ?? String(uid.prefix(8))
+            let seedDisplayName = seed?.displayName.flatMap(Self.nonEmpty)
+            let seedHandleStripped: String? = seed?.handle.flatMap(Self.nonEmpty).map {
+                $0.hasPrefix("@") ? String($0.dropFirst()) : $0
+            }
+            let displayName = (data["displayName"] as? String).flatMap(Self.nonEmpty)
+                ?? seedDisplayName
+                ?? "사용자"
+            let rawHandle = (data["handle"] as? String).flatMap(Self.nonEmpty)
+                ?? seedHandleStripped
+                ?? String(uid.prefix(8))
             let handle = ProfileSelfStore.displayHandle(from: rawHandle)
             let bio = (data["bio"] as? String) ?? ""
             let initials = String(displayName.prefix(2)).uppercased()
-            let avatarURL = Self.url(from: data["avatarURL"]) ?? Self.url(from: data["photoURL"])
+            let avatarURL = Self.url(from: data["avatarURL"])
+                ?? Self.url(from: data["photoURL"])
+                ?? seed?.avatarURL
             let followerCount = (data["followerCount"] as? Int) ?? 0
             let followingCount = (data["followingCount"] as? Int) ?? 0
             let filterCount = (data["filterCount"] as? Int) ?? 0
