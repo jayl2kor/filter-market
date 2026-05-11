@@ -144,7 +144,7 @@ final class UniversalLinkParserTests: XCTestCase {
                 "actorUid": "u-emma",
             ]
         ]
-        guard case .otherProfile(let uid) = UniversalLinkParser.route(forPushUserInfo: userInfo) else {
+        guard case .otherProfile(let uid, _) = UniversalLinkParser.route(forPushUserInfo: userInfo) else {
             return XCTFail("Expected otherProfile route")
         }
         XCTAssertEqual(uid, "u-emma")

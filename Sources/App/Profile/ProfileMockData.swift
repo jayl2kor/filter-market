@@ -19,6 +19,18 @@ struct ProfileUser: Sendable {
     let isOwnProfile: Bool
 }
 
+// MARK: - ProfileUserSeed
+
+/// 프로필 화면에 즉시 보여줄 수 있는 사전 정보 — `Filter.author` 처럼 호출지에서 이미 알고 있는 식별 정보를
+/// Firestore 응답 이전/누락 시 채우기 위해 사용. Hashable: `AppRoute` 가 NavigationStack 의 hashable
+/// 식별자로 사용되므로 필요.
+struct ProfileUserSeed: Hashable, Sendable {
+    let displayName: String?
+    let handle: String?
+    let avatarURL: URL?
+    let avatarInitials: String?
+}
+
 extension ProfileUser {
     static let preview = ProfileUser(
         displayName: "강지수",

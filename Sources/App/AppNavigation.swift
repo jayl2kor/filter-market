@@ -32,7 +32,7 @@ enum AppRoute: Hashable {
     case filterDetail(id: String)
     case filterDownload(id: String)
     case filterAfterDownload(id: String)
-    case otherProfile(uid: String)
+    case otherProfile(uid: String, seed: ProfileUserSeed? = nil)
     case otherProfileHandle(handle: String)
     case settings
     case cameraAspect
@@ -214,8 +214,8 @@ extension View {
                 case .settings:
                     SettingsScreen()
 
-                case .otherProfile(let uid):
-                    ProfileScreen(otherUid: uid, ownsNavigationStack: false)
+                case .otherProfile(let uid, let seed):
+                    ProfileScreen(otherUid: uid, seed: seed, ownsNavigationStack: false)
 
                 case .otherProfileHandle(let handle):
                     ProfileHandleResolverScreen(handle: handle)
