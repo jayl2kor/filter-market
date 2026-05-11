@@ -91,7 +91,7 @@ final class WalletStore: ObservableObject {
             }
         } catch {
             await MainActor.run {
-                self.lastPaymentErrorMessage = "잔액 동기화 실패: \(error.localizedDescription)"
+                self.lastPaymentErrorMessage = "잔액 동기화 실패: \(FirestoreErrorMapper.friendlyMessage(for: error))"
             }
         }
     }

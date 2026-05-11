@@ -268,7 +268,7 @@ final class SessionStore: ObservableObject {
             }
             notificationPreferencesSaveTask = nil
         } catch {
-            lastSubmitErrorMessage = "알림 설정 저장 실패: \(error.localizedDescription)"
+            lastSubmitErrorMessage = "알림 설정 저장 실패: \(FirestoreErrorMapper.friendlyMessage(for: error))"
         }
     }
 
@@ -352,7 +352,7 @@ final class SessionStore: ObservableObject {
         if FirebaseSideEffects.isFunctionNotFound(error) {
             return "프로필 저장 실패: 네트워크 또는 서버 점검 중이에요. 잠시 후 다시 시도해 주세요."
         }
-        return "프로필 저장 실패: \(error.localizedDescription)"
+        return "프로필 저장 실패: \(FirestoreErrorMapper.friendlyMessage(for: error))"
     }
 
     private func defaultProfileSaveClient() -> SessionProfileSaveClient {
@@ -446,7 +446,7 @@ final class SessionStore: ObservableObject {
         ]) { [weak self] error in
             guard let error else { return }
             Task { @MainActor in
-                self?.lastSubmitErrorMessage = "데이터 내보내기 요청 실패: \(error.localizedDescription)"
+                self?.lastSubmitErrorMessage = "데이터 내보내기 요청 실패: \(FirestoreErrorMapper.friendlyMessage(for: error))"
             }
         }
     }

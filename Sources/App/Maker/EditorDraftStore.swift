@@ -300,7 +300,7 @@ final class EditorDraftStore: ObservableObject {
             .setData(payload, merge: true) { [weak self] error in
                 guard let error else { return }
                 Task { @MainActor in
-                    self?.lastSubmitErrorMessage = "메이커 초안 저장 실패: \(error.localizedDescription)"
+                    self?.lastSubmitErrorMessage = "메이커 초안 저장 실패: \(FirestoreErrorMapper.friendlyMessage(for: error))"
                 }
             }
     }
@@ -320,7 +320,7 @@ final class EditorDraftStore: ObservableObject {
                     .call(payload)
             } catch {
                 await MainActor.run { [weak self] in
-                    self?.lastSubmitErrorMessage = "검수 제출 실패: \(error.localizedDescription)"
+                    self?.lastSubmitErrorMessage = "검수 제출 실패: \(FirestoreErrorMapper.friendlyMessage(for: error))"
                 }
             }
         }
