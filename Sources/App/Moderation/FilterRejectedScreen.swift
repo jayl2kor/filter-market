@@ -507,11 +507,11 @@ struct RejectionData {
                 body: "기존 공개 필터와 색조·대비 곡선이 거의 동일합니다."
             ),
             RejectionReason(
-                title: "표지 사진 1장 부족",
-                body: "최소 3장의 비포·애프터 표지가 필요합니다 (현재 2장)."
+                title: "마켓 썸네일 필요",
+                body: "마켓 카드에 표시할 대표 썸네일 1장이 필요합니다."
             )
         ],
-        moderatorNote: "새로운 LUT 곡선으로 재작업하시고, 표지를 한 장 더 추가해 주세요.",
+        moderatorNote: "새로운 LUT 곡선으로 재작업하시고, 마켓 썸네일을 다시 지정해 주세요.",
         timeline: [
             TimelineEntry(time: "05.04 14:22", event: "업로드 제출", isRejection: false),
             TimelineEntry(time: "05.06 09:41", event: "검수 반려 — 사유 2건", isRejection: true)
@@ -553,7 +553,7 @@ struct RejectionData {
         draft.id = UUID(uuidString: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E3C48")!
         draft.name = "Strange Vibe"
         draft.summary = "Cinematic night tone"
-        draft.coverCount = 2
+        draft.coverCount = 1
         draft.status = .rejected
         draft.submittedAt = Date(timeIntervalSince1970: 1_714_806_120)
         draft.updatedAt = Date(timeIntervalSince1970: 1_714_960_860)
@@ -576,15 +576,15 @@ struct RejectionData {
                     body: "기존 공개 필터와 색조·대비 곡선이 거의 동일합니다."
                 ),
                 RejectionReason(
-                    title: "표지 사진 1장 부족",
-                    body: "최소 3장의 비포·애프터 표지가 필요합니다 (현재 2장)."
+                    title: "마켓 썸네일 필요",
+                    body: "마켓 카드에 표시할 대표 썸네일 1장이 필요합니다."
                 ),
                 RejectionReason(
                     title: "설명에 외부 링크 포함",
                     body: "설명에 다른 사이트로 유도하는 URL이 있습니다. 본인 메이커 페이지 외부 링크는 허용되지 않습니다."
                 )
             ],
-            moderatorNote: "색감 자체는 좋습니다. 새로운 LUT 곡선으로 재작업하시고, 표지를 한 장 더 추가하시면 통과 가능성이 높습니다.",
+            moderatorNote: "색감 자체는 좋습니다. 새로운 LUT 곡선으로 재작업하시고, 마켓 썸네일을 다시 지정하시면 통과 가능성이 높습니다.",
             timeline: [
                 TimelineEntry(time: "5월 4일 14:22", event: "업로드 제출", isRejection: false),
                 TimelineEntry(time: "5월 4일 16:08", event: "자동 검사 완료 (유사도 92% 플래그)", isRejection: false),

@@ -61,6 +61,21 @@ final class ProfileSelfStoreTests: XCTestCase {
         XCTAssertEqual(uidProfile.handle, "@abcdef12")
     }
 
+    func testReplacingFollowingCountPreservesProfileAndClampsAtZero() {
+        let profile = ProfileUser.preview
+        let updated = ProfileSelfStore.replacingFollowingCount(in: profile, followingCount: -4)
+
+        XCTAssertEqual(updated.displayName, profile.displayName)
+        XCTAssertEqual(updated.handle, profile.handle)
+        XCTAssertEqual(updated.bio, profile.bio)
+        XCTAssertEqual(updated.avatarInitials, profile.avatarInitials)
+        XCTAssertEqual(updated.avatarURL, profile.avatarURL)
+        XCTAssertEqual(updated.filterCount, profile.filterCount)
+        XCTAssertEqual(updated.followerCount, profile.followerCount)
+        XCTAssertEqual(updated.followingCount, 0)
+        XCTAssertEqual(updated.isOwnProfile, profile.isOwnProfile)
+    }
+
     func testStartAndRefreshStayLocalInUnitTests() async {
         let store = ProfileSelfStore()
 

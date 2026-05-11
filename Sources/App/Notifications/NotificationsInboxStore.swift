@@ -11,10 +11,15 @@ import UserNotifications
 @MainActor
 final class NotificationsInboxStore: ObservableObject {
     @Published private(set) var items: [NotificationItem] = []
-    @Published private(set) var isLoading = false
     @Published private(set) var isLoadingMore = false
     @Published private(set) var canLoadMore = false
-    @Published private(set) var loadError: String?
+    /// 인박스 read 상태. idle/loading/loaded/failed.
+    /// data 는 `items` 에 따로 노출되므로 payload 는 Void.
+    @Published private(set) var loadState: LoadState<Void> = .idle
+
+    // MARK: - LoadState 파생 (기존 호출처 호환).
+    var isLoading: Bool { loadState.isLoading }
+    var loadError: String? { loadState.error?.message }
 
     private var listener: ListenerRegistration?
     private var authHandle: AuthStateDidChangeListenerHandle?
@@ -58,7 +63,7 @@ final class NotificationsInboxStore: ObservableObject {
             return
         }
         currentUid = uid
-        isLoading = true
+        loadState = .loading
         listener = Firestore.firestore()
             .collection("users").document(uid)
             .collection("notifications")
@@ -66,16 +71,19 @@ final class NotificationsInboxStore: ObservableObject {
             .limit(to: pageSize)
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self else { return }
-                self.isLoading = false
                 if let error {
-                    self.loadError = error.localizedDescription
+                    let nsError = error as NSError
+                    self.loadState = .failed(FriendlyError(
+                        message: FirestoreErrorMapper.friendlyMessage(for: error),
+                        code: nsError.domain == FirestoreErrorDomain ? String(nsError.code) : nil
+                    ))
                     return
                 }
                 let docs = snapshot?.documents ?? []
                 self.lastLiveDocument = docs.last
                 self.canLoadMore = docs.count == self.pageSize
                 self.publish(live: docs.compactMap { Self.decode($0) }, paged: self.pagedItems)
-                self.loadError = nil
+                self.loadState = .loaded(())
             }
     }
 
@@ -104,20 +112,28 @@ final class NotificationsInboxStore: ObservableObject {
         #endif
         guard let uid = currentUid else { return }
         guard !isLoading else { return }
-        isLoading = true
-        defer { isLoading = false }
+        loadState = .loading
 
-        let snapshot = try await Firestore.firestore()
-            .collection("users").document(uid)
-            .collection("notifications")
-            .order(by: "createdAt", descending: true)
-            .limit(to: pageSize)
-            .getDocuments()
-        let docs = snapshot.documents
-        lastLiveDocument = docs.last
-        canLoadMore = docs.count == pageSize
-        publish(live: docs.compactMap { Self.decode($0) }, paged: [])
-        loadError = nil
+        do {
+            let snapshot = try await Firestore.firestore()
+                .collection("users").document(uid)
+                .collection("notifications")
+                .order(by: "createdAt", descending: true)
+                .limit(to: pageSize)
+                .getDocuments()
+            let docs = snapshot.documents
+            lastLiveDocument = docs.last
+            canLoadMore = docs.count == pageSize
+            publish(live: docs.compactMap { Self.decode($0) }, paged: [])
+            loadState = .loaded(())
+        } catch {
+            let nsError = error as NSError
+            loadState = .failed(FriendlyError(
+                message: FirestoreErrorMapper.friendlyMessage(for: error),
+                code: nsError.domain == FirestoreErrorDomain ? String(nsError.code) : nil
+            ))
+            throw error
+        }
     }
 
     /// Firestore notification doc → NotificationItem.

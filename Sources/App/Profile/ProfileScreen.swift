@@ -39,11 +39,10 @@ struct ProfileScreen: View {
     @State private var selectedSection: ProfileSection = .myFilters
     @State private var hasAppeared = false
     @State private var shareSheetPayload: SharePayload?
-    @State private var fetchedOtherUser: ProfileUser?
-    @State private var isOtherProfileLoading = false
+    /// 다른 사용자 프로필 read 결과. idle/loading/loaded/failed 4 상태로 통일.
+    /// FriendlyError.code == "not-found" 인 경우 "사용자를 찾을 수 없어요" UI 로 분기.
+    @State private var otherProfileState: LoadState<ProfileUser> = .idle
     @State private var isRefreshing = false
-    @State private var isOtherProfileNotFound = false
-    @State private var otherProfileLoadError: String?
     @State private var isFollowingOtherProfile = false
     @State private var isUpdatingFollow = false
     @State private var otherFollowListener: ListenerRegistration?
@@ -65,7 +64,7 @@ struct ProfileScreen: View {
     /// 화면에 표시할 사용자 — 우선순위: 외부 주입 > otherUid 로드 결과 > profileStore.currentUserProfile (본인) > placeholder.
     private var user: ProfileUser {
         if let injectedUser { return injectedUser }
-        if otherUid != nil, let other = fetchedOtherUser { return other }
+        if otherUid != nil, let other = otherProfileState.value { return other }
         if otherUid == nil, let mine = profileStore.currentUserProfile { return mine }
         // 로드 전 placeholder.
         return ProfileUser(
@@ -88,22 +87,20 @@ struct ProfileScreen: View {
 
     private func loadOtherProfile() async {
         guard let uid = otherUid else { return }
-        isOtherProfileLoading = true
-        isOtherProfileNotFound = false
-        otherProfileLoadError = nil
+        otherProfileState = .loading
         #if DEBUG
         if isUITesting {
-            fetchedOtherUser = .other
-            isOtherProfileLoading = false
+            otherProfileState = .loaded(.other)
             return
         }
         #endif
         do {
             let snap = try await FirebaseSideEffects.firestore().collection("users").document(uid).getDocument()
             guard snap.exists, let data = snap.data() else {
-                fetchedOtherUser = nil
-                isOtherProfileNotFound = true
-                isOtherProfileLoading = false
+                otherProfileState = .failed(FriendlyError(
+                    message: "삭제되었거나 접근할 수 없는 프로필입니다.",
+                    code: "not-found"
+                ))
                 return
             }
             let displayName = (data["displayName"] as? String) ?? "사용자"
@@ -115,7 +112,7 @@ struct ProfileScreen: View {
             let followerCount = (data["followerCount"] as? Int) ?? 0
             let followingCount = (data["followingCount"] as? Int) ?? 0
             let filterCount = (data["filterCount"] as? Int) ?? 0
-            fetchedOtherUser = ProfileUser(
+            otherProfileState = .loaded(ProfileUser(
                 displayName: displayName,
                 handle: handle,
                 bio: bio,
@@ -125,12 +122,13 @@ struct ProfileScreen: View {
                 followerCount: followerCount,
                 followingCount: followingCount,
                 isOwnProfile: false
-            )
-            isOtherProfileLoading = false
+            ))
         } catch {
-            fetchedOtherUser = nil
-            otherProfileLoadError = error.localizedDescription
-            isOtherProfileLoading = false
+            let nsError = error as NSError
+            otherProfileState = .failed(FriendlyError(
+                message: FirestoreErrorMapper.friendlyMessage(for: error),
+                code: nsError.domain == FirestoreErrorDomain ? String(nsError.code) : nil
+            ))
         }
     }
 
@@ -149,9 +147,13 @@ struct ProfileScreen: View {
     /// 시뮬레이션: 첫 진입 시 짧은 로딩 후 그리드 표시.
     private var isLoading: Bool {
         if otherUid != nil {
-            return isOtherProfileLoading && fetchedOtherUser == nil && !isOtherProfileNotFound && otherProfileLoadError == nil
+            return otherProfileState.isLoading
         }
         return !hasAppeared
+    }
+
+    private var isOtherProfileNotFound: Bool {
+        otherProfileState.error?.code == "not-found"
     }
 
     var body: some View {
@@ -312,9 +314,8 @@ struct ProfileScreen: View {
             .toolbarBackground(.visible, for: .navigationBar)
         }
         .task {
-            if otherUid == nil {
-                profileStore.start()
-            } else {
+            profileStore.start()
+            if otherUid != nil {
                 await loadOtherProfile()
                 attachOtherFollowState()
             }
@@ -322,9 +323,7 @@ struct ProfileScreen: View {
             hasAppeared = true
         }
         .onDisappear {
-            if otherUid == nil {
-                profileStore.stop()
-            }
+            profileStore.stop()
             detachOtherFollowState()
         }
         .sheet(item: $shareSheetPayload) { payload in
@@ -363,35 +362,20 @@ struct ProfileScreen: View {
     }
 
     private var shouldShowOtherProfileError: Bool {
-        otherUid != nil && (isOtherProfileNotFound || otherProfileLoadError != nil)
+        otherUid != nil && otherProfileState.isFailed
     }
 
+    @ViewBuilder
     private var otherProfileErrorState: some View {
-        VStack(spacing: Sp.md) {
-            Image(systemName: isOtherProfileNotFound ? "person.crop.circle.badge.questionmark" : "wifi.exclamationmark")
-                .font(.system(size: 44, weight: .regular))
-                .foregroundStyle(FMColors.Text.tertiary)
-                .frame(width: 96, height: 96)
-                .background(FMColors.Background.bg2, in: Circle())
-
-            VStack(spacing: Sp.xs) {
-                Text(isOtherProfileNotFound ? "사용자를 찾을 수 없어요" : "프로필을 불러오지 못했어요")
-                    .fmTypography(.title)
-                    .foregroundStyle(FMColors.Text.primary)
-                Text(otherProfileLoadError ?? "삭제되었거나 접근할 수 없는 프로필입니다.")
-                    .fmTypography(.body)
-                    .foregroundStyle(FMColors.Text.secondary)
-                    .multilineTextAlignment(.center)
-            }
-
-            if !isOtherProfileNotFound {
-                FMButton("다시 시도", variant: .primary, size: .md) {
-                    Task { await loadOtherProfile() }
-                }
-                .accessibilityIdentifier("profile.other.retry")
-            }
-        }
-        .frame(maxWidth: .infinity)
+        let notFound = isOtherProfileNotFound
+        BackendErrorView(
+            title: notFound ? "사용자를 찾을 수 없어요" : "프로필을 불러오지 못했어요",
+            message: otherProfileState.error?.message
+                ?? "삭제되었거나 접근할 수 없는 프로필입니다.",
+            iconSystemName: notFound ? "person.crop.circle.badge.questionmark" : "wifi.exclamationmark",
+            retryAccessibilityIdentifier: "profile.other.retry",
+            retry: notFound ? nil : { await loadOtherProfile() }
+        )
     }
 
     // MARK: - Head
@@ -480,11 +464,13 @@ struct ProfileScreen: View {
 
     private var followListUserID: String {
         if let otherUid { return otherUid }
-        guard !isUITesting, FirebaseSideEffects.isConfigured else {
-            return user.handle.replacingOccurrences(of: "@", with: "")
+        if let uid = sessionStore.currentUserID?.trimmingCharacters(in: .whitespacesAndNewlines), !uid.isEmpty {
+            return uid
         }
-        if let uid = FirebaseSideEffects.currentUID { return uid }
-        return user.handle.replacingOccurrences(of: "@", with: "")
+        if let uid = FirebaseSideEffects.currentUID?.trimmingCharacters(in: .whitespacesAndNewlines), !uid.isEmpty {
+            return uid
+        }
+        return "me"
     }
 
     @ViewBuilder
@@ -809,6 +795,7 @@ struct ProfileScreen: View {
         isUpdatingFollow = true
         let previous = isFollowingOtherProfile
         isFollowingOtherProfile.toggle()
+        let previousFollowingCount = profileStore.applyOptimisticFollowingCountDelta(isFollowingOtherProfile ? 1 : -1)
         FMHaptic.selection.play()
         defer { isUpdatingFollow = false }
 
@@ -826,6 +813,7 @@ struct ProfileScreen: View {
             }
         } catch {
             isFollowingOtherProfile = previous
+            profileStore.rollbackOptimisticFollowingCount(to: previousFollowingCount)
             profileActionMessage = "팔로우 상태를 변경하지 못했어요."
         }
     }

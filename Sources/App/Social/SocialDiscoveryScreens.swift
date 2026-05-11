@@ -1556,6 +1556,8 @@ struct FollowingListScreen: View {
 }
 
 private struct FollowListScreen: View {
+    @EnvironmentObject private var sessionStore: SessionStore
+
     enum Mode {
         case followers
         case following
@@ -1571,9 +1573,18 @@ private struct FollowListScreen: View {
     @State private var isRefreshing = false
     @State private var listListener: ListenerRegistration?
     @State private var profileListener: ListenerRegistration?
+    @State private var resolvedUserID: String?
 
-    private var normalizedUserID: String {
+    private var normalizedInputUserID: String {
         userID.replacingOccurrences(of: "@", with: "")
+    }
+
+    private var effectiveUserID: String {
+        resolvedUserID ?? resolvedFollowListUserID()
+    }
+
+    private var followListTaskID: String {
+        "\(mode)|\(userID)|\(sessionStore.currentUserID ?? "")"
     }
 
     private var filteredUsers: [SocialUser] {
@@ -1593,7 +1604,7 @@ private struct FollowListScreen: View {
         .background(FMColors.Background.bg1)
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .task {
+        .task(id: followListTaskID) {
             attachRealtimeData()
         }
         .onDisappear {
@@ -1680,7 +1691,7 @@ private struct FollowListScreen: View {
 
     private func userRow(_ user: SocialUser) -> some View {
         HStack(spacing: Sp.sm) {
-            NavigationLink(value: AppRoute.otherProfile(uid: user.handle)) {
+            NavigationLink(value: profileRoute(for: user)) {
                 HStack(spacing: Sp.sm) {
                     ZStack(alignment: .bottomTrailing) {
                         avatar(initials: user.initials, colors: user.avatarColors, size: 44)
@@ -1730,6 +1741,14 @@ private struct FollowListScreen: View {
         .accessibilityIdentifier("social.user.row")
     }
 
+    private func profileRoute(for user: SocialUser) -> AppRoute {
+        let uid = user.uid?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !uid.isEmpty {
+            return .otherProfile(uid: uid)
+        }
+        return .otherProfileHandle(handle: user.handle)
+    }
+
     private func userAccessibilityLabel(_ user: SocialUser) -> String {
         var parts = [user.name, user.meta]
         if user.newFilterCount > 0 {
@@ -1760,8 +1779,7 @@ private struct FollowListScreen: View {
 
     private var navigationTitle: String {
         if !titleHandle.isEmpty { return titleHandle }
-        if userID == "me" { return "@me" }
-        return normalizedUserID.hasPrefix("@") ? normalizedUserID : "@\(normalizedUserID)"
+        return mode == .followers ? "팔로워" : "팔로잉"
     }
 
     private func attachRealtimeData() {
@@ -1771,31 +1789,56 @@ private struct FollowListScreen: View {
             titleHandle = userID == "me" ? "@me" : "@sample.maker"
             return
         }
-        let db = FirebaseSideEffects.firestore()
         profileListener?.remove()
-        profileListener = db.collection("users").document(normalizedUserID)
+        listListener?.remove()
+        profileListener = nil
+        listListener = nil
+
+        let targetUserID = resolvedFollowListUserID()
+        guard !targetUserID.isEmpty else {
+            resolvedUserID = nil
+            titleHandle = mode == .followers ? "팔로워" : "팔로잉"
+            users = []
+            return
+        }
+        resolvedUserID = targetUserID
+        let db = FirebaseSideEffects.firestore()
+        profileListener = db.collection("users").document(targetUserID)
             .addSnapshotListener { snapshot, _ in
                 let data = snapshot?.data() ?? [:]
                 let handle = (data["handle"] as? String) ?? ""
-                titleHandle = handle.isEmpty ? "@\(normalizedUserID.prefix(8))" : (handle.hasPrefix("@") ? handle : "@\(handle)")
+                titleHandle = handle.isEmpty ? (mode == .followers ? "팔로워" : "팔로잉") : (handle.hasPrefix("@") ? handle : "@\(handle)")
                 followerCount = (data["followerCount"] as? Int) ?? 0
                 followingCount = (data["followingCount"] as? Int) ?? 0
             }
 
-        listListener?.remove()
         let field = mode == .followers ? "targetUid" : "actorUid"
         listListener = db.collection("follows")
-            .whereField(field, isEqualTo: normalizedUserID)
+            .whereField(field, isEqualTo: targetUserID)
             .limit(to: 100)
             .addSnapshotListener { snapshot, _ in
                 let docs = snapshot?.documents ?? []
                 Task {
                     let loaded = await loadUsers(for: docs)
                     await MainActor.run {
+                        if mode == .followers {
+                            followerCount = docs.count
+                        } else {
+                            followingCount = docs.count
+                        }
                         users = loaded
                     }
                 }
             }
+    }
+
+    private func resolvedFollowListUserID() -> String {
+        let normalized = normalizedInputUserID.trimmingCharacters(in: .whitespacesAndNewlines)
+        if normalized == "me" {
+            return (sessionStore.currentUserID ?? FirebaseSideEffects.currentUID)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        }
+        return normalized
     }
 
     private func loadUsers(for docs: [QueryDocumentSnapshot]) async -> [SocialUser] {
@@ -1811,6 +1854,7 @@ private struct FollowListScreen: View {
                 let name = (profile["displayName"] as? String) ?? String(uid.prefix(8))
                 let handleRaw = (profile["handle"] as? String) ?? String(uid.prefix(8))
                 let handle = handleRaw.hasPrefix("@") ? handleRaw : "@\(handleRaw)"
+                let relationship = await relationship(for: uid, currentActorUid: FirebaseSideEffects.currentUID, db: db)
                 result.append(SocialUser(
                     uid: uid,
                     name: name,
@@ -1821,13 +1865,29 @@ private struct FollowListScreen: View {
                     role: (profile["roleLabel"] as? String) ?? "",
                     badge: nil,
                     newFilterCount: 0,
-                    relationship: .notFollowing
+                    relationship: relationship
                 ))
             } catch {
                 continue
             }
         }
         return result.sorted { $0.handle < $1.handle }
+    }
+
+    private func relationship(for uid: String, currentActorUid: String?, db: Firestore) async -> FollowRelationship {
+        guard let actorUid = currentActorUid, actorUid != uid else {
+            return .notFollowing
+        }
+        if mode == .following, effectiveUserID == actorUid {
+            return .following
+        }
+        do {
+            let snapshot = try await db.collection("follows").document("\(actorUid)_\(uid)").getDocument()
+            guard snapshot.exists else { return .notFollowing }
+            return mode == .followers ? .mutual : .following
+        } catch {
+            return .notFollowing
+        }
     }
 
     @MainActor
@@ -1845,18 +1905,25 @@ private struct FollowListScreen: View {
 
         let db = FirebaseSideEffects.firestore()
         do {
-            let profile = try await db.collection("users").document(normalizedUserID).getDocument()
+            let targetUserID = resolvedFollowListUserID()
+            guard !targetUserID.isEmpty else { return }
+            let profile = try await db.collection("users").document(targetUserID).getDocument()
             let data = profile.data() ?? [:]
             let handle = (data["handle"] as? String) ?? ""
-            titleHandle = handle.isEmpty ? "@\(normalizedUserID.prefix(8))" : (handle.hasPrefix("@") ? handle : "@\(handle)")
+            titleHandle = handle.isEmpty ? (mode == .followers ? "팔로워" : "팔로잉") : (handle.hasPrefix("@") ? handle : "@\(handle)")
             followerCount = (data["followerCount"] as? Int) ?? followerCount
             followingCount = (data["followingCount"] as? Int) ?? followingCount
 
             let field = mode == .followers ? "targetUid" : "actorUid"
             let snapshot = try await db.collection("follows")
-                .whereField(field, isEqualTo: normalizedUserID)
+                .whereField(field, isEqualTo: targetUserID)
                 .limit(to: 100)
                 .getDocuments()
+            if mode == .followers {
+                followerCount = snapshot.documents.count
+            } else {
+                followingCount = snapshot.documents.count
+            }
             users = await loadUsers(for: snapshot.documents)
         } catch {
             // Realtime listeners remain attached, so preserve the last visible state on manual refresh failure.
@@ -1881,7 +1948,11 @@ private struct FollowListScreen: View {
         }
         guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
         let next = users[index].relationship.toggled
+        let previousFollowingCount = followingCount
         users[index].relationship = next
+        if effectiveUserID == actorUid {
+            followingCount = next == .notFollowing ? max(0, followingCount - 1) : followingCount + 1
+        }
         FMHaptic.selection.play()
 
         let edgeRef = FirebaseSideEffects.firestore().collection("follows").document("\(actorUid)_\(targetUid)")
@@ -1900,6 +1971,7 @@ private struct FollowListScreen: View {
             }
         } catch {
             users[index].relationship = user.relationship
+            followingCount = previousFollowingCount
         }
     }
 
@@ -2226,12 +2298,17 @@ struct ForYouFeedScreen: View {
 
 struct FollowingFeedScreen: View {
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var sessionStore: SessionStore
     @State private var posts: [FollowingFeedPost] = []
     @State private var likedFilterIDs: Set<String> = []
     @State private var hiddenFilterIDs: Set<String> = []
     @State private var followsListener: ListenerRegistration?
     @State private var feedActionsListener: ListenerRegistration?
     @State private var moreMenuPost: FollowingFeedPost?
+
+    private var followingFeedTaskID: String {
+        sessionStore.currentUserID ?? ""
+    }
 
     var body: some View {
         ScrollView {
@@ -2287,7 +2364,7 @@ struct FollowingFeedScreen: View {
         } message: { post in
             Text(post.filter.title)
         }
-        .task {
+        .task(id: followingFeedTaskID) {
             await filterLibraryStore.load()
             attachFeedListeners()
         }
@@ -2446,7 +2523,13 @@ struct FollowingFeedScreen: View {
             posts = SocialPost.mock.compactMap { $0.toFollowingFeedPost(filterLibraryStore: filterLibraryStore) }
             return
         }
-        guard let uid = FirebaseSideEffects.currentUID else {
+        guard let uid = (sessionStore.currentUserID ?? FirebaseSideEffects.currentUID)?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+              !uid.isEmpty else {
+            followsListener?.remove()
+            followsListener = nil
+            feedActionsListener?.remove()
+            feedActionsListener = nil
             posts = []
             return
         }

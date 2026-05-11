@@ -297,6 +297,43 @@ const suite = describe(
       await assertSucceeds(owner.firestore().doc(likePath).delete());
     });
 
+    it("allows users to create, read, and delete only their own follow edge", async () => {
+      const actor = env.authenticatedContext(AUTHOR_UID);
+      const stranger = env.authenticatedContext(STRANGER_UID);
+      const anon = env.unauthenticatedContext();
+      const followPath = `follows/${AUTHOR_UID}_${MAKER_UID}`;
+
+      await assertSucceeds(
+        actor.firestore().doc(followPath).set({
+          actorUid: AUTHOR_UID,
+          targetUid: MAKER_UID,
+          createdAt: new Date(),
+        })
+      );
+
+      await assertSucceeds(stranger.firestore().doc(followPath).get());
+      await assertFails(anon.firestore().doc(followPath).get());
+
+      await assertFails(
+        stranger.firestore().doc(`follows/${STRANGER_UID}_${MAKER_UID}`).set({
+          actorUid: AUTHOR_UID,
+          targetUid: MAKER_UID,
+          createdAt: new Date(),
+        })
+      );
+
+      await assertFails(
+        actor.firestore().doc(followPath).update({
+          actorUid: AUTHOR_UID,
+          targetUid: MAKER_UID,
+          note: "mutable",
+        })
+      );
+
+      await assertFails(stranger.firestore().doc(followPath).delete());
+      await assertSucceeds(actor.firestore().doc(followPath).delete());
+    });
+
     it("keeps filter sample metadata read-only for clients", async () => {
       await env.withSecurityRulesDisabled(async (ctx) => {
         await ctx

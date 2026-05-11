@@ -14,6 +14,11 @@ enum FirebaseSideEffects {
         return Auth.auth().currentUser?.uid
     }
 
+    static var currentUser: User? {
+        guard isConfigured else { return nil }
+        return Auth.auth().currentUser
+    }
+
     static var currentUserEmail: String? {
         guard isConfigured else { return nil }
         return Auth.auth().currentUser?.email?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -62,10 +67,37 @@ enum FirebaseSideEffects {
         try await callable(name, region: region).call(data)
     }
 
+    static func callAuthenticatedFunction(
+        _ name: String,
+        region: String = "asia-northeast3",
+        data: [String: Any]
+    ) async throws -> HTTPSCallableResult {
+        guard let user = currentUser else {
+            throw FirebaseAuthRequestError.unauthenticated
+        }
+        _ = try await user.getIDTokenResult(forcingRefresh: false)
+
+        do {
+            return try await callFunction(name, region: region, data: data)
+        } catch {
+            guard isFunctionUnauthenticated(error), let refreshedUser = currentUser else {
+                throw error
+            }
+            _ = try await refreshedUser.getIDTokenResult(forcingRefresh: true)
+            return try await callFunction(name, region: region, data: data)
+        }
+    }
+
     static func isFunctionNotFound(_ error: Error) -> Bool {
         let nsError = error as NSError
         return nsError.domain == FunctionsErrorDomain
             && nsError.code == FunctionsErrorCode.notFound.rawValue
+    }
+
+    static func isFunctionUnauthenticated(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        return nsError.domain == FunctionsErrorDomain
+            && nsError.code == FunctionsErrorCode.unauthenticated.rawValue
     }
 
     static func handleOwnerUID(for handle: String) async throws -> String? {
@@ -83,5 +115,16 @@ enum FirebaseSideEffects {
             "setHandle",
             data: ["handle": handle]
         )
+    }
+}
+
+enum FirebaseAuthRequestError: LocalizedError {
+    case unauthenticated
+
+    var errorDescription: String? {
+        switch self {
+        case .unauthenticated:
+            return "로그인이 필요합니다."
+        }
     }
 }

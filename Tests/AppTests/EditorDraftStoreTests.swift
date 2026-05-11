@@ -26,7 +26,7 @@ struct EditorDraftStoreTests {
         #expect(store.editorPreviewParameters.exposure == 1.0)
         #expect(store.editorDraft.lutFileName == "look.cube")
         #expect(store.editorImportedLUTRevision == 1)
-        #expect(store.editorDraft.coverCount == 2)
+        #expect(store.editorDraft.coverCount == 1)
         #expect(store.editorDraft.tags == ["warm"])
         #expect(store.editorDraft.category == .food)
         #expect(store.editorDraft.signatureSamplePhotoData == signatureData)
@@ -94,9 +94,9 @@ struct EditorDraftStoreTests {
         rejected.status = .rejected
         rejected.firestoreFilterId = "filters-live-id"
         rejected.rejectionReasons = [
-            RejectionReason(title: "표지 부족", body: "최소 3장의 표지가 필요합니다.")
+            RejectionReason(title: "마켓 썸네일 필요", body: "대표 썸네일 1장이 필요합니다.")
         ]
-        rejected.moderatorNote = "표지를 추가해 주세요."
+        rejected.moderatorNote = "마켓 썸네일을 다시 지정해 주세요."
         store.setMakerFilters([rejected])
 
         #expect(store.makerFilter(matchingRejectionRouteID: rejected.id.uuidString)?.id == rejected.id)
@@ -104,7 +104,7 @@ struct EditorDraftStoreTests {
         #expect(store.makerFilter(matchingRejectionRouteID: "Renamable Title")?.id == rejected.id)
         let data = RejectionData(draft: rejected)
         #expect(data.filterName == "Renamable Title")
-        #expect(data.reasons.first?.title == "표지 부족")
-        #expect(data.moderatorNote == "표지를 추가해 주세요.")
+        #expect(data.reasons.first?.title == "마켓 썸네일 필요")
+        #expect(data.moderatorNote == "마켓 썸네일을 다시 지정해 주세요.")
     }
 }

@@ -537,6 +537,7 @@ struct FilterAfterDownloadScreen: View {
     let filterID: String
 
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var cameraStateStore: CameraStateStore
     @State private var isCameraPresented = false
     @State private var showRemoveAlert = false
 
@@ -562,6 +563,8 @@ struct FilterAfterDownloadScreen: View {
         }
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraScreen(isPresentedAsCover: true)
+                .environmentObject(filterLibraryStore)
+                .environmentObject(cameraStateStore)
                 .interactiveDismissDisabled(true)
         }
         .fmDestructiveAlert(
@@ -910,6 +913,7 @@ enum DownloadPhase: Equatable {
 struct BuiltinFilterLibraryScreen: View {
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var walletStore: WalletStore
+    @EnvironmentObject private var cameraStateStore: CameraStateStore
     @State private var isCameraPresented = false
     @State private var query = ""
     @State private var selectedCategory: FilterCategory?
@@ -980,6 +984,8 @@ struct BuiltinFilterLibraryScreen: View {
         }
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraScreen(isPresentedAsCover: true)
+                .environmentObject(filterLibraryStore)
+                .environmentObject(cameraStateStore)
                 .interactiveDismissDisabled(true)
         }
     }

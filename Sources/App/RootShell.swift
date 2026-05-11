@@ -99,6 +99,8 @@ struct RootShell: View {
         .fullScreenCover(isPresented: $isCameraPresented) {
             CameraScreen(isPresentedAsCover: true)
                 .environmentObject(store)
+                .environmentObject(store.filterLibraryStore)
+                .environmentObject(store.cameraStateStore)
                 .interactiveDismissDisabled(true)
                 .fmTrackScreen(.cameraLive, parameters: ["presentation": "tab_bar_cover"])
         }

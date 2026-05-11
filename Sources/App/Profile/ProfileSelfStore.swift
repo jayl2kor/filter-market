@@ -21,7 +21,10 @@ final class ProfileSelfStore: ObservableObject {
     private var savedListener: ListenerRegistration?
     private var capturesListener: ListenerRegistration?
     private var userDocListener: ListenerRegistration?
+    private var followingEdgesListener: ListenerRegistration?
     private var authHandle: AuthStateDidChangeListenerHandle?
+    private var derivedFollowingCount: Int?
+    private var optimisticFollowingCount: Int?
     /// (#47) 신규 사용자 doc seed 1회 가드 — listener가 exists==false로 여러 번 fire되어도 중복 호출 방지.
     private var didAttemptSeed: Set<String> = []
 
@@ -51,10 +54,14 @@ final class ProfileSelfStore: ObservableObject {
         savedListener?.remove()
         capturesListener?.remove()
         userDocListener?.remove()
+        followingEdgesListener?.remove()
         myFiltersListener = nil
         savedListener = nil
         capturesListener = nil
         userDocListener = nil
+        followingEdgesListener = nil
+        derivedFollowingCount = nil
+        optimisticFollowingCount = nil
         if let authHandle {
             Auth.auth().removeStateDidChangeListener(authHandle)
             self.authHandle = nil
@@ -93,15 +100,19 @@ final class ProfileSelfStore: ObservableObject {
                 .order(by: "createdAt", descending: true)
                 .limit(to: 100)
                 .getDocuments()
+            let followingDocs = try await db.collection("follows")
+                .whereField("actorUid", isEqualTo: uid)
+                .getDocuments()
 
             myFilters = filterDocs.documents.compactMap { FirestoreFilterRepository.decode($0) }
             savedFilterIDs = savedDocs.documents.map(\.documentID)
             captureIDs = captureDocs.documents.map(\.documentID)
-            currentUserProfile = Self.buildBaseline(
+            derivedFollowingCount = followingDocs.documents.count
+            currentUserProfile = profileApplyingResolvedFollowingCount(Self.buildBaseline(
                 authUser: authUser,
                 doc: userDoc.data(),
                 filterCount: myFilters.count
-            )
+            ))
         } catch {
             // Listener가 계속 살아 있으므로 manual refresh 실패는 기존 화면 상태를 유지한다.
         }
@@ -112,10 +123,14 @@ final class ProfileSelfStore: ObservableObject {
         savedListener?.remove()
         capturesListener?.remove()
         userDocListener?.remove()
+        followingEdgesListener?.remove()
         myFiltersListener = nil
         savedListener = nil
         capturesListener = nil
         userDocListener = nil
+        followingEdgesListener = nil
+        derivedFollowingCount = nil
+        optimisticFollowingCount = nil
 
         guard let authUser else {
             myFilters = []
@@ -126,7 +141,9 @@ final class ProfileSelfStore: ObservableObject {
         }
         let uid = authUser.uid
         // 즉시 사용 가능한 정보로 currentUserProfile를 채워두고, /users/{uid} 도착 시 갱신.
-        currentUserProfile = Self.buildBaseline(authUser: authUser, doc: nil, filterCount: myFilters.count)
+        currentUserProfile = profileApplyingResolvedFollowingCount(
+            Self.buildBaseline(authUser: authUser, doc: nil, filterCount: myFilters.count)
+        )
 
         let db = Firestore.firestore()
         myFiltersListener = db.collection("filters")
@@ -174,11 +191,11 @@ final class ProfileSelfStore: ObservableObject {
             .addSnapshotListener { [weak self] snapshot, _ in
                 guard let self else { return }
                 let data = snapshot?.data()
-                self.currentUserProfile = Self.buildBaseline(
+                self.currentUserProfile = self.profileApplyingResolvedFollowingCount(Self.buildBaseline(
                     authUser: authUser,
                     doc: data,
                     filterCount: self.myFilters.count
-                )
+                ))
                 // (#16) 신규 사용자 — /users/{uid} doc이 없으면 client-side 1회 seed.
                 // (#47) didAttemptSeed 가드 — listener가 여러 번 fire되어도 중복 callable 호출 방지.
                 if snapshot?.exists == false, !self.didAttemptSeed.contains(authUser.uid) {
@@ -186,6 +203,35 @@ final class ProfileSelfStore: ObservableObject {
                     Task { await self.seedInitialUserDoc(authUser: authUser) }
                 }
             }
+        followingEdgesListener = db.collection("follows")
+            .whereField("actorUid", isEqualTo: uid)
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self else { return }
+                guard let count = snapshot?.documents.count else { return }
+                self.derivedFollowingCount = count
+                if self.optimisticFollowingCount == count {
+                    self.optimisticFollowingCount = nil
+                }
+                if let profile = self.currentUserProfile {
+                    self.currentUserProfile = self.profileApplyingResolvedFollowingCount(profile)
+                }
+            }
+    }
+
+    @discardableResult
+    func applyOptimisticFollowingCountDelta(_ delta: Int) -> Int? {
+        guard let profile = currentUserProfile else { return nil }
+        let previous = profile.followingCount
+        let next = max(0, previous + delta)
+        optimisticFollowingCount = next
+        currentUserProfile = Self.replacingFollowingCount(in: profile, followingCount: next)
+        return previous
+    }
+
+    func rollbackOptimisticFollowingCount(to count: Int?) {
+        optimisticFollowingCount = nil
+        guard let count, let profile = currentUserProfile else { return }
+        currentUserProfile = Self.replacingFollowingCount(in: profile, followingCount: count)
     }
 
     /// 신규 사용자가 처음 로그인 시 /users/{uid} 기본 doc을 1회 작성.
@@ -253,6 +299,31 @@ final class ProfileSelfStore: ObservableObject {
             followingCount: followingCount,
             isOwnProfile: true
         )
+    }
+
+    static func replacingFollowingCount(in profile: ProfileUser, followingCount: Int) -> ProfileUser {
+        ProfileUser(
+            displayName: profile.displayName,
+            handle: profile.handle,
+            bio: profile.bio,
+            avatarInitials: profile.avatarInitials,
+            avatarURL: profile.avatarURL,
+            filterCount: profile.filterCount,
+            followerCount: profile.followerCount,
+            followingCount: max(0, followingCount),
+            isOwnProfile: profile.isOwnProfile
+        )
+    }
+
+    private func profileApplyingResolvedFollowingCount(_ profile: ProfileUser) -> ProfileUser {
+        let serverCount = profile.followingCount
+        if optimisticFollowingCount == serverCount || optimisticFollowingCount == derivedFollowingCount {
+            optimisticFollowingCount = nil
+        }
+        guard let count = optimisticFollowingCount ?? derivedFollowingCount else {
+            return profile
+        }
+        return Self.replacingFollowingCount(in: profile, followingCount: count)
     }
 
     private static func url(from value: Any?) -> URL? {

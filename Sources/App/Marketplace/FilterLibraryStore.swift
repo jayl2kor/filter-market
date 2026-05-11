@@ -11,22 +11,32 @@ final class FilterLibraryStore: ObservableObject {
     @Published private(set) var filters: [AppFilter] = []
     @Published private(set) var downloadedFilterIDs: Set<AppFilter.ID> = []
     @Published private(set) var favoriteFilterIDs: Set<AppFilter.ID> = []
+    @Published private(set) var likedFilterIDs: Set<String> = []
     @Published var selectedFilterID: AppFilter.ID?
-    @Published private(set) var loadError: Error?
-    @Published private(set) var isLoading = false
+    /// 카탈로그 로드 상태. idle/loading/loaded/failed 4-상태.
+    /// data 는 `filters`/`trendingFilters`/`newFiltersList` 에 따로 노출되므로 LoadState 의
+    /// payload 는 Void.
+    @Published private(set) var loadState: LoadState<Void> = .idle
     @Published private(set) var trendingFilters: [AppFilter] = []
     @Published private(set) var newFiltersList: [AppFilter] = []
     @Published private(set) var lastSyncErrorMessage: String?
 
+    // MARK: - LoadState 파생 (기존 호출처 호환).
+    var loadError: FriendlyError? { loadState.error }
+    var isLoading: Bool { loadState.isLoading }
+
     private let repository: any FilterRepository
     private let recordDownload: @Sendable (String) async throws -> Void
+    private let toggleFilterLike: @Sendable (String, Bool) async throws -> Void
 
     init(
         repository: any FilterRepository = BundleSeedFilterRepository(),
-        recordDownload: @escaping @Sendable (String) async throws -> Void = FilterLibraryStore.defaultRecordDownload
+        recordDownload: @escaping @Sendable (String) async throws -> Void = FilterLibraryStore.defaultRecordDownload,
+        toggleFilterLike: @escaping @Sendable (String, Bool) async throws -> Void = FilterLibraryStore.defaultToggleFilterLike
     ) {
         self.repository = repository
         self.recordDownload = recordDownload
+        self.toggleFilterLike = toggleFilterLike
     }
 
     var selectedFilter: AppFilter? {
@@ -39,11 +49,9 @@ final class FilterLibraryStore: ObservableObject {
     }
 
     func load(force: Bool = false) async {
-        guard force || filters.isEmpty || loadError != nil else { return }
+        guard force || filters.isEmpty || loadState.isFailed else { return }
 
-        isLoading = true
-        loadError = nil
-        defer { isLoading = false }
+        loadState = .loading
 
         do {
             let loadedFilters = try await repository.listFilters()
@@ -58,8 +66,13 @@ final class FilterLibraryStore: ObservableObject {
             } catch {
                 newFiltersList = []
             }
+            loadState = .loaded(())
         } catch {
-            loadError = error
+            let nsError = error as NSError
+            loadState = .failed(FriendlyError(
+                message: FirestoreErrorMapper.friendlyMessage(for: error),
+                code: nsError.domain == FirestoreErrorDomain ? String(nsError.code) : nil
+            ))
             filters = []
             trendingFilters = []
             newFiltersList = []
@@ -67,13 +80,14 @@ final class FilterLibraryStore: ObservableObject {
     }
 
     func retry() async {
-        loadError = nil
+        loadState = .idle
         await load()
     }
 
     func resetUserScopedState() {
         downloadedFilterIDs = []
         favoriteFilterIDs = []
+        likedFilterIDs = []
         selectedFilterID = nil
         lastSyncErrorMessage = nil
     }
@@ -88,6 +102,18 @@ final class FilterLibraryStore: ObservableObject {
 
     func setFavoriteFilterIDs(_ ids: Set<AppFilter.ID>) {
         favoriteFilterIDs = ids
+    }
+
+    func setLikedFilterIDs(_ ids: Set<String>) {
+        likedFilterIDs = ids
+    }
+
+    func setLikeState(filterID: String, liked: Bool) {
+        if liked {
+            likedFilterIDs.insert(filterID)
+        } else {
+            likedFilterIDs.remove(filterID)
+        }
     }
 
     func select(_ filter: AppFilter) {
@@ -134,7 +160,7 @@ final class FilterLibraryStore: ObservableObject {
             } catch {
                 await MainActor.run { [weak self] in
                     self?.restore(snapshot)
-                    self?.lastSyncErrorMessage = "저장 상태 동기화 실패: \(error.localizedDescription)"
+                    self?.lastSyncErrorMessage = "저장 상태 동기화 실패: \(FirestoreErrorMapper.friendlyMessage(for: error))"
                 }
             }
         }
@@ -172,6 +198,14 @@ final class FilterLibraryStore: ObservableObject {
         favoriteFilterIDs.contains(filter.id)
     }
 
+    func isLiked(_ filter: AppFilter) -> Bool {
+        isLiked(filterID: filter.id.uuidString)
+    }
+
+    func isLiked(filterID: String) -> Bool {
+        likedFilterIDs.contains(filterID)
+    }
+
     func isDownloaded(_ filter: AppFilter) -> Bool {
         downloadedFilterIDs.contains(filter.id)
     }
@@ -184,9 +218,21 @@ final class FilterLibraryStore: ObservableObject {
             } catch {
                 await MainActor.run { [weak self] in
                     self?.rollbackFavorite(filter, shouldSave: shouldSave)
-                    self?.lastSyncErrorMessage = "즐겨찾기 동기화 실패: \(error.localizedDescription)"
+                    self?.lastSyncErrorMessage = "즐겨찾기 동기화 실패: \(FirestoreErrorMapper.friendlyMessage(for: error))"
                 }
             }
+        }
+    }
+
+    func setLikeAndPersist(filterID: String, liked: Bool) async throws {
+        let wasLiked = likedFilterIDs.contains(filterID)
+        setLikeState(filterID: filterID, liked: liked)
+        do {
+            try await toggleFilterLike(filterID, liked)
+        } catch {
+            setLikeState(filterID: filterID, liked: wasLiked)
+            lastSyncErrorMessage = "좋아요 동기화 실패: \(FirestoreErrorMapper.friendlyMessage(for: error))"
+            throw error
         }
     }
 
@@ -253,6 +299,19 @@ final class FilterLibraryStore: ObservableObject {
         _ = try await FirebaseSideEffects.callFunction(
             "recordDownload",
             data: ["filterId": filterID]
+        )
+    }
+
+    private static func defaultToggleFilterLike(filterID: String, liked: Bool) async throws {
+        #if DEBUG
+        guard !isUITesting else { return }
+        #endif
+        _ = try await FirebaseSideEffects.callAuthenticatedFunction(
+            "toggleFilterLike",
+            data: [
+                "filterId": filterID,
+                "liked": liked,
+            ]
         )
     }
 

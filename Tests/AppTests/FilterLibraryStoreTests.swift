@@ -136,6 +136,53 @@ struct FilterLibraryStoreTests {
         #expect(await recorder.recordedFilterIDs() == [filter.id.uuidString])
     }
 
+    @Test("like toggles are independent from favorites and call backend")
+    func likeToggleDoesNotMutateFavoritesAndCallsBackend() async throws {
+        let filter = makeFilter(id: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E4A21", title: "Liked")
+        let likeSpy = FilterLikeSpy()
+        let store = FilterLibraryStore(
+            repository: MockFilterRepository(filters: [filter]),
+            toggleFilterLike: { filterID, liked in
+                await likeSpy.record(filterID: filterID, liked: liked)
+            }
+        )
+        await store.load()
+        _ = store.toggleFavorite(filter)
+        let favoritesBefore = store.favoriteFilterIDs
+
+        try await store.setLikeAndPersist(filterID: filter.id.uuidString, liked: true)
+
+        #expect(store.isLiked(filter))
+        #expect(store.favoriteFilterIDs == favoritesBefore)
+        #expect(await likeSpy.calls() == [
+            FilterLikeCall(filterID: filter.id.uuidString, liked: true)
+        ])
+    }
+
+    @Test("like sync failure rolls back liked state")
+    func likeSyncFailureRollsBackLikedState() async {
+        let filter = makeFilter(id: "01900B14-7B1C-7C1E-A4F4-9B2C1D2E4A22", title: "Rollback")
+        let store = FilterLibraryStore(
+            repository: MockFilterRepository(filters: [filter]),
+            toggleFilterLike: { _, _ in
+                throw FilterLikeTestError.failed
+            }
+        )
+        await store.load()
+        store.setLikedFilterIDs([filter.id.uuidString])
+
+        var didThrow = false
+        do {
+            try await store.setLikeAndPersist(filterID: filter.id.uuidString, liked: false)
+        } catch {
+            didThrow = true
+        }
+
+        #expect(didThrow)
+        #expect(store.isLiked(filter))
+        #expect(store.lastSyncErrorMessage?.contains("좋아요 동기화 실패") == true)
+    }
+
     @Test("market tile download count does not fall back to use count")
     func tileMappingUsesOnlyDownloadCount() {
         let filter = makeFilter(
@@ -184,6 +231,27 @@ struct FilterLibraryStoreTests {
             status: .approved,
             downloadCount: downloadCount
         )
+    }
+}
+
+private enum FilterLikeTestError: Error {
+    case failed
+}
+
+private struct FilterLikeCall: Equatable {
+    let filterID: String
+    let liked: Bool
+}
+
+private actor FilterLikeSpy {
+    private var recordedCalls: [FilterLikeCall] = []
+
+    func record(filterID: String, liked: Bool) {
+        recordedCalls.append(FilterLikeCall(filterID: filterID, liked: liked))
+    }
+
+    func calls() -> [FilterLikeCall] {
+        recordedCalls
     }
 }
 

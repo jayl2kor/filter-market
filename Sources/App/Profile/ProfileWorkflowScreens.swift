@@ -447,9 +447,11 @@ struct EditProfileScreen: View {
             VStack(spacing: 0) {
                 Toggle("메이커 페이지 노출", isOn: $draft.makerPageVisible)
                     .tint(FMColors.Accent.primary)
+                    .padding(.vertical, Sp.xs)
                 workflowDivider()
                 Toggle("필터 적용 사진 공유 허용", isOn: $draft.photoSharingAllowed)
                     .tint(FMColors.Accent.primary)
+                    .padding(.vertical, Sp.xs)
             }
             .fmTypography(.body)
             .foregroundStyle(FMColors.Text.primary)

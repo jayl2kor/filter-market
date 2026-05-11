@@ -1,5 +1,6 @@
 import DesignSystem
 import FilterEngine
+import FirebaseFirestore
 import Models
 import OSLog
 import SwiftUI
@@ -27,6 +28,9 @@ struct FilterDetailScreen: View {
     @State private var downloadTask: Task<Void, Never>?
     @State private var downloadErrorMessage: String?
     @State private var isFollowing: Bool = false
+    @State private var isUpdatingFollow = false
+    @State private var makerFollowListener: ListenerRegistration?
+    @State private var makerFollowErrorMessage: String?
     @State private var didLikeMockFilter = false
     @State private var sharePayload: SharePayload?
     @State private var isDescriptionExpanded = false
@@ -61,22 +65,19 @@ struct FilterDetailScreen: View {
     }
 
     var body: some View {
-        scrollContent
+        ZStack(alignment: .top) {
+            scrollContent
+                .ignoresSafeArea(edges: .top)
+
+            topChromeOverlay
+        }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 ctaBar
         }
         .background(FMColors.Background.bg0)
         .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                backButton
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                shareButton
-            }
-        }
-        .toolbarBackground(.hidden, for: .navigationBar)
         .sheet(item: $sharePayload) { payload in
             ShareSheet(activityItems: payload.items)
         }
@@ -98,9 +99,14 @@ struct FilterDetailScreen: View {
         .sheet(isPresented: $showingSampleList) {
             SampleListSheetView(samples: sampleItems, mock: mock)
         }
+        .task(id: makerFollowTargetUID) {
+            attachMakerFollowState()
+        }
         .onDisappear {
             downloadTask?.cancel()
             downloadTask = nil
+            makerFollowListener?.remove()
+            makerFollowListener = nil
         }
         .alert("다운로드 실패", isPresented: Binding(
             get: { downloadErrorMessage != nil },
@@ -117,6 +123,14 @@ struct FilterDetailScreen: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(sampleUploadErrorMessage ?? "")
+        }
+        .alert("팔로우 실패", isPresented: Binding(
+            get: { makerFollowErrorMessage != nil },
+            set: { if !$0 { makerFollowErrorMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(makerFollowErrorMessage ?? "")
         }
         .storeErrorToast(
             message: filterLibraryStore.lastSyncErrorMessage,
@@ -201,7 +215,8 @@ struct FilterDetailScreen: View {
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: R.sm))
                         .foregroundStyle(FMColors.Accent.primary)
                 }
-                .padding(Sp.sm)
+                .padding(.horizontal, Sp.sm)
+                .padding(.top, geo.safeAreaInsets.top + 60)
                 .frame(maxHeight: .infinity, alignment: .top)
 
                 // 핸들
@@ -312,29 +327,36 @@ struct FilterDetailScreen: View {
 
     private var followButton: some View {
         Button {
-            isFollowing.toggle()
-            FMHaptic.light.play()
-            Telemetry.trackAction(isFollowing ? "maker_followed" : "maker_unfollowed", screen: .filterDetail)
+            Task { await toggleMakerFollow() }
         } label: {
-            Text(isFollowing ? "팔로잉" : "팔로우")
-                .fmTypography(.caption)
-                .fontWeight(.semibold)
-                .padding(.horizontal, Sp.sm)
-                .frame(minHeight: 38)
-                .foregroundStyle(isFollowing ? FMColors.Text.secondary : .white)
-                .background(
-                    isFollowing ? FMColors.Background.bg2 : FMColors.Accent.primary,
-                    in: RoundedRectangle(cornerRadius: R.sm)
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: R.sm)
-                        .strokeBorder(
-                            isFollowing ? FMColors.Border.default : FMColors.Accent.primary,
-                            lineWidth: 1
-                        )
+            HStack(spacing: Sp.xs) {
+                if isUpdatingFollow {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .scaleEffect(0.7)
+                        .tint(isFollowing ? FMColors.Text.secondary : .white)
                 }
+                Text(isFollowing ? "팔로잉" : "팔로우")
+                    .fmTypography(.caption)
+                    .fontWeight(.semibold)
+            }
+            .padding(.horizontal, Sp.sm)
+            .frame(minHeight: 38)
+            .foregroundStyle(isFollowing ? FMColors.Text.secondary : .white)
+            .background(
+                isFollowing ? FMColors.Background.bg2 : FMColors.Accent.primary,
+                in: RoundedRectangle(cornerRadius: R.sm)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: R.sm)
+                    .strokeBorder(
+                        isFollowing ? FMColors.Border.default : FMColors.Accent.primary,
+                        lineWidth: 1
+                    )
+            }
         }
         .buttonStyle(TagPressStyle())
+        .disabled(isUpdatingFollow || isOwnedByCurrentUser)
         .accessibilityIdentifier("filter.detail.follow")
         .accessibilityLabel(isFollowing ? "팔로잉" : "팔로우")
         .accessibilityValue(isFollowing ? "선택됨" : "미선택")
@@ -618,7 +640,24 @@ struct FilterDetailScreen: View {
         }
     }
 
-    // MARK: - Toolbar buttons
+    // MARK: - Floating top chrome
+
+    private var topChromeOverlay: some View {
+        HStack {
+            backButton
+                .accessibilitySortPriority(3)
+
+            Spacer(minLength: Sp.sm)
+
+            shareButton
+                .accessibilitySortPriority(2)
+        }
+        .padding(.horizontal, Sp.md)
+        .padding(.top, Sp.sm)
+        .safeAreaPadding(.top)
+        .frame(maxWidth: .infinity, alignment: .top)
+        .zIndex(1)
+    }
 
     private var backButton: some View {
         Button {
@@ -634,6 +673,7 @@ struct FilterDetailScreen: View {
                         .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
                 }
         }
+        .accessibilityIdentifier("filter.detail.back")
         .accessibilityLabel("뒤로")
     }
 
@@ -706,7 +746,16 @@ struct FilterDetailScreen: View {
             .accessibilityIdentifier("filter.detail.like")
             .accessibilityValue("\(likeDisplayCount)개")
 
-            if !isOwnedByCurrentUser, downloadState == .ready {
+            if !isOwnedByCurrentUser, isAlreadyDownloaded {
+                FMButton(
+                    ctaTitle,
+                    icon: ctaIcon,
+                    variant: .secondary,
+                    size: .lg
+                ) {}
+                .disabled(true)
+                .accessibilityIdentifier("filter.detail.downloaded")
+            } else if !isOwnedByCurrentUser, downloadState == .ready {
                 NavigationLink(value: mock.isPaid ? AppRoute.paywallSingle(filterId: filterRouteID) : AppRoute.filterDownload(id: filterRouteID)) {
                     HStack(spacing: Sp.xs) {
                         Image(systemName: ctaIcon ?? "arrow.right")
@@ -801,27 +850,52 @@ struct FilterDetailScreen: View {
     }
 
     private var ctaTitle: String {
+        if isAlreadyDownloaded {
+            return "다운로드됨"
+        }
         switch downloadState {
         case .ready:
-            mock.isPaid ? (mock.priceLabel.map { "\($0) 구매" } ?? "구매") : "무료 다운로드"
+            return mock.isPaid ? (mock.priceLabel.map { "\($0) 구매" } ?? "구매") : "무료 다운로드"
         case .downloading:
-            "다운로드 중..."
+            return "다운로드 중..."
         case .completed:
-            "촬영하기"
+            return "촬영하기"
         }
     }
 
     private var ctaIcon: String? {
-        switch downloadState {
-        case .ready: "arrow.down.to.line"
-        case .downloading: nil
-        case .completed: "camera.fill"
+        if isAlreadyDownloaded {
+            return "checkmark.circle.fill"
         }
+        switch downloadState {
+        case .ready:
+            return "arrow.down.to.line"
+        case .downloading:
+            return nil
+        case .completed:
+            return "camera.fill"
+        }
+    }
+
+    private var isAlreadyDownloaded: Bool {
+        guard !mock.isPaid else { return false }
+        if let filter {
+            return filterLibraryStore.isDownloaded(filter)
+        }
+        guard let sourceID = mock.sourceID,
+              let uuid = UUID(uuidString: sourceID.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return false
+        }
+        return filterLibraryStore.downloadedFilterIDs.contains(uuid)
     }
 
     private var isLiked: Bool {
         if let filter {
-            return filterLibraryStore.isFavorite(filter)
+            return filterLibraryStore.isLiked(filter) || didLikeMockFilter
+        }
+        if let sourceID = mock.sourceID?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !sourceID.isEmpty {
+            return filterLibraryStore.isLiked(filterID: sourceID) || didLikeMockFilter
         }
         return didLikeMockFilter
     }
@@ -833,6 +907,15 @@ struct FilterDetailScreen: View {
         }
         let currentUID = sessionStore.currentUserID ?? FirebaseSideEffects.currentUID
         return currentUID == makerUID
+    }
+
+    private var makerFollowTargetUID: String? {
+        guard let uid = mock.makerUID?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !uid.isEmpty,
+              uid != "unknown" else {
+            return nil
+        }
+        return uid
     }
 
     private var likeDisplayCount: Int {
@@ -847,32 +930,82 @@ struct FilterDetailScreen: View {
 
     @MainActor
     private func toggleLike() async {
-        let targetState = !isLiked
-        if let filter {
-            filterLibraryStore.toggleFavoriteAndPersist(filter)
-            FMHaptic.light.play()
-            Telemetry.trackAction(targetState ? "filter_liked" : "filter_unliked", screen: .filterDetail)
+        guard let filterID = filter?.id.uuidString ?? mock.sourceID,
+              !filterID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
         }
-
+        let wasLiked = isLiked
+        let targetState = !isLiked
         didLikeMockFilter = targetState
         FMHaptic.light.play()
         Telemetry.trackAction(targetState ? "filter_liked" : "filter_unliked", screen: .filterDetail)
 
-        guard FirebaseSideEffects.hasCurrentUser,
-              let sourceID = mock.sourceID
-        else {
+        do {
+            try await filterLibraryStore.setLikeAndPersist(filterID: filterID, liked: targetState)
+        } catch {
+            didLikeMockFilter = wasLiked
+            Telemetry.record(error: error, context: ["where": "FilterDetailScreen.toggleLike", "filter_id": filterID])
+        }
+    }
+
+    private func attachMakerFollowState() {
+        makerFollowListener?.remove()
+        makerFollowListener = nil
+        guard !isUITesting,
+              FirebaseSideEffects.isConfigured,
+              let actorUid = FirebaseSideEffects.currentUID,
+              let targetUid = makerFollowTargetUID,
+              actorUid != targetUid else {
+            isFollowing = false
             return
         }
 
+        makerFollowListener = FirebaseSideEffects.firestore()
+            .collection("follows").document("\(actorUid)_\(targetUid)")
+            .addSnapshotListener { snapshot, _ in
+                let exists = snapshot?.exists == true
+                Task { @MainActor in
+                    isFollowing = exists
+                }
+            }
+    }
+
+    @MainActor
+    private func toggleMakerFollow() async {
+        guard !isUpdatingFollow else { return }
+        guard FirebaseSideEffects.isConfigured,
+              let actorUid = FirebaseSideEffects.currentUID else {
+            makerFollowErrorMessage = "로그인이 필요합니다."
+            return
+        }
+        guard let targetUid = makerFollowTargetUID, actorUid != targetUid else {
+            return
+        }
+
+        isUpdatingFollow = true
+        let previous = isFollowing
+        isFollowing.toggle()
+        let next = isFollowing
+        FMHaptic.light.play()
+        Telemetry.trackAction(next ? "maker_followed" : "maker_unfollowed", screen: .filterDetail)
+        defer { isUpdatingFollow = false }
+
+        let edgeRef = FirebaseSideEffects.firestore()
+            .collection("follows").document("\(actorUid)_\(targetUid)")
         do {
-            _ = try await FirebaseSideEffects.callFunction("toggleFilterLike", data: [
-                "filterId": sourceID,
-                "liked": targetState,
-            ])
+            if next {
+                try await edgeRef.setData([
+                    "actorUid": actorUid,
+                    "targetUid": targetUid,
+                    "createdAt": FieldValue.serverTimestamp()
+                ], merge: true)
+            } else {
+                try await edgeRef.delete()
+            }
         } catch {
-            didLikeMockFilter.toggle()
-            Telemetry.record(error: error, context: ["where": "FilterDetailScreen.toggleLike", "filter_id": sourceID])
+            isFollowing = previous
+            makerFollowErrorMessage = error.localizedDescription
+            Telemetry.record(error: error, context: ["where": "FilterDetailScreen.toggleMakerFollow", "target_uid": targetUid])
         }
     }
 
@@ -1325,22 +1458,14 @@ private struct DetailBeforeAfterLayer: View {
         GeometryReader { geo in
             ZStack {
                 if let sourceImage {
-                    Image(uiImage: sourceImage)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .clipped()
+                    heroImage(sourceImage, in: geo)
                 } else {
                     placeholderHeroLayer
                 }
 
                 if !showsBeforeOnly {
                     if let image = renderedImage ?? sourceImage {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: geo.size.width, height: geo.size.height)
-                            .clipped()
+                        heroImage(image, in: geo)
                             .mask(alignment: .trailing) {
                                 Rectangle()
                                     .frame(width: max(0, geo.size.width * (1 - dividerProgress)))
@@ -1364,6 +1489,16 @@ private struct DetailBeforeAfterLayer: View {
         .task(id: cacheKey) {
             await render()
         }
+    }
+
+    private func heroImage(_ image: UIImage, in geo: GeometryProxy) -> some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFill()
+            .frame(width: geo.size.width, height: geo.size.height)
+            .scaleEffect(1.12)
+            .offset(y: min(44, max(26, geo.size.height * 0.055)))
+            .clipped()
     }
 
     private var cacheKey: String {

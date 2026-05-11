@@ -1,13 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Moodit Wordmark — set in system sans (SF Pro / Pretendard fallback) at
-  weight 700, tracked tight (-3 letter-spacing) for editorial density.
-  Color: text/primary (#0F0F0E) in light, text/primary inverts to white in
-  dark contexts. Apply via CSS or inline override; defaults below assume light.
+  Moodit Wordmark — vector-drawn logo with rounded proportions.
+  The first 'o' is filled and the second is hollow to create a logo accent.
+  Default color is black; SwiftUI uses template rendering to apply text/primary.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 90" role="img" aria-label="Moodit">
-  <text x="180" y="62" text-anchor="middle"
-        font-family="-apple-system, 'SF Pro Display', 'Pretendard Variable', 'Apple SD Gothic Neo', system-ui, sans-serif"
-        font-size="56" font-weight="700" letter-spacing="-3"
-        fill="#0F0F0E">moodit</text>
+  <g fill="none" stroke="#0F0F0E" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <!-- m: three verticals tied together by two rounded humps -->
+    <path d="M30 68V42C30 33 37 26 47 26C57 26 64 33 64 42V68"/>
+    <path d="M64 42C64 33 71 26 81 26C91 26 98 33 98 42V68"/>
+    <!-- mood: first o filled (logo accent), second o hollow -->
+    <circle cx="132" cy="47" r="26" fill="#0F0F0E" stroke="none"/>
+    <circle cx="186" cy="47" r="20"/>
+    <!-- d: bowl + ascender on the right tangent -->
+    <circle cx="240" cy="47" r="20"/>
+    <path d="M260 18V68"/>
+    <!-- i: dot + short stem -->
+    <path d="M295 22H295.01"/>
+    <path d="M295 38V68"/>
+    <!-- t: stem with rounded foot + crossbar at x-height -->
+    <path d="M325 22V58C325 64 329 68 336 68"/>
+    <path d="M312 38H338"/>
+  </g>
 </svg>

@@ -18,21 +18,27 @@ struct FilterDetailLoaderScreen: View {
             switch phase {
             case .loading:
                 loadingView
+                    .navigationTitle("필터 상세")
+                    .navigationBarTitleDisplayMode(.inline)
             case .loaded(let detail):
                 FilterDetailScreen(mock: detail.toMock(), onRefresh: { await load() })
+                    .toolbar(.hidden, for: .navigationBar)
             case .localFilter(let filter):
                 FilterDetailScreen(filter: filter)
+                    .toolbar(.hidden, for: .navigationBar)
             case .empty:
                 FMEmptyState(.emptyMarket, ctaTitle: "다시 시도") {
                     Task { await load() }
                 }
                     .padding(.horizontal, Sp.md)
+                    .navigationTitle("필터 상세")
+                    .navigationBarTitleDisplayMode(.inline)
             case .error(let message):
                 errorView(message)
+                    .navigationTitle("필터 상세")
+                    .navigationBarTitleDisplayMode(.inline)
             }
         }
-        .navigationTitle("필터 상세")
-        .navigationBarTitleDisplayMode(.inline)
         .task {
             await load()
         }

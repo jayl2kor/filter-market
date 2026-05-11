@@ -318,7 +318,7 @@ struct HelpCenterScreen: View {
                 id: "upload",
                 category: .creator,
                 question: "내 필터를 마켓에 올리려면?",
-                answer: "필터 만들기에서 파라미터와 LUT를 준비한 뒤 커버, 태그, 카테고리를 입력하고 검수를 제출하세요."
+                answer: "필터 만들기에서 파라미터와 LUT를 준비한 뒤 썸네일, 태그, 카테고리를 입력하고 검수를 제출하세요."
             )
         ]
     }

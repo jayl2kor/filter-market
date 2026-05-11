@@ -43,7 +43,6 @@ struct SearchScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var sessionStore: SessionStore
-    @EnvironmentObject private var walletStore: WalletStore
     @State private var query: String = ""
     @State private var debouncedQuery: String = ""
     @State private var isSearchDebouncing = false
@@ -106,6 +105,9 @@ struct SearchScreen: View {
             }
         }
         .background(FMColors.Background.bg0)
+        .overlay(alignment: .top) {
+            topSafeAreaCover
+        }
         .toolbar(.hidden, for: .navigationBar)
         .simultaneousGesture(edgeSwipeDismissGesture)
         .onAppear {
@@ -146,6 +148,16 @@ struct SearchScreen: View {
 
     // MARK: - Top bar
 
+    private var topSafeAreaCover: some View {
+        GeometryReader { proxy in
+            FMColors.Background.bg0
+                .frame(height: proxy.safeAreaInsets.top)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .ignoresSafeArea(edges: .top)
+        }
+        .allowsHitTesting(false)
+    }
+
     private var searchTopBar: some View {
         HStack(spacing: Sp.sm) {
             if showsBackButton {
@@ -183,15 +195,7 @@ struct SearchScreen: View {
             .frame(maxWidth: .infinity)
             .layoutPriority(1)
 
-            if showsHeaderActions {
-                headerActions
-                    .transition(
-                        .fmReducible(
-                            .opacity.combined(with: .move(edge: .trailing)),
-                            reduceMotion: reduceMotion
-                        )
-                    )
-            } else if showsBackButton && (!query.isEmpty || phase != .discovering) {
+            if showsBackButton && (!query.isEmpty || phase != .discovering) {
                 Button {
                     Telemetry.trackAction("search_cancelled", screen: .search, parameters: [
                         "phase": phase.telemetryName
@@ -229,57 +233,6 @@ struct SearchScreen: View {
             }
         }
         .fmAnimation(.fmFast, value: phase)
-    }
-
-    private var showsHeaderActions: Bool {
-        !showsBackButton
-    }
-
-    private var headerActions: some View {
-        HStack(spacing: Sp.sm) {
-            routeLink(value: .wallet) {
-                HStack(spacing: 4) {
-                    Image(systemName: "circle.hexagongrid.fill")
-                        .font(.system(size: IconSize.sm, weight: .semibold))
-                        .foregroundStyle(FMColors.Accent.primary)
-                    Text(walletStore.coinBalance.formatted())
-                        .fmTypography(.subhead)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(FMColors.Text.primary)
-                        .monospacedDigit()
-                }
-                .padding(.horizontal, Sp.sm)
-                .frame(height: 44)
-                .background(FMColors.Background.bg2, in: Capsule())
-                .overlay {
-                    Capsule()
-                        .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
-                }
-            }
-            .buttonStyle(.plain)
-            .simultaneousGesture(TapGesture().onEnded {
-                Telemetry.trackAction("wallet_opened", screen: .search, parameters: ["source": "header"])
-            })
-            .accessibilityIdentifier("search.header.coinBalance")
-            .accessibilityLabel("코인 잔액 \(walletStore.coinBalance)개, 지갑 열기")
-
-            routeLink(value: .notifications) {
-                Image(systemName: "bell")
-                    .font(.system(size: IconSize.lg, weight: .regular))
-                    .foregroundStyle(FMColors.Text.primary)
-                    .frame(width: 44, height: 44)
-                    .background(FMColors.Background.bg2, in: Circle())
-                    .overlay {
-                        Circle()
-                            .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
-                    }
-            }
-            .buttonStyle(.plain)
-            .simultaneousGesture(TapGesture().onEnded {
-                Telemetry.trackAction("notifications_opened", screen: .search, parameters: ["source": "header"])
-            })
-            .accessibilityLabel("알림")
-        }
     }
 
     @ViewBuilder

@@ -8,7 +8,7 @@ import SwiftUI
 /// 마켓 홈 — 6번 화면.
 ///
 /// Phase D3 — `mockups/screens/06-marketplace-home.html` 와 정합.
-/// 검색 헤더 + 인사 + 트렌딩 캐러셀 + 카테고리 칩 + 신규 그리드 + 큐레이션.
+/// 브랜딩 바 + 인사 + 트렌딩 캐러셀 + 카테고리 칩 + 신규 그리드 + 큐레이션.
 struct MarketplaceScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
@@ -61,13 +61,13 @@ struct MarketplaceScreen: View {
     private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Sp.lg) {
-                headerBar
+                brandingBar
 
                 greeting
                     .padding(.horizontal, Sp.md)
 
                 if let error = filterLibraryStore.loadError, filterLibraryStore.filters.isEmpty {
-                    errorState(error)
+                    errorState(message: error.message)
                 } else if isLoading {
                     loadingState
                 } else {
@@ -80,6 +80,9 @@ struct MarketplaceScreen: View {
             Telemetry.trackPullToRefresh(.marketplaceHome)
             await filterLibraryStore.load(force: true)
         }
+        .overlay(alignment: .top) {
+            topSafeAreaCover
+        }
         .onDisappear {
             cancelCoverPrefetch()
         }
@@ -89,63 +92,105 @@ struct MarketplaceScreen: View {
 
     // MARK: - Header
 
-    private var headerBar: some View {
-        HStack(spacing: Sp.sm) {
-            NavigationLink(value: AppRoute.search(initialQuery: nil, category: nil)) {
-                FMSearchHeader(placeholder: "필터, 메이커, 분위기 검색")
-                    .accessibilityIdentifier("market.searchHeader")
-            }
-            .buttonStyle(.plain)
-            .simultaneousGesture(TapGesture().onEnded {
-                Telemetry.trackAction("search_opened", screen: .marketplaceHome, parameters: ["source": "header"])
-            })
-            .frame(maxWidth: .infinity)
+    private var topSafeAreaCover: some View {
+        GeometryReader { proxy in
+            FMColors.Background.bg0
+                .frame(height: proxy.safeAreaInsets.top)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .ignoresSafeArea(edges: .top)
+        }
+        .allowsHitTesting(false)
+    }
 
-            NavigationLink(value: AppRoute.wallet) {
-                HStack(spacing: 4) {
-                    Image(systemName: "circle.hexagongrid.fill")
-                        .font(.system(size: IconSize.sm, weight: .semibold))
-                        .foregroundStyle(FMColors.Accent.primary)
-                    Text(walletStore.coinBalance.formatted())
-                        .fmTypography(.subhead)
-                        .fontWeight(.semibold)
+    private var brandingBar: some View {
+        ZStack {
+            Image("MooditWordmark")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(FMColors.Text.primary)
+                .frame(width: 104, height: 26)
+                .accessibilityLabel("moodit")
+                .accessibilityIdentifier("market.brandbar.logo")
+                .accessibilityAddTraits(.isHeader)
+
+            HStack(spacing: 0) {
+                NavigationLink(value: AppRoute.editor) {
+                    Image(systemName: "plus")
+                        .font(.system(size: IconSize.md, weight: .semibold))
                         .foregroundStyle(FMColors.Text.primary)
-                        .monospacedDigit()
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
-                .padding(.horizontal, Sp.sm)
-                .frame(height: 44)
-                .background(FMColors.Background.bg2, in: Capsule())
-                .overlay {
-                    Capsule()
-                        .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
-                }
-            }
-            .buttonStyle(.plain)
-            .simultaneousGesture(TapGesture().onEnded {
-                Telemetry.trackAction("wallet_opened", screen: .marketplaceHome, parameters: ["source": "header"])
-            })
-            .accessibilityIdentifier("market.header.coinBalance")
-            .accessibilityLabel("코인 잔액 \(walletStore.coinBalance)개, 지갑 열기")
+                .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded {
+                    Telemetry.trackAction("create_filter_from_market", screen: .marketplaceHome, parameters: [
+                        "source": "brandbar_plus"
+                    ])
+                })
+                .accessibilityIdentifier("market.brandbar.create")
+                .accessibilityLabel("새 필터 만들기")
+                .accessibilityHint("탭하면 필터 에디터로 이동합니다")
 
-            NavigationLink(value: AppRoute.notifications) {
-                Image(systemName: "bell")
-                    .font(.system(size: IconSize.lg, weight: .regular))
-                    .foregroundStyle(FMColors.Text.primary)
-                    .frame(width: 44, height: 44)
-                    .background(FMColors.Background.bg2, in: Circle())
-                    .overlay {
-                        Circle()
-                            .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
-                    }
+                Spacer(minLength: Sp.sm)
+
+                HStack(spacing: Sp.sm) {
+                    walletBalanceButton
+                    notificationsButton
+                }
             }
-            .buttonStyle(.plain)
-            .simultaneousGesture(TapGesture().onEnded {
-                Telemetry.trackAction("notifications_opened", screen: .marketplaceHome, parameters: ["source": "header"])
-            })
-            .accessibilityLabel("알림")
         }
         .padding(.horizontal, Sp.md)
         .padding(.top, Sp.sm)
+    }
+
+    private var walletBalanceButton: some View {
+        NavigationLink(value: AppRoute.wallet) {
+            HStack(spacing: 4) {
+                Image(systemName: "circle.hexagongrid.fill")
+                    .font(.system(size: IconSize.sm, weight: .semibold))
+                    .foregroundStyle(FMColors.Accent.primary)
+                    .accessibilityHidden(true)
+                Text(walletStore.coinBalance.formatted())
+                    .fmTypography(.subhead)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(FMColors.Text.primary)
+                    .monospacedDigit()
+            }
+            .padding(.horizontal, Sp.sm)
+            .frame(height: 44)
+            .background(FMColors.Background.bg2, in: Capsule())
+            .overlay {
+                Capsule()
+                    .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(TapGesture().onEnded {
+            Telemetry.trackAction("wallet_opened", screen: .marketplaceHome, parameters: ["source": "header"])
+        })
+        .accessibilityIdentifier("market.header.coinBalance")
+        .accessibilityLabel("코인 잔액 \(walletStore.coinBalance)개, 지갑 열기")
+    }
+
+    private var notificationsButton: some View {
+        NavigationLink(value: AppRoute.notifications) {
+            Image(systemName: "bell")
+                .font(.system(size: IconSize.lg, weight: .regular))
+                .foregroundStyle(FMColors.Text.primary)
+                .frame(width: 44, height: 44)
+                .background(FMColors.Background.bg2, in: Circle())
+                .overlay {
+                    Circle()
+                        .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(TapGesture().onEnded {
+            Telemetry.trackAction("notifications_opened", screen: .marketplaceHome, parameters: ["source": "header"])
+        })
+        .accessibilityIdentifier("market.header.notifications")
+        .accessibilityLabel("알림")
     }
 
     private var greeting: some View {
@@ -344,7 +389,7 @@ struct MarketplaceScreen: View {
 
     // MARK: - Error
 
-    private func errorState(_ error: Error) -> some View {
+    private func errorState(message: String) -> some View {
         VStack(alignment: .leading, spacing: Sp.md) {
             HStack(alignment: .top, spacing: Sp.sm) {
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -354,7 +399,7 @@ struct MarketplaceScreen: View {
                     Text("필터를 불러오지 못했어요")
                         .fmTypography(.headline)
                         .foregroundStyle(FMColors.Text.primary)
-                    Text(error.localizedDescription)
+                    Text(message)
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Text.secondary)
                         .lineLimit(3)
@@ -379,7 +424,7 @@ struct MarketplaceScreen: View {
         .padding(.horizontal, Sp.md)
         .onAppear {
             Telemetry.trackError("market_load_error", screen: .marketplaceHome, parameters: [
-                "error_type": String(describing: type(of: error))
+                "error_type": "FriendlyError"
             ])
         }
         .accessibilityElement(children: .contain)

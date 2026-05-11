@@ -38,8 +38,12 @@ public struct WalletLedgerEntry: Identifiable, Sendable, Equatable {
 @MainActor
 final class WalletLedgerStore: ObservableObject {
     @Published private(set) var entries: [WalletLedgerEntry] = []
-    @Published private(set) var isLoading: Bool = false
-    @Published private(set) var loadError: String?
+    /// 원장 read 상태. idle/loading/loaded/failed.
+    @Published private(set) var loadState: LoadState<Void> = .idle
+
+    // MARK: - LoadState 파생 (기존 호출처 호환).
+    var isLoading: Bool { loadState.isLoading }
+    var loadError: String? { loadState.error?.message }
 
     private var listener: ListenerRegistration?
     private var authHandle: AuthStateDidChangeListenerHandle?
@@ -77,7 +81,7 @@ final class WalletLedgerStore: ObservableObject {
     }
 
     private func startListener(uid: String) {
-        isLoading = true
+        loadState = .loading
         listener = Firestore.firestore()
             .collection("users").document(uid)
             .collection("walletLedger")
@@ -85,14 +89,17 @@ final class WalletLedgerStore: ObservableObject {
             .limit(to: pageLimit)
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self else { return }
-                self.isLoading = false
                 if let error {
-                    self.loadError = error.localizedDescription
+                    let nsError = error as NSError
+                    self.loadState = .failed(FriendlyError(
+                        message: FirestoreErrorMapper.friendlyMessage(for: error),
+                        code: nsError.domain == FirestoreErrorDomain ? String(nsError.code) : nil
+                    ))
                     return
                 }
                 let docs = snapshot?.documents ?? []
                 self.entries = docs.compactMap { Self.decode($0) }
-                self.loadError = nil
+                self.loadState = .loaded(())
             }
     }
 

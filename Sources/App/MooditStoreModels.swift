@@ -227,7 +227,7 @@ enum UploadStep: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .cover: "표지"
+        case .cover: "썸네일"
         case .tags: "정보"
         case .submit: "제출"
         case .pending: "검수"
@@ -264,6 +264,7 @@ struct MakerFilterDraft: Identifiable, Equatable, Codable {
     var parameterValues: [String: Double]
     var lutFileName: String?
     var coverCount: Int
+    var coverPhotoData: Data?
     var signatureSampleKind: EditorReferenceSampleKind?
     var signatureSamplePhotoData: Data?
     var beforeAfterEnabled: Bool
@@ -289,6 +290,7 @@ struct MakerFilterDraft: Identifiable, Equatable, Codable {
         parameterValues: [:],
         lutFileName: nil,
         coverCount: 0,
+        coverPhotoData: nil,
         signatureSampleKind: nil,
         signatureSamplePhotoData: nil,
         beforeAfterEnabled: false,
@@ -317,7 +319,8 @@ struct MakerFilterDraft: Identifiable, Equatable, Codable {
             "vignette": 0.18
         ],
         lutFileName: "amber_cafe_33.cube",
-        coverCount: 3,
+        coverCount: 1,
+        coverPhotoData: nil,
         signatureSampleKind: .lifestyle,
         signatureSamplePhotoData: nil,
         beforeAfterEnabled: true,

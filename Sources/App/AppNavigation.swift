@@ -437,7 +437,7 @@ extension AppRoute {
         case .editorParameters: "파라미터"
         case .editorLUT: "LUT 가져오기"
         case .editorDraft: "초안 저장"
-        case .uploadCover: "커버 업로드"
+        case .uploadCover: "썸네일 업로드"
         case .uploadTags: "태그와 카테고리"
         case .uploadSubmit: "약관 및 제출"
         case .uploadPending: "검수 대기"
@@ -490,7 +490,7 @@ extension AppRoute {
         case .editor, .editorParameters, .editorLUT, .editorDraft:
             "LUT와 파라미터를 조합해 마켓에 올릴 필터 초안을 만듭니다."
         case .uploadCover, .uploadTags, .uploadSubmit, .uploadPending:
-            "커버, 태그, 약관 동의를 거쳐 검수 대기 상태로 제출합니다."
+            "썸네일, 태그, 약관 동의를 거쳐 검수 대기 상태로 제출합니다."
         case .wallet, .walletTopup, .walletTransactions, .insufficientBalance, .paymentFailed, .refundRequest:
             "Coin 잔액, 충전, 구매 복원, 환불 안내를 처리합니다."
         case .payoutOnboarding, .payoutTaxInfo, .earningsWithdraw, .payoutHistory:
@@ -601,7 +601,7 @@ extension AppRoute {
 
         case .uploadCover:
             [
-                .init("upload.cover.add", "커버 사진 추가", systemImage: "photo.badge.plus"),
+                .init("upload.cover.add", "마켓 썸네일 추가", systemImage: "photo.badge.plus"),
                 .init("upload.cover.ba.toggle", "자동 비포/애프터 토글", systemImage: "rectangle.split.2x1"),
                 .init("upload.next", "태그와 카테고리", systemImage: "arrow.right", target: .uploadTags)
             ]

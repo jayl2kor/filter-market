@@ -18,6 +18,7 @@ final class MooditStore: ObservableObject {
     var filters: [Filter] { filterLibraryStore.filters }
     var downloadedFilterIDs: Set<Filter.ID> { filterLibraryStore.downloadedFilterIDs }
     var favoriteFilterIDs: Set<Filter.ID> { filterLibraryStore.favoriteFilterIDs }
+    var likedFilterIDs: Set<String> { filterLibraryStore.likedFilterIDs }
     var selectedFilterID: Filter.ID? {
         get { filterLibraryStore.selectedFilterID }
         set { filterLibraryStore.selectedFilterID = newValue }
@@ -84,7 +85,7 @@ final class MooditStore: ObservableObject {
         set { editorDraftStore.makerFilters = newValue }
     }
     /// manifest 로드 실패 시 마지막 에러. UI 는 이 값을 보고 ErrorBanner / FMEmptyState 를 노출.
-    var loadError: Error? { filterLibraryStore.loadError }
+    var loadError: FriendlyError? { filterLibraryStore.loadError }
     /// 로드 진행 상태. skeleton vs 에러 vs 빈 상태 분기에 사용.
     var isLoading: Bool { filterLibraryStore.isLoading }
     /// 마켓 트렌딩 — useCount 내림차순. 비어 있으면 FMEmptyState.
@@ -102,6 +103,7 @@ final class MooditStore: ObservableObject {
     private var notificationPrefsListener: ListenerRegistration?
     private var savedFiltersListener: ListenerRegistration?
     private var favoritesListener: ListenerRegistration?
+    private var likedFiltersListener: ListenerRegistration?
     private var exportRequestsListener: ListenerRegistration?
     private var makerDraftsListener: ListenerRegistration?
     private var editorDraftListener: ListenerRegistration?
@@ -207,6 +209,7 @@ final class MooditStore: ObservableObject {
         notificationPrefsListener?.remove()
         savedFiltersListener?.remove()
         favoritesListener?.remove()
+        likedFiltersListener?.remove()
         exportRequestsListener?.remove()
         makerDraftsListener?.remove()
         editorDraftListener?.remove()
@@ -215,6 +218,7 @@ final class MooditStore: ObservableObject {
         notificationPrefsListener = nil
         savedFiltersListener = nil
         favoritesListener = nil
+        likedFiltersListener = nil
         exportRequestsListener = nil
         makerDraftsListener = nil
         editorDraftListener = nil
@@ -273,6 +277,19 @@ final class MooditStore: ObservableObject {
                 Task { @MainActor in
                     let uuids = snapshot?.documents.compactMap { UUID(uuidString: $0.documentID) } ?? []
                     self.filterLibraryStore.setFavoriteFilterIDs(Set(uuids))
+                }
+            }
+
+        likedFiltersListener = db.collectionGroup("likes")
+            .whereField("uid", isEqualTo: uid)
+            .limit(to: 500)
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self else { return }
+                Task { @MainActor in
+                    let ids = snapshot?.documents.compactMap { document in
+                        document.reference.parent.parent?.documentID
+                    } ?? []
+                    self.filterLibraryStore.setLikedFilterIDs(Set(ids))
                 }
             }
 
@@ -369,7 +386,8 @@ final class MooditStore: ObservableObject {
             tags: data["tags"] as? [String] ?? [],
             parameterValues: data["parameterValues"] as? [String: Double] ?? [:],
             lutFileName: data["lutFileName"] as? String,
-            coverCount: (data["coverCount"] as? Int) ?? 0,
+            coverCount: min(1, max(0, (data["coverCount"] as? Int) ?? 0)),
+            coverPhotoData: nil,
             signatureSampleKind: signatureKindRaw.flatMap(EditorReferenceSampleKind.init(rawValue:)),
             signatureSamplePhotoData: nil,
             beforeAfterEnabled: (data["beforeAfterEnabled"] as? Bool) ?? false,
@@ -584,6 +602,10 @@ final class MooditStore: ObservableObject {
         editorDraftStore.removeUploadCover()
     }
 
+    func setUploadCoverPhotoData(_ data: Data?) {
+        editorDraftStore.setUploadCoverPhotoData(data)
+    }
+
     func setUploadSignatureSampleKind(_ kind: EditorReferenceSampleKind) {
         editorDraftStore.setUploadSignatureSampleKind(kind)
     }
@@ -652,7 +674,7 @@ final class MooditStore: ObservableObject {
             }
         } catch {
             await MainActor.run { [weak self] in
-                self?.lastSubmitErrorMessage = "에디터 초안 동기화 실패: \(error.localizedDescription)"
+                self?.lastSubmitErrorMessage = "에디터 초안 동기화 실패: \(FirestoreErrorMapper.friendlyMessage(for: error))"
             }
         }
     }
@@ -707,8 +729,10 @@ final class MooditStore: ObservableObject {
               draft.hasUserContent else {
             return
         }
+        var normalizedDraft = draft
+        normalizedDraft.coverCount = min(1, max(0, normalizedDraft.coverCount))
         isApplyingRemoteEditorDraft = true
-        editorDraft = draft
+        editorDraft = normalizedDraft
         isApplyingRemoteEditorDraft = false
     }
 

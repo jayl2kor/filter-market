@@ -125,13 +125,23 @@ final class EditorDraftStore: ObservableObject {
 
     func addUploadCover() {
         updateEditorDraft { draft in
-            draft.coverCount = min(6, draft.coverCount + 1)
+            draft.coverCount = 1
         }
     }
 
     func removeUploadCover() {
         updateEditorDraft { draft in
             draft.coverCount = max(0, draft.coverCount - 1)
+            if draft.coverCount == 0 {
+                draft.coverPhotoData = nil
+            }
+        }
+    }
+
+    func setUploadCoverPhotoData(_ data: Data?) {
+        updateEditorDraft { draft in
+            draft.coverPhotoData = data
+            draft.coverCount = data == nil ? 0 : 1
         }
     }
 
@@ -194,12 +204,12 @@ final class EditorDraftStore: ObservableObject {
     }
 
     func startEditing(_ draft: MakerFilterDraft) {
-        editorDraft = draft
+        editorDraft = normalizedDraft(draft)
         uploadStep = .cover
     }
 
     func setMakerFilters(_ drafts: [MakerFilterDraft]) {
-        makerFilters = drafts
+        makerFilters = drafts.map(normalizedDraft)
     }
 
     func makerFilter(matchingRejectionRouteID routeID: String) -> MakerFilterDraft? {
@@ -227,11 +237,21 @@ final class EditorDraftStore: ObservableObject {
     }
 
     private func upsertMakerFilter(_ draft: MakerFilterDraft) {
+        let draft = normalizedDraft(draft)
         if makerFilters.contains(where: { $0.id == draft.id }) {
             makerFilters = makerFilters.map { $0.id == draft.id ? draft : $0 }
         } else {
             makerFilters.insert(draft, at: 0)
         }
+    }
+
+    private func normalizedDraft(_ draft: MakerFilterDraft) -> MakerFilterDraft {
+        var draft = draft
+        draft.coverCount = min(1, max(0, draft.coverCount))
+        if draft.coverCount == 0 {
+            draft.coverPhotoData = nil
+        }
+        return draft
     }
 
     private func persistMakerDraft(_ draft: MakerFilterDraft) {

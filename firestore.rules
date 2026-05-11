@@ -181,8 +181,13 @@ service cloud.firestore {
 
     // User documents and financial subcollections. Cloud Functions use the Admin
     // SDK and bypass these rules; clients may only read their own derived state.
+    //
+    // Parent doc holds only public profile fields (handle, displayName, bio, avatarURL,
+    // counts, etc.). All sensitive data lives in subcollections below, each with their
+    // own isOwner(uid) guard. See docs/USER_DOC_AUDIT.md for the field whitelist + the
+    // tracked follow-up to relocate `reportCount` out of the parent doc.
     match /users/{uid} {
-      allow read: if isOwner(uid);
+      allow read: if true;
       allow write: if false;
 
       match /savedFilters/{filterId} {

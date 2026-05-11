@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseFunctions
 import Testing
 @testable import moodit
 
@@ -145,6 +146,45 @@ struct SessionStoreTests {
         #expect(store.lastSubmitErrorMessage?.contains("프로필 저장 실패") == true)
         #expect(store.editableProfile.avatarURL == nil)
         #expect(store.editableProfile.avatarImageData == nil)
+    }
+
+    @Test("profile save not-found surfaces server maintenance message")
+    func saveProfileNotFoundUsesActionableMessage() async {
+        let store = SessionStore()
+        let notFound = NSError(
+            domain: FunctionsErrorDomain,
+            code: FunctionsErrorCode.notFound.rawValue,
+            userInfo: [NSLocalizedDescriptionKey: "NOT_FOUND"]
+        )
+        store.profileSaveClient = SessionProfileSaveClient(
+            uploadAvatarImageData: { _ in nil },
+            updateProfile: { _ in
+                throw notFound
+            },
+            setHandle: { _ in
+                Issue.record("setHandle should not run after updateProfile failure")
+            }
+        )
+
+        await #expect(throws: NSError.self) {
+            try await store.saveProfile(
+                EditableProfile(
+                    displayName: "Maker",
+                    handle: "maker",
+                    bio: "",
+                    website: "",
+                    makerPageVisible: true,
+                    photoSharingAllowed: false,
+                    avatarVariant: 0,
+                    avatarImageData: nil,
+                    avatarURL: nil
+                )
+            )
+        }
+
+        #expect(store.lastSubmitErrorMessage == "프로필 저장 실패: 네트워크 또는 서버 점검 중이에요. 잠시 후 다시 시도해 주세요.")
+        #expect(store.lastSubmitErrorMessage?.contains("NOT_FOUND") == false)
+        #expect(store.lastProfileSavedAt == nil)
     }
 }
 

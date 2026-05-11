@@ -76,9 +76,17 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     private func configureAppCheckForCurrentProcess() {
         #if DEBUG
-        AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
+        if ProcessInfo.processInfo.environment["MOODIT_USE_APP_CHECK_DEBUG_PROVIDER"] == "1" {
+            AppCheck.setAppCheckProviderFactory(MooditDebugAppCheckProviderFactory())
+        } else {
+            #if targetEnvironment(simulator)
+            AppCheck.setAppCheckProviderFactory(MooditDebugAppCheckProviderFactory())
+            #else
+            AppCheck.setAppCheckProviderFactory(MooditAppCheckProviderFactory())
+            #endif
+        }
         #else
-        AppCheck.setAppCheckProviderFactory(AppAttestProviderFactory())
+        AppCheck.setAppCheckProviderFactory(MooditAppCheckProviderFactory())
         #endif
     }
 
@@ -89,6 +97,25 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(false)
         }
         #endif
+    }
+}
+
+#if DEBUG
+final class MooditDebugAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
+    func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
+        guard let provider = AppCheckDebugProvider(app: app) else { return nil }
+        print("[Moodit/AppCheck] Firebase App Check debug token: \(provider.localDebugToken())")
+        return provider
+    }
+}
+#endif
+
+final class MooditAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
+    func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
+        if #available(iOS 14.0, *) {
+            return AppAttestProvider(app: app)
+        }
+        return DeviceCheckProvider(app: app)
     }
 }
 

@@ -51,7 +51,7 @@ final class SessionStore: ObservableObject {
     }
     @Published var lastSubmitErrorMessage: String?
 
-    private(set) var currentUserID: String?
+    @Published private(set) var currentUserID: String?
 
     private var authStateHandle: AuthStateDidChangeListenerHandle?
     private var notificationPreferencesSaveTask: Task<Void, Never>?
@@ -282,7 +282,13 @@ final class SessionStore: ObservableObject {
 
         do {
             let client = profileSaveClient ?? defaultProfileSaveClient()
-            let avatarUpload = try await client.uploadAvatarImageData(profile.avatarImageData)
+            let avatarUpload: ProfileAvatarUpload?
+            do {
+                avatarUpload = try await client.uploadAvatarImageData(profile.avatarImageData)
+            } catch {
+                recordProfileSaveFailure(error, step: "profileAvatarUploadInit")
+                throw error
+            }
             let avatarURL = avatarUpload?.publicURL ?? profile.avatarURL
             var payload: [String: Any] = [
                 "displayName": profile.displayName,
@@ -300,10 +306,20 @@ final class SessionStore: ObservableObject {
                 payload["avatarObjectKey"] = avatarUpload.objectKey
             }
 
-            try await client.updateProfile(payload)
+            do {
+                try await client.updateProfile(payload)
+            } catch {
+                recordProfileSaveFailure(error, step: "updateProfile")
+                throw error
+            }
 
             if !profile.handle.isEmpty {
-                try await client.setHandle(profile.handle)
+                do {
+                    try await client.setHandle(profile.handle)
+                } catch {
+                    recordProfileSaveFailure(error, step: "setHandle")
+                    throw error
+                }
             }
 
             guard saveProfileGeneration == generation else { return editableProfile }
@@ -320,9 +336,23 @@ final class SessionStore: ObservableObject {
             return savedProfile
         } catch {
             guard saveProfileGeneration == generation else { throw error }
-            lastSubmitErrorMessage = "프로필 저장 실패: \(error.localizedDescription)"
+            lastSubmitErrorMessage = profileSaveFailureMessage(for: error)
             throw error
         }
+    }
+
+    private func recordProfileSaveFailure(_ error: Error, step: String) {
+        Telemetry.record(error: error, context: [
+            "where": "SessionStore.saveProfile",
+            "step": step
+        ])
+    }
+
+    private func profileSaveFailureMessage(for error: Error) -> String {
+        if FirebaseSideEffects.isFunctionNotFound(error) {
+            return "프로필 저장 실패: 네트워크 또는 서버 점검 중이에요. 잠시 후 다시 시도해 주세요."
+        }
+        return "프로필 저장 실패: \(error.localizedDescription)"
     }
 
     private func defaultProfileSaveClient() -> SessionProfileSaveClient {

@@ -1001,6 +1001,10 @@ struct UploadCoverScreen: View {
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @Environment(\.dismiss) private var dismiss
     @State private var showCancelAlert = false
+    @State private var showCoverRemovalConfirmation = false
+    @State private var pendingCoverRemovalIndex: Int?
+    @State private var selectedCoverItem: PhotosPickerItem?
+    @State private var coverLoadError: String?
     @State private var selectedSignatureItem: PhotosPickerItem?
     @State private var signatureLoadError: String?
 
@@ -1008,43 +1012,23 @@ struct UploadCoverScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Sp.lg) {
                 uploadProgress(active: .cover)
-                workflowHeader(
-                    title: "표지 사진 선택",
-                    subtitle: "마켓 카드와 상세 화면에서 보일 샘플 이미지를 고릅니다.",
-                    symbol: "photo.on.rectangle"
-                )
-                coverGrid
+                coverHeader
+                coverSection
                 signatureSampleSection
-                Toggle("자동 비포/애프터 생성", isOn: Binding(
-                    get: { editorDraftStore.editorDraft.beforeAfterEnabled },
-                    set: { value in
-                        editorDraftStore.updateEditorDraft { draft in
-                            draft.beforeAfterEnabled = value
-                        }
-                    }
-                ))
-                    .tint(FMColors.Accent.primary)
-                    .padding(Sp.md)
-                    .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
-                    .accessibilityIdentifier("upload.cover.ba.toggle")
-                NavigationLink(value: AppRoute.uploadTags) {
-                    routeButton("다음", icon: "arrow.right")
-                }
-                .simultaneousGesture(TapGesture().onEnded {
-                    editorDraftStore.saveCurrentUploadDraftIfNeeded()
-                })
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("upload.next")
+                beforeAfterToggle
             }
             .padding(Sp.md)
-            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+            .padding(.bottom, Sp.lg)
         }
         .background(FMColors.Background.bg1)
-        .navigationTitle("커버 업로드")
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            nextActionBar
+        }
+        .navigationTitle("썸네일 업로드")
         .navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled(true)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
+            ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showCancelAlert = true
                 } label: {
@@ -1067,8 +1051,34 @@ struct UploadCoverScreen: View {
         } message: {
             Text("작성한 내용을 임시저장하면 다음에 이어 쓸 수 있어요.")
         }
+        .confirmationDialog("마켓 썸네일을 삭제할까요?", isPresented: $showCoverRemovalConfirmation, titleVisibility: .visible) {
+            Button("삭제", role: .destructive) {
+                if pendingCoverRemovalIndex != nil {
+                    editorDraftStore.removeUploadCover()
+                }
+                pendingCoverRemovalIndex = nil
+            }
+            Button("취소", role: .cancel) {
+                pendingCoverRemovalIndex = nil
+            }
+        } message: {
+            Text("삭제하면 마켓 카드에 표시할 대표 이미지가 비어 있습니다.")
+        }
         .onChange(of: selectedSignatureItem) { _, item in
-            Task { await loadSignatureSample(from: item) }
+            Task {
+                await loadSignatureSample(from: item)
+                await MainActor.run {
+                    selectedSignatureItem = nil
+                }
+            }
+        }
+        .onChange(of: selectedCoverItem) { _, item in
+            Task {
+                await loadCoverPhoto(from: item)
+                await MainActor.run {
+                    selectedCoverItem = nil
+                }
+            }
         }
         .onDisappear {
             editorDraftStore.saveCurrentUploadDraftIfNeeded()
@@ -1081,51 +1091,131 @@ struct UploadCoverScreen: View {
         }
     }
 
-    private var coverGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Sp.sm) {
-            ForEach(0..<editorDraftStore.editorDraft.coverCount, id: \.self) { index in
-                coverTile(index: index)
-            }
-            Button {
-                editorDraftStore.addUploadCover()
-            } label: {
-                VStack(spacing: Sp.xs) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 24, weight: .semibold))
-                    Text("사진 추가")
-                        .fmTypography(.caption)
-                }
+    private var coverHeader: some View {
+        HStack(alignment: .top, spacing: Sp.sm) {
+            Image(systemName: "photo.on.rectangle")
+                .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(FMColors.Accent.primary)
-                .frame(maxWidth: .infinity)
-                .aspectRatio(1, contentMode: .fit)
+                .frame(width: 44, height: 44)
                 .background(FMColors.Accent.bg, in: RoundedRectangle(cornerRadius: R.md))
                 .overlay {
                     RoundedRectangle(cornerRadius: R.md)
-                        .strokeBorder(FMColors.Accent.primary.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [5]))
+                        .strokeBorder(FMColors.Accent.primary.opacity(0.24), lineWidth: 1)
+                }
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: Sp.xs) {
+                Text("썸네일 선택")
+                    .fmTypography(.titleLarge)
+                    .foregroundStyle(FMColors.Text.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("마켓 카드에서 보일 대표 이미지 1장을 고릅니다.")
+                    .fmTypography(.body)
+                    .foregroundStyle(FMColors.Text.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var coverSection: some View {
+        FMCard {
+            VStack(alignment: .leading, spacing: Sp.sm) {
+                sectionLabel("마켓 썸네일")
+                coverThumbnailSlot
+
+                if let coverLoadError {
+                    Text(coverLoadError)
+                        .fmTypography(.caption)
+                        .foregroundStyle(FMColors.Semantic.error)
                 }
             }
-            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private var coverThumbnailSlot: some View {
+        if editorDraftStore.editorDraft.coverCount > 0 {
+            VStack(alignment: .leading, spacing: Sp.sm) {
+                coverTile(index: 0)
+                PhotosPicker(selection: $selectedCoverItem, matching: .images) {
+                    Label("사진 교체", systemImage: "photo.badge.plus")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(FMColors.Accent.primary)
+                }
+                .accessibilityIdentifier("upload.cover.add")
+            }
+        } else {
+            PhotosPicker(selection: $selectedCoverItem, matching: .images) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: R.md)
+                        .fill(FMColors.Accent.bg)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: R.md)
+                                .strokeBorder(FMColors.Accent.primary.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [5]))
+                        }
+
+                    VStack(spacing: Sp.xs) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 24, weight: .semibold))
+                        Text("썸네일 추가")
+                            .font(.caption.weight(.semibold))
+                            .minimumScaleFactor(0.85)
+                    }
+                    .foregroundStyle(FMColors.Accent.primary)
+                }
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1, contentMode: .fit)
+            }
+            .frame(maxWidth: .infinity)
+            .aspectRatio(1, contentMode: .fit)
+            .contentShape(RoundedRectangle(cornerRadius: R.md))
+            .accessibilityLabel("마켓 썸네일 추가")
             .accessibilityIdentifier("upload.cover.add")
         }
     }
 
     private func coverTile(index: Int) -> some View {
         ZStack(alignment: .topTrailing) {
-            RoundedRectangle(cornerRadius: R.md)
-                .fill(LinearGradient(colors: editorDraftStore.editorDraft.category.swatch, startPoint: .topLeading, endPoint: .bottomTrailing))
-                .aspectRatio(1, contentMode: .fit)
-            Button {
-                editorDraftStore.removeUploadCover()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 28, height: 28)
-                    .background(.black.opacity(0.35), in: Circle())
-                    .padding(Sp.xs)
+            ZStack {
+                if let image = coverPreviewImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .clipped()
+                } else {
+                    LinearGradient(colors: editorDraftStore.editorDraft.category.swatch, startPoint: .topLeading, endPoint: .bottomTrailing)
+                }
             }
+            .aspectRatio(1, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: R.md))
+            Button {
+                pendingCoverRemovalIndex = index
+                showCoverRemovalConfirmation = true
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(.black.opacity(0.35))
+                        .frame(width: 28, height: 28)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("마켓 썸네일 제거")
             .accessibilityIdentifier("upload.cover.remove")
+            .padding(2)
         }
+    }
+
+    private var coverPreviewImage: UIImage? {
+        guard let data = editorDraftStore.editorDraft.coverPhotoData else { return nil }
+        return UIImage(data: data)
     }
 
     @ViewBuilder
@@ -1136,11 +1226,13 @@ struct UploadCoverScreen: View {
                 sectionLabel("시그니처 샘플")
                 Spacer()
                 if hasSample {
-                    Button("지우기") {
+                    Button(role: .destructive) {
                         editorDraftStore.clearUploadSignatureSample()
+                    } label: {
+                        Label("지우기", systemImage: "trash")
+                            .font(.caption.weight(.semibold))
                     }
-                    .fmTypography(.caption)
-                    .foregroundStyle(FMColors.Text.tertiary)
+                    .foregroundStyle(FMColors.Semantic.error)
                     .accessibilityIdentifier("upload.signature.clear")
                 }
             }
@@ -1157,8 +1249,8 @@ struct UploadCoverScreen: View {
                     }
                     .accessibilityIdentifier("upload.signature.photo.pick")
 
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: Sp.xs) {
+                    DisclosureGroup {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: Sp.xs)], alignment: .leading, spacing: Sp.xs) {
                             ForEach(EditorReferenceSampleKind.allCases) { kind in
                                 FMChip(
                                     kind.title,
@@ -1171,9 +1263,15 @@ struct UploadCoverScreen: View {
                                 .accessibilityIdentifier("upload.signature.sample.\(kind.rawValue)")
                             }
                         }
+                        .padding(.top, Sp.xs)
+                    } label: {
+                        Label("빠르게 시작하기", systemImage: "sparkles")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(FMColors.Text.secondary)
                     }
+                    .tint(FMColors.Text.secondary)
 
-                    Text("직접 올린 1장 또는 임시 샘플 1장을 상세 갤러리 첫 슬롯 기준으로 사용합니다.")
+                    Text("마켓 썸네일은 정사각형 대표 이미지 1장이고, 시그니처 샘플은 상세 갤러리 첫 슬롯 비율로 보여줍니다.")
                         .fmTypography(.caption)
                         .foregroundStyle(FMColors.Text.tertiary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1188,6 +1286,47 @@ struct UploadCoverScreen: View {
             .padding(Sp.md)
             .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
         }
+    }
+
+    private var beforeAfterToggle: some View {
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            Toggle("자동 비포/애프터 생성", isOn: Binding(
+                get: { editorDraftStore.editorDraft.beforeAfterEnabled },
+                set: { value in
+                    editorDraftStore.updateEditorDraft { draft in
+                        draft.beforeAfterEnabled = value
+                    }
+                }
+            ))
+            .tint(FMColors.Accent.primary)
+
+            Text("최근 편집과 원본을 비교한 슬라이드를 자동으로 만들어 갤러리에 추가합니다.")
+                .fmTypography(.caption)
+                .foregroundStyle(FMColors.Text.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(Sp.md)
+        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+        .accessibilityIdentifier("upload.cover.ba.toggle")
+    }
+
+    private var nextActionBar: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(FMColors.Border.subtle)
+                .frame(height: 0.5)
+            NavigationLink(value: AppRoute.uploadTags) {
+                routeButton("다음", icon: "arrow.right")
+            }
+            .simultaneousGesture(TapGesture().onEnded {
+                editorDraftStore.saveCurrentUploadDraftIfNeeded()
+            })
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("upload.next")
+            .padding(.horizontal, Sp.md)
+            .padding(.vertical, Sp.sm)
+        }
+        .background(FMColors.Background.bg1)
     }
 
     private var hasSignatureSample: Bool {
@@ -1230,6 +1369,25 @@ struct UploadCoverScreen: View {
             return UIImage(data: EditorReferenceSampleImage.makeJPEGData(kind: kind))
         }
         return nil
+    }
+
+    @MainActor
+    private func loadCoverPhoto(from item: PhotosPickerItem?) async {
+        guard let item else { return }
+        do {
+            guard
+                let data = try await item.loadTransferable(type: Data.self),
+                let image = UIImage(data: data),
+                let normalized = EditorReferenceSampleImage.normalizedJPEGData(from: image)
+            else {
+                coverLoadError = "사진 데이터를 읽지 못했어요."
+                return
+            }
+            editorDraftStore.setUploadCoverPhotoData(normalized)
+            coverLoadError = nil
+        } catch {
+            coverLoadError = "사진을 불러오지 못했어요."
+        }
     }
 
     @MainActor
@@ -1468,7 +1626,7 @@ struct UploadTOSSubmitScreen: View {
                 workflowDivider()
                 summaryRow("카테고리", value: editorDraftStore.editorDraft.category.displayTitle)
                 workflowDivider()
-                summaryRow("커버", value: "\(editorDraftStore.editorDraft.coverCount)장")
+                summaryRow("마켓 썸네일", value: editorDraftStore.editorDraft.coverCount > 0 ? "1장" : "없음")
                 workflowDivider()
                 summaryRow("시그니처 샘플", value: signatureSummary)
                 workflowDivider()

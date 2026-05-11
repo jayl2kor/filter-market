@@ -192,6 +192,45 @@ public final class CameraSession: NSObject, @unchecked Sendable {
         }
     }
 
+    /// 결과는 실제 디바이스에서 적용된 zoom factor (클램프 적용된 값).
+    @discardableResult
+    public func setZoom(_ factor: CGFloat) async throws -> CGFloat {
+        guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else {
+            throw CameraSessionError.permissionDenied
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            sessionQueue.async { [weak self] in
+                guard let self else {
+                    continuation.resume(throwing: CameraSessionError.sessionUnavailable)
+                    return
+                }
+                do {
+                    try configureIfNeeded()
+                    let applied = try applyZoom(factor)
+                    continuation.resume(returning: applied)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// (min, max) 줌 배율. 활성 디바이스가 없으면 nil. 너무 큰 디지털 줌 폭주를 막기 위해 max 는 10× 로 캡.
+    public func zoomBounds() async -> (min: CGFloat, max: CGFloat)? {
+        await withCheckedContinuation { continuation in
+            sessionQueue.async { [weak self] in
+                guard let device = self?.videoInput?.device else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                let minFactor = device.minAvailableVideoZoomFactor
+                let maxFactor = min(device.activeFormat.videoMaxZoomFactor, 10.0)
+                continuation.resume(returning: (minFactor, maxFactor))
+            }
+        }
+    }
+
     public func capturePhoto() async throws -> CapturedPhoto {
         guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else {
             throw CameraSessionError.permissionDenied
@@ -352,6 +391,24 @@ public final class CameraSession: NSObject, @unchecked Sendable {
         if device.isSubjectAreaChangeMonitoringEnabled == false {
             device.isSubjectAreaChangeMonitoringEnabled = true
         }
+    }
+
+    @discardableResult
+    private func applyZoom(_ factor: CGFloat) throws -> CGFloat {
+        guard let device = videoInput?.device else {
+            throw CameraSessionError.noVideoDevice
+        }
+
+        let minFactor = device.minAvailableVideoZoomFactor
+        let maxFactor = min(device.activeFormat.videoMaxZoomFactor, 10.0)
+        let clamped = min(max(factor, minFactor), maxFactor)
+
+        try device.lockForConfiguration()
+        defer {
+            device.unlockForConfiguration()
+        }
+        device.videoZoomFactor = clamped
+        return clamped
     }
 }
 

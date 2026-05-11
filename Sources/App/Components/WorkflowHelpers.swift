@@ -161,18 +161,29 @@ func workflowDivider() -> some View {
 func uploadProgress(active: UploadStep) -> some View {
     HStack(spacing: Sp.xs) {
         ForEach(UploadStep.allCases) { step in
+            let state = uploadStepVisualState(step, active: active)
             VStack(spacing: 4) {
                 Circle()
-                    .fill(uploadStepIndex(step) <= uploadStepIndex(active) ? FMColors.Accent.primary : FMColors.Background.bg3)
+                    .fill(state.fill)
                     .frame(width: 26, height: 26)
                     .overlay {
-                        Text("\(uploadStepIndex(step) + 1)")
-                            .fmTypography(.caption)
-                            .foregroundStyle(uploadStepIndex(step) <= uploadStepIndex(active) ? .white : FMColors.Text.tertiary)
+                        Circle()
+                            .strokeBorder(state.border, lineWidth: state.borderWidth)
+                    }
+                    .overlay {
+                        if state == .completed {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.white)
+                        } else {
+                            Text("\(uploadStepIndex(step) + 1)")
+                                .fmTypography(.caption)
+                                .foregroundStyle(state.textColor)
+                        }
                     }
                 Text(step.title)
                     .fmTypography(.caption)
-                    .foregroundStyle(step == active ? FMColors.Text.primary : FMColors.Text.tertiary)
+                    .foregroundStyle(state.labelColor)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity)
@@ -181,8 +192,67 @@ func uploadProgress(active: UploadStep) -> some View {
     .padding(Sp.sm)
     .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel("업로드 \(UploadStep.allCases.count)단계 중 \(uploadStepIndex(active) + 1)단계")
-    .accessibilityValue(active.title)
+    .accessibilityLabel("\(UploadStep.allCases.count)단계 중 \(uploadStepIndex(active) + 1)단계: \(active.title)")
+}
+
+private enum UploadStepVisualState {
+    case completed
+    case current
+    case future
+
+    var fill: Color {
+        switch self {
+        case .completed, .current:
+            return FMColors.Accent.primary
+        case .future:
+            return .clear
+        }
+    }
+
+    var border: Color {
+        switch self {
+        case .completed, .current:
+            return .clear
+        case .future:
+            return FMColors.Border.default
+        }
+    }
+
+    var borderWidth: CGFloat {
+        self == .future ? 1 : 0
+    }
+
+    var textColor: Color {
+        switch self {
+        case .completed, .current:
+            return .white
+        case .future:
+            return FMColors.Text.tertiary
+        }
+    }
+
+    var labelColor: Color {
+        switch self {
+        case .current:
+            return FMColors.Text.primary
+        case .completed:
+            return FMColors.Text.secondary
+        case .future:
+            return FMColors.Text.tertiary
+        }
+    }
+}
+
+private func uploadStepVisualState(_ step: UploadStep, active: UploadStep) -> UploadStepVisualState {
+    let index = uploadStepIndex(step)
+    let activeIndex = uploadStepIndex(active)
+    if index < activeIndex {
+        return .completed
+    }
+    if index == activeIndex {
+        return .current
+    }
+    return .future
 }
 
 func uploadStepIndex(_ step: UploadStep) -> Int {

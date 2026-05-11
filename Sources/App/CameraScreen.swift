@@ -58,6 +58,8 @@ struct CameraScreen: View {
     /// 셔터 → `controller.capture` 가 nil 을 반환했을 때의 사용자용 에러 메시지.
     /// `.fmAlert` 의 `isPresented` 와 binding 되며, 닫힐 때 nil 로 리셋된다.
     @State private var captureError: String?
+    @State private var pinchBaseZoom: CGFloat = 1.0
+    @State private var isPinching = false
 
     /// fullScreenCover 로 띄울 때 닫기 버튼을 노출할지 여부.
     /// RootShell 의 셔터 탭에서 띄울 때만 true.
@@ -124,9 +126,6 @@ struct CameraScreen: View {
                     topBar
                         .padding(.horizontal, Sp.md)
                         .padding(.top, Sp.sm)
-
-                    aspectRatioMenu
-                        .padding(.top, Sp.xs)
 
                     Spacer(minLength: 0)
 
@@ -228,45 +227,50 @@ struct CameraScreen: View {
     // MARK: - Top bar
 
     private func cameraUnavailableOverlay(message: String) -> some View {
-        VStack(spacing: Sp.sm) {
-            Image(systemName: "camera.badge.ellipsis")
-                .font(.system(size: 32, weight: .semibold))
-                .foregroundStyle(FMColors.Accent.primary)
-                .frame(width: 56, height: 56)
-                .background(Color.black.opacity(0.55), in: Circle())
-                .overlay {
-                    Circle()
-                        .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+        GeometryReader { proxy in
+            let frame = guideFrame(for: proxy.size, aspectRatio: controller.cropAspectRatio)
+            let maxCardWidth = max(frame.width - Sp.xl, 240)
+
+            VStack(spacing: Sp.xs) {
+                HStack(spacing: Sp.xs) {
+                    Image(systemName: "camera.badge.ellipsis")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(FMColors.Accent.primary)
+                    Text(message)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
 
-            Text(message)
-                .font(.headline)
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .shadow(color: .black.opacity(0.65), radius: 2, y: 1)
-
-            Button {
-                FMHaptic.light.play()
-                isPhotoImportPresented = true
-            } label: {
-                Label("사진 라이브러리에서 가져오기", systemImage: "photo.on.rectangle")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, Sp.md)
-                    .frame(minHeight: 44)
-                    .background(FMColors.Accent.primary, in: Capsule())
+                Button {
+                    FMHaptic.light.play()
+                    isPhotoImportPresented = true
+                } label: {
+                    Label("사진 라이브러리에서 가져오기", systemImage: "photo.on.rectangle")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.black)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .padding(.horizontal, Sp.sm)
+                        .padding(.vertical, 8)
+                        .background(FMColors.Accent.primary, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("camera.unavailable.import")
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("camera.unavailable.import")
+            .padding(.horizontal, Sp.md)
+            .padding(.vertical, Sp.sm)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: R.lg))
+            .background(Color.black.opacity(0.35), in: RoundedRectangle(cornerRadius: R.lg))
+            .overlay {
+                RoundedRectangle(cornerRadius: R.lg)
+                    .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.45), radius: 10, y: 4)
+            .frame(maxWidth: maxCardWidth)
+            .position(x: proxy.size.width / 2, y: frame.midY)
         }
-        .padding(Sp.md)
-        .background(Color.black.opacity(0.5), in: RoundedRectangle(cornerRadius: R.lg))
-        .overlay {
-            RoundedRectangle(cornerRadius: R.lg)
-                .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
-        }
-        .padding(.horizontal, Sp.xl)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("camera.unavailable")
     }
@@ -288,6 +292,7 @@ struct CameraScreen: View {
 
             HStack(spacing: Sp.xs) {
                 timerButton
+                aspectRatioButton
                 gridButton
                 flashMenu
                 frostedIconButton(systemName: "camera.rotate", label: "전후면 전환") {
@@ -314,46 +319,42 @@ struct CameraScreen: View {
         .colorScheme(.dark)
     }
 
-    private var aspectRatioMenu: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Sp.xs) {
-                ForEach(PhotoCropAspectRatio.allCases) { aspectRatio in
-                    aspectRatioChip(aspectRatio)
+    private var aspectRatioButton: some View {
+        Menu {
+            ForEach(PhotoCropAspectRatio.allCases) { ratio in
+                Button {
+                    selectAspectRatio(ratio)
+                } label: {
+                    if ratio == cameraStateStore.aspectRatio {
+                        Label(ratio.label, systemImage: "checkmark")
+                    } else {
+                        Text(ratio.label)
+                    }
                 }
+                .accessibilityIdentifier("camera.aspectRatio.\(aspectIdentifier(ratio))")
             }
-            .padding(.horizontal, Sp.md)
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "aspectratio")
+                    .font(.system(size: 13, weight: .semibold))
+                Text(cameraStateStore.aspectRatio.label)
+                    .font(.cameraOverlayCaptionMonospaced)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+            .foregroundStyle(FMColors.Text.inverse)
+            .frame(minWidth: 56, minHeight: 44)
+            .padding(.horizontal, Sp.xs)
+            .background(Color.black.opacity(0.64), in: Capsule())
+            .overlay {
+                Capsule()
+                    .strokeBorder(Color.white.opacity(0.28), lineWidth: 1)
+            }
+            .colorScheme(.dark)
         }
         .accessibilityIdentifier("camera.aspectRatio")
-        .accessibilityElement(children: .contain)
-    }
-
-    private func aspectRatioChip(_ aspectRatio: PhotoCropAspectRatio) -> some View {
-        let isSelected = aspectRatio == cameraStateStore.aspectRatio
-        return Button {
-            selectAspectRatio(aspectRatio)
-        } label: {
-            Text(aspectRatio.label)
-                .font(.cameraOverlayCaption)
-                .tracking(0.3)
-                .foregroundStyle(isSelected ? FMColors.Text.inverse : Color.white.opacity(0.88))
-                .frame(minWidth: 52, minHeight: 36)
-                .padding(.horizontal, Sp.xs)
-                .background(
-                    isSelected ? FMColors.Accent.primary.opacity(0.92) : Color.black.opacity(0.54),
-                    in: Capsule()
-                )
-                .overlay {
-                    Capsule()
-                        .strokeBorder(isSelected ? Color.white.opacity(0.24) : Color.white.opacity(0.28), lineWidth: 1)
-                }
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("camera.aspectRatio.\(aspectIdentifier(aspectRatio))")
-        .accessibilityLabel("비율 \(aspectRatio.label) 선택")
-        .accessibilityValue(isSelected ? "현재 비율" : "선택 안 됨")
+        .accessibilityLabel("비율 \(cameraStateStore.aspectRatio.label)")
         .accessibilityHint("뷰파인더의 비율을 변경합니다")
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
-        .colorScheme(.dark)
     }
 
     private func selectAspectRatio(_ aspectRatio: PhotoCropAspectRatio) {
@@ -659,6 +660,7 @@ struct CameraScreen: View {
                         }
                 )
                 .simultaneousGesture(filterSwipeGesture(width: size.width))
+                .simultaneousGesture(pinchZoomGesture())
                 .overlay {
                     if let focusIndicator {
                         FocusReticle()
@@ -668,6 +670,22 @@ struct CameraScreen: View {
                 }
         }
         .ignoresSafeArea()
+    }
+
+    private func pinchZoomGesture() -> some Gesture {
+        MagnificationGesture(minimumScaleDelta: 0.01)
+            .onChanged { scale in
+                if !isPinching {
+                    isPinching = true
+                    pinchBaseZoom = controller.zoomFactor
+                }
+                controller.setZoom(pinchBaseZoom * scale)
+            }
+            .onEnded { _ in
+                isPinching = false
+                pinchBaseZoom = controller.zoomFactor
+                FMHaptic.light.play()
+            }
     }
 
     // MARK: - Aspect guide
@@ -775,8 +793,10 @@ struct CameraScreen: View {
 
     private var bottomStack: some View {
         VStack(spacing: Sp.sm) {
-            currentFilterLabel
-            intensitySlider
+            if controller.previewUnavailableMessage == nil {
+                currentFilterLabel
+                intensitySlider
+            }
             filterCarousel
             shutterBar
         }
@@ -1125,44 +1145,62 @@ struct CameraScreen: View {
         }
     }
 
+    private var zoomPresets: [CGFloat] {
+        // 디바이스 max 가 2× 미만이면 1× 만 노출 (예: 전면 카메라).
+        controller.maxZoom >= 2.0 ? [1.0, 2.0] : [1.0]
+    }
+
     private var compactZoomControls: some View {
         HStack(spacing: 3) {
-            ForEach([0.5, 1.0, 3.0], id: \.self) { preset in
-                Button {
-                    FMHaptic.selection.play()
-                    cameraStateStore.zoomPreset = preset
-                } label: {
-                    Text(zoomLabel(for: preset))
-                        .font(.cameraOverlayCaptionMonospaced)
-                        .foregroundStyle(cameraStateStore.zoomPreset == preset ? .black : FMColors.Text.inverse)
-                        .frame(width: 36, height: 32)
-                        .background(
-                            cameraStateStore.zoomPreset == preset
-                                ? FMColors.Accent.primary
-                                : Color.black.opacity(0.46),
-                            in: Capsule()
-                        )
-                        .overlay {
-                            Capsule()
-                                .strokeBorder(
-                                    cameraStateStore.zoomPreset == preset
-                                        ? FMColors.Accent.primary.opacity(0.9)
-                                        : Color.white.opacity(0.32),
-                                    lineWidth: cameraStateStore.zoomPreset == preset ? 1.5 : 1
-                                )
-                        }
-                }
-                .buttonStyle(.plain)
-                .frame(minWidth: 44, minHeight: 44)
-                .accessibilityIdentifier("camera.zoom.\(preset)")
+            ForEach(zoomPresets, id: \.self) { preset in
+                zoomPresetButton(preset: preset)
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("줌 배율")
+        .accessibilityValue(zoomLabel(for: controller.zoomFactor))
     }
 
-    private func zoomLabel(for preset: Double) -> String {
-        preset == 1.0 ? "1x" : String(format: "%.1fx", preset)
+    private func zoomPresetButton(preset: CGFloat) -> some View {
+        // 현재 줌 배율이 어떤 프리셋에 가까운지로 활성 표시 (스냅 ±0.1).
+        let isActive = abs(controller.zoomFactor - preset) < 0.1
+        return Button {
+            FMHaptic.selection.play()
+            controller.setZoom(preset)
+        } label: {
+            Text(isActive ? zoomLabel(for: controller.zoomFactor) : "\(Int(preset))×")
+                .font(.cameraOverlayCaptionMonospaced)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .foregroundStyle(isActive ? .black : FMColors.Text.inverse)
+                .frame(width: 40, height: 32)
+                .background(
+                    isActive ? FMColors.Accent.primary : Color.black.opacity(0.46),
+                    in: Capsule()
+                )
+                .overlay {
+                    Capsule()
+                        .strokeBorder(
+                            isActive
+                                ? FMColors.Accent.primary.opacity(0.9)
+                                : Color.white.opacity(0.32),
+                            lineWidth: isActive ? 1.5 : 1
+                        )
+                }
+        }
+        .buttonStyle(.plain)
+        .frame(minWidth: 44, minHeight: 44)
+        .accessibilityIdentifier("camera.zoom.\(Int(preset))x")
+        .accessibilityLabel("\(Int(preset))배율로 설정")
+    }
+
+    private func zoomLabel(for factor: CGFloat) -> String {
+        // 정수에 가까우면 "2×", 아니면 "1.5×".
+        let rounded = (factor * 10).rounded() / 10
+        if abs(rounded - rounded.rounded()) < 0.05 {
+            return "\(Int(rounded.rounded()))×"
+        }
+        return String(format: "%.1f×", rounded)
     }
 
     @MainActor
@@ -1454,7 +1492,6 @@ private enum CameraShutterVisualState: Equatable {
 private enum CameraFilterSwipeResolver {
     static let distanceThreshold: CGFloat = 50
     private static let velocityThreshold: CGFloat = 520
-    private static let fastVelocityThreshold: CGFloat = 950
     private static let maxVisualOffset: CGFloat = 160
 
     static func visualOffset(
@@ -1488,16 +1525,12 @@ private enum CameraFilterSwipeResolver {
         let primaryIntent = abs(velocity) >= velocityThreshold ? velocity : translation
         let direction = primaryIntent < 0 ? 1 : -1
 
-        let steps = swipeSteps(
-            velocity: velocity,
-            predictedEndTranslation: predictedEndTranslation,
-            containerWidth: containerWidth
-        )
+        // 한 번의 제스처는 한 필터만 이동 — 속도/거리와 무관하게 단일 스텝으로 고정.
         return clampedIndex(
             currentIndex: currentIndex,
             filterCount: filterCount,
             direction: direction,
-            steps: steps
+            steps: 1
         )
     }
 
@@ -1510,21 +1543,6 @@ private enum CameraFilterSwipeResolver {
         guard filterCount > 1, direction != 0, steps > 0 else { return nil }
         let targetIndex = currentIndex + (direction * steps)
         return min(max(targetIndex, 0), filterCount - 1)
-    }
-
-    private static func swipeSteps(
-        velocity: CGFloat,
-        predictedEndTranslation: CGFloat,
-        containerWidth: CGFloat
-    ) -> Int {
-        let predictedRatio = abs(predictedEndTranslation) / max(containerWidth, 1)
-        if abs(velocity) >= fastVelocityThreshold || predictedRatio >= 0.85 {
-            return 3
-        }
-        if abs(velocity) >= velocityThreshold || predictedRatio >= 0.55 {
-            return 2
-        }
-        return 1
     }
 }
 
@@ -1763,6 +1781,10 @@ private final class CameraPreviewController: ObservableObject {
     @Published private(set) var cameraPosition = CameraPosition.back
     @Published private(set) var cropAspectRatio = PhotoCropAspectRatio.fourThree
     @Published private(set) var previewUnavailableMessage: String?
+    @Published private(set) var zoomFactor: CGFloat = 1.0
+    @Published private(set) var minZoom: CGFloat = 1.0
+    @Published private(set) var maxZoom: CGFloat = 5.0
+    private var zoomTask: Task<Void, Never>?
 
     let renderer = MetalPreviewRenderer(lutResourceBundle: MarketplaceResources.bundle)
 
@@ -1805,6 +1827,7 @@ private final class CameraPreviewController: ObservableObject {
             previewUnavailableMessage = nil
             statusMessage = renderer.isAvailable ? "Live Metal preview" : "Metal unavailable"
             startMetricsPolling()
+            Task { await refreshZoomBounds() }
         } catch {
             statusMessage = "Camera failed to start"
             previewUnavailableMessage = "카메라를 사용할 수 없어요"
@@ -1832,6 +1855,35 @@ private final class CameraPreviewController: ObservableObject {
             renderer.apply(configuration: FilterRenderConfiguration(filter: activeFilter, intensityValue: intensity))
         } else {
             renderer.setIntensity(intensity)
+        }
+    }
+
+    /// 사용자 입력(핀치/프리셋)에 의한 즉시 반영용. 클램프는 디바이스 한계에 따라 적용된다.
+    /// 다중 호출 시 직전 Task 는 취소되어 디바이스 lock 경합을 피한다.
+    func setZoom(_ factor: CGFloat) {
+        let target = min(max(factor, minZoom), maxZoom)
+        zoomFactor = target
+        zoomTask?.cancel()
+        zoomTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let applied = try await cameraSession.setZoom(target)
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    self.zoomFactor = applied
+                }
+            } catch {
+                // 줌 실패는 사용자 메시지로 띄울 만큼 중요하지 않음. 다음 입력에서 재시도된다.
+            }
+        }
+    }
+
+    private func refreshZoomBounds() async {
+        guard let bounds = await cameraSession.zoomBounds() else { return }
+        await MainActor.run {
+            self.minZoom = bounds.min
+            self.maxZoom = bounds.max
+            self.zoomFactor = min(max(self.zoomFactor, bounds.min), bounds.max)
         }
     }
 
@@ -1882,6 +1934,8 @@ private final class CameraPreviewController: ObservableObject {
             let position = try await cameraSession.switchCamera()
             cameraPosition = position
             statusMessage = position == .front ? "Front camera" : "Back camera"
+            zoomFactor = 1.0
+            await refreshZoomBounds()
         } catch {
             statusMessage = "Camera switch failed"
         }
