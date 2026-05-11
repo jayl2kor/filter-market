@@ -50,6 +50,14 @@ final class ProfileSelfStore: ObservableObject {
     }
 
     func stop() {
+        removeDataListeners()
+        if let authHandle {
+            Auth.auth().removeStateDidChangeListener(authHandle)
+            self.authHandle = nil
+        }
+    }
+
+    private func removeDataListeners() {
         myFiltersListener?.remove()
         savedListener?.remove()
         capturesListener?.remove()
@@ -62,10 +70,6 @@ final class ProfileSelfStore: ObservableObject {
         followingEdgesListener = nil
         derivedFollowingCount = nil
         optimisticFollowingCount = nil
-        if let authHandle {
-            Auth.auth().removeStateDidChangeListener(authHandle)
-            self.authHandle = nil
-        }
     }
 
     func refresh() async {
@@ -119,18 +123,7 @@ final class ProfileSelfStore: ObservableObject {
     }
 
     private func attach(authUser: User?) {
-        myFiltersListener?.remove()
-        savedListener?.remove()
-        capturesListener?.remove()
-        userDocListener?.remove()
-        followingEdgesListener?.remove()
-        myFiltersListener = nil
-        savedListener = nil
-        capturesListener = nil
-        userDocListener = nil
-        followingEdgesListener = nil
-        derivedFollowingCount = nil
-        optimisticFollowingCount = nil
+        removeDataListeners()
 
         guard let authUser else {
             myFilters = []

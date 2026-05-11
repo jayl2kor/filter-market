@@ -103,7 +103,7 @@ struct FavoritesCollectionScreen: View {
     }
 
     private var customCollectionCount: Int {
-        max(0, collections.filter { !$0.isAutoAll }.count)
+        collections.filter { !$0.isAutoAll }.count
     }
 
     // MARK: - Create button
@@ -232,7 +232,8 @@ struct FavoritesCollectionScreen: View {
     }
 
     private func photoMosaic(_ tiles: [CollectionTile]) -> some View {
-        let padded = Array(tiles.prefix(4)) + Array(repeating: CollectionTile.placeholder, count: max(0, 4 - tiles.count))
+        let visible = Array(tiles.prefix(4))
+        let padded = visible + Array(repeating: CollectionTile.placeholder, count: 4 - visible.count)
         return LazyVGrid(
             columns: [GridItem(.flexible(), spacing: 1), GridItem(.flexible(), spacing: 1)],
             spacing: 1
@@ -483,7 +484,6 @@ struct FilterCollection: Identifiable, Hashable {
 
     private static func tiles(for seed: String, count: Int) -> [CollectionTile] {
         let palette: [CollectionTile] = [.cafe, .warm, .vintage, .portrait, .cinematic, .moody, .bw, .cool, .travel, .mountain, .nature, .city, .pastel]
-        guard !palette.isEmpty else { return [] }
         let start = abs(seed.hashValue) % palette.count
         let tileCount = min(4, max(0, count))
         return (0 ..< tileCount).map { palette[(start + $0) % palette.count] }

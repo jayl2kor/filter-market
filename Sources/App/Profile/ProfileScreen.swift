@@ -494,26 +494,6 @@ struct ProfileScreen: View {
         .contentShape(Rectangle())
     }
 
-    private func statItem(value: Int, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 2) {
-                Text(value.fmCompactCount())
-                    .fmTypography(.title)
-                    .foregroundStyle(FMColors.Text.primary)
-                    .fmCounter()
-                Text(label.uppercased())
-                    .fmTypography(.caption)
-                    .fontWeight(.medium)
-                    .tracking(0.4)
-                    .foregroundStyle(FMColors.Text.tertiary)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(label) \(value)")
-    }
-
     private var statDivider: some View {
         Rectangle()
             .fill(FMColors.Border.subtle)
@@ -553,9 +533,7 @@ struct ProfileScreen: View {
                 .accessibilityValue(isFollowingOtherProfile ? "팔로잉" : "팔로우하지 않음")
             }
 
-            Button {
-                shareProfile()
-            } label: {
+            Button(action: shareProfile) {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(FMColors.Text.primary)
@@ -616,15 +594,14 @@ struct ProfileScreen: View {
 
     // MARK: - Grid
 
+    private static let gridColumns = [
+        GridItem(.flexible(), spacing: 4),
+        GridItem(.flexible(), spacing: 4),
+        GridItem(.flexible(), spacing: 4)
+    ]
+
     private var contentGrid: some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: 4),
-                GridItem(.flexible(), spacing: 4),
-                GridItem(.flexible(), spacing: 4)
-            ],
-            spacing: 4
-        ) {
+        LazyVGrid(columns: Self.gridColumns, spacing: 4) {
             ForEach(Array(currentItems.enumerated()), id: \.element.id) { index, item in
                 NavigationLink(value: route(for: item)) {
                     gridTile(item: item)
@@ -695,14 +672,7 @@ struct ProfileScreen: View {
     }
 
     private var loadingGrid: some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: 4),
-                GridItem(.flexible(), spacing: 4),
-                GridItem(.flexible(), spacing: 4)
-            ],
-            spacing: 4
-        ) {
+        LazyVGrid(columns: Self.gridColumns, spacing: 4) {
             ForEach(0..<9, id: \.self) { _ in
                 FMSkeleton.rect(height: 110, cornerRadius: R.sm)
                     .aspectRatio(1, contentMode: .fit)
@@ -725,9 +695,7 @@ struct ProfileScreen: View {
                 .accessibilityIdentifier("profile.settings")
             } else {
                 Menu {
-                    Button {
-                        shareProfile()
-                    } label: {
+                    Button(action: shareProfile) {
                         Label("공유", systemImage: "square.and.arrow.up")
                     }
 

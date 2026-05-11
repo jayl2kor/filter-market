@@ -386,9 +386,7 @@ struct EditProfileScreen: View {
                         "your.username",
                         text: Binding(
                             get: { draft.handle },
-                            set: {
-                                updateHandleInput($0)
-                            }
+                            set: { updateHandleInput($0) }
                         )
                     )
                     .textContentType(.nickname)

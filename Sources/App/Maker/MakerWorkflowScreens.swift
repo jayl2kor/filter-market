@@ -172,7 +172,7 @@ struct FilterEditorScreen: View {
     @State private var showCancelAlert = false
     @State private var selectedReferenceItem: PhotosPickerItem?
     @State private var referenceLoadError: String?
-    @State private var selectedParameterKey: String = EditorAdjustment.exposure.key
+    @State private var selectedParameterKey: String = EditorAdjustment.exposure.rawValue
 
     var body: some View {
         ScrollView {
@@ -373,7 +373,7 @@ struct FilterEditorScreen: View {
                     editorDraftStore.updateEditorParameter(key, value: 0)
                     FMHaptic.light.play()
                 } label: {
-                    Text(parameterSliderValueLabel(value))
+                    Text(parameterFormatted(value))
                         .fmTypography(.caption)
                         .monospacedDigit()
                         .foregroundStyle(isAtZero ? FMColors.Text.tertiary : FMColors.Accent.primary)
@@ -422,7 +422,7 @@ struct FilterEditorScreen: View {
     }
 
     private func parameterStripItem(_ adjustment: EditorAdjustment) -> some View {
-        let key = adjustment.key
+        let key = adjustment.rawValue
         let value = editorDraftStore.editorDraft.parameterValues[key] ?? 0
         let progress = min(1, abs(value))
         let isSelected = selectedParameterKey == key
@@ -498,11 +498,23 @@ struct FilterEditorScreen: View {
         .accessibilityIdentifier("editor.lut")
     }
 
-    private func parameterSliderValueLabel(_ value: Double) -> String {
-        if abs(value) < 0.0001 {
-            return "원본"
-        }
-        return String(format: "%+.2f", value)
+}
+
+private func parameterFormatted(_ value: Double) -> String {
+    abs(value) < 0.0001 ? "원본" : String(format: "%+.2f", value)
+}
+
+@MainActor @ViewBuilder
+private func makerSummaryRow(_ title: String, value: String) -> some View {
+    HStack(alignment: .top) {
+        Text(title)
+            .fmTypography(.subhead)
+            .foregroundStyle(FMColors.Text.secondary)
+        Spacer()
+        Text(value)
+            .fmTypography(.subhead)
+            .foregroundStyle(FMColors.Text.primary)
+            .multilineTextAlignment(.trailing)
     }
 }
 
@@ -514,7 +526,6 @@ private enum EditorAdjustment: String, CaseIterable, Identifiable {
     case vignette
 
     var id: String { rawValue }
-    var key: String { rawValue }
     var title: String { parameterTitle(rawValue) }
 
     var systemImage: String {
@@ -598,7 +609,7 @@ struct EditorParametersScreen: View {
                         ),
                         range: -1...1,
                         label: parameterTitle(key),
-                        valueFormatter: parameterValueLabel
+                        valueFormatter: parameterFormatted
                     )
                     .accessibilityIdentifier("editor.param.slider.\(key)")
                 }
@@ -647,13 +658,6 @@ struct EditorParametersScreen: View {
             }
             .accessibilityIdentifier("editor.lut.card")
         }
-    }
-
-    private func parameterValueLabel(_ value: Double) -> String {
-        if abs(value) < 0.0001 {
-            return "원본"
-        }
-        return String(format: "%+.2f", value)
     }
 
     private var compareCard: some View {
@@ -848,14 +852,15 @@ struct EditorLUTImportScreen: View {
     }
 
     private var validationCard: some View {
-        FMCard {
+        let hasLUT = editorDraftStore.editorDraft.lutFileName != nil
+        return FMCard {
             VStack(alignment: .leading, spacing: Sp.sm) {
                 sectionLabel("검증")
-                validationRow("파일 형식", value: editorDraftStore.editorDraft.lutFileName == nil ? "검증 전" : "Cube LUT", isPassed: editorDraftStore.editorDraft.lutFileName != nil)
+                validationRow("파일 형식", value: hasLUT ? "Cube LUT" : "검증 전", isPassed: hasLUT)
                 workflowDivider()
-                validationRow("권장 크기", value: "33x33x33", isPassed: editorDraftStore.editorDraft.lutFileName != nil)
+                validationRow("권장 크기", value: "33x33x33", isPassed: hasLUT)
                 workflowDivider()
-                validationRow("색공간", value: editorDraftStore.editorDraft.lutFileName == nil ? "검증 전" : "sRGB", isPassed: editorDraftStore.editorDraft.lutFileName != nil)
+                validationRow("색공간", value: hasLUT ? "sRGB" : "검증 전", isPassed: hasLUT)
                 workflowDivider()
                 validationRow("앱 호환성", value: "iOS 17+", isPassed: true)
             }
@@ -1330,7 +1335,8 @@ struct UploadCoverScreen: View {
     }
 
     private var hasSignatureSample: Bool {
-        editorDraftStore.editorDraft.signatureSamplePhotoData != nil || editorDraftStore.editorDraft.signatureSampleKind != nil
+        let draft = editorDraftStore.editorDraft
+        return draft.signatureSamplePhotoData != nil || draft.signatureSampleKind != nil
     }
 
     private var signaturePreview: some View {
@@ -1362,12 +1368,9 @@ struct UploadCoverScreen: View {
     }
 
     private var signaturePreviewImage: UIImage? {
-        if let data = editorDraftStore.editorDraft.signatureSamplePhotoData {
-            return UIImage(data: data)
-        }
-        if let kind = editorDraftStore.editorDraft.signatureSampleKind {
-            return UIImage(data: EditorReferenceSampleImage.makeJPEGData(kind: kind))
-        }
+        let draft = editorDraftStore.editorDraft
+        if let data = draft.signatureSamplePhotoData { return UIImage(data: data) }
+        if let kind = draft.signatureSampleKind { return UIImage(data: EditorReferenceSampleImage.makeJPEGData(kind: kind)) }
         return nil
     }
 
@@ -1622,26 +1625,23 @@ struct UploadTOSSubmitScreen: View {
         FMCard {
             VStack(alignment: .leading, spacing: Sp.sm) {
                 sectionLabel("제출 요약")
-                summaryRow("이름", value: editorDraftStore.editorDraft.name)
+                makerSummaryRow("이름", value: editorDraftStore.editorDraft.name)
                 workflowDivider()
-                summaryRow("카테고리", value: editorDraftStore.editorDraft.category.displayTitle)
+                makerSummaryRow("카테고리", value: editorDraftStore.editorDraft.category.displayTitle)
                 workflowDivider()
-                summaryRow("마켓 썸네일", value: editorDraftStore.editorDraft.coverCount > 0 ? "1장" : "없음")
+                makerSummaryRow("커버", value: "\(editorDraftStore.editorDraft.coverCount)장")
                 workflowDivider()
-                summaryRow("시그니처 샘플", value: signatureSummary)
+                makerSummaryRow("시그니처 샘플", value: signatureSummary)
                 workflowDivider()
-                summaryRow("태그", value: editorDraftStore.editorDraft.tags.map { "#\($0)" }.joined(separator: " "))
+                makerSummaryRow("태그", value: editorDraftStore.editorDraft.tags.map { "#\($0)" }.joined(separator: " "))
             }
         }
     }
 
     private var signatureSummary: String {
-        if editorDraftStore.editorDraft.signatureSamplePhotoData != nil {
-            return "직접 선택"
-        }
-        if let kind = editorDraftStore.editorDraft.signatureSampleKind {
-            return kind.title
-        }
+        let draft = editorDraftStore.editorDraft
+        if draft.signatureSamplePhotoData != nil { return "직접 선택" }
+        if let kind = draft.signatureSampleKind { return kind.title }
         return "없음"
     }
 
@@ -1682,18 +1682,6 @@ struct UploadTOSSubmitScreen: View {
         }
     }
 
-    private func summaryRow(_ title: String, value: String) -> some View {
-        HStack(alignment: .top) {
-            Text(title)
-                .fmTypography(.subhead)
-                .foregroundStyle(FMColors.Text.secondary)
-            Spacer()
-            Text(value)
-                .fmTypography(.subhead)
-                .foregroundStyle(FMColors.Text.primary)
-                .multilineTextAlignment(.trailing)
-        }
-    }
 }
 
 struct UploadPendingReviewScreen: View {
@@ -1719,11 +1707,11 @@ struct UploadPendingReviewScreen: View {
             }
             FMCard {
                 VStack(alignment: .leading, spacing: Sp.sm) {
-                    summaryRow("필터", value: editorDraftStore.editorDraft.name)
+                    makerSummaryRow("필터", value: editorDraftStore.editorDraft.name)
                     workflowDivider()
-                    summaryRow("상태", value: "검수중")
+                    makerSummaryRow("상태", value: "검수중")
                     workflowDivider()
-                    summaryRow("제출", value: workflowDateString(editorDraftStore.editorDraft.submittedAt ?? Date()))
+                    makerSummaryRow("제출", value: workflowDateString(editorDraftStore.editorDraft.submittedAt ?? Date()))
                 }
             }
             NavigationLink(value: AppRoute.myFilters) {
@@ -1744,17 +1732,6 @@ struct UploadPendingReviewScreen: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private func summaryRow(_ title: String, value: String) -> some View {
-        HStack {
-            Text(title)
-                .fmTypography(.subhead)
-                .foregroundStyle(FMColors.Text.secondary)
-            Spacer()
-            Text(value)
-                .fmTypography(.subhead)
-                .foregroundStyle(FMColors.Text.primary)
-        }
-    }
 }
 
 // FilterRejectedScreen — `Sources/App/Moderation/FilterRejectedScreen.swift`
@@ -1765,9 +1742,9 @@ struct MyFiltersScreen: View {
     @State private var showTakedownAlert = false
 
     private var visibleFilters: [MakerFilterDraft] {
-        editorDraftStore.selectedMakerStatus == .all
-            ? editorDraftStore.makerFilters
-            : editorDraftStore.makerFilters.filter { $0.status == editorDraftStore.selectedMakerStatus }
+        let status = editorDraftStore.selectedMakerStatus
+        let filters = editorDraftStore.makerFilters
+        return status == .all ? filters : filters.filter { $0.status == status }
     }
 
     var body: some View {
@@ -1869,15 +1846,16 @@ struct MyFiltersScreen: View {
                     Spacer()
                 }
 
+                let isRejected = draft.status == .rejected
                 HStack(spacing: Sp.sm) {
-                    NavigationLink(value: draft.status == .rejected ? AppRoute.filterRejected(id: draft.id.uuidString) : AppRoute.editor) {
-                        compactRouteButton(draft.status == .rejected ? "검수 결과" : "수정", icon: draft.status == .rejected ? "doc.text" : "slider.horizontal.3")
+                    NavigationLink(value: isRejected ? AppRoute.filterRejected(id: draft.id.uuidString) : AppRoute.editor) {
+                        compactRouteButton(isRejected ? "검수 결과" : "수정", icon: isRejected ? "doc.text" : "slider.horizontal.3")
                     }
                     .simultaneousGesture(TapGesture().onEnded {
                         editorDraftStore.startEditing(draft)
                     })
                     .buttonStyle(.plain)
-                    .accessibilityIdentifier(draft.status == .rejected ? "mod.rejected.review" : "myfilters.row.edit")
+                    .accessibilityIdentifier(isRejected ? "mod.rejected.review" : "myfilters.row.edit")
 
                     Button {
                         selectedDraft = draft
@@ -1903,7 +1881,8 @@ struct MyFiltersScreen: View {
     }
 
     private func count(for status: MakerFilterStatus) -> Int {
-        status == .all ? editorDraftStore.makerFilters.count : editorDraftStore.makerFilters.filter { $0.status == status }.count
+        let filters = editorDraftStore.makerFilters
+        return status == .all ? filters.count : filters.filter { $0.status == status }.count
     }
 }
 

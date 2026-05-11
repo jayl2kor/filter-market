@@ -16,7 +16,7 @@ final class ProfileFollowStateIntegrationTests: XCTestCase {
 
         XCTAssertTrue(social.contains("let relationship = await relationship(for: uid, currentActorUid: FirebaseSideEffects.currentUID, db: db)"))
         XCTAssertTrue(social.contains("document(\"\\(actorUid)_\\(uid)\").getDocument()"))
-        XCTAssertTrue(social.contains("return mode == .followers ? .mutual : .following"))
+        XCTAssertTrue(social.contains("return activeMode == .followers ? .mutual : .following"))
     }
 
     func testProfileFollowingCountDoesNotDependOnlyOnUserDocCounter() throws {
@@ -37,7 +37,7 @@ final class ProfileFollowStateIntegrationTests: XCTestCase {
         XCTAssertTrue(screen.contains("sessionStore.currentUserID"))
         XCTAssertTrue(screen.contains("return \"me\""))
         XCTAssertFalse(screen.contains("return user.handle.replacingOccurrences(of: \"@\", with: \"\")"))
-        XCTAssertTrue(social.contains("return mode == .followers ? \"팔로워\" : \"팔로잉\""))
+        XCTAssertTrue(social.contains("return activeMode == .followers ? \"팔로워\" : \"팔로잉\""))
         XCTAssertFalse(social.contains("@\\(normalizedUserID.prefix(8))"))
         XCTAssertFalse(social.contains("@\\(targetUserID.prefix(8))"))
     }
