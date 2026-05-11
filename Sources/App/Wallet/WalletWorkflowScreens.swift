@@ -150,7 +150,7 @@ struct PaywallSingleScreen: View {
             priceCoins = detail.priceCoins
             loadError = nil
         } catch {
-            loadError = error.localizedDescription
+            loadError = FirestoreErrorMapper.friendlyMessage(for: error)
         }
     }
 
