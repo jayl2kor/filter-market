@@ -16,6 +16,7 @@ struct FilterDetailScreen: View {
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var sessionStore: SessionStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.routeRouter) private var router
 
     private let filter: Filter?
     private let mock: FilterDetailMock
@@ -67,7 +68,6 @@ struct FilterDetailScreen: View {
     var body: some View {
         ZStack(alignment: .top) {
             scrollContent
-                .ignoresSafeArea(edges: .top)
 
             topChromeOverlay
         }
@@ -196,7 +196,8 @@ struct FilterDetailScreen: View {
                     showsBeforeOnly: isBeforeAfterPressed
                 )
 
-                // 라벨
+                // 라벨 — 상단 floating chrome (back/share 버튼, 44pt + safeArea + Sp.sm)
+                // 아래에 위치하도록 충분히 내려서 겹치지 않게.
                 HStack {
                     Text("BEFORE")
                         .font(.system(size: 10, weight: .bold))
@@ -216,7 +217,8 @@ struct FilterDetailScreen: View {
                         .foregroundStyle(FMColors.Accent.primary)
                 }
                 .padding(.horizontal, Sp.sm)
-                .padding(.top, geo.safeAreaInsets.top + 60)
+                .padding(.top, Sp.sm + 44 + Sp.sm)
+                .safeAreaPadding(.top)
                 .frame(maxHeight: .infinity, alignment: .top)
 
                 // 핸들
@@ -333,14 +335,14 @@ struct FilterDetailScreen: View {
         }
 
         if let route = makerProfileRoute {
-            NavigationLink(value: route) {
+            Button {
+                FMHaptic.light.play()
+                Telemetry.trackAction("maker_profile_opened", screen: .filterDetail)
+                router.navigate(to: route)
+            } label: {
                 bylineContent
             }
             .buttonStyle(.plain)
-            .simultaneousGesture(TapGesture().onEnded {
-                FMHaptic.light.play()
-                Telemetry.trackAction("maker_profile_opened", screen: .filterDetail)
-            })
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("filter.detail.maker.link")
             .accessibilityLabel("\(handleText) 프로필 보기")
@@ -419,7 +421,7 @@ struct FilterDetailScreen: View {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text("★")
                     .foregroundStyle(FMColors.Accent.primary)
-                stat(value: String(format: "%.1f", mock.rating), label: "\(mock.reviewCount.fmDecimal()) 리뷰")
+                stat(value: ratingDisplayValue, label: "\(mock.reviewCount.fmDecimal()) 리뷰")
                     .padding(.leading, 2)
             }
             stat(value: mock.likeCount.fmCompactCount(), label: "좋아요")
@@ -857,7 +859,9 @@ struct FilterDetailScreen: View {
                 .foregroundStyle(FMColors.Text.primary)
             Spacer()
             if let more {
-                NavigationLink(value: sectionRoute(for: title)) {
+                Button {
+                    router.navigate(to: sectionRoute(for: title))
+                } label: {
                     Text(more)
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Accent.primary)
@@ -964,6 +968,13 @@ struct FilterDetailScreen: View {
             return nil
         }
         return uid
+    }
+
+    private var ratingDisplayValue: String {
+        if mock.reviewCount == 0 || mock.rating <= 0 {
+            return "—"
+        }
+        return String(format: "%.1f", mock.rating)
     }
 
     private var likeDisplayCount: Int {

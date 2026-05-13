@@ -9,27 +9,37 @@ import UIKit
 
 private struct EditorReferencePreview: View {
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
-    @State private var renderedImage: UIImage?
-    @State private var sourceImage: UIImage?
-    @State private var isRendering = false
+    @State private var renderer = MetalStillPreviewRenderer()
+    @State private var fallbackRenderedImage: UIImage?
+    @State private var fallbackSourceImage: UIImage?
     @State private var showingBefore = false
+    @State private var referenceCache: ReferenceCacheEntry?
+    @State private var decodedReferenceImage: CGImage?
+    @State private var decodedReferenceKey: ReferenceCacheKey?
+    @State private var uploadedReferenceKey: ReferenceCacheKey?
+    @State private var uploadedLUTRevision: Int?
+    @State private var uploadedLUTCategory: FilterCategory?
 
     let height: CGFloat
+    let parameterValues: [String: Double]
+
+    private struct ReferenceCacheEntry: Equatable {
+        let data: Data
+        let revision: Int
+        let sampleKind: EditorReferenceSampleKind
+    }
+
+    private struct ReferenceCacheKey: Equatable {
+        let revision: Int
+        let sampleKind: EditorReferenceSampleKind
+    }
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            if let image = showingBefore ? sourceImage : (renderedImage ?? sourceImage) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
+            if renderer.isAvailable {
+                MetalStillPreviewView(renderer: renderer)
             } else {
-                LinearGradient(
-                    colors: editorDraftStore.editorDraft.category.swatch,
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                fallbackPreview
             }
 
             LinearGradient(colors: [.clear, .black.opacity(0.48)], startPoint: .center, endPoint: .bottom)
@@ -53,7 +63,7 @@ private struct EditorReferencePreview: View {
             .padding(Sp.md)
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            if isRendering && renderedImage == nil {
+            if !renderer.isAvailable && fallbackRenderedImage == nil && fallbackSourceImage == nil {
                 ProgressView()
                     .tint(FMColors.Accent.primary)
                     .padding(Sp.sm)
@@ -78,11 +88,31 @@ private struct EditorReferencePreview: View {
                 showingBefore = isPressing
             }
         )
+        .onChange(of: showingBefore, initial: true) { _, newValue in
+            renderer.setShowOriginal(newValue)
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(showingBefore ? "참조 사진 원본" : "참조 사진 현재 파라미터 적용 결과")
         .accessibilityIdentifier("editor.preview")
-        .task(id: renderKey) {
-            await scheduleRender()
+        .onChange(of: renderKey, initial: true) { _, newKey in
+            updatePreview(for: newKey)
+        }
+    }
+
+    @ViewBuilder
+    private var fallbackPreview: some View {
+        if let image = showingBefore ? fallbackSourceImage : (fallbackRenderedImage ?? fallbackSourceImage) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+        } else {
+            LinearGradient(
+                colors: editorDraftStore.editorDraft.category.swatch,
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         }
     }
 
@@ -101,36 +131,48 @@ private struct EditorReferencePreview: View {
     }
 
     private func quantized(_ key: String) -> Int {
-        Int(((editorDraftStore.editorDraft.parameterValues[key] ?? 0) * 1_000).rounded())
+        Int(((parameterValues[key] ?? 0) * 1_000).rounded())
     }
 
     @MainActor
-    private func scheduleRender() async {
-        try? await Task.sleep(nanoseconds: 16_000_000)
-        guard !Task.isCancelled else { return }
-        await render()
-    }
-
-    @MainActor
-    private func render() async {
-        let referenceData = previewReferenceData()
-        sourceImage = UIImage(data: referenceData)
+    private func updatePreview(for key: EditorPreviewRenderKey) {
+        guard let referenceImage = previewReferenceImage() else { return }
+        let currentKey = ReferenceCacheKey(
+            revision: editorDraftStore.editorReferencePhotoRevision,
+            sampleKind: editorDraftStore.editorReferenceSampleKind
+        )
+        if fallbackSourceImage == nil || uploadedReferenceKey != currentKey {
+            fallbackSourceImage = UIImage(cgImage: referenceImage)
+            fallbackRenderedImage = nil
+            renderer.setSourceImage(referenceImage)
+            uploadedReferenceKey = currentKey
+        }
 
         let sourceLUT = editorDraftStore.editorImportedLUT
             ?? LUT3D.preset(LUTPreset.preset(for: editorDraftStore.editorDraft.category), size: 33)
-        let parameters = editorDraftStore.editorPreviewParameters
-        let grain = editorDraftStore.editorPreviewGrain
-        let vignette = editorDraftStore.editorPreviewVignette
+        if uploadedLUTRevision != key.lutRevision || uploadedLUTCategory != key.category {
+            fallbackRenderedImage = nil
+            renderer.setLUT(sourceLUT)
+            uploadedLUTRevision = key.lutRevision
+            uploadedLUTCategory = key.category
+        }
+        renderer.setParameters(previewParameters, grain: previewGrain, vignette: previewVignette)
 
-        isRendering = true
-        defer { isRendering = false }
+        if !renderer.isAvailable {
+            Task { await renderFallback(referenceImage: referenceImage, sourceLUT: sourceLUT) }
+        }
+    }
 
+    @MainActor
+    private func renderFallback(referenceImage: CGImage, sourceLUT: LUT3D) async {
         do {
+            let parameters = previewParameters
+            let grain = previewGrain
+            let vignette = previewVignette
             let renderedCGImage = try await Task.detached(priority: .userInitiated) {
                 let bakedLUT = LUTBake.bake(sourceLUT: sourceLUT, parameters: parameters)
-                let renderer = PhotoFilterRenderer(jpegCompressionQuality: 0.86)
-                return try renderer.renderImage(
-                    from: referenceData,
+                return try PhotoFilterRenderer(jpegCompressionQuality: 0.86).renderImage(
+                    fromImage: referenceImage,
                     sourceLUT: bakedLUT,
                     intensity: .full,
                     grain: grain,
@@ -138,19 +180,81 @@ private struct EditorReferencePreview: View {
                     cropAspectRatio: nil
                 )
             }.value
-            renderedImage = UIImage(cgImage: renderedCGImage)
+            fallbackRenderedImage = UIImage(cgImage: renderedCGImage)
         } catch {
-            renderedImage = sourceImage
+            fallbackRenderedImage = fallbackSourceImage
         }
     }
 
+    private var previewParameters: EditorParameters {
+        EditorParameters(
+            exposure: Float(parameterValues["exposure"] ?? 0) * 2,
+            contrast: Float(parameterValues["contrast"] ?? 0),
+            saturation: Float(parameterValues["saturation"] ?? 0)
+        )
+    }
+
+    private var previewGrain: Float {
+        max(0, Float(parameterValues["grain"] ?? 0))
+    }
+
+    private var previewVignette: Float {
+        Float(parameterValues["vignette"] ?? 0)
+    }
+
+    @MainActor
+    private func previewReferenceImage() -> CGImage? {
+        let currentKey = ReferenceCacheKey(
+            revision: editorDraftStore.editorReferencePhotoRevision,
+            sampleKind: editorDraftStore.editorReferenceSampleKind
+        )
+        if let cached = decodedReferenceImage, decodedReferenceKey == currentKey {
+            return cached
+        }
+        let data = previewReferenceData()
+        guard let image = try? PhotoFilterRenderer().decodeAndNormalize(data) else {
+            return nil
+        }
+        decodedReferenceImage = image
+        decodedReferenceKey = currentKey
+        return image
+    }
+
     private func previewReferenceData() -> Data {
-        if let data = editorDraftStore.editorReferencePhotoData,
-           let image = UIImage(data: data),
-           let resized = EditorReferenceSampleImage.normalizedJPEGData(from: image, maxLongEdge: 800) {
+        let currentRevision = editorDraftStore.editorReferencePhotoRevision
+        let currentKind = editorDraftStore.editorReferenceSampleKind
+        if let cached = referenceCache,
+           cached.revision == currentRevision,
+           cached.sampleKind == currentKind {
+            return cached.data
+        }
+        let fresh = computeReferenceData()
+        referenceCache = ReferenceCacheEntry(
+            data: fresh,
+            revision: currentRevision,
+            sampleKind: currentKind
+        )
+        return fresh
+    }
+
+    private func computeReferenceData() -> Data {
+        let previewMaxLongEdge: CGFloat = 1440
+        let baseData: Data
+        if let data = editorDraftStore.editorReferencePhotoData {
+            baseData = data
+        } else {
+            baseData = EditorReferenceSampleImage.makeJPEGData(
+                kind: editorDraftStore.editorReferenceSampleKind
+            )
+        }
+        if let image = UIImage(data: baseData),
+           let resized = EditorReferenceSampleImage.normalizedJPEGData(
+               from: image,
+               maxLongEdge: previewMaxLongEdge
+           ) {
             return resized
         }
-        return EditorReferenceSampleImage.makeJPEGData(kind: editorDraftStore.editorReferenceSampleKind)
+        return baseData
     }
 }
 
@@ -173,23 +277,23 @@ struct FilterEditorScreen: View {
     @State private var selectedReferenceItem: PhotosPickerItem?
     @State private var referenceLoadError: String?
     @State private var selectedParameterKey: String = EditorAdjustment.exposure.rawValue
+    @State private var liveParameterValues: [String: Double] = [:]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Sp.lg) {
+        GeometryReader { proxy in
+            VStack(alignment: .leading, spacing: Sp.sm) {
                 makerProgress(active: .edit)
-                editorPreview
-                referenceSourceControls
+                editorPreview(height: computedPreviewHeight(in: proxy))
+                referenceQuickRow
+                Spacer(minLength: 0)
             }
-            .padding(Sp.md)
-            .padding(.bottom, Sp.md)
+            .padding(.horizontal, Sp.md)
+            .padding(.top, Sp.sm)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .background(FMColors.Background.bg1)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 0) {
-                adjustmentDock
-                stickyContinueBar
-            }
+            adjustmentDock
         }
         .navigationTitle("필터 에디터")
         .navigationBarTitleDisplayMode(.inline)
@@ -210,6 +314,7 @@ struct FilterEditorScreen: View {
                         .fontWeight(.semibold)
                 }
                 .simultaneousGesture(TapGesture().onEnded {
+                    commitLiveParameters()
                     editorDraftStore.saveEditorDraft()
                 })
                 .accessibilityIdentifier("editor.next")
@@ -220,6 +325,7 @@ struct FilterEditorScreen: View {
             isPresented: $showCancelAlert
         ) {
             Button("임시 저장") {
+                commitLiveParameters()
                 editorDraftStore.saveEditorDraft()
                 dismiss()
             }
@@ -236,8 +342,8 @@ struct FilterEditorScreen: View {
         }
     }
 
-    private var editorPreview: some View {
-        EditorReferencePreview(height: 360)
+    private func editorPreview(height: CGFloat) -> some View {
+        EditorReferencePreview(height: height, parameterValues: currentParameterValues)
             .overlay(alignment: .topTrailing) {
                 Label("길게 눌러 비교", systemImage: "rectangle.lefthalf.filled")
                     .font(.caption2.weight(.semibold))
@@ -250,28 +356,60 @@ struct FilterEditorScreen: View {
             }
     }
 
+    /// 사용 가능한 세로 공간에서 progress / quick row / spacing 을 제외한 프리뷰 높이.
+    /// iPhone SE(2nd gen, ~480pt 콘텐츠) 에서도 최소 240pt 보장.
+    private func computedPreviewHeight(in proxy: GeometryProxy) -> CGFloat {
+        let makerProgressHeight: CGFloat = 28
+        let referenceRowHeight: CGFloat = 60
+        let spacings: CGFloat = Sp.sm * 3
+        let topPadding: CGFloat = Sp.sm
+        let reserved = makerProgressHeight + referenceRowHeight + spacings + topPadding
+        let candidate = proxy.size.height - reserved
+        return max(240, min(candidate, 520))
+    }
+
     @ViewBuilder
-    private var referenceSourceControls: some View {
+    private var referenceQuickRow: some View {
         let hasReferencePhoto = editorDraftStore.editorReferencePhotoData != nil
-        VStack(alignment: .leading, spacing: Sp.sm) {
-            HStack(spacing: Sp.sm) {
-                sectionLabel("참조 사진")
-                Spacer()
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: Sp.xs) {
                 PhotosPicker(selection: $selectedReferenceItem, matching: .images) {
-                    Label(hasReferencePhoto ? "사진 교체" : "사진 선택", systemImage: "photo.badge.plus")
-                        .font(.caption.weight(.semibold))
+                    Image(systemName: hasReferencePhoto ? "photo.fill" : "photo.badge.plus")
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(FMColors.Accent.primary)
+                        .frame(width: 44, height: 36)
+                        .background(FMColors.Accent.bg, in: Capsule())
+                        .contentShape(Capsule())
                 }
+                .accessibilityLabel(hasReferencePhoto ? "참조 사진 교체" : "참조 사진 선택")
                 .accessibilityIdentifier("editor.reference.photo.pick")
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: Sp.xs) {
+                        ForEach(EditorReferenceSampleKind.allCases) { kind in
+                            FMChip(
+                                kind.title,
+                                isSelected: !hasReferencePhoto && editorDraftStore.editorReferenceSampleKind == kind,
+                                size: .sm
+                            ) {
+                                editorDraftStore.setEditorReferenceSampleKind(kind)
+                                FMHaptic.selection.play()
+                            }
+                            .accessibilityIdentifier("editor.reference.sample.\(kind.rawValue)")
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                .frame(maxWidth: .infinity)
 
                 if hasReferencePhoto {
                     Button {
                         editorDraftStore.setEditorReferencePhotoData(nil)
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 20, weight: .regular))
+                            .font(.system(size: 18, weight: .regular))
                             .foregroundStyle(FMColors.Text.tertiary)
-                            .frame(width: 44, height: 44)
+                            .frame(width: 36, height: 36)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -279,21 +417,7 @@ struct FilterEditorScreen: View {
                     .accessibilityIdentifier("editor.reference.photo.clear")
                 }
             }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Sp.xs) {
-                    ForEach(EditorReferenceSampleKind.allCases) { kind in
-                        FMChip(
-                            kind.title,
-                            isSelected: !hasReferencePhoto && editorDraftStore.editorReferenceSampleKind == kind
-                        ) {
-                            editorDraftStore.setEditorReferenceSampleKind(kind)
-                            FMHaptic.selection.play()
-                        }
-                        .accessibilityIdentifier("editor.reference.sample.\(kind.rawValue)")
-                    }
-                }
-            }
+            .frame(height: 40)
 
             if let referenceLoadError {
                 Text(referenceLoadError)
@@ -324,29 +448,22 @@ struct FilterEditorScreen: View {
         }
     }
 
-    private var stickyContinueBar: some View {
-        VStack(spacing: 0) {
-            Rectangle()
-                .fill(FMColors.Border.subtle)
-                .frame(height: 0.5)
-            NavigationLink(value: AppRoute.uploadCover) {
-                routeButton("마켓 공유로 계속", icon: "arrow.right")
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("editor.next")
-            .padding(.horizontal, Sp.md)
-            .padding(.vertical, Sp.sm)
-        }
-        .background(FMColors.Background.bg1)
-    }
-
     private var adjustmentDock: some View {
-        VStack(spacing: Sp.md) {
+        VStack(spacing: Sp.sm) {
             adjustmentSliderRow
+                .padding(.horizontal, Sp.sm)
+                .padding(.vertical, 6)
+                .background(FMColors.Background.bg1)
+                .clipShape(RoundedRectangle(cornerRadius: R.md))
+                .overlay {
+                    RoundedRectangle(cornerRadius: R.md)
+                        .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+                }
+                .shadow(color: Color.black.opacity(0.04), radius: 1, x: 0, y: 1)
             parameterStrip
         }
         .padding(.horizontal, Sp.md)
-        .padding(.top, Sp.md)
+        .padding(.top, Sp.sm)
         .padding(.bottom, Sp.sm)
         .background(FMColors.Background.bg2)
         .overlay(alignment: .top) {
@@ -359,9 +476,9 @@ struct FilterEditorScreen: View {
 
     private var adjustmentSliderRow: some View {
         let key = selectedParameterKey
-        let value = editorDraftStore.editorDraft.parameterValues[key] ?? 0
+        let value = liveValue(for: key)
         let isAtZero = abs(value) < 0.0001
-        return VStack(alignment: .leading, spacing: Sp.xs) {
+        return VStack(alignment: .leading, spacing: Sp.xxs) {
             HStack {
                 Text(parameterTitle(key))
                     .fmTypography(.subhead)
@@ -370,7 +487,9 @@ struct FilterEditorScreen: View {
                 Spacer()
                 Button {
                     guard !isAtZero else { return }
+                    setLiveParameter(key, value: 0)
                     editorDraftStore.updateEditorParameter(key, value: 0)
+                    liveParameterValues.removeValue(forKey: key)
                     FMHaptic.light.play()
                 } label: {
                     Text(parameterFormatted(value))
@@ -378,7 +497,7 @@ struct FilterEditorScreen: View {
                         .monospacedDigit()
                         .foregroundStyle(isAtZero ? FMColors.Text.tertiary : FMColors.Accent.primary)
                         .padding(.horizontal, Sp.sm)
-                        .frame(minHeight: 28)
+                        .frame(minHeight: 24)
                         .background(
                             isAtZero ? Color.clear : FMColors.Accent.bg,
                             in: Capsule()
@@ -392,12 +511,18 @@ struct FilterEditorScreen: View {
             }
             FMSlider(
                 value: Binding(
-                    get: { editorDraftStore.editorDraft.parameterValues[key] ?? 0 },
-                    set: { editorDraftStore.updateEditorParameter(key, value: $0) }
+                    get: { liveValue(for: key) },
+                    set: { setLiveParameter(key, value: $0) }
                 ),
                 range: -1...1,
                 label: nil,
-                showValue: false
+                showValue: false,
+                trackHeight: 44,
+                onEditingChanged: { editing in
+                    if !editing {
+                        commitLiveParameter(key)
+                    }
+                }
             )
             .id(key)
             .accessibilityIdentifier("editor.param.slider.\(key)")
@@ -423,7 +548,7 @@ struct FilterEditorScreen: View {
 
     private func parameterStripItem(_ adjustment: EditorAdjustment) -> some View {
         let key = adjustment.rawValue
-        let value = editorDraftStore.editorDraft.parameterValues[key] ?? 0
+        let value = liveValue(for: key)
         let progress = min(1, abs(value))
         let isSelected = selectedParameterKey == key
         return Button {
@@ -451,6 +576,7 @@ struct FilterEditorScreen: View {
                     .fmTypography(.caption)
                     .foregroundStyle(isSelected ? FMColors.Text.primary : FMColors.Text.tertiary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
             .frame(width: 64)
             .contentShape(Rectangle())
@@ -458,7 +584,9 @@ struct FilterEditorScreen: View {
         .buttonStyle(.plain)
         .simultaneousGesture(
             TapGesture(count: 2).onEnded {
+                setLiveParameter(key, value: 0)
                 editorDraftStore.updateEditorParameter(key, value: 0)
+                liveParameterValues.removeValue(forKey: key)
                 selectedParameterKey = key
                 FMHaptic.light.play()
             }
@@ -496,6 +624,33 @@ struct FilterEditorScreen: View {
         .buttonStyle(.plain)
         .accessibilityLabel(hasCustomLUT ? "LUT 가져오기, 사용자 LUT 적용됨" : "LUT 가져오기")
         .accessibilityIdentifier("editor.lut")
+    }
+
+    private var currentParameterValues: [String: Double] {
+        var values = editorDraftStore.editorDraft.parameterValues
+        values.merge(liveParameterValues) { _, live in live }
+        return values
+    }
+
+    private func liveValue(for key: String) -> Double {
+        liveParameterValues[key] ?? editorDraftStore.editorDraft.parameterValues[key] ?? 0
+    }
+
+    private func setLiveParameter(_ key: String, value: Double) {
+        liveParameterValues[key] = value
+    }
+
+    private func commitLiveParameter(_ key: String) {
+        guard let value = liveParameterValues[key] else { return }
+        editorDraftStore.updateEditorParameter(key, value: value)
+        liveParameterValues.removeValue(forKey: key)
+    }
+
+    private func commitLiveParameters() {
+        for (key, value) in liveParameterValues {
+            editorDraftStore.updateEditorParameter(key, value: value)
+        }
+        liveParameterValues.removeAll()
     }
 
 }
@@ -556,7 +711,7 @@ struct EditorParametersScreen: View {
                     .foregroundStyle(FMColors.Text.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                EditorReferencePreview(height: 300)
+                EditorReferencePreview(height: 300, parameterValues: editorDraftStore.editorDraft.parameterValues)
                 sectionTabs
                 sectionContent
                 compareCard
@@ -697,7 +852,7 @@ struct EditorLUTImportScreen: View {
                 lutCard
                 lutGuideCard
                 validationCard
-                EditorReferencePreview(height: 300)
+                EditorReferencePreview(height: 300, parameterValues: editorDraftStore.editorDraft.parameterValues)
                 NavigationLink(value: AppRoute.editorDraft) {
                     routeButton("초안 저장 단계로", icon: "arrow.right")
                 }
@@ -897,6 +1052,8 @@ struct EditorLUTImportScreen: View {
 
 struct EditorDraftSaveScreen: View {
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.switchTabAndClear) private var switchTabAndClear
 
     var body: some View {
         ScrollView {
@@ -981,12 +1138,13 @@ struct EditorDraftSaveScreen: View {
 
     private var actionButtons: some View {
         VStack(spacing: Sp.sm) {
-            NavigationLink(value: AppRoute.myFilters) {
+            Button {
+                editorDraftStore.saveEditorDraft()
+                dismiss()
+                switchTabAndClear(.profile)
+            } label: {
                 routeButton("초안 저장 후 내 필터", icon: "tray")
             }
-            .simultaneousGesture(TapGesture().onEnded {
-                editorDraftStore.saveEditorDraft()
-            })
             .buttonStyle(.plain)
             .accessibilityIdentifier("editor.draft.save")
 
@@ -1687,6 +1845,7 @@ struct UploadTOSSubmitScreen: View {
 struct UploadPendingReviewScreen: View {
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.switchTabAndClear) private var switchTabAndClear
 
     var body: some View {
         VStack(spacing: Sp.lg) {
@@ -1714,7 +1873,10 @@ struct UploadPendingReviewScreen: View {
                     makerSummaryRow("제출", value: workflowDateString(editorDraftStore.editorDraft.submittedAt ?? Date()))
                 }
             }
-            NavigationLink(value: AppRoute.myFilters) {
+            Button {
+                dismiss()
+                switchTabAndClear(.profile)
+            } label: {
                 routeButton("내 필터 보기", icon: "rectangle.stack")
             }
             .buttonStyle(.plain)
@@ -1738,6 +1900,7 @@ struct UploadPendingReviewScreen: View {
 
 struct MyFiltersScreen: View {
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
+    @Environment(\.routeRouter) private var router
     @State private var selectedDraft: MakerFilterDraft?
     @State private var showTakedownAlert = false
 
@@ -1758,7 +1921,10 @@ struct MyFiltersScreen: View {
                 .padding(Sp.md)
                 .padding(.bottom, FMLayout.tabBarHeight + 96)
             }
-            NavigationLink(value: AppRoute.editor) {
+            Button {
+                editorDraftStore.resetEditorDraft()
+                router.navigate(to: .editor)
+            } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(.white)
@@ -1766,9 +1932,7 @@ struct MyFiltersScreen: View {
                     .background(FMColors.Accent.primary, in: Circle())
                     .shadow(color: .black.opacity(0.18), radius: 14, x: 0, y: 6)
             }
-            .simultaneousGesture(TapGesture().onEnded {
-                editorDraftStore.resetEditorDraft()
-            })
+            .buttonStyle(.plain)
             .accessibilityIdentifier("myfilters.fab.create")
             .padding(.trailing, Sp.lg)
             .padding(.bottom, FMLayout.tabBarHeight + Sp.lg)
@@ -1848,12 +2012,12 @@ struct MyFiltersScreen: View {
 
                 let isRejected = draft.status == .rejected
                 HStack(spacing: Sp.sm) {
-                    NavigationLink(value: isRejected ? AppRoute.filterRejected(id: draft.id.uuidString) : AppRoute.editor) {
+                    Button {
+                        editorDraftStore.startEditing(draft)
+                        router.navigate(to: isRejected ? .filterRejected(id: draft.id.uuidString) : .editor)
+                    } label: {
                         compactRouteButton(isRejected ? "검수 결과" : "수정", icon: isRejected ? "doc.text" : "slider.horizontal.3")
                     }
-                    .simultaneousGesture(TapGesture().onEnded {
-                        editorDraftStore.startEditing(draft)
-                    })
                     .buttonStyle(.plain)
                     .accessibilityIdentifier(isRejected ? "mod.rejected.review" : "myfilters.row.edit")
 
@@ -1890,6 +2054,7 @@ struct RemixFlowScreen: View {
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.routeRouter) private var router
 
     /// Parent filter — read from the store's currently selected filter so the
     /// remix flow inherits whatever the user was just looking at. Falls back
@@ -1957,12 +2122,12 @@ struct RemixFlowScreen: View {
                 }
                 .accessibilityIdentifier("editor.remix.cancel")
 
-                NavigationLink(value: AppRoute.editor) {
+                Button {
+                    seedRemixDraft()
+                    router.navigate(to: .editor)
+                } label: {
                     routeButton("에디터 열기", icon: "slider.horizontal.3")
                 }
-                .simultaneousGesture(TapGesture().onEnded {
-                    seedRemixDraft()
-                })
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("editor.remix.open_editor")
             }
@@ -1999,6 +2164,7 @@ struct RemixFlowScreen: View {
 
 struct MakerDashboardScreen: View {
     @StateObject private var profileStore = ProfileSelfStore()
+    @Environment(\.routeRouter) private var router
 
     var body: some View {
         ScrollView {
@@ -2017,7 +2183,9 @@ struct MakerDashboardScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink(value: AppRoute.editor) {
+                Button {
+                    router.navigate(to: .editor)
+                } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(FMColors.Text.primary)
@@ -2043,7 +2211,9 @@ struct MakerDashboardScreen: View {
             Text("필터를 만들어 마켓에 공유해보세요")
                 .font(Font.fmBody)
                 .foregroundStyle(FMColors.Text.secondary)
-            NavigationLink(value: AppRoute.editor) {
+            Button {
+                router.navigate(to: .editor)
+            } label: {
                 Text("필터 만들기")
                     .font(Font.fmHeadline)
                     .foregroundStyle(.white)
@@ -2052,6 +2222,7 @@ struct MakerDashboardScreen: View {
                     .background(FMColors.Accent.primary)
                     .clipShape(RoundedRectangle(cornerRadius: R.lg))
             }
+            .buttonStyle(.plain)
             .accessibilityIdentifier("maker.dashboard.create")
             .padding(.top, Sp.md)
         }

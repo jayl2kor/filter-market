@@ -11,6 +11,7 @@ import SwiftUI
 /// 브랜딩 바 + 인사 + 트렌딩 캐러셀 + 카테고리 칩 + 신규 그리드 + 큐레이션.
 struct MarketplaceScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.routeRouter) private var router
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var walletStore: WalletStore
 
@@ -115,7 +116,12 @@ struct MarketplaceScreen: View {
                 .accessibilityAddTraits(.isHeader)
 
             HStack(spacing: 0) {
-                NavigationLink(value: AppRoute.editor) {
+                Button {
+                    Telemetry.trackAction("create_filter_from_market", screen: .marketplaceHome, parameters: [
+                        "source": "brandbar_plus"
+                    ])
+                    router.navigate(to: .editor)
+                } label: {
                     Image(systemName: "plus")
                         .font(.system(size: IconSize.md, weight: .semibold))
                         .foregroundStyle(FMColors.Text.primary)
@@ -123,11 +129,6 @@ struct MarketplaceScreen: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .simultaneousGesture(TapGesture().onEnded {
-                    Telemetry.trackAction("create_filter_from_market", screen: .marketplaceHome, parameters: [
-                        "source": "brandbar_plus"
-                    ])
-                })
                 .accessibilityIdentifier("market.brandbar.create")
                 .accessibilityLabel("새 필터 만들기")
                 .accessibilityHint("탭하면 필터 에디터로 이동합니다")

@@ -48,6 +48,7 @@ enum Telemetry {
         case emptyStateShown   = "empty_state_shown"
         case errorShown        = "error_shown"
         case pullToRefresh     = "pull_to_refresh"
+        case navDepthExceeded  = "nav_depth_exceeded"
     }
 
     enum Screen: String {

@@ -13,6 +13,7 @@ struct FilterRejectedScreen: View {
     @EnvironmentObject private var editorDraftStore: EditorDraftStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.routeRouter) private var router
     @State private var showDeleteConfirm = false
 
     private var draft: MakerFilterDraft? {
@@ -417,7 +418,9 @@ struct FilterRejectedScreen: View {
 
     private var footer: some View {
         VStack(spacing: Sp.xs) {
-            NavigationLink(value: AppRoute.editor) {
+            Button {
+                router.navigate(to: .editor)
+            } label: {
                 HStack(spacing: Sp.xs) {
                     Image(systemName: "slider.horizontal.3")
                     Text("재편집 후 재제출")

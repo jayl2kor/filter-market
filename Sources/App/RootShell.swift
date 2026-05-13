@@ -2,6 +2,7 @@ import DesignSystem
 import FirebaseAuth
 import FirebaseCore
 import FirebaseFirestore
+import Marketplace
 import SwiftUI
 import UIKit
 
@@ -11,7 +12,13 @@ import UIKit
 /// 마켓 / 발견 / 셔터(카메라) / 저장됨 / 프로필 5개 탭.
 /// 셔터 탭은 selection 으로 사용되지 않고 `.fullScreenCover` 로 카메라를 띄움.
 struct RootShell: View {
-    @StateObject private var store = MooditStore()
+    @StateObject private var store = MooditStore(
+        repository: CompositeFilterRepository(
+            primary: FirestoreFilterRepository(),
+            fallback: BundleSeedFilterRepository()
+        )
+    )
+    @StateObject private var sheetCoordinator = SheetCoordinator()
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("hasOnboarded") private var hasOnboarded: Bool = false
@@ -65,6 +72,7 @@ struct RootShell: View {
                         isCameraPresented = true
                     }
                 )
+                .padding(.bottom, -12)
             }
         }
         .overlay(alignment: .top) {
@@ -78,6 +86,9 @@ struct RootShell: View {
         .environmentObject(store.editorDraftStore)
         .environmentObject(store.sessionStore)
         .environmentObject(store.cameraStateStore)
+        .environmentObject(sheetCoordinator)
+        .environment(\.popToTabRoot) { tab in popToTabRoot(tab) }
+        .environment(\.switchTabAndClear) { tab in switchTabAndClear(tab) }
         .task {
             store.subscribeToWallet()
             syncNotificationBadgeListener()
@@ -110,6 +121,26 @@ struct RootShell: View {
                     .appRouteDestinations()
             }
             .environmentObject(store)
+        }
+        .sheet(item: $sheetCoordinator.sheetRoute) { route in
+            SheetHostingView(initialRoute: route)
+                .environmentObject(store)
+                .environmentObject(store.filterLibraryStore)
+                .environmentObject(store.walletStore)
+                .environmentObject(store.editorDraftStore)
+                .environmentObject(store.sessionStore)
+                .environmentObject(store.cameraStateStore)
+                .environmentObject(sheetCoordinator)
+        }
+        .fullScreenCover(item: $sheetCoordinator.coverRoute) { route in
+            CoverHostingView(initialRoute: route)
+                .environmentObject(store)
+                .environmentObject(store.filterLibraryStore)
+                .environmentObject(store.walletStore)
+                .environmentObject(store.editorDraftStore)
+                .environmentObject(store.sessionStore)
+                .environmentObject(store.cameraStateStore)
+                .environmentObject(sheetCoordinator)
         }
         .onOpenURL { url in
             if let route = UniversalLinkParser.route(for: url) {
@@ -200,7 +231,14 @@ struct RootShell: View {
 
             tabNavigationStack(.search, path: $searchNavigationPath) {
                 SearchScreen { route in
-                    searchNavigationPath.append(route)
+                    switch route.preferredPresentation {
+                    case .push:
+                        searchNavigationPath.append(route)
+                    case .sheet:
+                        sheetCoordinator.present(route)
+                    case .fullScreenCover:
+                        sheetCoordinator.presentCover(route)
+                    }
                 }
             }
 
@@ -224,6 +262,24 @@ struct RootShell: View {
             content()
                 .fmTrackScreen(tab.telemetryScreen, parameters: ["tab": tab.telemetryName])
                 .appRouteDestinations()
+        }
+        .environment(\.routeRouter, RouteRouter(
+            currentDepth: path.wrappedValue.count,
+            push: { route in path.wrappedValue.append(route) },
+            presentSheet: { route in sheetCoordinator.present(route) },
+            presentCover: { route in sheetCoordinator.presentCover(route) }
+        ))
+        .onChange(of: path.wrappedValue) { _, newPath in
+            if newPath.count > RouteRouter.maxStackDepth {
+                Telemetry.log(.navDepthExceeded, parameters: [
+                    "tab": tab.telemetryName,
+                    "depth": "\(newPath.count)",
+                    "stack": newPath.map(\.telemetryKind).joined(separator: ">")
+                ])
+                #if DEBUG
+                assertionFailure("nav depth budget exceeded for \(tab): \(newPath.map(\.telemetryKind))")
+                #endif
+            }
         }
         .opacity(selectedTab == tab ? 1 : 0)
         .allowsHitTesting(selectedTab == tab)
@@ -264,6 +320,46 @@ struct RootShell: View {
 
     private var isTabBarHidden: Bool {
         !selectedTabPathValue.isEmpty
+    }
+
+    /// 지정한 탭의 NavigationStack을 루트로 되돌린다. 탭 선택은 변경하지 않는다.
+    private func popToTabRoot(_ tab: FMTab) {
+        switch tab {
+        case .market:
+            marketNavigationPath.removeAll()
+        case .search:
+            searchNavigationPath.removeAll()
+        case .shutter:
+            break
+        case .saved:
+            savedNavigationPath.removeAll()
+        case .profile:
+            profileNavigationPath.removeAll()
+        }
+    }
+
+    /// 지정한 탭으로 전환하고 모든 탭의 path를 비운다.
+    /// `.shutter`는 selection이 아니므로 카메라 fullScreenCover를 띄우고,
+    /// 동시에 Market path를 비워 카메라 dismiss 후 자연스러운 복귀를 보장한다.
+    private func switchTabAndClear(_ tab: FMTab) {
+        marketNavigationPath.removeAll()
+        searchNavigationPath.removeAll()
+        savedNavigationPath.removeAll()
+        profileNavigationPath.removeAll()
+
+        switch tab {
+        case .shutter:
+            FMHaptic.medium.play()
+            Telemetry.trackFunnelStep(
+                "camera_capture",
+                step: "camera_opened",
+                screen: .cameraLive,
+                parameters: ["source": "after_download"]
+            )
+            isCameraPresented = true
+        case .market, .search, .saved, .profile:
+            selectedTab = tab
+        }
     }
 
     private var handleOnboardingUID: String {

@@ -9,6 +9,7 @@ import SwiftUI
 struct ReviewsListScreen: View {
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var sessionStore: SessionStore
+    @Environment(\.routeRouter) private var router
 
     let filterID: String
     // (#37) 프로덕션은 Firestore /filters/{filterID}/reviews listener (.task에서 attach).
@@ -38,7 +39,9 @@ struct ReviewsListScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink(value: AppRoute.rating(filterId: filterID)) {
+                Button {
+                    router.navigate(to: .rating(filterId: filterID))
+                } label: {
                     Image(systemName: "star")
                 }
                 .accessibilityLabel("평점 등록")
@@ -439,7 +442,9 @@ struct ReviewsListScreen: View {
     private func reviewRow(_ review: SocialReview) -> some View {
         let isOwn = isOwnReview(review)
         return HStack(alignment: .top, spacing: Sp.sm) {
-            NavigationLink(value: AppRoute.otherProfile(uid: review.authorUid)) {
+            Button {
+                router.navigate(to: .otherProfile(uid: review.authorUid))
+            } label: {
                 avatar(initials: review.initials, colors: review.avatarColors, size: 36)
             }
             .buttonStyle(.plain)
@@ -1557,6 +1562,7 @@ struct FollowingListScreen: View {
 
 private struct FollowListScreen: View {
     @EnvironmentObject private var sessionStore: SessionStore
+    @Environment(\.routeRouter) private var router
 
     enum Mode {
         case followers
@@ -1676,13 +1682,35 @@ private struct FollowListScreen: View {
         .padding(.top, Sp.sm)
     }
 
+    @ViewBuilder
+    private var followListEmptyState: some View {
+        let kind: FMEmptyStateKind = (activeMode == .following) ? .emptyFollowing : .emptyFollowers
+        VStack(spacing: Sp.xl) {
+            FMEmptyState(kind)
+            if activeMode == .following {
+                NavigationLink(value: AppRoute.forYou) {
+                    Text("메이커 둘러보기")
+                        .fmTypography(.callout)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Text.inverse)
+                        .frame(maxWidth: 240)
+                        .frame(height: 44)
+                        .background(FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("social.following.empty.browse")
+            }
+        }
+        .padding(.vertical, Sp.lg)
+        .frame(maxWidth: .infinity)
+        .accessibilityIdentifier(activeMode == .followers ? "social.followers.empty" : "social.following.empty")
+    }
+
     private var list: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 if filteredUsers.isEmpty {
-                    FMEmptyState(.emptyMarket)
-                        .padding(.vertical, Sp.lg)
-                        .accessibilityIdentifier(activeMode == .followers ? "social.followers.empty" : "social.following.empty")
+                    followListEmptyState
                 } else if activeMode == .following {
                     groupLabel("최근 활동 있음")
                     ForEach(filteredUsers.filter { $0.newFilterCount > 0 }) { user in
@@ -1705,7 +1733,9 @@ private struct FollowListScreen: View {
 
     private func userRow(_ user: SocialUser) -> some View {
         HStack(spacing: Sp.sm) {
-            NavigationLink(value: profileRoute(for: user)) {
+            Button {
+                router.navigate(to: profileRoute(for: user))
+            } label: {
                 HStack(spacing: Sp.sm) {
                     ZStack(alignment: .bottomTrailing) {
                         avatar(initials: user.initials, colors: user.avatarColors, size: 44)
@@ -1865,15 +1895,21 @@ private struct FollowListScreen: View {
             }
             do {
                 let profile = try await db.collection("users").document(uid).getDocument().data() ?? [:]
-                let name = (profile["displayName"] as? String) ?? String(uid.prefix(8))
-                let handleRaw = (profile["handle"] as? String) ?? String(uid.prefix(8))
-                let handle = handleRaw.hasPrefix("@") ? handleRaw : "@\(handleRaw)"
+                // displayName / handle 누락(또는 빈 문자열) 시: 이름은 "사용자" 로,
+                // 핸들은 uid 앞 8자리 기반으로 폴백. 이름·핸들이 동일 값으로 중복
+                // 노출되지 않도록 분리. ProfileScreen.loadOtherProfile 와 동일 패턴.
+                let rawDisplayName = ProfileSelfStore.nonEmptyTrimmed(profile["displayName"] as? String)
+                let rawHandle = ProfileSelfStore.nonEmptyTrimmed(profile["handle"] as? String)
+                let name = rawDisplayName ?? "사용자"
+                let handle = ProfileSelfStore.displayHandle(from: rawHandle ?? String(uid.prefix(8)))
+                let initials = rawDisplayName.map { String($0.prefix(2)).uppercased() }
+                    ?? String(uid.prefix(2)).uppercased()
                 let relationship = await relationship(for: uid, currentActorUid: FirebaseSideEffects.currentUID, db: db)
                 result.append(SocialUser(
                     uid: uid,
                     name: name,
                     handle: handle,
-                    initials: String(name.prefix(2)).uppercased(),
+                    initials: initials,
                     avatarColors: [FMColors.Category.portrait, FMColors.Category.mood],
                     filterCount: (profile["filterCount"] as? Int) ?? 0,
                     role: (profile["roleLabel"] as? String) ?? "",
@@ -2002,9 +2038,36 @@ private struct FollowListScreen: View {
 
 // MARK: - Discovery Feeds
 
-struct ForYouFeedScreen: View {
+enum DiscoveryTab: Hashable {
+    case trending
+    case forYou
+    case following
+    case newest
+}
+
+struct DiscoveryScreen: View {
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @EnvironmentObject private var sessionStore: SessionStore
+    @Environment(\.routeRouter) private var router
+    @State private var selected: DiscoveryTab
     @State private var followedMakerIDs: Set<String> = []
+    @State private var pendingFollowIDs: Set<String> = []
+    @State private var followsListener: ListenerRegistration?
+    @State private var followActionMessage: String?
+    @State private var posts: [FollowingFeedPost] = []
+    @State private var likedFilterIDs: Set<String> = []
+    @State private var hiddenFilterIDs: Set<String> = []
+    @State private var followingTargetsListener: ListenerRegistration?
+    @State private var feedActionsListener: ListenerRegistration?
+    @State private var moreMenuPost: FollowingFeedPost?
+
+    init(initialTab: DiscoveryTab = .forYou) {
+        _selected = State(initialValue: initialTab)
+    }
+
+    private var followingFeedTaskID: String {
+        sessionStore.currentUserID ?? ""
+    }
 
     private var rankedFilters: [Filter] {
         let source = filterLibraryStore.trendingFilters.isEmpty ? filterLibraryStore.filters : filterLibraryStore.trendingFilters
@@ -2047,16 +2110,18 @@ struct ForYouFeedScreen: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Sp.lg) {
-                discoveryHeader(active: .forYou)
-                reasonChip
-                if let heroFilter {
-                    heroCard(heroFilter)
-                    railSection
-                } else {
-                    emptyRecommendations
+            VStack(alignment: .leading, spacing: contentSpacing) {
+                discoveryHeader(selected: $selected)
+                switch selected {
+                case .trending:
+                    trendingView
+                case .forYou:
+                    forYouView
+                case .following:
+                    followingView
+                case .newest:
+                    newestView
                 }
-                makerSpotlight
             }
             .padding(.horizontal, Sp.md)
             .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
@@ -2066,20 +2131,275 @@ struct ForYouFeedScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink(value: AppRoute.search(initialQuery: nil, category: nil)) {
-                    Image(systemName: "magnifyingglass")
+                if selected == .following {
+                    NavigationLink(value: AppRoute.notifications) {
+                        Image(systemName: "bell")
+                    }
+                    .accessibilityLabel("알림")
+                } else {
+                    NavigationLink(value: AppRoute.search(initialQuery: nil, category: nil)) {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .accessibilityLabel("검색")
                 }
-                .accessibilityLabel("검색")
             }
+        }
+        .confirmationDialog(
+            "피드 옵션",
+            isPresented: Binding(
+                get: { moreMenuPost != nil },
+                set: { if !$0 { moreMenuPost = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: moreMenuPost
+        ) { post in
+            Button("피드에서 숨기기", role: .destructive) {
+                Task { await hidePost(post) }
+            }
+            .accessibilityIdentifier("social.following.post.hide")
+
+            Button("필터 ID 복사") {
+                UIPasteboard.general.string = post.filter.id.uuidString
+                FMHaptic.success.play()
+            }
+
+            Button("취소", role: .cancel) {}
+        } message: { post in
+            Text(post.filter.title)
         }
         .task {
             await filterLibraryStore.load()
+            attachFollowsListener()
+        }
+        .task(id: "following-feed-\(selected == .following)-\(followingFeedTaskID)") {
+            if selected == .following {
+                attachFollowingFeedListeners()
+            }
+        }
+        .onChange(of: selected) { _, newValue in
+            if newValue != .following {
+                detachFollowingFeedListeners()
+            }
+        }
+        .onDisappear {
+            followsListener?.remove()
+            followsListener = nil
+            detachFollowingFeedListeners()
         }
         .storeErrorToast(
             message: filterLibraryStore.lastSyncErrorMessage,
             title: "저장 동기화 실패"
         ) {
             filterLibraryStore.clearLastSyncError()
+        }
+        .storeErrorToast(
+            message: followActionMessage,
+            title: "팔로우 실패"
+        ) {
+            followActionMessage = nil
+        }
+    }
+
+    private var contentSpacing: CGFloat {
+        selected == .following ? Sp.md : Sp.lg
+    }
+
+    private func detachFollowingFeedListeners() {
+        followingTargetsListener?.remove()
+        followingTargetsListener = nil
+        feedActionsListener?.remove()
+        feedActionsListener = nil
+    }
+
+    @ViewBuilder
+    private var forYouView: some View {
+        reasonChip
+        if let heroFilter {
+            heroCard(heroFilter)
+            railSection
+        } else {
+            emptyRecommendations
+        }
+        makerSpotlight
+    }
+
+    @ViewBuilder
+    private var trendingView: some View {
+        let trending = filterLibraryStore.trendingFilters
+        Label("이번 주 인기 필터", systemImage: "flame.fill")
+            .fmTypography(.caption)
+            .fontWeight(.semibold)
+            .foregroundStyle(FMColors.Accent.primary)
+            .padding(.horizontal, Sp.sm)
+            .padding(.vertical, 5)
+            .background(FMColors.Accent.bg, in: Capsule())
+            .accessibilityIdentifier("social.trending.reasonChip")
+        if let hero = trending.first {
+            heroCard(hero)
+            trendingRailSection(Array(trending.dropFirst().prefix(8)))
+        } else {
+            emptyTrending
+        }
+    }
+
+    private func trendingRailSection(_ filters: [Filter]) -> some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            HStack {
+                Text("지금 다운로드가 많은 필터")
+                    .fmTypography(.headline)
+                    .foregroundStyle(FMColors.Text.primary)
+                Spacer()
+                NavigationLink("모두 보기", value: AppRoute.search(initialQuery: nil, category: nil))
+                    .fmTypography(.caption)
+                    .foregroundStyle(FMColors.Text.tertiary)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Sp.sm) {
+                    ForEach(filters) { filter in
+                        NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                            VStack(alignment: .leading, spacing: 0) {
+                                filterCover(filter)
+                                    .aspectRatio(4.0 / 5.0, contentMode: .fit)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(filter.title)
+                                        .fmTypography(.caption)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(FMColors.Text.primary)
+                                    Text("@\(filter.author.displayName) · ↓ \(formattedDownloadCount(filter.downloadCount > 0 ? filter.downloadCount : filter.useCount))")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(FMColors.Text.tertiary)
+                                }
+                                .padding(8)
+                            }
+                            .frame(width: 130)
+                            .background(FMColors.Background.bg2)
+                            .clipShape(RoundedRectangle(cornerRadius: R.md))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .accessibilityIdentifier("social.trending.rail")
+    }
+
+    private var emptyTrending: some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            Text("아직 트렌딩 필터가 준비되지 않았어요")
+                .fmTypography(.headline)
+                .foregroundStyle(FMColors.Text.primary)
+            Text("필터가 마켓에 더 쌓이면 이번 주 인기 필터가 여기 나타납니다.")
+                .fmTypography(.subhead)
+                .foregroundStyle(FMColors.Text.tertiary)
+            NavigationLink(value: AppRoute.search(initialQuery: nil, category: nil)) {
+                Text("마켓 둘러보기")
+                    .fmTypography(.callout)
+                    .fontWeight(.bold)
+                    .foregroundStyle(FMColors.Text.inverse)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(Sp.md)
+        .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.lg))
+        .accessibilityIdentifier("social.trending.empty")
+    }
+
+    @ViewBuilder
+    private var newestView: some View {
+        let latest = newestFilters
+        Label("최근 등록된 필터", systemImage: "sparkle")
+            .fmTypography(.caption)
+            .fontWeight(.semibold)
+            .foregroundStyle(FMColors.Accent.primary)
+            .padding(.horizontal, Sp.sm)
+            .padding(.vertical, 5)
+            .background(FMColors.Accent.bg, in: Capsule())
+            .accessibilityIdentifier("social.newest.reasonChip")
+        if latest.isEmpty {
+            VStack(alignment: .leading, spacing: Sp.sm) {
+                Text("아직 새 필터가 없어요")
+                    .fmTypography(.headline)
+                    .foregroundStyle(FMColors.Text.primary)
+                Text("신규 등록 필터가 도착하면 이 자리에 표시됩니다.")
+                    .fmTypography(.subhead)
+                    .foregroundStyle(FMColors.Text.tertiary)
+            }
+            .padding(Sp.md)
+            .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.lg))
+            .accessibilityIdentifier("social.newest.empty")
+        } else {
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: Sp.sm), GridItem(.flexible(), spacing: Sp.sm)],
+                spacing: Sp.sm
+            ) {
+                ForEach(latest) { filter in
+                    NavigationLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            filterCover(filter)
+                                .aspectRatio(4.0 / 5.0, contentMode: .fit)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(filter.title)
+                                    .fmTypography(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(FMColors.Text.primary)
+                                Text("@\(filter.author.displayName)")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(FMColors.Text.tertiary)
+                            }
+                            .padding(8)
+                        }
+                        .background(FMColors.Background.bg2)
+                        .clipShape(RoundedRectangle(cornerRadius: R.md))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .accessibilityIdentifier("social.newest.grid")
+        }
+    }
+
+    private var newestFilters: [Filter] {
+        filterLibraryStore.filters
+            .sorted { lhs, rhs in
+                (lhs.createdAt ?? .distantPast) > (rhs.createdAt ?? .distantPast)
+            }
+            .prefix(24)
+            .map { $0 }
+    }
+
+    @ViewBuilder
+    private var followingView: some View {
+        if let latestPost = posts.first {
+            newFilterCard(latestPost)
+        }
+        if posts.isEmpty {
+            VStack(spacing: Sp.xl) {
+                FMEmptyState(.emptyFollowing)
+                Button {
+                    selected = .forYou
+                } label: {
+                    Text("메이커 둘러보기")
+                        .fmTypography(.callout)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Text.inverse)
+                        .frame(maxWidth: 240)
+                        .frame(height: 44)
+                        .background(FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("social.following.empty.browse")
+            }
+            .padding(.vertical, Sp.lg)
+            .frame(maxWidth: .infinity)
+            .accessibilityIdentifier("social.following.empty")
+        } else {
+            ForEach(posts) { post in
+                postCard(post)
+            }
         }
     }
 
@@ -2278,7 +2598,7 @@ struct ForYouFeedScreen: View {
                         }
                         Spacer()
                         Button {
-                            toggleFollow(user.id)
+                            Task { await toggleFollow(user.id) }
                         } label: {
                             Text(followedMakerIDs.contains(user.id) ? "팔로잉" : "팔로우")
                                 .fmTypography(.subhead)
@@ -2288,6 +2608,7 @@ struct ForYouFeedScreen: View {
                                 .frame(height: 32)
                                 .background(followedMakerIDs.contains(user.id) ? FMColors.Background.bg1 : FMColors.Accent.primary, in: RoundedRectangle(cornerRadius: R.md))
                         }
+                        .disabled(pendingFollowIDs.contains(user.id))
                         .accessibilityIdentifier("social.foryou.maker.follow")
                     }
                     .padding(Sp.sm)
@@ -2300,102 +2621,76 @@ struct ForYouFeedScreen: View {
         }
     }
 
-    private func toggleFollow(_ id: String) {
-        if followedMakerIDs.contains(id) {
-            followedMakerIDs.remove(id)
-        } else {
-            followedMakerIDs.insert(id)
+    private func attachFollowsListener() {
+        followsListener?.remove()
+        followsListener = nil
+        guard !isUITesting,
+              FirebaseSideEffects.isConfigured,
+              let actorUid = FirebaseSideEffects.currentUID else {
+            return
         }
+        followsListener = FirebaseSideEffects.firestore()
+            .collection("follows")
+            .whereField("actorUid", isEqualTo: actorUid)
+            .addSnapshotListener { snapshot, _ in
+                let targets = snapshot?.documents.compactMap { $0.data()["targetUid"] as? String } ?? []
+                Task { @MainActor in
+                    followedMakerIDs = Set(targets)
+                }
+            }
+    }
+
+    @MainActor
+    private func toggleFollow(_ targetUid: String) async {
+        guard !pendingFollowIDs.contains(targetUid) else { return }
         FMHaptic.selection.play()
-    }
-}
 
-struct FollowingFeedScreen: View {
-    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
-    @EnvironmentObject private var sessionStore: SessionStore
-    @State private var posts: [FollowingFeedPost] = []
-    @State private var likedFilterIDs: Set<String> = []
-    @State private var hiddenFilterIDs: Set<String> = []
-    @State private var followsListener: ListenerRegistration?
-    @State private var feedActionsListener: ListenerRegistration?
-    @State private var moreMenuPost: FollowingFeedPost?
-
-    private var followingFeedTaskID: String {
-        sessionStore.currentUserID ?? ""
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Sp.md) {
-                discoveryHeader(active: .following)
-                if let latestPost = posts.first {
-                    newFilterCard(latestPost)
-                }
-                if posts.isEmpty {
-                    FMEmptyState(.emptyMarket)
-                        .padding(.vertical, Sp.lg)
-                        .accessibilityIdentifier("social.following.empty")
-                } else {
-                    ForEach(posts) { post in
-                        postCard(post)
-                    }
-                }
+        guard FirebaseSideEffects.isConfigured,
+              let actorUid = FirebaseSideEffects.currentUID,
+              actorUid != targetUid else {
+            if followedMakerIDs.contains(targetUid) {
+                followedMakerIDs.remove(targetUid)
+            } else {
+                followedMakerIDs.insert(targetUid)
             }
-            .padding(.horizontal, Sp.md)
-            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+            return
         }
-        .background(FMColors.Background.bg1)
-        .navigationTitle("팔로잉")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink(value: AppRoute.notifications) {
-                    Image(systemName: "bell")
-                }
-                .accessibilityLabel("알림")
-            }
-        }
-        .confirmationDialog(
-            "피드 옵션",
-            isPresented: Binding(
-                get: { moreMenuPost != nil },
-                set: { if !$0 { moreMenuPost = nil } }
-            ),
-            titleVisibility: .visible,
-            presenting: moreMenuPost
-        ) { post in
-            Button("피드에서 숨기기", role: .destructive) {
-                Task { await hidePost(post) }
-            }
-            .accessibilityIdentifier("social.following.post.hide")
 
-            Button("필터 ID 복사") {
-                UIPasteboard.general.string = post.filter.id.uuidString
-                FMHaptic.success.play()
-            }
+        pendingFollowIDs.insert(targetUid)
+        let wasFollowing = followedMakerIDs.contains(targetUid)
+        if wasFollowing {
+            followedMakerIDs.remove(targetUid)
+        } else {
+            followedMakerIDs.insert(targetUid)
+        }
+        Telemetry.trackAction(wasFollowing ? "maker_unfollowed" : "maker_followed", screen: .forYou)
+        defer { pendingFollowIDs.remove(targetUid) }
 
-            Button("취소", role: .cancel) {}
-        } message: { post in
-            Text(post.filter.title)
-        }
-        .task(id: followingFeedTaskID) {
-            await filterLibraryStore.load()
-            attachFeedListeners()
-        }
-        .onDisappear {
-            followsListener?.remove()
-            followsListener = nil
-            feedActionsListener?.remove()
-            feedActionsListener = nil
-        }
-        .storeErrorToast(
-            message: filterLibraryStore.lastSyncErrorMessage,
-            title: "저장 동기화 실패"
-        ) {
-            filterLibraryStore.clearLastSyncError()
+        let edgeRef = FirebaseSideEffects.firestore()
+            .collection("follows").document("\(actorUid)_\(targetUid)")
+        do {
+            if wasFollowing {
+                try await edgeRef.delete()
+            } else {
+                try await edgeRef.setData([
+                    "actorUid": actorUid,
+                    "targetUid": targetUid,
+                    "createdAt": FieldValue.serverTimestamp()
+                ], merge: true)
+            }
+        } catch {
+            if wasFollowing {
+                followedMakerIDs.insert(targetUid)
+            } else {
+                followedMakerIDs.remove(targetUid)
+            }
+            followActionMessage = "팔로우 상태를 변경하지 못했어요."
+            Telemetry.record(error: error, context: [
+                "where": "DiscoveryScreen.toggleFollow",
+                "target_uid": targetUid
+            ])
         }
     }
-
     private func newFilterCard(_ post: FollowingFeedPost) -> some View {
         NavigationLink(value: AppRoute.filterDetail(id: post.filter.id.uuidString)) {
             HStack(spacing: Sp.sm) {
@@ -2479,7 +2774,9 @@ struct FollowingFeedScreen: View {
                 .foregroundStyle(likedFilterIDs.contains(post.id) ? FMColors.Semantic.error : FMColors.Text.secondary)
                 .accessibilityIdentifier("social.following.post.like")
 
-                NavigationLink(value: AppRoute.reviews(filterId: post.filter.id.uuidString)) {
+                Button {
+                    router.navigate(to: .reviews(filterId: post.filter.id.uuidString))
+                } label: {
                     Label("\(post.reviewCount)", systemImage: "bubble.left")
                 }
                 .accessibilityIdentifier("social.following.post.reviews")
@@ -2532,7 +2829,7 @@ struct FollowingFeedScreen: View {
         )
     }
 
-    private func attachFeedListeners() {
+    private func attachFollowingFeedListeners() {
         guard !isUITesting else {
             posts = SocialPost.mock.compactMap { $0.toFollowingFeedPost(filterLibraryStore: filterLibraryStore) }
             return
@@ -2540,16 +2837,16 @@ struct FollowingFeedScreen: View {
         guard let uid = (sessionStore.currentUserID ?? FirebaseSideEffects.currentUID)?
             .trimmingCharacters(in: .whitespacesAndNewlines),
               !uid.isEmpty else {
-            followsListener?.remove()
-            followsListener = nil
+            followingTargetsListener?.remove()
+            followingTargetsListener = nil
             feedActionsListener?.remove()
             feedActionsListener = nil
             posts = []
             return
         }
 
-        followsListener?.remove()
-        followsListener = FirebaseSideEffects.firestore().collection("follows")
+        followingTargetsListener?.remove()
+        followingTargetsListener = FirebaseSideEffects.firestore().collection("follows")
             .whereField("actorUid", isEqualTo: uid)
             .addSnapshotListener { snapshot, _ in
                 let targetUIDs = Array(Set((snapshot?.documents ?? []).compactMap { $0.data()["targetUid"] as? String }))
@@ -2677,30 +2974,31 @@ struct FollowingFeedScreen: View {
 
 // MARK: - Shared Views
 
-private enum DiscoveryTab {
-    case trending
-    case forYou
-    case following
-    case newest
-}
-
 @MainActor
-private func discoveryHeader(active: DiscoveryTab) -> some View {
+private func discoveryHeader(selected: Binding<DiscoveryTab>) -> some View {
     HStack(spacing: Sp.md) {
-        discoveryTab("트렌딩", route: .forYou, isActive: active == .trending)
-        discoveryTab("For You", route: .forYou, isActive: active == .forYou)
-        discoveryTab("팔로잉", route: .followingFeed, isActive: active == .following)
-        discoveryTab("신규", route: .search(initialQuery: nil, category: "신규"), isActive: active == .newest)
+        discoveryTab("트렌딩", tab: .trending, selected: selected)
+        discoveryTab("For You", tab: .forYou, selected: selected)
+        discoveryTab("팔로잉", tab: .following, selected: selected)
+        discoveryTab("신규", tab: .newest, selected: selected)
     }
     .padding(.top, Sp.sm)
     .overlay(alignment: .bottom) {
         Rectangle().fill(FMColors.Border.subtle).frame(height: 1).offset(y: Sp.sm)
     }
+    .accessibilityElement(children: .contain)
+    .accessibilityIdentifier("social.discovery.tabBar")
 }
 
 @MainActor
-private func discoveryTab(_ title: String, route: AppRoute, isActive: Bool) -> some View {
-    NavigationLink(value: route) {
+private func discoveryTab(_ title: String, tab: DiscoveryTab, selected: Binding<DiscoveryTab>) -> some View {
+    let isActive = selected.wrappedValue == tab
+    return Button {
+        if selected.wrappedValue != tab {
+            selected.wrappedValue = tab
+            FMHaptic.selection.play()
+        }
+    } label: {
         Text(title)
             .fmTypography(.callout)
             .fontWeight(isActive ? .bold : .medium)
@@ -2713,6 +3011,9 @@ private func discoveryTab(_ title: String, route: AppRoute, isActive: Bool) -> s
             }
     }
     .buttonStyle(.plain)
+    .accessibilityLabel(title)
+    .accessibilityAddTraits(isActive ? [.isSelected] : [])
+    .accessibilityIdentifier("social.discovery.tab.\(String(describing: tab))")
 }
 
 @MainActor

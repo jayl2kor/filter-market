@@ -181,6 +181,45 @@ extension AppRoute {
     }
 }
 
+// MARK: - Presentation style
+
+/// How a route prefers to appear when navigated to.
+///
+/// Used by `RouteRouter` to keep `NavigationStack.path.count <= 4` across all tabs.
+/// Routes that act as "peeks" or "side panels" prefer `.sheet`, multi-step authoring
+/// flows prefer `.fullScreenCover`, and everything else stacks as a normal push.
+///
+/// See `docs/NAVIGATION.md` for the per-tab depth budget.
+enum AppRoutePresentation {
+    case push
+    case sheet(detents: Set<PresentationDetent>)
+    case fullScreenCover
+}
+
+extension AppRoute {
+    /// Preferred presentation when the user navigates *to* this route.
+    ///
+    /// `RouteRouter` consults this; deep-link arrivals always go through the shared
+    /// sheet host so they never extend the tab stack.
+    var preferredPresentation: AppRoutePresentation {
+        switch self {
+        case .otherProfile, .otherProfileHandle:
+            return .sheet(detents: [.medium, .large])
+        case .followers, .following:
+            return .sheet(detents: [.large])
+        case .reviews:
+            return .sheet(detents: [.large])
+        case .reviewCompose, .rating:
+            return .sheet(detents: [.medium, .large])
+        case .editor, .editorParameters, .editorLUT, .editorDraft,
+             .uploadCover, .uploadTags, .uploadSubmit, .uploadPending:
+            return .fullScreenCover
+        default:
+            return .push
+        }
+    }
+}
+
 extension View {
     /// Defines every `NavigationStack` destination in one place.
     func appRouteDestinations() -> some View {
@@ -311,10 +350,10 @@ extension View {
                     FavoritesCollectionScreen()
 
                 case .forYou:
-                    ForYouFeedScreen()
+                    DiscoveryScreen(initialTab: .forYou)
 
                 case .followingFeed:
-                    FollowingFeedScreen()
+                    DiscoveryScreen(initialTab: .following)
 
                 case .modQueue:
                     ModerationQueueScreen()
@@ -575,8 +614,7 @@ extension AppRoute {
                 .init("editor.param.slider", "노출 / 대비 / 채도 조정", systemImage: "slider.horizontal.below.rectangle"),
                 .init("editor.compare.hold", "비포 보기", systemImage: "rectangle.lefthalf.filled"),
                 .init("editor.lut", "LUT 가져오기", systemImage: "cube.transparent", target: .editorLUT),
-                .init("editor.draft", "초안 저장", systemImage: "tray.and.arrow.down", target: .editorDraft),
-                .init("editor.next", "마켓 공유로 계속", systemImage: "arrow.right", target: .uploadCover)
+                .init("editor.next", "완료 — 초안 저장 단계로", systemImage: "checkmark", target: .editorDraft)
             ]
 
         case .editorParameters:

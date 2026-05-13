@@ -10,12 +10,15 @@ enum ProfileSection: Hashable, CaseIterable {
     case myFilters
     case saved
     case captures
+    case reviews
 
+    /// 본인 프로필 기준 라벨. 다른 사용자 프로필에서는 `ProfileScreen.sectionLabel(_:)` 가 별도 매핑.
     var title: String {
         switch self {
         case .myFilters: "내 필터"
         case .saved: "저장됨"
         case .captures: "촬영함"
+        case .reviews: "리뷰"
         }
     }
 }
@@ -29,7 +32,9 @@ enum ProfileSection: Hashable, CaseIterable {
 struct ProfileScreen: View {
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
     @EnvironmentObject private var sessionStore: SessionStore
+    @Environment(\.routeRouter) private var router
     @StateObject private var profileStore = ProfileSelfStore()
+    @StateObject private var otherContentStore = OtherProfileContentStore()
 
     /// 명시적으로 전달된 사용자 (e.g. `.other`). nil이면 본인 — Auth + Firestore에서 동적 조립.
     private let injectedUser: ProfileUser?
@@ -194,6 +199,7 @@ struct ProfileScreen: View {
             await filterLibraryStore.load(force: true)
         } else {
             await loadOtherProfile()
+            otherContentStore.refresh()
         }
     }
 
@@ -338,6 +344,9 @@ struct ProfileScreen: View {
                         if isLoading {
                             loadingGrid
                                 .padding(.horizontal, Sp.md)
+                        } else if selectedSection == .reviews {
+                            reviewsSection
+                                .padding(.horizontal, Sp.md)
                         } else if currentItems.isEmpty {
                             emptyState
                                 .padding(.top, Sp.xxl)
@@ -368,9 +377,10 @@ struct ProfileScreen: View {
         }
         .task {
             profileStore.start()
-            if otherUid != nil {
+            if let otherUid {
                 await loadOtherProfile()
                 attachOtherFollowState()
+                otherContentStore.start(uid: otherUid)
             }
             // hasAppeared 즉시 true — 데이터 listener가 도착하면 자동 갱신. (#18 hardcoded 250ms sleep 제거)
             hasAppeared = true
@@ -378,6 +388,12 @@ struct ProfileScreen: View {
         .onDisappear {
             profileStore.stop()
             detachOtherFollowState()
+            otherContentStore.stop()
+        }
+        .onChange(of: availableSections) { _, sections in
+            if !sections.contains(selectedSection) {
+                selectedSection = .myFilters
+            }
         }
         .sheet(item: $shareSheetPayload) { payload in
             ShareSheet(activityItems: payload.items)
@@ -488,14 +504,18 @@ struct ProfileScreen: View {
             .accessibilityLabel("필터 \(user.filterCount.fmDecimal())개, 목록 보기")
             .accessibilityHint("내 필터 목록을 표시합니다")
             statDivider
-            NavigationLink(value: AppRoute.followers(uid: followListUserID)) {
+            Button {
+                router.navigate(to: .followers(uid: followListUserID))
+            } label: {
                 statContent(value: user.followerCount, label: "팔로워")
             }
             .buttonStyle(ProfileStatButtonStyle())
             .accessibilityLabel("팔로워 \(user.followerCount.fmDecimal())명, 목록 보기")
             .accessibilityHint("팔로워 목록을 표시합니다")
             statDivider
-            NavigationLink(value: AppRoute.following(uid: followListUserID)) {
+            Button {
+                router.navigate(to: .following(uid: followListUserID))
+            } label: {
                 statContent(value: user.followingCount, label: "팔로잉")
             }
             .buttonStyle(ProfileStatButtonStyle())
@@ -640,9 +660,22 @@ struct ProfileScreen: View {
     private var segmentedRow: some View {
         FMSegmentedControl(
             selection: $selectedSection,
-            options: ProfileSection.allCases,
-            title: \.title
+            options: availableSections,
+            title: sectionLabel
         )
+    }
+
+    private var availableSections: [ProfileSection] {
+        otherUid == nil ? [.myFilters, .saved, .captures] : [.myFilters, .reviews]
+    }
+
+    private func sectionLabel(_ section: ProfileSection) -> String {
+        switch section {
+        case .myFilters: return otherUid == nil ? "내 필터" : "필터"
+        case .saved:     return "저장됨"
+        case .captures:  return "촬영"
+        case .reviews:   return "리뷰"
+        }
     }
 
     // MARK: - Grid
@@ -722,6 +755,86 @@ struct ProfileScreen: View {
             )
         )
         .padding(.vertical, Sp.xxl)
+    }
+
+    // MARK: - Reviews (다른 사용자 프로필 전용)
+
+    @ViewBuilder
+    private var reviewsSection: some View {
+        if otherContentStore.reviewsState.isLoading && otherContentStore.reviews.isEmpty {
+            ProgressView()
+                .frame(maxWidth: .infinity)
+                .padding(.top, Sp.xxl)
+        } else if otherContentStore.reviews.isEmpty {
+            VStack(spacing: Sp.sm) {
+                Image(systemName: "bubble.left")
+                    .font(.system(size: 32, weight: .light))
+                    .foregroundStyle(FMColors.Text.tertiary)
+                Text("\(user.displayName)님이 작성한 리뷰가 없어요")
+                    .fmTypography(.body)
+                    .foregroundStyle(FMColors.Text.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, Sp.xxl)
+            .padding(.bottom, Sp.xxl)
+        } else {
+            LazyVStack(spacing: Sp.sm) {
+                ForEach(otherContentStore.reviews) { item in
+                    reviewCard(item)
+                }
+            }
+        }
+    }
+
+    private func reviewCard(_ item: OtherProfileReviewItem) -> some View {
+        NavigationLink(value: AppRoute.filterDetail(id: item.filterId)) {
+            VStack(alignment: .leading, spacing: Sp.xs) {
+                HStack(spacing: Sp.xs) {
+                    starsRow(stars: item.stars)
+                    Spacer()
+                    Text(item.elapsedLabel)
+                        .fmTypography(.caption)
+                        .foregroundStyle(FMColors.Text.tertiary)
+                }
+                if !item.body.isEmpty {
+                    Text(item.body)
+                        .fmTypography(.body)
+                        .foregroundStyle(FMColors.Text.primary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(6)
+                }
+                HStack(spacing: Sp.xs) {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(FMColors.Accent.primary)
+                    Text("필터 보기 →")
+                        .fmTypography(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Accent.primary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Sp.md)
+            .background(FMColors.Background.bg2, in: RoundedRectangle(cornerRadius: R.md))
+            .overlay {
+                RoundedRectangle(cornerRadius: R.md)
+                    .strokeBorder(FMColors.Border.subtle, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("profile.review.\(item.id)")
+    }
+
+    private func starsRow(stars: Int) -> some View {
+        let clamped = max(0, min(5, stars))
+        return HStack(spacing: 2) {
+            ForEach(0..<5, id: \.self) { index in
+                Image(systemName: index < clamped ? "star.fill" : "star")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(index < clamped ? FMColors.Accent.primary : FMColors.Text.tertiary)
+            }
+        }
     }
 
     private var loadingGrid: some View {
@@ -872,7 +985,8 @@ struct ProfileScreen: View {
     private var currentItems: [ProfileGridItem] {
         switch selectedSection {
         case .myFilters:
-            return profileStore.myFilters.map { f in
+            let filters: [Models.Filter] = (otherUid == nil ? profileStore.myFilters : otherContentStore.filters)
+            return filters.map { f in
                 ProfileGridItem(
                     id: f.id.uuidString,
                     title: f.title,
@@ -883,6 +997,7 @@ struct ProfileScreen: View {
                 )
             }
         case .saved:
+            // 본인 프로필 전용 — 다른 사용자 진입 시 availableSections 에서 제외되어 진입 불가.
             return profileStore.savedFilterIDs.map { id in
                 ProfileGridItem(
                     id: id,
@@ -894,6 +1009,7 @@ struct ProfileScreen: View {
                 )
             }
         case .captures:
+            // 본인 프로필 전용.
             return profileStore.captureIDs.map { id in
                 ProfileGridItem(
                     id: id,
@@ -904,6 +1020,9 @@ struct ProfileScreen: View {
                     categoryHint: FMColors.Category.cinematic
                 )
             }
+        case .reviews:
+            // 리뷰 탭은 별도 reviewsList 뷰로 렌더링 — grid 미사용.
+            return []
         }
     }
 
