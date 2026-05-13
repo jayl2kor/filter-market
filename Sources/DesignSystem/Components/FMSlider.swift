@@ -15,6 +15,10 @@ public struct FMSlider: View {
     private let label: String?
     private let showValue: Bool
     private let valueFormatter: (Double) -> String
+    private let trackHeight: CGFloat
+    /// Fires `true` at the start of a drag and `false` when the drag ends.
+    /// Use this to gate expensive downstream work (e.g., heavier re-renders only at drag end).
+    private let onEditingChanged: ((Bool) -> Void)?
 
     @State private var isDragging = false
     @State private var isPrecisionMode = false
@@ -26,15 +30,19 @@ public struct FMSlider: View {
         range: ClosedRange<Double> = 0...1,
         label: String? = nil,
         showValue: Bool = true,
+        trackHeight: CGFloat = 52,
         valueFormatter: @escaping (Double) -> String = { value in
             "\(Int(value * 100))%"
-        }
+        },
+        onEditingChanged: ((Bool) -> Void)? = nil
     ) {
         self._value = value
         self.range = range
         self.label = label
         self.showValue = showValue
+        self.trackHeight = trackHeight
         self.valueFormatter = valueFormatter
+        self.onEditingChanged = onEditingChanged
     }
 
     public var body: some View {
@@ -159,6 +167,9 @@ public struct FMSlider: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { drag in
+                        if !isDragging {
+                            onEditingChanged?(true)
+                        }
                         isDragging = true
                         let raw = max(0, min(1, drag.location.x / max(1, geo.size.width)))
                         if dragStartValue == nil {
@@ -182,10 +193,11 @@ public struct FMSlider: View {
                         isDragging = false
                         dragStartValue = nil
                         lastHapticAnchor = nil
+                        onEditingChanged?(false)
                     }
             )
         }
-        .frame(height: 52)
+        .frame(height: trackHeight)
     }
 
     @MainActor

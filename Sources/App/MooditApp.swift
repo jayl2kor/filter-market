@@ -3,8 +3,13 @@ import FirebaseAppCheck
 import FirebaseCore
 import FirebaseCrashlytics
 import GoogleSignIn
+import OSLog
 import SwiftUI
 import UIKit
+
+/// Surfaces App Check provider lifecycle in both Debug and Release builds.
+/// Filter in Console.app: subsystem:com.jayl2kor.moodit.app category:AppCheck
+private let appCheckLog = Logger(subsystem: "com.jayl2kor.moodit.app", category: "AppCheck")
 
 /// Firebase 부트스트랩. 앱 첫 진입에서 한 번만 구성하고, 로컬 plist 누락 시 즉시 크래시하지 않는다.
 final class AppDelegate: NSObject, UIApplicationDelegate {
@@ -77,15 +82,19 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     private func configureAppCheckForCurrentProcess() {
         #if DEBUG
         if ProcessInfo.processInfo.environment["MOODIT_USE_APP_CHECK_DEBUG_PROVIDER"] == "1" {
+            appCheckLog.notice("Using debug provider (forced via MOODIT_USE_APP_CHECK_DEBUG_PROVIDER)")
             AppCheck.setAppCheckProviderFactory(MooditDebugAppCheckProviderFactory())
         } else {
             #if targetEnvironment(simulator)
+            appCheckLog.notice("Using debug provider (Debug + simulator)")
             AppCheck.setAppCheckProviderFactory(MooditDebugAppCheckProviderFactory())
             #else
+            appCheckLog.notice("Using AppAttest/DeviceCheck provider (Debug + device)")
             AppCheck.setAppCheckProviderFactory(MooditAppCheckProviderFactory())
             #endif
         }
         #else
+        appCheckLog.notice("Using AppAttest/DeviceCheck provider (Release)")
         AppCheck.setAppCheckProviderFactory(MooditAppCheckProviderFactory())
         #endif
     }
@@ -112,9 +121,11 @@ final class MooditDebugAppCheckProviderFactory: NSObject, AppCheckProviderFactor
 
 final class MooditAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
     func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
-        if #available(iOS 14.0, *) {
-            return AppAttestProvider(app: app)
+        if #available(iOS 14.0, *), let provider = AppAttestProvider(app: app) {
+            appCheckLog.notice("AppAttestProvider initialized")
+            return provider
         }
+        appCheckLog.error("AppAttestProvider unavailable — falling back to DeviceCheck. Likely cause: simulator, missing com.apple.developer.devicecheck.appattest-environment entitlement, or mismatched signing/entitlement environment.")
         return DeviceCheckProvider(app: app)
     }
 }
@@ -398,9 +409,9 @@ private struct UITestLaunchHost: View {
         case .following:
             FollowingListScreen(userID: "me")
         case .forYou:
-            ForYouFeedScreen()
+            DiscoveryScreen(initialTab: .forYou)
         case .followingFeed:
-            FollowingFeedScreen()
+            DiscoveryScreen(initialTab: .following)
         case .notifications:
             NotificationsInboxScreen()
         case .notificationSettings:

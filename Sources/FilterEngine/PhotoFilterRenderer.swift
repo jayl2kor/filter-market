@@ -173,25 +173,48 @@ public final class PhotoFilterRenderer {
         vignette: Float = 0,
         cropAspectRatio: PhotoCropAspectRatio? = nil
     ) throws -> CGImage {
+        let normalizedImage = try decodeAndNormalize(originalData)
+        return try renderImage(
+            fromImage: normalizedImage,
+            sourceLUT: sourceLUT,
+            intensity: intensity,
+            grain: grain,
+            vignette: vignette,
+            cropAspectRatio: cropAspectRatio
+        )
+    }
+
+    /// Fast path for live previews: skips JPEG decoding and orientation handling.
+    /// Caller is responsible for caching the decoded `CGImage` (typically once per
+    /// reference revision).
+    public func renderImage(
+        fromImage normalizedImage: CGImage,
+        sourceLUT: LUT3D,
+        intensity: FilterIntensity = .full,
+        grain: Float = 0,
+        vignette: Float = 0,
+        cropAspectRatio: PhotoCropAspectRatio? = nil
+    ) throws -> CGImage {
+        var pixelBuffer = try PixelBuffer(image: normalizedImage)
+        pixelBuffer.apply(lut: sourceLUT, intensity: intensity)
+        pixelBuffer.applySpatialAdjustments(grain: grain, vignette: vignette)
+        let filteredImage = try pixelBuffer.makeImage()
+        return try crop(filteredImage, aspectRatio: cropAspectRatio)
+    }
+
+    /// Decodes JPEG/PNG `Data` and applies EXIF orientation. Exposed publicly so callers
+    /// can hoist this work out of a hot render loop and cache the result.
+    public func decodeAndNormalize(_ originalData: Data) throws -> CGImage {
         guard !originalData.isEmpty else {
             throw PhotoFilterRendererError.invalidImageData
         }
-
         guard
             let source = CGImageSourceCreateWithData(originalData as CFData, nil),
             let sourceImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
         else {
             throw PhotoFilterRendererError.invalidImageData
         }
-
-        let normalizedImage = try normalizeOrientation(sourceImage, source: source)
-        var pixelBuffer = try PixelBuffer(image: normalizedImage)
-
-        pixelBuffer.apply(lut: sourceLUT, intensity: intensity)
-        pixelBuffer.applySpatialAdjustments(grain: grain, vignette: vignette)
-
-        let filteredImage = try pixelBuffer.makeImage()
-        return try crop(filteredImage, aspectRatio: cropAspectRatio)
+        return try normalizeOrientation(sourceImage, source: source)
     }
 
     private func makeLUT(for filter: RenderFilter) -> LUT3D {

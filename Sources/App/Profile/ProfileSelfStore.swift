@@ -331,6 +331,14 @@ final class ProfileSelfStore: ObservableObject {
         return normalized.isEmpty ? "@user" : "@\(normalized)"
     }
 
+    /// 빈 문자열·공백만 있는 값을 nil 처럼 다루기 위한 공용 정규화 헬퍼.
+    /// 여러 화면이 Firestore raw 필드를 일관되게 폴백 처리할 수 있도록 노출.
+    static func nonEmptyTrimmed(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
     private static var isUnitTesting: Bool {
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }

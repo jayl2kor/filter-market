@@ -123,6 +123,8 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
         let status = FilterStatus(rawValue: statusRaw) ?? .approved
         let useCount = (data["useCount"] as? Int) ?? 0
         let downloadCount = (data["downloadCount"] as? Int) ?? 0
+        let reviewCount = (data["reviewCount"] as? Int) ?? 0
+        let likeCount = (data["likeCount"] as? Int) ?? 0
         let priceCoins = (data["priceCoins"] as? Int) ?? 0
         let ratingAvg = data["ratingAvg"] as? Double
         let coverURLString = data["coverURL"] as? String
@@ -171,7 +173,9 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
             coverURL: coverURL,
             signatureSampleURL: signatureSampleURL,
             ratingAvg: ratingAvg,
-            downloadCount: downloadCount
+            downloadCount: downloadCount,
+            reviewCount: reviewCount,
+            likeCount: likeCount
         )
     }
 
@@ -197,6 +201,8 @@ public final class FirestoreFilterRepository: FilterRepository, @unchecked Senda
             signatureSampleURL: filter.signatureSampleURL,
             ratingAvg: filter.ratingAvg,
             downloadCount: filter.downloadCount,
+            reviewCount: filter.reviewCount,
+            likeCount: filter.likeCount,
             tags: filter.tags
         )
     }

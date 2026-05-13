@@ -16,12 +16,46 @@ public struct RGBColor: Equatable, Sendable {
 public struct LUT3D: Sendable {
     public let size: Int
     private let values: [RGBColor]
+    /// FNV-1a digest over (size + bit-patterns of all RGB values). Stable across processes.
+    /// Computed once at construction so cache keys downstream don't re-iterate 33³ entries.
+    public let fingerprint: UInt64
 
     public init(size: Int, values: [RGBColor]) {
         precondition(size > 1, "LUT size must be greater than 1")
         precondition(values.count == size * size * size, "LUT value count must match size^3")
         self.size = size
         self.values = values
+        self.fingerprint = Self.computeFingerprint(size: size, values: values)
+    }
+
+    private static func computeFingerprint(size: Int, values: [RGBColor]) -> UInt64 {
+        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+        let prime: UInt64 = 0x100_0000_01b3
+        mixInt(&hash, prime, value: size)
+        for color in values {
+            mixFloat(&hash, prime, value: color.red)
+            mixFloat(&hash, prime, value: color.green)
+            mixFloat(&hash, prime, value: color.blue)
+        }
+        return hash
+    }
+
+    private static func mixInt(_ hash: inout UInt64, _ prime: UInt64, value: Int) {
+        var bits = UInt64(bitPattern: Int64(value))
+        for _ in 0 ..< 8 {
+            hash ^= UInt64(bits & 0xff)
+            hash &*= prime
+            bits >>= 8
+        }
+    }
+
+    private static func mixFloat(_ hash: inout UInt64, _ prime: UInt64, value: Float) {
+        var bits = UInt64(value.bitPattern)
+        for _ in 0 ..< 4 {
+            hash ^= UInt64(bits & 0xff)
+            hash &*= prime
+            bits >>= 8
+        }
     }
 
     public static func identity(size: Int = 33) -> LUT3D {

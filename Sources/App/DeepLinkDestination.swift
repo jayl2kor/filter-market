@@ -115,9 +115,9 @@ struct DeepLinkDestination: View {
         case .favoritesCollection:
             FavoritesCollectionScreen()
         case .forYou:
-            ForYouFeedScreen()
+            DiscoveryScreen(initialTab: .forYou)
         case .followingFeed:
-            FollowingFeedScreen()
+            DiscoveryScreen(initialTab: .following)
         case .modQueue:
             ModerationQueueScreen()
         case .modDetail(let id):

@@ -110,7 +110,7 @@ public struct FMTabBar: View {
         HStack(spacing: 0) {
             tabButton(.market)
             tabButton(.search)
-            shutterButton
+            shutterColumnSpacer
             tabButton(.saved)
             tabButton(.profile)
         }
@@ -123,6 +123,20 @@ public struct FMTabBar: View {
                 .fill(FMColors.Border.subtle)
                 .frame(height: 0.5)
         }
+        .overlay(alignment: .center) {
+            // Rendered AFTER the top border so the shutter circle visually
+            // covers the divider line where it intersects.
+            shutterButton
+                .offset(y: -12)
+        }
+    }
+
+    private var shutterColumnSpacer: some View {
+        Color.clear
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture { onShutter() }
+            .accessibilityHidden(true)
     }
 
     @ViewBuilder
@@ -202,9 +216,9 @@ public struct FMTabBar: View {
                 ZStack {
                     Circle()
                         .fill(FMColors.Accent.primary)
-                        .frame(width: 44, height: 44)
+                        .frame(width: 52, height: 52)
                     Image(systemName: "camera.fill")
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(FMColors.Text.inverse)
                 }
                 .shadow(
@@ -221,7 +235,6 @@ public struct FMTabBar: View {
                         .foregroundStyle(FMColors.Text.tertiary)
                 }
             }
-            .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
         }
         .buttonStyle(ShutterPressStyle())

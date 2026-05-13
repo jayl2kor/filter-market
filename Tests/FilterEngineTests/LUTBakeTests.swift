@@ -132,4 +132,73 @@ final class LUTBakeTests: XCTestCase {
         XCTAssertEqual(sample.red, sample.green, accuracy: 0.01)
         XCTAssertEqual(sample.green, sample.blue, accuracy: 0.01)
     }
+
+    // MARK: - Cache behavior
+
+    func testBakeCachesIdenticalInputs() {
+        LUTBake._resetCacheForTesting()
+        let lut = LUT3D.identity(size: 17)
+        let parameters = EditorParameters(exposure: 0.4, contrast: 0.2)
+
+        _ = LUTBake.bake(sourceLUT: lut, parameters: parameters)
+        let afterFirst = LUTBake._cacheStatsForTesting()
+        XCTAssertEqual(afterFirst.hits, 0)
+        XCTAssertEqual(afterFirst.misses, 1)
+        XCTAssertEqual(afterFirst.entries, 1)
+
+        _ = LUTBake.bake(sourceLUT: lut, parameters: parameters)
+        let afterSecond = LUTBake._cacheStatsForTesting()
+        XCTAssertEqual(afterSecond.hits, 1, "Second call with identical inputs should hit the cache")
+        XCTAssertEqual(afterSecond.misses, 1, "Miss count should not grow on a cache hit")
+        XCTAssertEqual(afterSecond.entries, 1)
+    }
+
+    func testBakeCacheDistinguishesQuantizedParameters() {
+        LUTBake._resetCacheForTesting()
+        let lut = LUT3D.identity(size: 17)
+
+        // The cache key quantizes parameters to 3 decimal places (×1000). Values that round
+        // to the same integer must hit the same cache entry; values that round differently
+        // must not collide.
+        _ = LUTBake.bake(sourceLUT: lut, parameters: EditorParameters(exposure: 0.2001))
+        _ = LUTBake.bake(sourceLUT: lut, parameters: EditorParameters(exposure: 0.2003))
+        _ = LUTBake.bake(sourceLUT: lut, parameters: EditorParameters(exposure: 0.2010))
+
+        let stats = LUTBake._cacheStatsForTesting()
+        // 0.2001 → quantized 200, 0.2003 → 200, 0.2010 → 201. Expect 2 entries, 1 hit.
+        XCTAssertEqual(stats.misses, 2)
+        XCTAssertEqual(stats.hits, 1)
+        XCTAssertEqual(stats.entries, 2)
+    }
+
+    func testBakeCacheHitIsMeasurablyFaster() {
+        LUTBake._resetCacheForTesting()
+        // A reasonably realistic size — production uses 33.
+        let lut = LUT3D.identity(size: 33)
+        let parameters = EditorParameters(exposure: 0.3, contrast: 0.15, saturation: -0.2)
+
+        let coldStart = DispatchTime.now()
+        _ = LUTBake.bake(sourceLUT: lut, parameters: parameters)
+        let coldElapsed = DispatchTime.now().uptimeNanoseconds - coldStart.uptimeNanoseconds
+
+        let hotStart = DispatchTime.now()
+        _ = LUTBake.bake(sourceLUT: lut, parameters: parameters)
+        let hotElapsed = DispatchTime.now().uptimeNanoseconds - hotStart.uptimeNanoseconds
+
+        // Cache hit should be at least 10× faster than a cold bake. Real ratio is much higher
+        // (microseconds vs milliseconds), the 10× threshold absorbs CI/host variance.
+        XCTAssertLessThan(hotElapsed * 10, coldElapsed,
+                          "Expected cache hit (\(hotElapsed)ns) to be >10× faster than cold bake (\(coldElapsed)ns)")
+    }
+
+    func testLUT3DFingerprintIsStableAndDistinct() {
+        let a = LUT3D.identity(size: 9)
+        let b = LUT3D.identity(size: 9)
+        XCTAssertEqual(a.fingerprint, b.fingerprint,
+                       "Two identity LUTs of the same size must fingerprint identically")
+
+        let c = LUT3D.identity(size: 17)
+        XCTAssertNotEqual(a.fingerprint, c.fingerprint,
+                          "Different-size identity LUTs must fingerprint differently")
+    }
 }

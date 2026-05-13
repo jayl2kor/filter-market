@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Editor parameters that get baked into a LUT.
 ///
@@ -53,7 +54,7 @@ public enum LUTBake {
 
     public static func cacheKey(sourceLUT: LUT3D, parameters: EditorParameters) -> CacheKey {
         CacheKey(
-            sourceFingerprint: fingerprint(of: sourceLUT),
+            sourceFingerprint: sourceLUT.fingerprint,
             exposureQ: quantize(parameters.exposure),
             contrastQ: quantize(parameters.contrast),
             saturationQ: quantize(parameters.saturation),
@@ -62,7 +63,21 @@ public enum LUTBake {
     }
 
     /// Bake parameters into the source LUT. Output is byte-equal for identical inputs.
+    /// Memoized by (source LUT fingerprint, quantized parameters) — repeated calls with the
+    /// same inputs return the cached result without re-iterating 33³ entries. Cap 32 entries (FIFO).
     public static func bake(sourceLUT: LUT3D, parameters: EditorParameters) -> LUT3D {
+        let key = cacheKey(sourceLUT: sourceLUT, parameters: parameters)
+        if let cached = cache.withLock({ state -> LUT3D? in
+            if let hit = state.entries[key] {
+                state.hits &+= 1
+                return hit
+            }
+            state.misses &+= 1
+            return nil
+        }) {
+            return cached
+        }
+
         let size = sourceLUT.size
         var values: [RGBColor] = []
         values.reserveCapacity(size * size * size)
@@ -76,7 +91,52 @@ public enum LUTBake {
             }
         }
 
-        return LUT3D(size: size, values: values)
+        let result = LUT3D(size: size, values: values)
+
+        cache.withLock { state in
+            state.entries[key] = result
+            state.order.append(key)
+            if state.order.count > cacheCapacity {
+                let evict = state.order.removeFirst()
+                state.entries.removeValue(forKey: evict)
+            }
+        }
+
+        return result
+    }
+
+    // MARK: - Cache
+
+    private struct CacheState {
+        var entries: [CacheKey: LUT3D] = [:]
+        var order: [CacheKey] = []
+        var hits: UInt64 = 0
+        var misses: UInt64 = 0
+    }
+
+    private static let cacheCapacity = 32
+    private static let cache = OSAllocatedUnfairLock<CacheState>(initialState: CacheState())
+
+    /// Test-only stats. Resets and reads behind the same lock so tests stay deterministic.
+    public struct CacheStats: Sendable {
+        public let hits: UInt64
+        public let misses: UInt64
+        public let entries: Int
+    }
+
+    public static func _cacheStatsForTesting() -> CacheStats {
+        cache.withLock { state in
+            CacheStats(hits: state.hits, misses: state.misses, entries: state.entries.count)
+        }
+    }
+
+    public static func _resetCacheForTesting() {
+        cache.withLock { state in
+            state.entries.removeAll()
+            state.order.removeAll()
+            state.hits = 0
+            state.misses = 0
+        }
     }
 
     // MARK: - Internals
@@ -122,42 +182,5 @@ public enum LUTBake {
 
     private static func quantize(_ value: Float) -> Int32 {
         Int32((value * 1_000).rounded())
-    }
-
-    private static func fingerprint(of lut: LUT3D) -> UInt64 {
-        var hash: UInt64 = 0xcbf2_9ce4_8422_2325 // FNV-1a offset basis
-        let prime: UInt64 = 0x100_0000_01b3
-        let size = lut.size
-        mix(&hash, prime, withInt: size)
-
-        for b in 0 ..< size {
-            for g in 0 ..< size {
-                for r in 0 ..< size {
-                    let color = lut.colorAt(red: r, green: g, blue: b)
-                    mix(&hash, prime, withFloat: color.red)
-                    mix(&hash, prime, withFloat: color.green)
-                    mix(&hash, prime, withFloat: color.blue)
-                }
-            }
-        }
-        return hash
-    }
-
-    private static func mix(_ hash: inout UInt64, _ prime: UInt64, withInt value: Int) {
-        var bits = UInt64(bitPattern: Int64(value))
-        for _ in 0 ..< 8 {
-            hash ^= UInt64(bits & 0xff)
-            hash &*= prime
-            bits >>= 8
-        }
-    }
-
-    private static func mix(_ hash: inout UInt64, _ prime: UInt64, withFloat value: Float) {
-        var bits = UInt64(value.bitPattern)
-        for _ in 0 ..< 4 {
-            hash ^= UInt64(bits & 0xff)
-            hash &*= prime
-            bits >>= 8
-        }
     }
 }

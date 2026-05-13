@@ -149,7 +149,7 @@ struct CameraScreen: View {
             if !isUITesting && scenePhase == .active {
                 await controller.start()
             }
-        }
+        }   
         .onChange(of: filterLibraryStore.selectedFilterID) { _, _ in
             controller.apply(filter: filterLibraryStore.selectedFilter)
         }
@@ -314,7 +314,14 @@ struct CameraScreen: View {
                 .tracking(0.4)
         }
         .foregroundStyle(FMColors.Text.inverse)
-        .shadow(color: .black.opacity(0.65), radius: 2, y: 1)
+        .padding(.horizontal, Sp.xs)
+        .frame(minHeight: 28)
+        .background(Color.black.opacity(0.55), in: Capsule())
+        .overlay {
+            Capsule()
+                .strokeBorder(Color.white.opacity(0.45), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 1)
         .accessibilityLabel("자동 노출 모드")
         .colorScheme(.dark)
     }
@@ -345,12 +352,13 @@ struct CameraScreen: View {
             .foregroundStyle(FMColors.Text.inverse)
             .frame(minWidth: 56, minHeight: 44)
             .padding(.horizontal, Sp.xs)
-            .background(Color.black.opacity(0.64), in: Capsule())
+            .background(Color.black.opacity(0.78), in: Capsule())
             .overlay {
                 Capsule()
-                    .strokeBorder(Color.white.opacity(0.28), lineWidth: 1)
+                    .strokeBorder(Color.white.opacity(0.55), lineWidth: 1)
             }
             .colorScheme(.dark)
+            .shadow(color: .black.opacity(0.40), radius: 8, x: 0, y: 2)
         }
         .accessibilityIdentifier("camera.aspectRatio")
         .accessibilityLabel("비율 \(cameraStateStore.aspectRatio.label)")
@@ -402,10 +410,10 @@ struct CameraScreen: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
-                .foregroundStyle(cameraStateStore.timerOption == .off ? FMColors.Text.inverse.opacity(0.78) : FMColors.Accent.primary)
+                .foregroundStyle(cameraStateStore.timerOption == .off ? FMColors.Text.inverse.opacity(0.92) : FMColors.Accent.primary)
                 .frame(minWidth: 44, minHeight: 44)
                 .padding(.horizontal, Sp.xs)
-                .background(Color.black.opacity(0.64), in: Capsule())
+                .background(Color.black.opacity(0.78), in: Capsule())
                 .overlay {
                     Capsule()
                         .fill(cameraStateStore.timerOption == .off ? Color.clear : FMColors.Accent.primary.opacity(0.18))
@@ -414,12 +422,13 @@ struct CameraScreen: View {
                     Capsule()
                         .strokeBorder(
                             cameraStateStore.timerOption == .off
-                                ? Color.white.opacity(0.28)
-                                : FMColors.Accent.primary.opacity(0.65),
+                                ? Color.white.opacity(0.55)
+                                : FMColors.Accent.primary.opacity(0.72),
                             lineWidth: 1
                         )
                 }
                 .colorScheme(.dark)
+                .shadow(color: .black.opacity(0.40), radius: 8, x: 0, y: 2)
         }
         .accessibilityIdentifier("camera.timer")
         .accessibilityLabel("타이머 \(cameraStateStore.timerOption.label)")
@@ -467,7 +476,7 @@ struct CameraScreen: View {
                 .foregroundStyle(cameraStateStore.flashMode == .off ? FMColors.Text.inverse : FMColors.Accent.primary)
                 .padding(.horizontal, Sp.xs + 2)
                 .frame(minWidth: 54, minHeight: 44)
-                .background(Color.black.opacity(0.64), in: Capsule())
+                .background(Color.black.opacity(0.78), in: Capsule())
                 .overlay {
                     Capsule()
                         .fill(cameraStateStore.flashMode == .off ? Color.clear : FMColors.Accent.primary.opacity(0.18))
@@ -476,12 +485,13 @@ struct CameraScreen: View {
                     Capsule()
                         .strokeBorder(
                             cameraStateStore.flashMode == .off
-                                ? Color.white.opacity(0.28)
-                                : FMColors.Accent.primary.opacity(0.65),
+                                ? Color.white.opacity(0.55)
+                                : FMColors.Accent.primary.opacity(0.72),
                             lineWidth: 1
                         )
                 }
                 .colorScheme(.dark)
+                .shadow(color: .black.opacity(0.40), radius: 8, x: 0, y: 2)
         }
         .accessibilityIdentifier("camera.flash")
         .accessibilityLabel("플래시 \(cameraStateStore.flashMode.label)")
@@ -498,7 +508,7 @@ struct CameraScreen: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(isActive ? FMColors.Accent.primary : FMColors.Text.inverse)
                 .frame(width: 44, height: 44)
-                .background(Color.black.opacity(0.64), in: Circle())
+                .background(Color.black.opacity(0.78), in: Circle())
                 .overlay {
                     Circle()
                         .fill(isActive ? FMColors.Accent.primary.opacity(0.18) : Color.clear)
@@ -506,11 +516,12 @@ struct CameraScreen: View {
                 .overlay {
                     Circle()
                         .strokeBorder(
-                            isActive ? FMColors.Accent.primary.opacity(0.65) : Color.white.opacity(0.28),
+                            isActive ? FMColors.Accent.primary.opacity(0.72) : Color.white.opacity(0.55),
                             lineWidth: 1
                         )
                 }
                 .colorScheme(.dark)
+                .shadow(color: .black.opacity(0.40), radius: 8, x: 0, y: 2)
         }
         .accessibilityLabel(label)
     }

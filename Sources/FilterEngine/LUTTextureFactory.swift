@@ -19,6 +19,16 @@ enum LUTTextureFactory {
         }
     }
 
+    static func makeLUT(device: MTLDevice, lut: LUT3D) -> MTLTexture? {
+        makeLUT(device: device, size: lut.size) { red, green, blue in
+            let redIndex = Int((red * Float(lut.size - 1)).rounded())
+            let greenIndex = Int((green * Float(lut.size - 1)).rounded())
+            let blueIndex = Int((blue * Float(lut.size - 1)).rounded())
+            let color = lut.colorAt(red: redIndex, green: greenIndex, blue: blueIndex)
+            return (color.red, color.green, color.blue)
+        }
+    }
+
     static func makeWarmLUT(device: MTLDevice, size: Int = 33) -> MTLTexture? {
         makeLUT(device: device, preset: .warm, size: size)
     }

@@ -583,35 +583,23 @@ struct PhotoEditScreen: View {
 
     private var filterStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Sp.xs) {
+            LazyHStack(spacing: Sp.xs) {
                 ForEach(filterLibraryStore.filters) { filter in
-                    let isSelected = selectedFilter?.id == filter.id
-                    Button {
+                    FilterStripCell(
+                        filter: filter,
+                        isSelected: selectedFilter?.id == filter.id
+                    ) {
                         FMHaptic.selection.play()
                         applyUserEdit {
                             selectedFilterID = filter.id
                         }
-                    } label: {
-                        VStack(spacing: 6) {
-                            FilterThumbnail(filter: filter)
-                                .frame(width: 64, height: 64)
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: R.md)
-                                        .strokeBorder(isSelected ? FMColors.Accent.primary : FMColors.Border.subtle, lineWidth: isSelected ? 2 : 1)
-                                }
-                            Text(filter.title)
-                                .font(.system(size: 10, weight: .semibold))
-                                .lineLimit(1)
-                                .foregroundStyle(isSelected ? FMColors.Accent.primary : FMColors.Text.secondary)
-                                .frame(width: 76)
-                        }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("photo.edit.filter.\(filter.id.uuidString)")
                 }
             }
             .padding(.vertical, Sp.xs)
+            .scrollTargetLayout()
         }
+        .scrollTargetBehavior(.viewAligned)
     }
 
     private var intensityControl: some View {
@@ -779,5 +767,39 @@ private struct PhotoEditState: Equatable {
             filterID: filterID,
             intensity: (intensity * 100).rounded() / 100
         )
+    }
+}
+
+private struct FilterStripCell: View, Equatable {
+    let filter: Filter
+    let isSelected: Bool
+    let action: () -> Void
+
+    nonisolated static func == (lhs: FilterStripCell, rhs: FilterStripCell) -> Bool {
+        lhs.filter.id == rhs.filter.id && lhs.isSelected == rhs.isSelected
+    }
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                FilterThumbnail(filter: filter)
+                    .frame(width: 64, height: 64)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: R.md)
+                            .strokeBorder(
+                                isSelected ? FMColors.Accent.primary : FMColors.Border.subtle,
+                                lineWidth: isSelected ? 2 : 1
+                            )
+                    }
+                    .compositingGroup()
+                Text(filter.title)
+                    .font(.system(size: 10, weight: .semibold))
+                    .lineLimit(1)
+                    .foregroundStyle(isSelected ? FMColors.Accent.primary : FMColors.Text.secondary)
+                    .frame(width: 76)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("photo.edit.filter.\(filter.id.uuidString)")
     }
 }

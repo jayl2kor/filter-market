@@ -33,6 +33,31 @@ struct PopularMaker: Identifiable, Sendable {
     let filterCount: Int
 }
 
+// MARK: - SearchResultsTab
+
+/// 결과 화면 상단 세그먼트.
+enum SearchResultsTab: Hashable, CaseIterable {
+    case all
+    case profiles
+    case filters
+
+    var title: String {
+        switch self {
+        case .all:      "전체"
+        case .profiles: "프로필"
+        case .filters:  "필터"
+        }
+    }
+
+    var telemetryName: String {
+        switch self {
+        case .all:      "all"
+        case .profiles: "profiles"
+        case .filters:  "filters"
+        }
+    }
+}
+
 // MARK: - SearchScreen
 
 /// 발견 — 8번 화면.
@@ -54,6 +79,8 @@ struct SearchScreen: View {
     @State private var phase: SearchPhase = .discovering
     @State private var didTrackDiscoverImpression = false
     @State private var suppressNextQueryDebounce = false
+    @State private var selectedResultsTab: SearchResultsTab = .all
+    @StateObject private var profileSearchStore = ProfileSearchStore()
     @FocusState private var isFieldFocused: Bool
 
     private let initialCategory: String?
@@ -128,6 +155,9 @@ struct SearchScreen: View {
             }
             scheduleDebouncedSearch(for: newValue)
         }
+        .onChange(of: debouncedQuery) { _, newValue in
+            profileSearchStore.update(query: newValue)
+        }
         .onChange(of: isFieldFocused) { _, focused in
             guard focused, phase == .discovering else { return }
             withAnimation(.fmFast.reducedIfNeeded(reduceMotion)) {
@@ -184,6 +214,8 @@ struct SearchScreen: View {
                 debouncedQuery = query
                 isSearchDebouncing = false
                 phase = .results
+                selectedResultsTab = .all
+                profileSearchStore.update(query: query)
                 rememberSearch(query)
                 Telemetry.trackFunnelStep("search_discovery", step: "query_submitted", screen: .search, parameters: [
                     "query_length": query.count,
@@ -587,18 +619,19 @@ struct SearchScreen: View {
     // MARK: - Typing (live)
 
     private var typingContent: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // 메이커 매치 (있으면)
-            if !filteredMakers.isEmpty {
+        let profileHits = Array(profileSearchStore.results.prefix(3))
+        return VStack(alignment: .leading, spacing: 0) {
+            // 프로필 매치 (있으면) — Firestore /users 검색 결과 top 3 미리보기.
+            if !profileHits.isEmpty {
                 VStack(alignment: .leading, spacing: Sp.sm) {
-                    Text("메이커")
+                    Text("프로필")
                         .fmTypography(.subhead)
                         .foregroundStyle(FMColors.Text.tertiary)
 
                     VStack(spacing: 0) {
-                        ForEach(filteredMakers) { maker in
-                            makerRow(maker)
-                            if maker.id != filteredMakers.last?.id {
+                        ForEach(profileHits) { hit in
+                            profileRow(hit, source: "typing")
+                            if hit.id != profileHits.last?.id {
                                 Rectangle()
                                     .fill(FMColors.Border.subtle)
                                     .frame(height: 1)
@@ -713,55 +746,252 @@ struct SearchScreen: View {
     // MARK: - Results
 
     private var resultsContent: some View {
-        Group {
-            if filteredFilters.isEmpty {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("\"\(query)\" 결과")
+                .font(.system(size: 11, weight: .medium))
+                .tracking(0.4)
+                .textCase(.uppercase)
+                .foregroundStyle(FMColors.Text.tertiary)
+                .padding(.horizontal, Sp.md)
+                .padding(.top, Sp.md)
+
+            FMSegmentedControl(
+                selection: $selectedResultsTab,
+                options: SearchResultsTab.allCases,
+                title: \.title
+            )
+            .padding(.horizontal, Sp.md)
+            .padding(.top, Sp.sm)
+            .padding(.bottom, Sp.md)
+            .accessibilityIdentifier("search.results.segment")
+            .onChange(of: selectedResultsTab) { _, newValue in
+                Telemetry.trackAction("search_tab_switched", screen: .search, parameters: [
+                    "tab": newValue.telemetryName,
+                    "query_length": query.count
+                ])
+            }
+
+            switch selectedResultsTab {
+            case .all:      allResultsContent
+            case .profiles: profilesOnlyContent
+            case .filters:  filtersOnlyContent
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var allResultsContent: some View {
+        let profiles = profileSearchStore.results
+        let filters = filteredFilters
+        if profiles.isEmpty && filters.isEmpty {
+            emptyResultsView
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                if !profiles.isEmpty {
+                    profilesPreviewSection(
+                        hits: Array(profiles.prefix(3)),
+                        totalCount: profiles.count
+                    )
+                    if !filters.isEmpty {
+                        sectionDivider
+                    }
+                }
+                if !filters.isEmpty {
+                    filtersGridSection(
+                        filters: filters,
+                        showSeeAll: !profiles.isEmpty && filters.count > 6,
+                        truncateTo: profiles.isEmpty ? nil : 6
+                    )
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var profilesOnlyContent: some View {
+        let profiles = profileSearchStore.results
+        if profiles.isEmpty {
+            if profileSearchStore.state.isLoading {
+                ProgressView()
+                    .padding(.top, Sp.xxl)
+                    .frame(maxWidth: .infinity)
+            } else {
                 FMEmptyState(.noSearchResults(query: query)) {
                     Telemetry.trackAction("empty_state_cta_tapped", screen: .search, parameters: [
-                        "state_name": "no_search_results"
+                        "state_name": "no_profile_results"
                     ])
                     cancelSearch()
                 }
                 .padding(.top, Sp.xxl)
                 .onAppear {
-                    Telemetry.trackEmptyState("no_search_results", screen: .search, parameters: [
+                    Telemetry.trackEmptyState("no_profile_results", screen: .search, parameters: [
                         "query_length": query.count
                     ])
                 }
-            } else {
-                VStack(alignment: .leading, spacing: Sp.sm) {
-                    Text("\"\(query)\" 결과 · \(filteredFilters.count)개")
-                        .font(.system(size: 11, weight: .medium))
-                        .tracking(0.4)
-                        .textCase(.uppercase)
-                        .foregroundStyle(FMColors.Text.tertiary)
-                        .padding(.horizontal, Sp.md)
-                        .padding(.top, Sp.md)
-
-                    LazyVGrid(
-                        columns: [
-                            GridItem(.flexible(), spacing: Sp.sm),
-                            GridItem(.flexible(), spacing: Sp.sm)
-                        ],
-                        spacing: Sp.sm
-                    ) {
-                        ForEach(Array(filteredFilters.enumerated()), id: \.offset) { index, filter in
-                            routeLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
-                                FMFilterTile(data: filter.toTileData())
-                            }
-                            .buttonStyle(.plain)
-                            .simultaneousGesture(TapGesture().onEnded {
-                                Telemetry.trackFunnelStep("search_discovery", step: "filter_opened", screen: .search, parameters: [
-                                    "source": "results",
-                                    "position": index
-                                ])
-                            })
-                            .accessibilityIdentifier("search.result.tile.\(index)")
-                        }
+            }
+        } else {
+            VStack(spacing: 0) {
+                ForEach(profiles) { hit in
+                    profileRow(hit, source: "results")
+                    if hit.id != profiles.last?.id {
+                        Rectangle()
+                            .fill(FMColors.Border.subtle)
+                            .frame(height: 1)
                     }
-                    .padding(.horizontal, Sp.md)
+                }
+            }
+            .padding(.horizontal, Sp.md)
+        }
+    }
+
+    @ViewBuilder
+    private var filtersOnlyContent: some View {
+        if filteredFilters.isEmpty {
+            emptyResultsView
+        } else {
+            filtersGridSection(filters: filteredFilters, showSeeAll: false, truncateTo: nil)
+        }
+    }
+
+    private var emptyResultsView: some View {
+        FMEmptyState(.noSearchResults(query: query)) {
+            Telemetry.trackAction("empty_state_cta_tapped", screen: .search, parameters: [
+                "state_name": "no_search_results"
+            ])
+            cancelSearch()
+        }
+        .padding(.top, Sp.xxl)
+        .onAppear {
+            Telemetry.trackEmptyState("no_search_results", screen: .search, parameters: [
+                "query_length": query.count
+            ])
+        }
+    }
+
+    private func profileRow(_ hit: ProfileSearchHit, source: String) -> some View {
+        routeLink(value: AppRoute.otherProfile(uid: hit.uid)) {
+            HStack(spacing: Sp.sm) {
+                FMAvatar(url: hit.avatarURL, size: .sm, fallback: hit.avatarInitials)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(hit.handle)
+                        .fmTypography(.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FMColors.Text.primary)
+                    if hit.filterCount > 0 {
+                        Text("필터 \(hit.filterCount)")
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Text.tertiary)
+                    } else if !hit.displayName.isEmpty, hit.displayName != hit.handle {
+                        Text(hit.displayName)
+                            .fmTypography(.caption)
+                            .foregroundStyle(FMColors.Text.tertiary)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(FMColors.Text.tertiary)
+            }
+            .padding(.vertical, Sp.xs)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(TapGesture().onEnded {
+            Telemetry.trackAction("profile_opened_from_search", screen: .search, parameters: [
+                "source": source,
+                "tab": selectedResultsTab.telemetryName,
+                "query_length": query.count
+            ])
+        })
+        .accessibilityIdentifier("search.profile.\(hit.uid)")
+    }
+
+    private func profilesPreviewSection(hits: [ProfileSearchHit], totalCount: Int) -> some View {
+        VStack(alignment: .leading, spacing: Sp.sm) {
+            HStack {
+                Text("프로필 \(totalCount)")
+                    .fmTypography(.headline)
+                    .foregroundStyle(FMColors.Text.primary)
+                Spacer()
+                if totalCount > hits.count {
+                    Button {
+                        Telemetry.trackAction("search_section_see_all", screen: .search, parameters: [
+                            "section": "profiles"
+                        ])
+                        selectedResultsTab = .profiles
+                    } label: {
+                        Text("전체 →")
+                            .fmTypography(.subhead)
+                            .foregroundStyle(FMColors.Accent.primary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("search.section.profiles.seeAll")
+                }
+            }
+            VStack(spacing: 0) {
+                ForEach(hits) { hit in
+                    profileRow(hit, source: "results_preview")
+                    if hit.id != hits.last?.id {
+                        Rectangle()
+                            .fill(FMColors.Border.subtle)
+                            .frame(height: 1)
+                    }
                 }
             }
         }
+        .padding(.horizontal, Sp.md)
+        .padding(.vertical, Sp.md)
+    }
+
+    private func filtersGridSection(filters: [Filter], showSeeAll: Bool, truncateTo: Int?) -> some View {
+        let visible = truncateTo.map { Array(filters.prefix($0)) } ?? filters
+        return VStack(alignment: .leading, spacing: Sp.sm) {
+            HStack {
+                Text("필터 \(filters.count)")
+                    .fmTypography(.headline)
+                    .foregroundStyle(FMColors.Text.primary)
+                Spacer()
+                if showSeeAll {
+                    Button {
+                        Telemetry.trackAction("search_section_see_all", screen: .search, parameters: [
+                            "section": "filters"
+                        ])
+                        selectedResultsTab = .filters
+                    } label: {
+                        Text("전체 →")
+                            .fmTypography(.subhead)
+                            .foregroundStyle(FMColors.Accent.primary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("search.section.filters.seeAll")
+                }
+            }
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: Sp.sm),
+                    GridItem(.flexible(), spacing: Sp.sm)
+                ],
+                spacing: Sp.sm
+            ) {
+                ForEach(Array(visible.enumerated()), id: \.element.id) { index, filter in
+                    routeLink(value: AppRoute.filterDetail(id: filter.id.uuidString)) {
+                        FMFilterTile(data: filter.toTileData())
+                    }
+                    .buttonStyle(.plain)
+                    .simultaneousGesture(TapGesture().onEnded {
+                        Telemetry.trackFunnelStep("search_discovery", step: "filter_opened", screen: .search, parameters: [
+                            "source": "results",
+                            "tab": selectedResultsTab.telemetryName,
+                            "position": index
+                        ])
+                    })
+                    .accessibilityIdentifier("search.result.tile.\(index)")
+                }
+            }
+        }
+        .padding(.horizontal, Sp.md)
+        .padding(.vertical, Sp.md)
     }
 
     // MARK: - Helpers
@@ -787,13 +1017,6 @@ struct SearchScreen: View {
                 || f.category.rawValue.lowercased().contains(normalized)
                 || f.tags.contains { $0.lowercased().contains(normalized) }
         }
-    }
-
-    private var filteredMakers: [PopularMaker] {
-        let searchQuery = activeSearchQuery
-        guard !searchQuery.isEmpty else { return [] }
-        let lower = normalizedSearchToken(searchQuery)
-        return cachedPopularMakers.filter { $0.handle.lowercased().contains(lower) }
     }
 
     private var discoverRankedFilters: [Filter] {
@@ -876,12 +1099,14 @@ struct SearchScreen: View {
 
     private func cancelSearch() {
         searchDebounceTask?.cancel()
+        profileSearchStore.reset()
         withAnimation(.fmFast.reducedIfNeeded(reduceMotion)) {
             isFieldFocused = false
             query = ""
             debouncedQuery = ""
             isSearchDebouncing = false
             phase = .discovering
+            selectedResultsTab = .all
         }
     }
 
@@ -894,6 +1119,8 @@ struct SearchScreen: View {
         debouncedQuery = trimmed
         isSearchDebouncing = false
         phase = .results
+        selectedResultsTab = .all
+        profileSearchStore.update(query: trimmed)
         rememberSearch(trimmed)
     }
 
@@ -924,6 +1151,7 @@ struct SearchScreen: View {
         ])
         await filterLibraryStore.load(force: true)
         debouncedQuery = query
+        profileSearchStore.refresh()
     }
 
     private func trackDiscoverImpressionIfNeeded() {

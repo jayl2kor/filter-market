@@ -71,12 +71,18 @@ targets:
         # Firebase only validates the main app's bundle ID; frameworks use com.moodit.*.
         PRODUCT_BUNDLE_IDENTIFIER: com.jayl2kor.moodit.app
         INFOPLIST_FILE: Sources/App/Info.plist
-        # APNs entitlements (Apple Sign In + aps-environment).
-        # Production builds need aps-environment: production — switch this file
-        # or add a release variant before App Store / TestFlight external.
-        CODE_SIGN_ENTITLEMENTS: mooditDebug.entitlements
         # 브랜드 자산 — Phase Brand 통합. Asset Catalog 위치: Sources/App/Resources/Assets.xcassets.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      configs:
+        # APNs + AppAttest entitlements must match the signing cert:
+        # - Debug = development cert (Xcode Run on device/simulator) ⇒ development envs
+        # - Release = distribution cert (Archive → TestFlight/App Store) ⇒ production envs
+        # Running Release directly from Xcode on a dev-signed device will fail
+        # AppAttest — use Debug for dev testing, Archive for TestFlight.
+        Debug:
+          CODE_SIGN_ENTITLEMENTS: mooditDebug.entitlements
+        Release:
+          CODE_SIGN_ENTITLEMENTS: mooditRelease.entitlements
     postBuildScripts:
       - script: scripts/generate-firebase-dsyms.sh
         name: Generate Firebase dSYMs (archive only)

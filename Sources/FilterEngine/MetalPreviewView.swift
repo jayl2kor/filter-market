@@ -16,3 +16,21 @@ public struct MetalPreviewView: UIViewRepresentable {
 
     public func updateUIView(_ uiView: MTKView, context: Context) {}
 }
+
+public struct MetalStillPreviewView: UIViewRepresentable {
+    private let renderer: MetalStillPreviewRenderer
+
+    public init(renderer: MetalStillPreviewRenderer) {
+        self.renderer = renderer
+    }
+
+    public func makeUIView(context: Context) -> MTKView {
+        let view = MTKView(frame: .zero)
+        renderer.configure(view)
+        return view
+    }
+
+    public func updateUIView(_ uiView: MTKView, context: Context) {
+        uiView.setNeedsDisplay()
+    }
+}

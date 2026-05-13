@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - FMEmptyState.Kind
 
-/// 5종 빈 상태 — `EMPTY_STATES.md` 참조.
+/// 빈 상태 카탈로그 — `EMPTY_STATES.md` 참조.
 public enum FMEmptyStateKind: Sendable {
     case emptyMarket
     case noSearchResults(query: String)
@@ -10,6 +10,8 @@ public enum FMEmptyStateKind: Sendable {
     case emptyDownloads
     case emptyReviews(isLoggedIn: Bool)
     case emptyBlocklist
+    case emptyFollowers
+    case emptyFollowing
 
     var illustration: FMEmptyStateIllustration.Kind {
         switch self {
@@ -19,6 +21,7 @@ public enum FMEmptyStateKind: Sendable {
         case .emptyDownloads: .downloads
         case .emptyReviews: .comments
         case .emptyBlocklist: .blocklist
+        case .emptyFollowers, .emptyFollowing: .profile
         }
     }
 
@@ -36,6 +39,10 @@ public enum FMEmptyStateKind: Sendable {
             "첫 번째 리뷰를 남겨보세요"
         case .emptyBlocklist:
             "차단한 사용자가 없어요"
+        case .emptyFollowers:
+            "아직 팔로워가 없어요"
+        case .emptyFollowing:
+            "아직 팔로잉한 메이커가 없어요"
         }
     }
 
@@ -55,6 +62,10 @@ public enum FMEmptyStateKind: Sendable {
                 : "리뷰를 남기려면 로그인이 필요해요."
         case .emptyBlocklist:
             "차단한 사용자는 이곳에 표시됩니다."
+        case .emptyFollowers:
+            "필터를 만들고 공유하면\n팬이 생기기 시작해요."
+        case .emptyFollowing:
+            "마음에 드는 메이커를 팔로우하면\n새 필터를 가장 먼저 만나볼 수 있어요."
         }
     }
 
@@ -66,6 +77,9 @@ public enum FMEmptyStateKind: Sendable {
         case .emptyDownloads: "마켓 둘러보기"
         case .emptyReviews(let isLoggedIn): isLoggedIn ? "리뷰 쓰기" : "로그인"
         case .emptyBlocklist: nil
+        // 팔로우 빈 상태의 CTA는 NavigationLink로 호출 측에서 직접 그린다.
+        case .emptyFollowers: nil
+        case .emptyFollowing: nil
         }
     }
 }
@@ -166,6 +180,16 @@ public struct FMEmptyState: View {
 
 #Preview("Empty blocklist") {
     FMEmptyState(.emptyBlocklist)
+        .background(FMColors.Background.bg1)
+}
+
+#Preview("Empty followers") {
+    FMEmptyState(.emptyFollowers)
+        .background(FMColors.Background.bg1)
+}
+
+#Preview("Empty following") {
+    FMEmptyState(.emptyFollowing)
         .background(FMColors.Background.bg1)
 }
 

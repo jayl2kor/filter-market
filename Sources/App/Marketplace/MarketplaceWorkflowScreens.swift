@@ -187,10 +187,13 @@ struct FilterDownloadProgressScreen: View {
     let filterID: String
 
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @Environment(\.popToTabRoot) private var popToTabRoot
+    @Environment(\.switchTabAndClear) private var switchTabAndClear
     @State private var phase: DownloadPhase = .preparing
     @State private var progress: Double = 0
     @State private var hasStarted = false
     @State private var toast: FMToastMessage?
+    @State private var showCollectionSheet = false
 
     private var filter: Filter? {
         filterLibraryStore.filter(matching: filterID) ?? filterLibraryStore.filters.first
@@ -199,21 +202,69 @@ struct FilterDownloadProgressScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Sp.lg) {
-                header
-                progressCard
-                metadataCard
-                actionCard
+                if phase == .completed {
+                    completedHeader
+                    metadataCard
+                    DownloadedFilterActionsView(
+                        filterID: filterID,
+                        onApply: applyFilter,
+                        onAddToCollection: { showCollectionSheet = true }
+                    )
+                    finishCTA
+                } else {
+                    header
+                    progressCard
+                    metadataCard
+                    actionCard
+                }
             }
             .padding(Sp.md)
             .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
         }
         .background(FMColors.Background.bg1)
-        .navigationTitle("다운로드")
+        .navigationTitle(phase == .completed ? "다운로드 완료" : "다운로드")
         .navigationBarTitleDisplayMode(.inline)
         .fmToastOverlay(toast: $toast)
+        .sheet(isPresented: $showCollectionSheet) {
+            NavigationStack {
+                FavoritesCollectionScreen()
+                    .environmentObject(filterLibraryStore)
+            }
+            .presentationDetents([.medium, .large])
+        }
         .task {
             await startDownloadIfNeeded()
         }
+    }
+
+    private var completedHeader: some View {
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 44, weight: .semibold))
+                .foregroundStyle(FMColors.Accent.primary)
+            Text("필터가 저장됐어요")
+                .fmTypography(.titleLarge)
+                .foregroundStyle(FMColors.Text.primary)
+            Text("카메라로 바로 적용하거나 저장됨 탭에서 다시 열 수 있어요.")
+                .fmTypography(.body)
+                .foregroundStyle(FMColors.Text.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var finishCTA: some View {
+        FMButton("Market으로 돌아가기", icon: "house.fill", variant: .primary, size: .lg) {
+            FMHaptic.light.play()
+            popToTabRoot(.market)
+        }
+        .accessibilityIdentifier("filter.afterDownload.finish")
+    }
+
+    private func applyFilter() {
+        guard let filter else { return }
+        filterLibraryStore.select(filter)
+        FMHaptic.success.play()
+        switchTabAndClear(.shutter)
     }
 
     private var header: some View {
@@ -306,14 +357,7 @@ struct FilterDownloadProgressScreen: View {
     private var actionCard: some View {
         FMCard {
             VStack(alignment: .leading, spacing: Sp.sm) {
-                if phase == .completed {
-                    NavigationLink(value: AppRoute.filterAfterDownload(id: filterID)) {
-                        routeButtonLabel("다음", icon: "checkmark.circle.fill")
-                            .accessibilityIdentifier("filter.download.completed.next")
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("filter.download.completed.next")
-                } else if case .failed(.entitlementRequired) = phase {
+                if case .failed(.entitlementRequired) = phase {
                     NavigationLink(value: AppRoute.paywallSingle(filterId: filterID)) {
                         routeButtonLabel("구매 화면으로 이동", icon: "creditcard")
                             .accessibilityIdentifier("filter.download.paywall")
@@ -533,12 +577,16 @@ struct FilterDownloadProgressScreen: View {
     }
 }
 
-struct FilterAfterDownloadScreen: View {
+/// 다운로드 완료 후 후속 액션(카메라 적용 / 즐겨찾기 / 컬렉션 추가 / 다운로드 제거).
+///
+/// `FilterDownloadProgressScreen`의 완료 상태와 `FilterAfterDownloadScreen`(딥링크 진입)에서
+/// 동일하게 사용한다. 카메라/컬렉션 전환은 부모가 클로저로 처리한다.
+struct DownloadedFilterActionsView: View {
     let filterID: String
+    let onApply: () -> Void
+    let onAddToCollection: () -> Void
 
     @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
-    @EnvironmentObject private var cameraStateStore: CameraStateStore
-    @State private var isCameraPresented = false
     @State private var showRemoveAlert = false
 
     private var filter: Filter? {
@@ -546,88 +594,10 @@ struct FilterAfterDownloadScreen: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Sp.lg) {
-                successHeader
-                filterCard
-                actionList
-            }
-            .padding(Sp.md)
-            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
-        }
-        .background(FMColors.Background.bg1)
-        .navigationTitle("다운로드 완료")
-        .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await filterLibraryStore.load()
-        }
-        .fullScreenCover(isPresented: $isCameraPresented) {
-            CameraScreen(isPresentedAsCover: true)
-                .environmentObject(filterLibraryStore)
-                .environmentObject(cameraStateStore)
-                .interactiveDismissDisabled(true)
-        }
-        .fmDestructiveAlert(
-            "필터를 제거할까요?",
-            message: "저장됨 탭에서 사라지지만 언제든 다시 다운로드할 수 있어요.",
-            destructiveTitle: "제거",
-            isPresented: $showRemoveAlert
-        ) {
-            if let filter {
-                filterLibraryStore.removeDownloadAndPersist(filter)
-            }
-        }
-    }
-
-    private var successHeader: some View {
-        VStack(alignment: .leading, spacing: Sp.xs) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 44, weight: .semibold))
-                .foregroundStyle(FMColors.Accent.primary)
-            Text("필터가 저장됐어요")
-                .fmTypography(.titleLarge)
-                .foregroundStyle(FMColors.Text.primary)
-            Text("카메라로 바로 적용하거나 저장됨 탭에서 다시 열 수 있습니다.")
-                .fmTypography(.body)
-                .foregroundStyle(FMColors.Text.secondary)
-        }
-    }
-
-    private var filterCard: some View {
-        FMCard {
-            if let filter {
-                HStack(spacing: Sp.md) {
-                    FilterThumbnail(filter: filter)
-                        .frame(width: 84, height: 84)
-                    VStack(alignment: .leading, spacing: Sp.xxs) {
-                        Text(filter.title)
-                            .fmTypography(.headline)
-                            .foregroundStyle(FMColors.Text.primary)
-                        Text(filter.author.displayName)
-                            .fmTypography(.subhead)
-                            .foregroundStyle(FMColors.Text.secondary)
-                        HStack(spacing: Sp.xs) {
-                            PillText("Downloaded")
-                            if filterLibraryStore.isFavorite(filter) {
-                                PillText("Favorite")
-                            }
-                        }
-                    }
-                    Spacer()
-                }
-            } else {
-                Text("필터 정보를 불러오고 있습니다.")
-                    .fmTypography(.body)
-                    .foregroundStyle(FMColors.Text.secondary)
-            }
-        }
-    }
-
-    private var actionList: some View {
         FMCard {
             VStack(spacing: 0) {
                 actionRow("카메라로 적용", icon: "camera.fill", identifier: "filter.apply") {
-                    applyFilter()
+                    onApply()
                 }
                 divider
                 actionRow("즐겨찾기", icon: favoriteIcon, identifier: "filter.favorite.toggle") {
@@ -637,7 +607,10 @@ struct FilterAfterDownloadScreen: View {
                     }
                 }
                 divider
-                NavigationLink(value: AppRoute.favoritesCollection) {
+                Button {
+                    FMHaptic.light.play()
+                    onAddToCollection()
+                } label: {
                     rowContent("컬렉션에 추가", icon: "folder.badge.plus", trailing: "chevron.right")
                 }
                 .buttonStyle(.plain)
@@ -646,6 +619,16 @@ struct FilterAfterDownloadScreen: View {
                 actionRow("다운로드 제거", icon: "trash", isDestructive: true, identifier: "filter.remove") {
                     showRemoveAlert = true
                 }
+            }
+        }
+        .fmDestructiveAlert(
+            "필터를 제거할까요?",
+            message: "저장됨 탭에서 사라지지만 언제든 다시 다운로드할 수 있어요.",
+            destructiveTitle: "제거",
+            isPresented: $showRemoveAlert
+        ) {
+            if let filter {
+                filterLibraryStore.removeDownloadAndPersist(filter)
             }
         }
     }
@@ -700,12 +683,107 @@ struct FilterAfterDownloadScreen: View {
         .frame(minHeight: 52)
         .contentShape(Rectangle())
     }
+}
+
+struct FilterAfterDownloadScreen: View {
+    let filterID: String
+
+    @EnvironmentObject private var filterLibraryStore: FilterLibraryStore
+    @Environment(\.popToTabRoot) private var popToTabRoot
+    @Environment(\.switchTabAndClear) private var switchTabAndClear
+    @State private var showCollectionSheet = false
+
+    private var filter: Filter? {
+        filterLibraryStore.filter(matching: filterID) ?? filterLibraryStore.filters.first
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Sp.lg) {
+                successHeader
+                filterCard
+                DownloadedFilterActionsView(
+                    filterID: filterID,
+                    onApply: applyFilter,
+                    onAddToCollection: { showCollectionSheet = true }
+                )
+                finishCTA
+            }
+            .padding(Sp.md)
+            .padding(.bottom, FMLayout.tabBarHeight + Sp.xxxl)
+        }
+        .background(FMColors.Background.bg1)
+        .navigationTitle("다운로드 완료")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await filterLibraryStore.load()
+        }
+        .sheet(isPresented: $showCollectionSheet) {
+            NavigationStack {
+                FavoritesCollectionScreen()
+                    .environmentObject(filterLibraryStore)
+            }
+            .presentationDetents([.medium, .large])
+        }
+    }
+
+    private var successHeader: some View {
+        VStack(alignment: .leading, spacing: Sp.xs) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 44, weight: .semibold))
+                .foregroundStyle(FMColors.Accent.primary)
+            Text("필터가 저장됐어요")
+                .fmTypography(.titleLarge)
+                .foregroundStyle(FMColors.Text.primary)
+            Text("카메라로 바로 적용하거나 저장됨 탭에서 다시 열 수 있어요.")
+                .fmTypography(.body)
+                .foregroundStyle(FMColors.Text.secondary)
+        }
+    }
+
+    private var filterCard: some View {
+        FMCard {
+            if let filter {
+                HStack(spacing: Sp.md) {
+                    FilterThumbnail(filter: filter)
+                        .frame(width: 84, height: 84)
+                    VStack(alignment: .leading, spacing: Sp.xxs) {
+                        Text(filter.title)
+                            .fmTypography(.headline)
+                            .foregroundStyle(FMColors.Text.primary)
+                        Text(filter.author.displayName)
+                            .fmTypography(.subhead)
+                            .foregroundStyle(FMColors.Text.secondary)
+                        HStack(spacing: Sp.xs) {
+                            PillText("Downloaded")
+                            if filterLibraryStore.isFavorite(filter) {
+                                PillText("Favorite")
+                            }
+                        }
+                    }
+                    Spacer()
+                }
+            } else {
+                Text("필터 정보를 불러오고 있어요.")
+                    .fmTypography(.body)
+                    .foregroundStyle(FMColors.Text.secondary)
+            }
+        }
+    }
+
+    private var finishCTA: some View {
+        FMButton("Market으로 돌아가기", icon: "house.fill", variant: .primary, size: .lg) {
+            FMHaptic.light.play()
+            popToTabRoot(.market)
+        }
+        .accessibilityIdentifier("filter.afterDownload.finish")
+    }
 
     private func applyFilter() {
         guard let filter else { return }
         filterLibraryStore.select(filter)
         FMHaptic.success.play()
-        isCameraPresented = true
+        switchTabAndClear(.shutter)
     }
 }
 

@@ -27,6 +27,10 @@ FRAMEWORKS=(
     "grpc.framework"
     "grpcpp.framework"
     "openssl_grpc.framework"
+    "FirebaseAnalytics.framework"
+    "GoogleAdsOnDeviceConversion.framework"
+    "GoogleAppMeasurement.framework"
+    "GoogleAppMeasurementIdentitySupport.framework"
 )
 
 for FRAMEWORK in "${FRAMEWORKS[@]}"; do
